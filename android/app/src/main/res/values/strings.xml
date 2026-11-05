@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PoliLand Kairagi</string>
+    <string name="title_activity_main">PoliLand Kairagi</string>
+    <string name="package_name">com.poliland.kairagi</string>
+    <string name="custom_url_scheme">com.poliland.kairagi</string>
+</resources>

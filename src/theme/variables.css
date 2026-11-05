@@ -1,0 +1,71 @@
+:root {
+  /* PoliLand — Main */
+  --pl-charcoal: #1A1A1A;
+  --pl-slate: #2D2D2D;
+  --pl-gray: #6B6B6B;
+  --pl-silver: #E5E5E5;
+  --pl-background: #FAFAF7;
+  --pl-surface: #FFFFFF;
+
+  /* Accent */
+  --pl-olive: #556B2F;
+  --pl-sage: #8CA072; /* Hijau Pastel */
+  --pl-sand: #EDE6D6;
+  --pl-stone: #D9D3C4;
+
+  /* Secondary */
+  --pl-deep-green: #2E4D2D;
+  --pl-forest: #4A7C59;
+  --pl-warm-gray: #A7A7A7;
+  --pl-cream: #F9F5EC;
+
+  /* Semantic */
+  --pl-success: #2E7D32;
+  --pl-warning: #F2A900;
+  --pl-error: #D32F2F;
+  --pl-info: #2F6FEB;
+  --pl-neutral: #6B7280;
+
+  /* Gradients */
+  --pl-gold-gradient:
+    linear-gradient(135deg, #B8860B, #F4E3B2);
+
+  --pl-green-gradient:
+    linear-gradient(135deg, #2E7D32, #8CA072);
+
+  /* Ionic theme mapping */
+  --ion-background-color: var(--pl-background);
+  --ion-text-color: var(--pl-charcoal);
+
+  /* Primary = Gold (Diselaraskan dengan Style Guide #B8860B) */
+  --ion-color-primary: #637748;
+  --ion-color-primary-rgb: 140, 160, 114;
+  --ion-color-primary-contrast: #FFFFFF;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #A2770A;
+  --ion-color-primary-tint: #C19324;
+
+  /* Tambahan: Ionic Color Sage (Hijau Pastel untuk Tombol/Aksen Alternatif) */
+  --ion-color-sage: #8CA072;
+  --ion-color-sage-rgb: 140, 160, 114;
+  --ion-color-sage-contrast: #FFFFFF;
+  --ion-color-sage-contrast-rgb: 255, 255, 255;
+  --ion-color-sage-shade: #7b8d64;
+  --ion-color-sage-tint: #97aa80;
+
+  /* Other Ionic colors */
+  --ion-color-medium: var(--pl-gray);
+  --ion-color-success: var(--pl-success);
+  --ion-color-warning: var(--pl-warning);
+  --ion-color-danger: var(--pl-error);
+}
+
+/* Helper class agar ion-button bisa langsung mendeteksi warna sage */
+.ion-color-sage {
+  --ion-color-base: var(--ion-color-sage);
+  --ion-color-base-rgb: var(--ion-color-sage-rgb);
+  --ion-color-contrast: var(--ion-color-sage-contrast);
+  --ion-color-contrast-rgb: var(--ion-color-sage-contrast-rgb);
+  --ion-color-shade: var(--ion-color-sage-shade);
+  --ion-color-tint: var(--ion-color-sage-tint);
+}
