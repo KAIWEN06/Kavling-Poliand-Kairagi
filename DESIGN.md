@@ -149,15 +149,39 @@ Current implementation:
 - Uses `@click="$emit('click')"` and a slot.
 - The component is currently used for auth actions, siteplan actions, gallery calls to action, and headers.
 
-Recommended API state:
+Implemented API:
 
-1. Keep Ionic `color` and `fill` for backward compatibility where Ionic behavior is relied on.
-2. Use `variant` only as the visual semantic API after its priority against `color` is implemented and approved.
-3. Do not apply both APIs simultaneously until a conflict rule is tested.
-4. Define `loading`, `size`, and forwarded native attributes before implementation.
-5. Ensure `type="submit"` and router attributes remain compatible.
+| Prop | Type | Default |
+|---|---|---|
+| `variant` | `primary \| secondary \| success \| danger \| neutral` | Inferred: `primary` when no legacy `color` is provided |
+| `fill` | `solid \| outline \| clear` | `solid` |
+| `size` | `small \| medium \| large` | `medium` |
+| `expand` | `block \| full` | None |
+| `loading` | `boolean` | `false` |
+| `disabled` | `boolean` | `false` |
+| `type` | `button \| submit \| reset` | `button` |
+| `color` | Ionic-compatible color | None |
 
-This API recommendation is not implemented.
+The `variant` API takes priority over legacy `color`. Legacy `color` and Ionic fill values remain supported. `fill="default"` is normalized to `solid`.
+
+#### Variants
+
+| Variant | Solid visual direction |
+|---|---|
+| `primary` | PoliLand green |
+| `secondary` | PoliLand gold with dark primary text |
+| `success` | Semantic success green |
+| `danger` | Semantic danger red |
+| `neutral` | Muted surface with primary text |
+
+Outline and clear fills preserve the same variant meaning while using transparent surfaces or borders.
+
+#### States
+
+- Default, hover, active, and focus-visible states use semantic tokens.
+- Small, medium, and large buttons use 44px, 44px, and 48px minimum heights respectively.
+- Loading and disabled states prevent interaction.
+- Loading displays a spinner, retains slot text, and sets `aria-busy="true"` with a screen-reader processing label.
 
 ### AppInput
 
