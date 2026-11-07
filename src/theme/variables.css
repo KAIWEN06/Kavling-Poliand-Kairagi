@@ -2,13 +2,15 @@
   /* PoliLand Modern-Natural design tokens */
   --poliland-gold: #CBA044;
   --poliland-gold-soft: #F4D69A;
+  --poliland-gold-text: #966A12;
+  --poliland-gold-text-soft: #805708;
   --poliland-green: #355A2C;
 
   --app-background: #FAF9F6;
   --surface-primary: #FFFFFF;
   --surface-muted: #F5F3EE;
   --text-primary: #252525;
-  --text-secondary: #85858C;
+  --text-secondary: #717178;
   --border-default: #EAE7E0;
 
   --status-success: var(--poliland-green);

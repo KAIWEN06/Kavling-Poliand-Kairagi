@@ -39,7 +39,7 @@ const tasks = [
     title: 'Verifikasi Pembayaran',
     description: '4 bukti transfer menunggu pemeriksaan',
     icon: Wallet,
-    tone: 'text-[#A66E13] bg-[#F8ECD7]',
+    tone: 'text-[var(--poliland-gold-text-soft)] bg-[#F8ECD7]',
     destination: 'Keuangan',
   },
   {
@@ -54,7 +54,7 @@ const tasks = [
 const quickActions = [
   { label: 'Siteplan 2D', icon: Map, color: 'text-[#355A2C]', tab: 'Kavling' },
   { label: 'Tambah Client', icon: UserRoundPlus, color: 'text-[#355A2C]', tab: 'Pembeli' },
-  { label: 'Pembayaran', icon: Wallet, color: 'text-[#BD861B]', tab: 'Keuangan' },
+  { label: 'Pembayaran', icon: Wallet, color: 'text-[var(--poliland-gold-text)]', tab: 'Keuangan' },
   { label: 'SPK', icon: FileText, color: 'text-[#355A2C]', tab: 'SPK' },
 ]
 
@@ -65,8 +65,8 @@ const activities = [
     status: 'Menunggu Konfirmasi',
     time: '2 jam lalu',
     icon: Bookmark,
-    iconTone: 'text-[#B77A13] bg-[#F7EAD5]',
-    statusTone: 'text-[#98600C] bg-[#F7EAD5]',
+    iconTone: 'text-[var(--poliland-gold-text-soft)] bg-[#F7EAD5]',
+    statusTone: 'text-[var(--poliland-gold-text-soft)] bg-[#F7EAD5]',
   },
   {
     title: 'Cicilan LOT_015',
@@ -121,7 +121,7 @@ function navigate(destination: string) {
               </p>
               <h1
                 id="dashboard-title"
-                class="mt-0.5 break-words font-serif text-[clamp(2.5rem,8vw,3.5rem)] font-bold leading-[1.05] text-[#BD861B]"
+                class="mt-0.5 break-words font-serif text-[clamp(2.5rem,8vw,3.5rem)] font-bold leading-[1.05] text-[var(--poliland-gold-text)]"
               >
                 Admin
               </h1>
@@ -152,14 +152,14 @@ function navigate(destination: string) {
           >
             <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex min-w-0 items-center gap-2">
-                <Layers3 :size="28" class="shrink-0 text-[#BD861B]" />
+                <Layers3 :size="28" class="shrink-0 text-[var(--poliland-gold-text)]" />
                 <h2 id="inventory-title" class="min-w-0 break-words text-base font-extrabold sm:text-lg">
                   Inventaris Kavling
                 </h2>
               </div>
               <button
                 type="button"
-                class="inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-[#F8ECD6] px-3 py-2 text-sm font-medium text-[#99650D] transition hover:bg-[#F2E1C2]"
+                class="inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-[#F8ECD6] px-3 py-2 text-sm font-medium text-[var(--poliland-gold-text-soft)] transition hover:bg-[#F2E1C2]"
                 @click="navigate('Kavling')"
               >
                 <span>Total {{ totalUnits }} Unit</span>
@@ -262,7 +262,7 @@ function navigate(destination: string) {
               </div>
               <button
                 type="button"
-                class="inline-flex w-fit items-center gap-1 text-sm font-medium text-[#B67B0C]"
+                class="inline-flex w-fit items-center gap-1 text-sm font-medium text-[var(--poliland-gold-text)]"
                 @click="navigate('Lainnya')"
               >
                 Lihat Semua <ArrowRight :size="17" />
@@ -316,13 +316,13 @@ function navigate(destination: string) {
               </div>
               <div class="min-w-0 py-3 text-center sm:px-2">
                 <span class="block break-words text-xs text-[#55534F]">Follow Up Mendesak</span>
-                <strong class="mt-1 block font-serif text-3xl font-semibold leading-tight text-[#B17B19] sm:text-4xl">
+                <strong class="mt-1 block font-serif text-3xl font-semibold leading-tight text-[var(--poliland-gold-text)] sm:text-4xl">
                   8 <small class="font-sans text-xs text-[#32733A]">↑ +2%</small>
                 </strong>
               </div>
               <div class="min-w-0 py-3 text-center sm:px-2">
                 <span class="block break-words text-xs text-[#55534F]">Closing Marketing</span>
-                <strong class="mt-1 block font-serif text-3xl font-semibold leading-tight text-[#B17B19] sm:text-4xl">
+                <strong class="mt-1 block font-serif text-3xl font-semibold leading-tight text-[var(--poliland-gold-text)] sm:text-4xl">
                   68%
                 </strong>
               </div>
@@ -342,7 +342,7 @@ function navigate(destination: string) {
           <section class="min-w-0 pb-2" aria-labelledby="recent-activity-title">
             <div class="mb-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex min-w-0 items-center gap-2">
-                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/80 text-[#BD861B]">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/80 text-[var(--poliland-gold-text)]">
                   <Clock3 :size="25" />
                 </span>
                 <h2 id="recent-activity-title" class="break-words text-lg font-extrabold">
@@ -351,7 +351,7 @@ function navigate(destination: string) {
               </div>
               <button
                 type="button"
-                class="inline-flex w-fit items-center gap-1 text-sm font-medium text-[#B67B0C]"
+                class="inline-flex w-fit items-center gap-1 text-sm font-medium text-[var(--poliland-gold-text)]"
                 @click="navigate('Riwayat')"
               >
                 Lihat Riwayat <ArrowRight :size="17" />
