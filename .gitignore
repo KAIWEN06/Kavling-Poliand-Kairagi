@@ -31,3 +31,9 @@ npm-debug.log*
 /plugins
 /www
 .env
+
+# Local AI Agent Skills
+.agents/skills/
+
+# Local Agent Skills Registry
+skills-lock.json

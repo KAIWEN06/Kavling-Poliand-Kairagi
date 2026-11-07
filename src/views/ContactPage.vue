@@ -27,7 +27,15 @@
             <h2>Pilih cara yang paling nyaman</h2>
           </div>
 
-          <div class="contact-list">
+          <div v-if="loadError" class="contact-state contact-state-error" role="alert">
+            Informasi kontak belum dapat dimuat. Silakan coba muat ulang halaman.
+          </div>
+
+          <div v-else-if="!isLoading && contactItems.length === 0" class="contact-state">
+            Informasi kontak belum tersedia.
+          </div>
+
+          <div v-else class="contact-list">
             <a
               v-for="item in contactItems"
               :key="item.title"
@@ -58,7 +66,7 @@
             <h2>PoliLand di Media Sosial</h2>
           </div>
 
-          <div class="social-grid">
+          <div v-if="socialItems.length" class="social-grid">
             <a
               v-for="social in socialItems"
               :key="social.name"
@@ -84,6 +92,9 @@
               />
             </a>
           </div>
+          <p v-else-if="!loadError" class="contact-state">
+            Akun media sosial belum tersedia.
+          </p>
         </section>
 
         <section class="location-card">
@@ -94,14 +105,18 @@
           <div>
             <span class="section-label">LOKASI</span>
             <h2>PoliLand Kairagi</h2>
-            <p>
-              Kunjungi kawasan PoliLand Kairagi untuk melihat langsung kondisi
-              lokasi dan pilihan kavling yang tersedia.
-            </p>
+            <p>{{ locationAddress || 'Alamat lokasi belum tersedia.' }}</p>
           </div>
 
-          <AppButton class="location-button" type="button">
-            Hubungi Kami
+          <AppButton
+            v-if="locationHref"
+            class="location-button"
+            :href="locationHref"
+            target="_blank"
+            rel="noopener noreferrer"
+            type="button"
+          >
+            Buka Peta
             <ion-icon :icon="arrowForwardOutline" />
           </AppButton>
         </section>
@@ -118,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   IonContent,
   IonIcon,
@@ -126,6 +141,7 @@ import {
 } from '@ionic/vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import ContactSkeleton from '@/components/ui/skeletons/ContactSkeleton.vue'
+import { contactService, type ContactItem as ServiceContactItem } from '@/services/contactService'
 
 import {
   arrowForwardOutline,
@@ -138,7 +154,9 @@ import {
   logoTiktok,
 } from 'ionicons/icons'
 
-const isLoading = ref(false)
+const isLoading = ref(true)
+const loadError = ref(false)
+const contacts = ref<ServiceContactItem[]>([])
 
 interface ContactItem {
   label: string
@@ -158,56 +176,121 @@ interface SocialItem {
   variant: string
 }
 
-const socialItems: SocialItem[] = [
-  {
-    platform: 'INSTAGRAM',
-    name: '@polilandkairagi',
-    description: 'Foto, informasi, dan update terbaru.',
-    href: 'https://instagram.com/',
-    icon: logoInstagram,
-    variant: 'instagram',
-  },
-  {
-    platform: 'FACEBOOK',
-    name: 'PoliLand Kairagi',
-    description: 'Informasi kawasan dan aktivitas PoliLand.',
-    href: 'https://facebook.com/',
-    icon: logoFacebook,
-    variant: 'facebook',
-  },
-  {
-    platform: 'TIKTOK',
-    name: '@polilandkairagi',
-    description: 'Video singkat dan cerita dari kawasan.',
-    href: 'https://tiktok.com/',
-    icon: logoTiktok,
-    variant: 'tiktok',
-  },
-]
-
-const contactItems: ContactItem[] = [
-  {
-    label: 'WHATSAPP',
-    title: 'Chat dengan Marketing',
-    description: 'Tanyakan informasi kavling secara langsung.',
-    href: 'https://wa.me/',
-    icon: logoWhatsapp,
-    variant: 'whatsapp',
-  },
-  {
-    label: 'TELEPON',
-    title: 'Hubungi Kami',
-    description: 'Berbicara langsung dengan tim marketing.',
-    href: 'tel:+620000000000',
-    icon: callOutline,
-    variant: 'phone',
-  },
-]
-
-const handleRefresh = () => {
-  isLoading.value = true
+function findContact(...keys: string[]) {
+  return contacts.value.find((item) =>
+    keys.includes(item.key.trim().toLowerCase()),
+  )?.value.trim() || ''
 }
 
+function normalizePhone(value: string) {
+  const digits = value.replace(/\D/g, '')
+  return digits.startsWith('0') ? `62${digits.slice(1)}` : digits
+}
+
+function validHttpUrl(value: string) {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : ''
+  } catch {
+    return ''
+  }
+}
+
+const whatsapp = computed(() => findContact('whatsapp', 'whatsapp_number'))
+const phone = computed(() => findContact('phone', 'telephone', 'telepon'))
+const email = computed(() => findContact('email'))
+const locationAddress = computed(() => findContact('address', 'alamat'))
+const locationMap = computed(() => findContact('maps_url', 'map_url', 'location_url'))
+
+const locationHref = computed(() => {
+  const mapUrl = validHttpUrl(locationMap.value)
+  if (mapUrl) return mapUrl
+  return locationAddress.value
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationAddress.value)}`
+    : ''
+})
+
+const contactItems = computed<ContactItem[]>(() => {
+  const items: ContactItem[] = []
+  const whatsappDigits = normalizePhone(whatsapp.value)
+  const phoneDigits = phone.value.replace(/[^\d+]/g, '')
+
+  if (whatsappDigits) {
+    items.push({
+      label: 'WHATSAPP',
+      title: whatsapp.value,
+      description: 'Tanyakan informasi kavling secara langsung.',
+      href: `https://wa.me/${whatsappDigits}`,
+      icon: logoWhatsapp,
+      variant: 'whatsapp',
+    })
+  }
+  if (phoneDigits) {
+    items.push({
+      label: 'TELEPON',
+      title: phone.value,
+      description: 'Berbicara langsung dengan tim marketing.',
+      href: `tel:${phoneDigits}`,
+      icon: callOutline,
+      variant: 'phone',
+    })
+  }
+  if (email.value) {
+    items.push({
+      label: 'EMAIL',
+      title: email.value,
+      description: 'Kirim pertanyaan atau permintaan informasi.',
+      href: `mailto:${email.value}`,
+      icon: chatbubbleEllipsesOutline,
+      variant: 'email',
+    })
+  }
+  return items
+})
+
+const socialItems = computed<SocialItem[]>(() => {
+  const items: SocialItem[] = []
+  const socialDefinitions = [
+    { key: ['instagram', 'instagram_url'], platform: 'INSTAGRAM', icon: logoInstagram, variant: 'instagram', description: 'Foto, informasi, dan update terbaru.' },
+    { key: ['facebook', 'facebook_url'], platform: 'FACEBOOK', icon: logoFacebook, variant: 'facebook', description: 'Informasi kawasan dan aktivitas PoliLand.' },
+    { key: ['tiktok', 'tiktok_url'], platform: 'TIKTOK', icon: logoTiktok, variant: 'tiktok', description: 'Video singkat dan cerita dari kawasan.' },
+  ]
+
+  socialDefinitions.forEach((social) => {
+    const value = findContact(...social.key)
+    const href = validHttpUrl(value)
+    if (href) {
+      items.push({
+        platform: social.platform,
+        name: value.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''),
+        description: social.description,
+        href,
+        icon: social.icon,
+        variant: social.variant,
+      })
+    }
+  })
+  return items
+})
+
+async function loadContacts() {
+  isLoading.value = true
+  loadError.value = false
+  try {
+    contacts.value = await contactService.getContacts()
+  } catch {
+    contacts.value = []
+    loadError.value = true
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleRefresh = () => {
+  void loadContacts()
+}
+
+onMounted(loadContacts)
 window.addEventListener('poliland:refresh', handleRefresh)
 onBeforeUnmount(() => {
   window.removeEventListener('poliland:refresh', handleRefresh)
@@ -447,6 +530,23 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.contact-state {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.contact-state-error {
+  border-color: var(--status-danger);
+  color: var(--status-danger);
 }
 
 .social-card {

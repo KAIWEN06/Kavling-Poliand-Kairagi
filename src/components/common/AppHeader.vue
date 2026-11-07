@@ -28,12 +28,24 @@
 
           <!-- TITLE -->
           <div class="marketing-title">
-            {{ title }}
+            <template v-if="variant === 'admin'">
+              <img
+                src="@/assets/icons/icons.png"
+                alt=""
+                aria-hidden="true"
+                class="marketing-brand-mark"
+              />
+              <span>{{ title }}</span>
+            </template>
+            <template v-else>
+              {{ title }}
+            </template>
           </div>
 
 
           <!-- NOTIFICATION -->
           <button
+            v-if="variant === 'marketing'"
             type="button"
             class="notification-button"
             aria-label="Notifikasi"
@@ -218,14 +230,14 @@ function goBack() {
    ===================================================== */
 
 .app-header ion-toolbar {
-  --background: #f9f5ec;
+  --background: var(--surface-muted);
 
   --min-height: 68px;
 
   --border-width:
     0 0 1px 0;
 
-  --border-color: #ede0d6;
+  --border-color: var(--border-default);
 
   padding:
     0
@@ -249,9 +261,9 @@ function goBack() {
 
 
 .back-button {
-  width: 42px;
+  width: 44px;
 
-  height: 42px;
+  height: 44px;
 
   display: flex;
 
@@ -267,7 +279,7 @@ function goBack() {
 
   background: transparent;
 
-  color: #2d2d2d;
+  color: var(--text-primary);
 
   cursor: pointer;
 }
@@ -292,13 +304,26 @@ function goBack() {
   letter-spacing: -0.5px;
 }
 
+.marketing-title:has(.marketing-brand-mark) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+}
+
+.marketing-brand-mark {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
 
 .notification-button {
   position: relative;
 
-  width: 42px;
+  width: 44px;
 
-  height: 42px;
+  height: 44px;
 
   display: flex;
 
@@ -314,7 +339,7 @@ function goBack() {
 
   background: transparent;
 
-  color: #202020;
+  color: var(--text-primary);
 
   cursor: pointer;
 }
@@ -338,9 +363,9 @@ function goBack() {
 
   border-radius: 50%;
 
-  background: #ef2929;
+  background: var(--status-danger);
 
-  border: 2px solid #f9f5ec;
+  border: 2px solid var(--surface-muted);
 }
 
 
@@ -373,7 +398,7 @@ function goBack() {
 
   height: 40px;
 
-  border-radius: 10px;
+  border-radius: var(--radius-control);
 
   overflow: hidden;
 
@@ -408,11 +433,11 @@ function goBack() {
 
 
 .brand-text strong {
-  color: #2d2d2d;
+  color: var(--text-primary);
 
   font-size: 16px;
 
-  font-weight: 850;
+  font-weight: var(--font-weight-extrabold);
 
   letter-spacing: -0.2px;
 }
@@ -421,7 +446,7 @@ function goBack() {
 .brand-text span {
   margin-top: 2px;
 
-  color: #686868;
+  color: var(--text-secondary);
 
   font-size: 11px;
 
@@ -441,7 +466,7 @@ function goBack() {
 
 
 .default-notification-button {
-  --color: #2d2d2d;
+  --color: var(--text-primary);
 
   --padding-start: 8px;
 
@@ -452,7 +477,7 @@ function goBack() {
 
 
 ion-title {
-  font-weight: 800;
+  font-weight: var(--font-weight-extrabold);
 
   letter-spacing: 0.03em;
 }

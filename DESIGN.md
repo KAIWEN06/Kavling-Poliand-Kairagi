@@ -185,18 +185,88 @@ Outline and clear fills preserve the same variant meaning while using transparen
 
 ### AppInput
 
-An existing shared Ionic input component is implemented for text fields and password visibility. Its current hardcoded label, control, border, focus, placeholder, icon, and password-button colors are candidates for semantic token mapping.
+Shared Ionic input component for text, email, telephone, and password fields.
+
+#### Props
+
+Existing props:
+
+- `modelValue`
+- `label`
+- `placeholder`
+- `type`
+- `autocomplete`
+- `icon`
+- `inputId`
+- `required`
+- `disabled`
+- `showPasswordToggle`
+
+Additional props:
+
+- `errorMessage?: string`
+- `readonly?: boolean`
+
+#### Events
+
+- `update:modelValue`
+- `focus`
+- `blur`
+- `visibility-change`
+
+#### Semantic mapping
+
+| Element | Token |
+|---|---|
+| Label and input text | `--text-primary` |
+| Placeholder and icon | `--text-secondary` |
+| Control and password button background | `--surface-primary`, `--surface-muted` |
+| Border | `--border-default` |
+| Focus | `--poliland-green` |
+| Error | `--status-danger` |
+| Radius | `--radius-control` |
+
+#### States
+
+- Default, hover, focus, focus-visible, disabled, read-only, and error states use semantic tokens.
+- Password visibility preserves the existing hidden and visible states with an accessible toggle label and `aria-pressed`.
+- Error text is also exposed through `role="alert"`.
+
+#### Accessibility and attributes
+
+- A supplied `inputId` is preserved.
+- An omitted `inputId` receives a unique generated ID.
+- Labels use the resolved input ID.
+- Native attributes are forwarded to `IonInput`, including `name`, `form`, `inputmode`, length limits, pattern, and data attributes.
+- `aria-invalid="true"` is set only when `errorMessage` is present.
+- `errorMessage` supplies an automatically generated error ID through `aria-describedby`.
+- Caller-provided `aria-describedby` IDs are combined with the generated error ID.
+
+#### Example
+
+```vue
+<AppInput
+  v-model="email"
+  input-id="checkout-email"
+  label="Email"
+  name="email"
+  type="email"
+  autocomplete="email"
+  required
+  :error-message="emailError"
+/>
+```
 
 ### AppHeader
 
-An existing shared header supports:
+The shared header supports:
 
 - Default, marketing, and admin variants.
 - Back behavior.
 - Notification navigation.
 - Authentication-dependent login action.
 
-The role appearance should remain differentiated. Shared typography, surfaces, borders, and icon colors can be standardized.
+The role appearance remains differentiated. Shared implementation uses semantic surfaces, borders, primary text, secondary text, status color, and control radius. Role-specific structure and navigation are unchanged. Interactive icon controls use a 44px minimum target, and the title uses the configured Plus Jakarta Sans weight.
 
 ### MobileTabBar
 
@@ -286,19 +356,7 @@ The recommended action cannot be selected until the owner provides the real cont
 
 ### AppInput
 
-Recommended semantic mapping:
-
-| Current function | Current value examples | Recommended token |
-|---|---|---|
-| Label and input text | `#292a26`, `#41443e` | `--text-primary` |
-| Icon and secondary text | `#898b85`, `#777b74` | `--text-secondary` |
-| Control background | `#ffffff` | `--surface-primary` |
-| Password button surface | `#f3f2ee` | `--surface-muted` |
-| Control border | `#d5d5d0`, `#dedbd3` | `--border-default` |
-| Focus border | `#c3a052` | Existing brand focus token must be selected and approved |
-| Placeholder | `#999999` | `--text-secondary` |
-| Error | Not currently defined in component | `--status-danger` if approved |
-| Radius | `10px`, `9px` | `--radius-control` |
+This component is implemented with the semantic mapping documented above. Remaining AppHeader and MobileTabBar work is outside the current implementation scope.
 
 ### AppHeader
 
@@ -315,7 +373,7 @@ Recommended token mapping:
 
 ### MobileTabBar
 
-The three variants must remain separate:
+The three variants remain separate:
 
 | Variant | Current menu purpose |
 |---|---|
@@ -326,3 +384,29 @@ The three variants must remain separate:
 Shared recommendations are semantic colors, identical icon sizing, consistent labels, 44px minimum interaction targets, visible active state, visible focus, safe-area handling, and Plus Jakarta Sans.
 
 Role structure, route targets, labels, and menu count should not be merged.
+
+Phase 2.3 standardizes the shared foundation while preserving these role menus:
+
+- Semantic primary surfaces and border colors replace the previous opaque glass and gradient treatment.
+- Active items use the brand green and a stable icon surface instead of elevation and decorative vertical movement.
+- Labels use Plus Jakarta Sans and the shared extra-small size.
+- `:focus-visible` has an explicit 3px brand-green focus indicator.
+- Active state is not communicated by motion alone. It combines color, icon background, label weight, and an active indicator.
+- Safe-area inset, fixed positioning, route behavior, detail/search hiding, and role menu configuration remain unchanged.
+
+### ContactPage
+
+`ContactPage.vue` loads verified availability from `contactService.getContacts()`, which reads the `contacts` table in Supabase. It does not generate placeholder contact values.
+
+Supported source keys include:
+
+- WhatsApp: `whatsapp`, `whatsapp_number`
+- Telephone: `phone`, `telephone`, `telepon`
+- Email: `email`
+- Address: `address`, `alamat`
+- Map link: `maps_url`, `map_url`, `location_url`
+- Social profiles: `instagram`, `instagram_url`, `facebook`, `facebook_url`, `tiktok`, `tiktok_url`
+
+The page renders loading, unavailable, and loading-error states. Contact and social cards are rendered only when their stored values are usable. A telephone link is created only for a stored telephone value. A WhatsApp link is created only when a stored number can be normalized. Email is shown only when a stored email value is available.
+
+Social profile values must be complete HTTP or HTTPS URLs. Addresses become a Google Maps search only when a `maps_url` is not stored. If neither a valid map URL nor address is available, the location card does not render a dead action.

@@ -10,7 +10,7 @@
            ADMIN
            ========================= -->
 
-      <template v-if="variant === 'admin'">
+      <template v-if="variant === 'admin' || route.path.startsWith('/admin/')">
 
         <button
           type="button"
@@ -407,33 +407,16 @@ function isActive(path: string) {
 
   min-height: var(--tab-bar-height);
 
-  padding: 8px 6px;
+  padding: 6px;
 
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(249, 245, 236, 0.98) 100%
-    );
+  background: var(--surface-primary);
 
-  border:
-    1px solid
-    rgba(217, 211, 196, 0.75);
+  border: 1px solid var(--border-default);
 
-  border-radius: 25px;
+  border-radius: var(--radius-card);
 
-  box-shadow:
-    0 8px 28px
-    rgba(26, 26, 26, 0.10),
-
-    0 2px 8px
-    rgba(85, 107, 47, 0.06);
-
-  backdrop-filter: blur(16px);
-
-  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 -2px 12px rgba(37, 37, 37, 0.08);
 }
-
 
 .nav-item {
   position: relative;
@@ -456,16 +439,13 @@ function isActive(path: string) {
 
   border: 0;
 
-  outline: 0;
-
   background: transparent;
 
-  color:
-    var(--pl-warm-gray, #a7a7a7);
+  color: var(--text-secondary);
 
-  font-family: inherit;
+  font-family: var(--font-primary);
 
-  font-size: 9px;
+  font-size: var(--font-size-xs);
 
   font-weight: 600;
 
@@ -491,6 +471,12 @@ function isActive(path: string) {
       0.36,
       1
     );
+}
+
+.nav-item:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: -3px;
+  border-radius: var(--radius-control);
 }
 
 
@@ -590,57 +576,37 @@ function isActive(path: string) {
    ===================================================== */
 
 .nav-item.active {
-  color:
-    var(--pl-olive, #556b2f);
+  color: var(--poliland-green);
 }
 
 
 .nav-item.active .icon-wrap {
-  width: 44px;
+  width: 38px;
 
-  height: 44px;
+  height: 38px;
 
-  transform: translateY(-7px);
+  transform: none;
 
-  background:
-    var(
-      --pl-gold-gradient,
-      linear-gradient(
-        135deg,
-        #b8860b,
-        #f4e3b2
-      )
-    );
+  background: var(--status-success-bg);
 
-  box-shadow:
-    0 7px 15px
-    rgba(184, 134, 11, 0.20),
-
-    0 0 0 5px
-    rgba(244, 227, 178, 0.32);
+  box-shadow: none;
 }
 
 
 .nav-item.active ion-icon {
-  color: #ffffff;
+  color: var(--poliland-green);
 
   font-size: 22px;
 
   transform: scale(1.03);
 
-  filter:
-    drop-shadow(
-      0 1px 2px
-      rgba(26, 26, 26, 0.14)
-    );
 }
 
 
 .nav-item.active .nav-label {
-  transform: translateY(-4px);
+  transform: none;
 
-  color:
-    var(--pl-deep-green, #2e4d2d);
+  color: var(--poliland-green);
 
   font-weight: 700;
 }
@@ -661,8 +627,7 @@ function isActive(path: string) {
 
   border-radius: 50%;
 
-  background:
-    var(--pl-olive, #556b2f);
+  background: var(--poliland-green);
 
   transform:
     translateX(-50%)
@@ -691,9 +656,7 @@ function isActive(path: string) {
 
 
 .nav-item.active:active .icon-wrap {
-  transform:
-    translateY(-5px)
-    scale(0.96);
+  transform: scale(0.96);
 }
 
 

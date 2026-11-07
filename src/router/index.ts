@@ -19,6 +19,8 @@ import ResetPasswordPage from '@/views/auth/ResetPasswordPage.vue'
 import RegisterPage from '@/views/auth/RegisterPage.vue'
 import AuthCallbackPage from '@/views/auth/AuthCallbackPage.vue'
 import BerandaAdminPage from '@/views/Admin/AdminDashboard.vue'
+import AdminKavlingPage from '@/views/Admin/AdminKavling.vue'
+import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
 import BerandaMarketingPage from '@/views/marketing/BerandaMarketingPage.vue'
 import KavlingMarketingPage from '@/views/marketing/KavlingMarketingPage.vue'
 import CalonPembeliMarketingPage from '@/views/marketing/CalonPembeliMarketingPage.vue'
@@ -74,6 +76,37 @@ const routes: Array<RouteRecordRaw> = [
     path: '/beranda-admin',
     name: 'BerandaAdmin',
     component: BerandaAdminPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/kavling',
+    name: 'AdminKavling',
+    component: AdminKavlingPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/pembeli',
+    name: 'AdminPembeli',
+    component: CalonPembeliMarketingPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/keuangan',
+    name: 'AdminKeuangan',
+    component: AdminKeuanganPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/lainnya',
+    name: 'AdminLainnya',
+    component: LainnyaPage,
+    props: { adminSection: 'lainnya' },
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/spk',
+    name: 'AdminSPK',
+    component: SPKMarketingPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {

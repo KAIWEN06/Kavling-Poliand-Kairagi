@@ -1,399 +1,1007 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { IonPage, IonContent } from '@ionic/vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
-  ArrowRight,
-  Layers3,
-  Wallet,
-  FileText,
-  Map,
-  UserRoundPlus,
-  UsersRound,
-  Clock3,
-  CalendarDays,
-  Bookmark,
-} from 'lucide-vue-next'
+  IonContent,
+  IonIcon,
+  IonPage,
+  IonSpinner,
+} from '@ionic/vue'
+import {
+  checkmarkCircleOutline,
+  documentTextOutline,
+  gridOutline,
+  peopleOutline,
+  refreshOutline,
+  settingsOutline,
+  walletOutline,
+  timeOutline,
+  mapOutline,
+  logOutOutline,
+  arrowForwardOutline,
+} from 'ionicons/icons'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import { getLots, type SiteplanLot } from '@/services/siteplanService'
+import { normalizeLotStatus } from '@/utils/siteplan'
+import { authService } from '@/services/auth/authService'
 
-import houseImage from '@/assets/images/Modern_Mountain House_at Sunrise.png'
-import mascotImage from '@/assets/mascot/Cheerful_Chibi_House_Mascot.png'
-
-type InventoryItem = {
+type LoadState = 'loading' | 'success' | 'empty' | 'error'
+type InventoryStatus = {
+  key: 'available' | 'booking' | 'sold'
   label: string
   value: number
   percentage: number
-  color: string
-  dot: string
 }
 
-const inventory: InventoryItem[] = [
-  { label: 'Tersedia', value: 32, percentage: 41.6, color: '#587448', dot: 'bg-[#587448]' },
-  { label: 'Dipesan', value: 18, percentage: 23.4, color: '#D5A12A', dot: 'bg-[#D5A12A]' },
-  { label: 'Terjual', value: 27, percentage: 35, color: '#B85B42', dot: 'bg-[#B85B42]' },
+type QuickAction = {
+  label: string
+  description: string
+  icon: string
+  tone: 'green' | 'gold' | 'neutral'
+  routeName?: string
+}
+
+const router = useRouter()
+const lots = ref<SiteplanLot[]>([])
+const loadState = ref<LoadState>('loading')
+const loadError = ref('')
+const loggingOut = ref(false)
+const refreshing = ref(false)
+let requestSequence = 0
+let isUnmounted = false
+
+const today = new Intl.DateTimeFormat('id-ID', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+}).format(new Date())
+
+const totalUnits = computed(() => lots.value.length)
+
+const inventory = computed<InventoryStatus[]>(() => {
+  const counts = lots.value.reduce(
+    (result, lot) => {
+      const status = normalizeLotStatus(lot.status)
+      if (status === 'available' || status === 'booking' || status === 'sold') {
+        result[status] += 1
+      }
+      return result
+    },
+    { available: 0, booking: 0, sold: 0 },
+  )
+
+  const items: InventoryStatus[] = [
+    { key: 'available', label: 'Tersedia', value: counts.available, percentage: 0 },
+    { key: 'booking', label: 'Dipesan', value: counts.booking, percentage: 0 },
+    { key: 'sold', label: 'Terjual', value: counts.sold, percentage: 0 },
+  ]
+
+  if (totalUnits.value === 0) return items
+
+  return items.map((item) => ({
+    ...item,
+    percentage: Number(((item.value / totalUnits.value) * 100).toFixed(1)),
+  }))
+})
+
+const quickActions: QuickAction[] = [
+  {
+    label: 'Siteplan 2D',
+    description: 'Lihat dan kelola kavling',
+    icon: mapOutline,
+    tone: 'green',
+    routeName: 'AdminKavling',
+  },
+  {
+    label: 'Tambah client',
+    description: 'Daftarkan calon pembeli',
+    icon: peopleOutline,
+    tone: 'neutral',
+    routeName: 'AdminPembeli',
+  },
+  {
+    label: 'Pembayaran',
+    description: 'Periksa transaksi masuk',
+    icon: walletOutline,
+    tone: 'gold',
+    routeName: 'AdminKeuangan',
+  },
+  {
+    label: 'Kelola konten',
+    description: 'Perbarui informasi website',
+    icon: gridOutline,
+    tone: 'neutral',
+    routeName: 'AdminLainnya',
+  },
+  {
+    label: 'Akses tim',
+    description: 'Kelola akun dan peran',
+    icon: settingsOutline,
+    tone: 'green',
+    routeName: 'AdminLainnya',
+  },
+  {
+    label: 'SPK',
+    description: 'Kelola surat pemesanan',
+    icon: documentTextOutline,
+    tone: 'gold',
+    routeName: 'AdminSPK',
+  },
 ]
 
-const tasks = [
-  {
-    title: 'Verifikasi Pembayaran',
-    description: '4 bukti transfer menunggu pemeriksaan',
-    icon: Wallet,
-    tone: 'text-[var(--poliland-gold-text-soft)] bg-[#F8ECD7]',
-    destination: 'Keuangan',
-  },
-  {
-    title: 'Konfirmasi SPK Konsumen',
-    description: '2 berkas pemesanan unit baru',
-    icon: FileText,
-    tone: 'text-[#47723A] bg-[#EDF0E3]',
-    destination: 'SPK',
-  },
-]
-
-const quickActions = [
-  { label: 'Siteplan 2D', icon: Map, color: 'text-[#355A2C]', tab: 'Kavling' },
-  { label: 'Tambah Client', icon: UserRoundPlus, color: 'text-[#355A2C]', tab: 'Pembeli' },
-  { label: 'Pembayaran', icon: Wallet, color: 'text-[var(--poliland-gold-text)]', tab: 'Keuangan' },
-  { label: 'SPK', icon: FileText, color: 'text-[#355A2C]', tab: 'SPK' },
-]
-
-const activities = [
-  {
-    title: 'Kemon Saha',
-    description: 'Mengajukan SPK kavling LOT_023',
-    status: 'Menunggu Konfirmasi',
-    time: '2 jam lalu',
-    icon: Bookmark,
-    iconTone: 'text-[var(--poliland-gold-text-soft)] bg-[#F7EAD5]',
-    statusTone: 'text-[var(--poliland-gold-text-soft)] bg-[#F7EAD5]',
-  },
-  {
-    title: 'Cicilan LOT_015',
-    description: 'Bukti transfer DP tahap 2 telah diunggah',
-    status: 'Menunggu Verifikasi',
-    time: '3 jam lalu',
-    icon: FileText,
-    iconTone: 'text-[#2473B7] bg-[#E4EDF6]',
-    statusTone: 'text-[#1765A5] bg-[#E2EDF7]',
-  },
-  {
-    title: 'Marketing Rian',
-    description: 'Menambahkan 1 calon pembeli baru',
-    status: 'Prospek',
-    time: '5 jam lalu',
-    icon: UserRoundPlus,
-    iconTone: 'text-[#3C6A32] bg-[#E9EDDF]',
-    statusTone: 'text-[#35652D] bg-[#E8EDDF]',
-  },
-]
-
-const totalUnits = computed(() =>
-  inventory.reduce((total, item) => total + item.value, 0),
+const availableQuickActions = computed(() =>
+  quickActions.map((action) => ({
+    ...action,
+    available: action.routeName
+      ? router.getRoutes().some((route) => route.name === action.routeName)
+      : false,
+  })),
 )
 
-function navigate(destination: string) {
-  // TODO: Hubungkan ke route yang sesuai setelah nama route final ditetapkan.
-  // Contoh: router.push({ name: 'admin-kavling' })
-  console.info(`Navigasi ke: ${destination}`)
+const inventoryDescription = computed(() => {
+  const [available, booking, sold] = inventory.value
+  return `Total ${totalUnits.value} unit: ${available.value} tersedia, ${booking.value} dipesan, dan ${sold.value} terjual.`
+})
+
+async function loadInventory(forceRefresh = false) {
+  const requestId = ++requestSequence
+  const hasExistingData = lots.value.length > 0
+  loadError.value = ''
+
+  if (forceRefresh && hasExistingData) {
+    refreshing.value = true
+  } else {
+    loadState.value = 'loading'
+  }
+
+  try {
+    const records = await getLots({ forceRefresh })
+    if (isUnmounted || requestId !== requestSequence) return
+
+    lots.value = records
+    loadState.value = records.length === 0 ? 'empty' : 'success'
+  } catch (error) {
+    if (isUnmounted || requestId !== requestSequence) return
+
+    if (hasExistingData) {
+      loadError.value =
+        error instanceof Error ? error.message : 'Data inventaris gagal diperbarui.'
+      loadState.value = 'success'
+    } else {
+      loadState.value = 'error'
+      loadError.value =
+        error instanceof Error ? error.message : 'Data inventaris tidak dapat dimuat.'
+    }
+  } finally {
+    if (!isUnmounted && requestId === requestSequence) {
+      refreshing.value = false
+    }
+  }
 }
+
+function openQuickAction(action: QuickAction) {
+  if (!action.routeName) return
+
+  const target = router.getRoutes().find((route) => route.name === action.routeName)
+  if (!target) return
+
+  void router.push({ name: action.routeName })
+}
+
+async function logout() {
+  if (loggingOut.value) return
+
+  loggingOut.value = true
+  try {
+    await authService.logout()
+    await router.replace('/login')
+  } finally {
+    loggingOut.value = false
+  }
+}
+
+onMounted(() => {
+  void loadInventory()
+})
+
+onBeforeUnmount(() => {
+  isUnmounted = true
+  requestSequence += 1
+})
 </script>
 
 <template>
   <ion-page>
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
-    <ion-content :fullscreen="false" class="[--background:#eeeae3]">
-      <main
-        class="mx-auto min-h-full w-full max-w-7xl overflow-x-clip bg-[linear-gradient(180deg,#fbf8f2_0%,#f6f1e9_100%)] px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-4 text-[#171817] sm:px-6 sm:pt-6 lg:px-8"
-      >
-        <!-- Konten dibatasi lebarnya agar dashboard tidak melebar berlebihan di desktop. -->
-        <div class="mx-auto flex w-full max-w-5xl flex-col gap-5 sm:gap-6">
+    <ion-content class="dashboard-content" :fullscreen="false">
+      <main class="dashboard-shell">
+        <section class="welcome-row" aria-labelledby="dashboard-title">
+          <div class="welcome-copy">
+            <p class="eyebrow">BERANDA ADMIN</p>
+            <h1 id="dashboard-title">Selamat datang, Admin</h1>
+            <p>{{ today }}</p>
+          </div>
 
-          <!-- Hero: gambar berada di area sendiri pada mobile agar tidak menimpa teks. -->
-          <section
-            class="grid min-w-0 grid-cols-1 items-center gap-3 overflow-hidden rounded-3xl sm:grid-cols-2 sm:gap-5 lg:gap-8"
-            aria-labelledby="dashboard-title"
+          <button
+            type="button"
+            class="icon-action logout-action"
+            :disabled="loggingOut"
+            :aria-label="loggingOut ? 'Sedang keluar' : 'Keluar dari akun'"
+            @click="logout"
           >
-            <div class="min-w-0 px-1 py-3 sm:py-6">
-              <p class="m-0 break-words font-serif text-[clamp(1.65rem,5vw,2.25rem)] font-bold leading-tight tracking-tight">
-                Selamat Pagi,
-              </p>
-              <h1
-                id="dashboard-title"
-                class="mt-0.5 break-words font-serif text-[clamp(2.5rem,8vw,3.5rem)] font-bold leading-[1.05] text-[var(--poliland-gold-text)]"
-              >
-                Admin
-              </h1>
-              <p class="mt-2 max-w-prose break-words text-sm leading-relaxed text-[#393A36] sm:text-base">
-                Berikut ringkasan operasional PoliLand Kairagi hari ini.
-              </p>
-              <span class="mt-3 block h-1 w-9 rounded-full bg-[#C28B1C]"></span>
-            </div>
+            <IonIcon :icon="logOutOutline" aria-hidden="true" />
+          </button>
+        </section>
 
-            <div class="relative grid min-h-48 min-w-0 grid-cols-2 items-end sm:min-h-56">
-              <img
-                :src="houseImage"
-                alt="Ilustrasi rumah PoliLand"
-                class="col-span-2 row-start-1 h-48 w-full rounded-2xl object-cover object-center sm:h-56"
-              />
-              <img
-                :src="mascotImage"
-                alt="Maskot PoliLand"
-                class="col-start-1 row-start-1 z-10 ml-2 h-40 w-full self-end object-contain drop-shadow-md sm:h-48"
-              />
-            </div>
-          </section>
-
-          <!-- Inventory -->
-          <section
-            class="min-w-0 rounded-3xl border border-white/80 bg-white/80 p-4 shadow-sm sm:p-5"
-            aria-labelledby="inventory-title"
-          >
-            <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex min-w-0 items-center gap-2">
-                <Layers3 :size="28" class="shrink-0 text-[var(--poliland-gold-text)]" />
-                <h2 id="inventory-title" class="min-w-0 break-words text-base font-extrabold sm:text-lg">
-                  Inventaris Kavling
-                </h2>
+        <section class="inventory-section" aria-labelledby="inventory-title">
+          <div class="section-heading inventory-heading">
+            <div class="heading-title">
+              <span class="heading-icon green-icon">
+                <IonIcon :icon="gridOutline" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="inventory-title">Inventaris Kavling</h2>
+                <p>Ringkasan status seluruh unit</p>
               </div>
-              <button
-                type="button"
-                class="inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-[#F8ECD6] px-3 py-2 text-sm font-medium text-[var(--poliland-gold-text-soft)] transition hover:bg-[#F2E1C2]"
-                @click="navigate('Kavling')"
-              >
-                <span>Total {{ totalUnits }} Unit</span>
-                <ArrowRight :size="16" class="shrink-0" />
-              </button>
             </div>
 
-            <div class="mt-4 grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[minmax(7rem,0.75fr)_minmax(0,2fr)] sm:items-center">
-              <div class="flex items-center justify-center gap-3 border-b border-[#D9D0C4] pb-3 sm:flex-col sm:border-b-0 sm:border-r sm:pb-0 sm:pr-4">
-                <strong class="font-serif text-6xl font-medium leading-none tracking-tight sm:text-7xl">
-                  {{ totalUnits }}
-                </strong>
-                <span class="text-sm text-[#393A36]">Unit</span>
+            <button
+              v-if="loadState === 'success' || loadState === 'empty'"
+              type="button"
+              class="text-action"
+              :disabled="refreshing"
+              @click="loadInventory(true)"
+            >
+              <IonIcon :icon="refreshOutline" aria-hidden="true" />
+              <span>{{ refreshing ? 'Memuat' : 'Perbarui' }}</span>
+            </button>
+          </div>
+
+          <div v-if="loadState === 'loading'" class="state-panel" role="status" aria-live="polite">
+            <IonSpinner name="crescent" />
+            <div>
+              <strong>Memuat inventaris</strong>
+              <p>Data kavling sedang diambil dari database.</p>
+            </div>
+          </div>
+
+          <div v-else-if="loadState === 'error'" class="state-panel state-error" role="alert">
+            <div>
+              <strong>Inventaris belum dapat dimuat</strong>
+              <p>{{ loadError }}</p>
+            </div>
+            <button class="button-primary" type="button" @click="loadInventory(true)">
+              Coba lagi
+            </button>
+          </div>
+
+          <div v-else-if="loadState === 'empty'" class="state-panel">
+            <div>
+              <strong>Belum ada kavling terdaftar</strong>
+              <p>Data akan muncul setelah kavling ditambahkan.</p>
+            </div>
+          </div>
+
+          <template v-else>
+            <div class="inventory-overview">
+              <div class="total-block">
+                <span>Total unit</span>
+                <strong>{{ totalUnits.toLocaleString('id-ID') }}</strong>
+                <small>Kavling terdaftar</small>
               </div>
 
-              <div class="grid min-w-0 grid-cols-3">
+              <div class="status-breakdown">
                 <div
                   v-for="item in inventory"
-                  :key="item.label"
-                  class="min-w-0 border-r border-[#EEE7DC] px-1 text-center last:border-r-0 sm:px-2"
+                  :key="item.key"
+                  class="status-item"
+                  :class="`status-${item.key}`"
                 >
-                  <div class="flex min-w-0 flex-col items-center justify-center gap-1 text-[11px] sm:flex-row sm:text-sm">
-                    <i class="h-2.5 w-2.5 shrink-0 rounded-full" :class="item.dot"></i>
-                    <span class="break-words">{{ item.label }}</span>
+                  <div class="status-label">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span>{{ item.label }}</span>
                   </div>
-                  <strong class="mt-2 block font-serif text-2xl font-semibold leading-tight sm:text-3xl">
-                    {{ item.value }}
-                  </strong>
-                  <small class="mt-1 block text-xs text-[#41413D] sm:text-sm">
-                    {{ item.percentage.toLocaleString('id-ID') }}%
-                  </small>
+                  <strong>{{ item.value.toLocaleString('id-ID') }}</strong>
+                  <small>{{ item.percentage.toLocaleString('id-ID') }}%</small>
                 </div>
               </div>
             </div>
 
-            <div
-              class="mt-4 flex h-3 w-full overflow-hidden rounded-full bg-[#EEE7DC]"
-              role="img"
-              aria-label="Komposisi status kavling"
-            >
+            <div class="inventory-bar" role="img" :aria-label="inventoryDescription">
               <span
                 v-for="item in inventory"
-                :key="item.label"
-                class="h-full first:rounded-l-full last:rounded-r-full"
-                :style="{ width: `${item.percentage}%`, backgroundColor: item.color }"
+                :key="item.key"
+                v-show="item.percentage > 0"
+                :class="`bar-${item.key}`"
+                :style="{ width: `${item.percentage}%` }"
               ></span>
             </div>
-          </section>
+          </template>
 
-          <!-- Operational tasks: heading dan daftar ditumpuk pada mobile. -->
-          <section
-            class="grid min-w-0 grid-cols-1 gap-4 rounded-3xl bg-[linear-gradient(115deg,#35482b,#53613b_75%,#3e4d30)] p-4 text-white sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.7fr)] sm:items-center sm:p-5"
-            aria-labelledby="tasks-title"
-          >
-            <div class="flex min-w-0 items-start justify-between gap-3 sm:flex-col">
-              <div class="min-w-0">
-                <span class="block break-words text-xs text-[#F2EEE5] sm:text-sm">
-                  Perlu Ditindaklanjuti
-                </span>
-                <h2 id="tasks-title" class="mt-2 break-words font-serif text-2xl font-bold leading-tight sm:text-3xl">
-                  Tugas Operasional
-                </h2>
-              </div>
-              <span class="shrink-0 rounded-full bg-[#C97B5D] px-3 py-1.5 text-xs">
-                {{ tasks.length }} Tugas
+          <p v-if="loadError && loadState === 'success'" class="inline-warning" role="status">
+            Data terakhir tetap ditampilkan. Pembaruan terbaru gagal dimuat.
+          </p>
+        </section>
+
+        <section class="tasks-section" aria-labelledby="tasks-title">
+          <div class="section-heading">
+            <div class="heading-title">
+              <span class="heading-icon gold-icon">
+                <IonIcon :icon="timeOutline" aria-hidden="true" />
               </span>
-            </div>
-
-            <div class="grid min-w-0 gap-2">
-              <button
-                v-for="task in tasks"
-                :key="task.title"
-                type="button"
-                class="flex min-w-0 items-center gap-3 rounded-2xl bg-[#FFFDFA] p-3 text-left text-[#171817] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D5A12A]"
-                @click="navigate(task.destination)"
-              >
-                <span
-                  class="grid h-11 w-11 shrink-0 place-items-center rounded-xl"
-                  :class="task.tone"
-                >
-                  <component :is="task.icon" :size="23" />
-                </span>
-                <span class="grid min-w-0 flex-1 gap-1">
-                  <strong class="break-words text-sm leading-snug">{{ task.title }}</strong>
-                  <small class="break-words text-xs leading-relaxed text-[#55534D]">{{ task.description }}</small>
-                </span>
-                <ArrowRight :size="20" class="shrink-0 text-[#272822]" />
-              </button>
-            </div>
-          </section>
-
-          <!-- Quick actions -->
-          <section class="min-w-0" aria-labelledby="quick-actions-title">
-            <div class="mb-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex min-w-0 items-center gap-3">
-                <span class="ml-1 h-6 w-1 shrink-0 rotate-12 rounded-full bg-[#C58D1D]"></span>
-                <h2 id="quick-actions-title" class="break-words text-lg font-extrabold">
-                  Aksi Cepat
-                </h2>
-              </div>
-              <button
-                type="button"
-                class="inline-flex w-fit items-center gap-1 text-sm font-medium text-[var(--poliland-gold-text)]"
-                @click="navigate('Lainnya')"
-              >
-                Lihat Semua <ArrowRight :size="17" />
-              </button>
-            </div>
-
-            <div class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
-              <button
-                v-for="action in quickActions"
-                :key="action.label"
-                type="button"
-                class="flex min-h-28 min-w-0 flex-col items-center justify-center gap-2 rounded-2xl border border-[#E4D9C9] bg-white/60 p-3 text-center text-[#1C1D1A] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                :class="action.label === 'Siteplan 2D' ? 'border-[#52633B] bg-[linear-gradient(145deg,#52633b,#3f512f)] text-white' : ''"
-                @click="navigate(action.tab)"
-              >
-                <component
-                  :is="action.icon"
-                  :size="29"
-                  :stroke-width="1.9"
-                  :class="action.label === 'Siteplan 2D' ? 'text-white' : action.color"
-                />
-                <span class="max-w-full break-words text-sm leading-snug">{{ action.label }}</span>
-              </button>
-            </div>
-          </section>
-
-          <!-- Buyer statistics -->
-          <section
-            class="min-w-0 rounded-3xl border border-white/80 bg-white/80 p-4 shadow-sm sm:p-5"
-            aria-labelledby="buyer-statistics-title"
-          >
-            <div class="flex min-w-0 flex-col gap-2 border-b border-[#E9E1D6] pb-3 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex min-w-0 items-center gap-2">
-                <UsersRound :size="27" class="shrink-0 text-[#355A2C]" />
-                <h2 id="buyer-statistics-title" class="break-words text-base font-extrabold sm:text-lg">
-                  Statistik Calon Pembeli
-                </h2>
-              </div>
-              <div class="inline-flex w-fit items-center gap-2 text-xs text-[#55534E] sm:text-sm">
-                <span>Oktober 2026</span>
-                <CalendarDays :size="16" />
+              <div>
+                <h2 id="tasks-title">Perlu Ditindaklanjuti</h2>
+                <p>Tugas operasional admin</p>
               </div>
             </div>
+          </div>
 
-            <div class="grid min-w-0 grid-cols-1 divide-y divide-[#E5DDD2] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-              <div class="min-w-0 py-3 text-center sm:px-2">
-                <span class="block break-words text-xs text-[#55534F]">Prospek Aktif</span>
-                <strong class="mt-1 block font-serif text-3xl font-semibold leading-tight sm:text-4xl">
-                  24 <small class="font-sans text-xs text-[#32733A]">↑ +3%</small>
-                </strong>
+          <div class="empty-inline">
+            <span class="empty-symbol"><IonIcon :icon="checkmarkCircleOutline" /></span>
+            <div>
+              <strong>Belum ada daftar tugas</strong>
+              <p>Tugas verifikasi pembayaran dan SPK akan tampil setelah sumber datanya dihubungkan.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="quick-section" aria-labelledby="quick-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">NAVIGASI</p>
+              <h2 id="quick-title">Aksi Cepat</h2>
+            </div>
+          </div>
+
+          <div class="quick-grid">
+            <button
+              v-for="action in availableQuickActions"
+              :key="action.label"
+              type="button"
+              class="quick-action"
+              :class="[`quick-${action.tone}`, { 'quick-unavailable': !action.available }]"
+              :disabled="!action.available"
+              :title="action.available ? action.description : 'Rute halaman belum tersedia di router'"
+              @click="openQuickAction(action)"
+            >
+              <span class="quick-icon">
+                <IonIcon :icon="action.icon" aria-hidden="true" />
+              </span>
+              <span class="quick-label">{{ action.label }}</span>
+              <small v-if="!action.available">Belum tersedia</small>
+            </button>
+          </div>
+        </section>
+
+        <section class="buyers-section" aria-labelledby="buyers-title">
+          <div class="section-heading">
+            <div class="heading-title">
+              <span class="heading-icon green-icon">
+                <IonIcon :icon="peopleOutline" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="buyers-title">Statistik Calon Pembeli</h2>
+                <p>Ringkasan aktivitas marketing</p>
               </div>
-              <div class="min-w-0 py-3 text-center sm:px-2">
-                <span class="block break-words text-xs text-[#55534F]">Follow Up Mendesak</span>
-                <strong class="mt-1 block font-serif text-3xl font-semibold leading-tight text-[var(--poliland-gold-text)] sm:text-4xl">
-                  8 <small class="font-sans text-xs text-[#32733A]">↑ +2%</small>
-                </strong>
+            </div>
+            <span class="section-meta">Data belum terhubung</span>
+          </div>
+
+          <div class="unavailable-panel">
+            <strong>Statistik belum tersedia</strong>
+            <p>
+              Prospek aktif, tindak lanjut, dan closing akan ditampilkan setelah data calon
+              pembeli terhubung ke dashboard.
+            </p>
+          </div>
+        </section>
+
+        <section class="activity-section" aria-labelledby="activity-title">
+          <div class="section-heading">
+            <div class="heading-title">
+              <span class="heading-icon gold-icon">
+                <IonIcon :icon="timeOutline" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="activity-title">Aktivitas Terkini</h2>
+                <p>Riwayat perubahan dan transaksi</p>
               </div>
-              <div class="min-w-0 py-3 text-center sm:px-2">
-                <span class="block break-words text-xs text-[#55534F]">Closing Marketing</span>
-                <strong class="mt-1 block font-serif text-3xl font-semibold leading-tight text-[var(--poliland-gold-text)] sm:text-4xl">
-                  68%
-                </strong>
-              </div>
             </div>
+            <span class="section-meta">Belum terhubung</span>
+          </div>
 
-            <div class="h-3 w-full overflow-hidden rounded-full bg-[#E9E0D3]">
-              <span class="block h-full w-[68%] rounded-full bg-[linear-gradient(90deg,#506b3d,#aab58c)]"></span>
-            </div>
-            <div class="mt-3 grid grid-cols-1 gap-2 text-xs text-[#41413D] sm:grid-cols-3 sm:gap-3">
-              <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 shrink-0 rounded-full bg-[#526B3E]"></i>Rian (12)</span>
-              <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9BA77C]"></i>Santi (7)</span>
-              <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 shrink-0 rounded-full bg-[#E5DCCD]"></i>Lainnya (5)</span>
-            </div>
-          </section>
-
-          <!-- Recent activity -->
-          <section class="min-w-0 pb-2" aria-labelledby="recent-activity-title">
-            <div class="mb-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex min-w-0 items-center gap-2">
-                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/80 text-[var(--poliland-gold-text)]">
-                  <Clock3 :size="25" />
-                </span>
-                <h2 id="recent-activity-title" class="break-words text-lg font-extrabold">
-                  Aktivitas Terkini
-                </h2>
-              </div>
-              <button
-                type="button"
-                class="inline-flex w-fit items-center gap-1 text-sm font-medium text-[var(--poliland-gold-text)]"
-                @click="navigate('Riwayat')"
-              >
-                Lihat Riwayat <ArrowRight :size="17" />
-              </button>
-            </div>
-
-            <div class="grid min-w-0 gap-2">
-              <article
-                v-for="activity in activities"
-                :key="activity.title"
-                class="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-2 border-b border-[#E8E0D5] py-3 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto_auto] sm:items-center"
-              >
-                <div
-                  class="row-span-2 grid h-10 w-10 place-items-center rounded-full sm:row-span-1"
-                  :class="activity.iconTone"
-                >
-                  <component :is="activity.icon" :size="21" />
-                </div>
-
-                <div class="min-w-0">
-                  <strong class="block break-words text-sm leading-snug">{{ activity.title }}</strong>
-                  <p class="mb-0 mt-1 break-words text-xs leading-relaxed text-[#4E4C47]">
-                    {{ activity.description }}
-                  </p>
-                </div>
-
-                <span
-                  class="col-start-2 w-fit max-w-full whitespace-normal break-words rounded-full px-3 py-1.5 text-left text-xs leading-snug sm:col-start-auto sm:text-center"
-                  :class="activity.statusTone"
-                >
-                  {{ activity.status }}
-                </span>
-                <time class="col-start-2 text-xs text-[#595750] sm:col-start-auto sm:whitespace-nowrap">
-                  {{ activity.time }}
-                </time>
-              </article>
-            </div>
-          </section>
-        </div>
+          <div class="unavailable-panel activity-empty">
+            <strong>Belum ada aktivitas untuk ditampilkan</strong>
+            <p>Aktivitas akan muncul setelah audit log atau sumber riwayat diintegrasikan.</p>
+          </div>
+        </section>
       </main>
     </ion-content>
 
     <MobileTabBar variant="admin" />
   </ion-page>
 </template>
+
+<style scoped>
+.dashboard-content {
+  --background: var(--app-background);
+}
+
+.dashboard-shell {
+  width: min(100%, 1120px);
+  min-height: 100%;
+  margin-inline: auto;
+  padding: 22px 18px calc(112px + env(safe-area-inset-bottom));
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+}
+
+.welcome-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.welcome-copy {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--poliland-green);
+  font-size: 10px;
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+}
+
+.welcome-copy h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(21px, 5vw, 28px);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+
+.welcome-copy > p:last-child {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  text-transform: capitalize;
+}
+
+.icon-action {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.icon-action ion-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.icon-action:focus-visible,
+.text-action:focus-visible,
+.quick-action:focus-visible,
+.button-primary:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 3px;
+}
+
+.icon-action:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.inventory-section,
+.buyers-section,
+.activity-section {
+  margin-bottom: 25px;
+}
+
+.inventory-section {
+  padding: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.heading-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.heading-title h2,
+.section-heading > div > h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+}
+
+.heading-title p {
+  margin: 3px 0 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.heading-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.heading-icon ion-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.green-icon {
+  color: var(--poliland-green);
+}
+
+.gold-icon {
+  color: var(--poliland-gold-text);
+}
+
+.text-action {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--poliland-green);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.text-action ion-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.text-action:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.inventory-overview {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.78fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 16px;
+  padding: 15px 0 14px;
+  border-top: 1px solid var(--border-default);
+}
+
+.total-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-right: 14px;
+  border-right: 1px solid var(--border-default);
+}
+
+.total-block span,
+.total-block small {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.total-block strong {
+  margin: 3px 0 1px;
+  color: var(--text-primary);
+  font-size: clamp(42px, 12vw, 58px);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.065em;
+  line-height: 0.98;
+}
+
+.status-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.status-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-inline: 5px;
+  text-align: center;
+}
+
+.status-item + .status-item {
+  border-left: 1px solid var(--border-default);
+}
+
+.status-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.status-available .status-dot,
+.bar-available {
+  background: var(--status-success);
+}
+
+.status-booking .status-dot,
+.bar-booking {
+  background: var(--poliland-gold);
+}
+
+.status-sold .status-dot,
+.bar-sold {
+  background: var(--status-danger);
+}
+
+.status-item strong {
+  color: var(--text-primary);
+  font-size: clamp(21px, 6vw, 27px);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.status-item small {
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-bar {
+  height: 9px;
+  display: flex;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.inventory-bar span {
+  min-width: 2px;
+  height: 100%;
+  transition: width 180ms ease;
+}
+
+.state-panel {
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.state-panel ion-spinner {
+  color: var(--poliland-green);
+}
+
+.state-panel strong,
+.empty-inline strong,
+.unavailable-panel strong {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.state-panel p,
+.empty-inline p,
+.unavailable-panel p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+}
+
+.state-error {
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.state-error strong {
+  color: var(--status-danger);
+}
+
+.button-primary {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--poliland-green);
+  color: #fff;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.inline-warning {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.tasks-section {
+  margin-bottom: 26px;
+}
+
+.tasks-section > .section-heading {
+  margin-bottom: 10px;
+}
+
+.empty-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 15px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+}
+
+.empty-symbol {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--poliland-green);
+}
+
+.empty-symbol ion-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.quick-section {
+  margin-bottom: 27px;
+}
+
+.quick-section .section-heading {
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.quick-section .eyebrow {
+  margin-bottom: 3px;
+}
+
+.section-meta {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.quick-action {
+  min-width: 0;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 13px 12px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.quick-action:not(:disabled):hover {
+  border-color: var(--poliland-green);
+  background: var(--surface-muted);
+}
+
+.quick-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.quick-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  color: var(--poliland-green);
+}
+
+.quick-icon ion-icon {
+  width: 21px;
+  height: 21px;
+}
+
+.quick-gold .quick-icon {
+  color: var(--poliland-gold-text);
+}
+
+.quick-neutral .quick-icon {
+  color: var(--text-secondary);
+}
+
+.quick-label {
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+}
+
+.quick-action small {
+  color: var(--text-secondary);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.buyers-section,
+.activity-section {
+  padding: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+}
+
+.buyers-section .section-heading,
+.activity-section .section-heading {
+  margin-bottom: 12px;
+}
+
+.unavailable-panel {
+  padding: 15px;
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.activity-empty {
+  background: transparent;
+  border-top: 1px solid var(--border-default);
+  border-radius: 0;
+  padding: 17px 2px 3px;
+}
+
+.dashboard-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 2px 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+@media (min-width: 700px) {
+  .dashboard-shell {
+    padding: 30px 28px 120px;
+  }
+
+  .welcome-row {
+    margin-bottom: 32px;
+  }
+
+  .inventory-section {
+    padding: 22px 24px;
+  }
+
+  .quick-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .quick-action {
+    min-height: 126px;
+  }
+
+  .buyers-section,
+  .activity-section {
+    padding: 20px 22px;
+  }
+}
+
+@media (max-width: 360px) {
+  .dashboard-shell {
+    padding-inline: 13px;
+  }
+
+  .inventory-section {
+    padding: 14px 12px;
+  }
+
+  .inventory-overview {
+    grid-template-columns: minmax(75px, 0.7fr) minmax(0, 2fr);
+    gap: 10px;
+  }
+
+  .total-block {
+    padding-right: 9px;
+  }
+
+  .status-label {
+    gap: 3px;
+    font-size: 9px;
+  }
+
+  .status-item {
+    padding-inline: 2px;
+  }
+
+  .quick-grid {
+    gap: 7px;
+  }
+
+  .quick-action {
+    min-height: 104px;
+    padding: 11px 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+</style>
