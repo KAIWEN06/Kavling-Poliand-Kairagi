@@ -10,7 +10,7 @@
            MARKETING HEADER
            ================================================= -->
 
-      <template v-if="variant === 'marketing'">
+      <template v-if="variant === 'marketing' || variant === 'admin'">
 
         <div class="marketing-header">
 
@@ -153,7 +153,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 const props = withDefaults(
   defineProps<{
-    variant?: 'default' | 'marketing'
+    variant?: 'default' | 'marketing' | 'admin'
     title?: string
     showBack?: boolean
     backRoute?: string

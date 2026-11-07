@@ -46,6 +46,7 @@
               class="view-360-button"
               @click="open360"
             >
+              <ion-icon :icon="compassOutline" aria-hidden="true"></ion-icon>
               Lihat Panorama 360°
             </button>
           </div>
@@ -162,6 +163,37 @@
             v-else
             class="installment-list"
           >
+            <!-- HARGA DASAR DAN DP -->
+            <div class="installment-price-summary">
+              <div class="down-payment-field">
+                <label for="down-payment-input">Uang muka</label>
+                <input
+                  id="down-payment-input"
+                  type="text"
+                  inputmode="numeric"
+                  :value="formatNominal(downPayment)"
+                  placeholder="Masukkan nominal uang muka"
+                  @input="updateDownPayment"
+                />
+              </div>
+
+              <div class="quick-dp-list" aria-label="Pilihan uang muka cepat">
+                <button
+                  v-for="percentage in [10, 20, 30]"
+                  :key="percentage"
+                  type="button"
+                  @click="setQuickDownPayment(percentage)"
+                >
+                  {{ percentage }}%
+                </button>
+              </div>
+
+              <div class="price-row remaining-price-row">
+                <span>Sisa Harga setelah Uang Muka</span>
+                <strong>{{ formatCurrency(remainingAfterDp) }}</strong>
+              </div>
+            </div>
+
             <div
               v-if="loadingInstallments"
               class="payment-note"
@@ -182,12 +214,8 @@
                 </span>
 
                 <strong>
-                  {{ formatCurrency(item.monthly_payment) }}
+                  {{ formatCurrency(calculateMonthlyPayment(item)) }}
                 </strong>
-
-                <small>
-                  {{ item.payment_plans?.months || '-' }} bulan
-                </small>
               </div>
             </template>
 
@@ -419,7 +447,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  ref,
+  watch,
+} from 'vue'
 import { useRouter } from 'vue-router'
 import AppButton from '../ui/AppButton.vue'
 
@@ -435,7 +468,7 @@ import {
   IonDatetime,
 } from '@ionic/vue'
 
-import { cartOutline, closeOutline } from 'ionicons/icons'
+import { cartOutline, closeOutline, compassOutline } from 'ionicons/icons'
 
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.png'
@@ -547,6 +580,39 @@ const installments = ref<any[]>([])
 
 const loadingInstallments = ref(false)
 
+/*
+ * DP hanya digunakan untuk simulasi perhitungan pada halaman detail.
+ * Harga dasar menggunakan harga promo jika tersedia, jika tidak
+ * menggunakan harga cash.
+ */
+const downPayment = ref(0)
+
+const installmentBasePrice = computed(() => {
+  return Number(
+    props.lot?.promo_price ||
+    props.lot?.cash_price ||
+    0
+  )
+})
+
+const remainingAfterDp = computed(() => {
+  return Math.max(
+    0,
+    installmentBasePrice.value - Number(downPayment.value || 0)
+  )
+})
+
+const discountPercent = computed(() => {
+  const normalPrice = Number(props.lot?.cash_price || 0)
+  const promoPrice = Number(props.lot?.promo_price || 0)
+
+  if (!normalPrice || !promoPrice || promoPrice >= normalPrice) {
+    return 0
+  }
+
+  return Math.round((1 - promoPrice / normalPrice) * 100)
+})
+
 /* ===================================================== */
 /* WHATSAPP */
 /* ===================================================== */
@@ -594,7 +660,15 @@ watch(
       return
     }
 
+    window.dispatchEvent(
+      new CustomEvent('poliland-detail-mode', {
+        detail: { active: true },
+      })
+    )
     visible.value = true
+
+    // Reset DP setiap kali pengguna memilih kavling yang berbeda.
+    downPayment.value = 0
 
     await loadInstallments(lot.id)
   },
@@ -603,6 +677,26 @@ watch(
     immediate: true,
   }
 )
+
+watch(
+  visible,
+  (isVisible) => {
+    window.dispatchEvent(
+      new CustomEvent('poliland-detail-mode', {
+        detail: { active: isVisible },
+      })
+    )
+  },
+  { immediate: true }
+)
+
+onBeforeUnmount(() => {
+  window.dispatchEvent(
+    new CustomEvent('poliland-detail-mode', {
+      detail: { active: false },
+    })
+  )
+})
 
 /* ===================================================== */
 /* LOAD INSTALLMENTS */
@@ -631,11 +725,83 @@ async function loadInstallments(
 }
 
 /* ===================================================== */
+/* SIMULASI DP DAN CICILAN */
+/* ===================================================== */
+
+function formatNominal(value: number | string) {
+  const nominal = Number(value || 0)
+
+  return nominal
+    ? nominal.toLocaleString('id-ID')
+    : ''
+}
+
+function updateDownPayment(event: Event) {
+  const target = event.target as HTMLInputElement
+  const rawValue = target.value.replace(/[^0-9]/g, '')
+  const safeValue = Number(rawValue || 0)
+
+  downPayment.value = Math.min(
+    installmentBasePrice.value,
+    Math.max(0, safeValue)
+  )
+}
+
+function setQuickDownPayment(percentage: number) {
+  downPayment.value = Math.round(
+    installmentBasePrice.value * percentage / 100
+  )
+}
+
+function getPaymentPlan(item: any) {
+  return Array.isArray(item?.payment_plans)
+    ? item.payment_plans[0]
+    : item?.payment_plans
+}
+
+function getPlanMonths(item: any): number {
+  return Number(getPaymentPlan(item)?.months || 0)
+}
+
+function getPlanMargin(item: any): number {
+  const plan = getPaymentPlan(item)
+  const months = getPlanMonths(item)
+
+  // Gunakan margin dari tabel payment_plans.
+  // Jika belum diisi, ikuti aturan 2,5% untuk setiap 3 bulan.
+  const margin = plan?.margin_percent
+
+  return margin !== null && margin !== undefined
+    ? Number(margin)
+    : (months / 3) * 2.5
+}
+
+function calculateMonthlyPayment(item: any): number {
+  const months = getPlanMonths(item)
+
+  if (!months) return 0
+
+  const marginPercent = getPlanMargin(item)
+  const priceWithMargin =
+    remainingAfterDp.value * (1 + marginPercent / 100)
+
+  // Dibulatkan ke atas ke rupiah penuh agar tidak kurang bayar.
+  return Math.ceil(priceWithMargin / months)
+}
+
+
+/* ===================================================== */
 /* CLOSE DETAIL */
 /* ===================================================== */
 
 function close() {
   visible.value = false
+
+  window.dispatchEvent(
+    new CustomEvent('poliland-detail-mode', {
+      detail: { active: false },
+    })
+  )
 
   emit('close')
 }
@@ -1364,6 +1530,54 @@ function getBlockCode(
 /* INSTALLMENT */
 /* ===================================================== */
 
+.installment-price-summary {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.down-payment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 0;
+}
+
+.down-payment-field label {
+  color: #6b6b6b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.down-payment-field input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #d8ddd1;
+  border-radius: 9px;
+  outline: none;
+  background: #ffffff;
+  color: #1a1a1a;
+  font: inherit;
+}
+
+.down-payment-field input:focus {
+  border-color: #8ca072;
+  box-shadow: 0 0 0 3px rgba(140, 160, 114, 0.14);
+}
+
+.remaining-price-row {
+  border-top: 1px solid #e5e5e5;
+  padding-top: 10px;
+}
+
+.installment-formula-note {
+  margin: 12px 0 0;
+  line-height: 1.5;
+}
+
 .installment-item {
   display: grid;
 
@@ -1762,6 +1976,261 @@ function getBlockCode(
 
   .survey-button,
   .buy-button {
+    font-size: 13px;
+  }
+}
+
+/* Refined detail presentation */
+.detail-panel {
+  background: #FAFAF7;
+}
+
+.detail-header {
+  min-height: 68px;
+  padding: 14px 20px;
+  background: #FFFFFF;
+}
+
+.detail-label {
+  color: #6B6B6B;
+}
+
+.detail-header h2 {
+  font-size: 22px;
+}
+
+.detail-body {
+  padding: 20px;
+  background: #FAFAF7;
+}
+
+.media-preview,
+.no-panorama {
+  border-radius: 18px;
+  border: 1px solid #E5E5E5;
+}
+
+.media-preview {
+  height: 240px;
+  box-shadow: 0 8px 24px rgba(26, 26, 26, 0.06);
+}
+
+.view-360-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #FFFFFF;
+  color: #1A1A1A;
+  box-shadow: 0 4px 14px rgba(26, 26, 26, 0.18);
+}
+
+.status-box {
+  background: #FFFFFF;
+  border-radius: 14px;
+}
+
+.detail-section {
+  padding: 18px;
+  margin-top: 16px;
+  border: 1px solid #E5E5E5;
+  border-radius: 16px;
+  background: #FFFFFF;
+}
+
+.detail-section h3 {
+  font-size: 16px;
+}
+
+.spec-card {
+  min-height: 72px;
+  justify-content: center;
+  background: #FAFAF7;
+}
+
+.cash-box,
+.installment-list {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.normal-price {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #E5E5E5;
+}
+
+.normal-price del {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.normal-price strong {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: #556B2F;
+  font-size: 22px;
+}
+
+.installment-price-summary {
+  border: none;
+  background: #FAFAF7;
+}
+
+.quick-dp-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.quick-dp-list button {
+  min-height: 42px;
+  border: 1px solid #D9D3C4;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #556B2F;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.installment-item {
+  margin-bottom: 8px;
+  padding: 14px;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+  background: #FFFFFF;
+}
+
+.installment-item strong {
+  font-size: 15px;
+  color: #556B2F;
+}
+
+.detail-footer {
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  background: #FFFFFF;
+}
+
+.survey-button {
+  --background: #556B2F;
+  --background-hover: #4A5B29;
+}
+
+.buy-button {
+  --background: #2E4D2D;
+  --background-hover: #243E24;
+}
+
+.ask-button {
+  min-height: 42px;
+  border-color: #D9D3C4;
+  color: #556B2F;
+}
+
+@media (min-width: 900px) {
+  .detail-backdrop {
+    align-items: center;
+    padding: 32px;
+  }
+
+  .detail-panel {
+    width: min(1180px, calc(100vw - 64px));
+    max-width: none;
+    height: min(840px, calc(100vh - 64px));
+    border-radius: 20px;
+    transform: translateY(24px) scale(0.985);
+    box-shadow: 0 24px 80px rgba(26, 26, 26, 0.22);
+  }
+
+  .detail-backdrop.open .detail-panel {
+    transform: translateY(0) scale(1);
+  }
+
+  .detail-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+    align-items: start;
+    gap: 20px;
+    padding: 24px;
+  }
+
+  .media-preview,
+  .no-panorama,
+  .status-box,
+  .detail-section:nth-of-type(1),
+  .detail-description {
+    grid-column: 1;
+  }
+
+  .detail-section:nth-of-type(2) {
+    grid-column: 2;
+    grid-row: 1 / span 5;
+    position: sticky;
+    top: 0;
+  }
+
+  .detail-section:nth-of-type(3) {
+    grid-column: 1;
+  }
+
+  .detail-section:nth-of-type(1) {
+    margin-top: 0;
+  }
+
+  .detail-footer {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 10px;
+    padding-bottom: 12px;
+  }
+
+  .action-grid {
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 899px) {
+  .detail-panel {
+    max-width: 560px;
+  }
+
+  .detail-body {
+    padding: 16px;
+  }
+
+  .media-preview {
+    height: clamp(190px, 58vw, 280px);
+  }
+
+  .status-box {
+    margin-top: 12px;
+  }
+
+  .detail-section {
+    margin-top: 12px;
+  }
+
+  .detail-footer {
+    position: relative;
+    z-index: 2;
+  }
+}
+
+@media (max-width: 380px) {
+  .detail-body {
+    padding: 12px;
+  }
+
+  .detail-section {
+    padding: 14px;
+  }
+
+  .spec-grid {
+    gap: 8px;
+  }
+
+  .quick-dp-list button {
     font-size: 13px;
   }
 }

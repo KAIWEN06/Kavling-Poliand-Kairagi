@@ -20,12 +20,19 @@ import '@ionic/vue/css/text-transformation.css'
 import '@ionic/vue/css/flex-utils.css'
 import '@ionic/vue/css/display.css'
 
-// Dark mode
-// Aktifkan hanya jika aplikasi memang menggunakan dark mode system.
-// import '@ionic/vue/css/palettes/dark.system.css'
+// Local application font
+import '@fontsource/plus-jakarta-sans/400.css'
+import '@fontsource/plus-jakarta-sans/500.css'
+import '@fontsource/plus-jakarta-sans/600.css'
+import '@fontsource/plus-jakarta-sans/700.css'
+import '@fontsource/plus-jakarta-sans/800.css'
 
-// Theme
+// Tailwind CSS
+import './styles/main.css'
+
+// Global Theme
 import './theme/variables.css'
+
 
 // Create application
 const app = createApp(App)

@@ -362,7 +362,8 @@ export async function getLotInstallments(
       payment_plans (
         id,
         plan_name,
-        months
+        months,
+        margin_percent
       )
     `)
     .eq('lot_id', lotId)

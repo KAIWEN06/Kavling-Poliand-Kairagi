@@ -26,7 +26,10 @@
          ================================================= -->
     <div
       class="tabbar-overlay"
-      :class="{ 'search-mode-hidden': isSearchActive }"
+      :class="{
+        'search-mode-hidden': isSearchActive,
+        'detail-mode-hidden': isDetailOpen,
+      }"
     >
 
       <MobileTabBar />
@@ -59,10 +62,16 @@ import MascotPullRefresh
   from '@/components/common/MascotPullRefresh.vue'
 
 const isSearchActive = ref(false)
+const isDetailOpen = ref(false)
 
 function handleSearchMode(event: Event) {
   const customEvent = event as CustomEvent<{ active?: boolean }>
   isSearchActive.value = customEvent.detail?.active === true
+}
+
+function handleDetailMode(event: Event) {
+  const customEvent = event as CustomEvent<{ active?: boolean }>
+  isDetailOpen.value = customEvent.detail?.active === true
 }
 
 onMounted(() => {
@@ -70,12 +79,22 @@ onMounted(() => {
     'poliland-search-mode',
     handleSearchMode
   )
+
+  window.addEventListener(
+    'poliland-detail-mode',
+    handleDetailMode
+  )
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener(
     'poliland-search-mode',
     handleSearchMode
+  )
+
+  window.removeEventListener(
+    'poliland-detail-mode',
+    handleDetailMode
   )
 })
 
@@ -154,13 +173,15 @@ onBeforeUnmount(() => {
 }
 
 /* Search mode: sembunyikan Tabbar sepenuhnya. */
-.tabbar-overlay.search-mode-hidden {
+.tabbar-overlay.search-mode-hidden,
+.tabbar-overlay.detail-mode-hidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
 }
 
-.tabbar-overlay.search-mode-hidden :deep(*) {
+.tabbar-overlay.search-mode-hidden :deep(*),
+.tabbar-overlay.detail-mode-hidden :deep(*) {
   pointer-events: none;
 }
 

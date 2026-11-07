@@ -74,36 +74,39 @@ poliland-mobile/
 │  │  │  │  │        ├─ public/
 │  │  │  │  │        │  ├─ assets/
 │  │  │  │  │        │  │  ├─ background-e-_69WVj.webp
+│  │  │  │  │        │  │  ├─ Confused_Mascot_and_Missing Panorama-AzWy7Q60.png
 │  │  │  │  │        │  │  ├─ hero-uWzP5N7y.jpg
 │  │  │  │  │        │  │  ├─ hero2-D2gUeXVJ.jpg
 │  │  │  │  │        │  │  ├─ hero3-Bh3EC1Ta.jpg
 │  │  │  │  │        │  │  ├─ hero4-BYa2-KG7.jpg
 │  │  │  │  │        │  │  ├─ hero5-BoNPapQb.jpg
 │  │  │  │  │        │  │  ├─ icons-DA6cNLpS.png
-│  │  │  │  │        │  │  ├─ index-BAEzksPc.js
-│  │  │  │  │        │  │  ├─ index-DC5sfmUI.css
-│  │  │  │  │        │  │  ├─ index-legacy-BAaDIzU1.js
+│  │  │  │  │        │  │  ├─ index-Cob2AEMf.js
+│  │  │  │  │        │  │  ├─ index-DZTdXXxJ.css
+│  │  │  │  │        │  │  ├─ index-legacy-nKGEB0hW.js
 │  │  │  │  │        │  │  ├─ LOTS_WITH_ID-Df835BtP.svg
+│  │  │  │  │        │  │  ├─ Mascot_No_Data_Scene-14nnpkH_.png
 │  │  │  │  │        │  │  ├─ NotFound-CvqaP6lT.webp
 │  │  │  │  │        │  │  ├─ p-CcOl6jEv-Bb8qW_oA.js
 │  │  │  │  │        │  │  ├─ p-CcOl6jEv-legacy-C4kYXftb.js
-│  │  │  │  │        │  │  ├─ p-CpcdCRug-BFwAkB0C.js
-│  │  │  │  │        │  │  ├─ p-CpcdCRug-legacy-Ceu1vWDz.js
+│  │  │  │  │        │  │  ├─ p-CpcdCRug-legacy-Brhj1E_g.js
+│  │  │  │  │        │  │  ├─ p-CpcdCRug-WsoVUTSp.js
 │  │  │  │  │        │  │  ├─ p-CthoZqG1-DkZFzvKD.js
 │  │  │  │  │        │  │  ├─ p-CthoZqG1-legacy-DcmmSyo4.js
-│  │  │  │  │        │  │  ├─ p-DcrAT6v8-5CiVFdbJ.js
-│  │  │  │  │        │  │  ├─ p-DcrAT6v8-legacy-LaT9b5nQ.js
+│  │  │  │  │        │  │  ├─ p-DcrAT6v8-aPoXmZI9.js
+│  │  │  │  │        │  │  ├─ p-DcrAT6v8-legacy-C9Y06bsM.js
 │  │  │  │  │        │  │  ├─ p-DEvF_E6y-BoOLTKgx.js
 │  │  │  │  │        │  │  ├─ p-DEvF_E6y-legacy-DYti21NK.js
-│  │  │  │  │        │  │  ├─ p-S-gGoI4A-CwRqcoJz.js
-│  │  │  │  │        │  │  ├─ p-S-gGoI4A-legacy-NVjf2yMv.js
+│  │  │  │  │        │  │  ├─ p-S-gGoI4A-Cr_PSd1z.js
+│  │  │  │  │        │  │  ├─ p-S-gGoI4A-legacy-jLroO-xu.js
 │  │  │  │  │        │  │  ├─ p-ZjP4CjeZ-DJ1DGIsW.js
 │  │  │  │  │        │  │  ├─ p-ZjP4CjeZ-legacy-ClCrdaHU.js
 │  │  │  │  │        │  │  ├─ perbaikan-nks_goA9.mp4
 │  │  │  │  │        │  │  ├─ polyfills-legacy-Cf6COcgz.js
 │  │  │  │  │        │  │  ├─ Siteplan-CngvOS8r.png
-│  │  │  │  │        │  │  ├─ web-DQ7JwQX5.js
-│  │  │  │  │        │  │  └─ web-legacy-DfndzAI3.js
+│  │  │  │  │        │  │  ├─ Verified_Mascot-QFrbpffe.png
+│  │  │  │  │        │  │  ├─ web-cMF5Mo9W.js
+│  │  │  │  │        │  │  └─ web-legacy-B9ongcLS.js
 │  │  │  │  │        │  ├─ mascot-frames/
 │  │  │  │  │        │  │  ├─ mascot_01_password_cover/
 │  │  │  │  │        │  │  │  ├─ frame-0001.webp
@@ -887,36 +890,39 @@ poliland-mobile/
 │  │  │  │  │              ├─ public/
 │  │  │  │  │              │  ├─ assets/
 │  │  │  │  │              │  │  ├─ background-e-_69WVj.webp.jar
+│  │  │  │  │              │  │  ├─ Confused_Mascot_and_Missing Panorama-AzWy7Q60.png.jar
 │  │  │  │  │              │  │  ├─ hero-uWzP5N7y.jpg.jar
 │  │  │  │  │              │  │  ├─ hero2-D2gUeXVJ.jpg.jar
 │  │  │  │  │              │  │  ├─ hero3-Bh3EC1Ta.jpg.jar
 │  │  │  │  │              │  │  ├─ hero4-BYa2-KG7.jpg.jar
 │  │  │  │  │              │  │  ├─ hero5-BoNPapQb.jpg.jar
 │  │  │  │  │              │  │  ├─ icons-DA6cNLpS.png.jar
-│  │  │  │  │              │  │  ├─ index-BAEzksPc.js.jar
-│  │  │  │  │              │  │  ├─ index-DC5sfmUI.css.jar
-│  │  │  │  │              │  │  ├─ index-legacy-BAaDIzU1.js.jar
+│  │  │  │  │              │  │  ├─ index-Cob2AEMf.js.jar
+│  │  │  │  │              │  │  ├─ index-DZTdXXxJ.css.jar
+│  │  │  │  │              │  │  ├─ index-legacy-nKGEB0hW.js.jar
 │  │  │  │  │              │  │  ├─ LOTS_WITH_ID-Df835BtP.svg.jar
+│  │  │  │  │              │  │  ├─ Mascot_No_Data_Scene-14nnpkH_.png.jar
 │  │  │  │  │              │  │  ├─ NotFound-CvqaP6lT.webp.jar
 │  │  │  │  │              │  │  ├─ p-CcOl6jEv-Bb8qW_oA.js.jar
 │  │  │  │  │              │  │  ├─ p-CcOl6jEv-legacy-C4kYXftb.js.jar
-│  │  │  │  │              │  │  ├─ p-CpcdCRug-BFwAkB0C.js.jar
-│  │  │  │  │              │  │  ├─ p-CpcdCRug-legacy-Ceu1vWDz.js.jar
+│  │  │  │  │              │  │  ├─ p-CpcdCRug-legacy-Brhj1E_g.js.jar
+│  │  │  │  │              │  │  ├─ p-CpcdCRug-WsoVUTSp.js.jar
 │  │  │  │  │              │  │  ├─ p-CthoZqG1-DkZFzvKD.js.jar
 │  │  │  │  │              │  │  ├─ p-CthoZqG1-legacy-DcmmSyo4.js.jar
-│  │  │  │  │              │  │  ├─ p-DcrAT6v8-5CiVFdbJ.js.jar
-│  │  │  │  │              │  │  ├─ p-DcrAT6v8-legacy-LaT9b5nQ.js.jar
+│  │  │  │  │              │  │  ├─ p-DcrAT6v8-aPoXmZI9.js.jar
+│  │  │  │  │              │  │  ├─ p-DcrAT6v8-legacy-C9Y06bsM.js.jar
 │  │  │  │  │              │  │  ├─ p-DEvF_E6y-BoOLTKgx.js.jar
 │  │  │  │  │              │  │  ├─ p-DEvF_E6y-legacy-DYti21NK.js.jar
-│  │  │  │  │              │  │  ├─ p-S-gGoI4A-CwRqcoJz.js.jar
-│  │  │  │  │              │  │  ├─ p-S-gGoI4A-legacy-NVjf2yMv.js.jar
+│  │  │  │  │              │  │  ├─ p-S-gGoI4A-Cr_PSd1z.js.jar
+│  │  │  │  │              │  │  ├─ p-S-gGoI4A-legacy-jLroO-xu.js.jar
 │  │  │  │  │              │  │  ├─ p-ZjP4CjeZ-DJ1DGIsW.js.jar
 │  │  │  │  │              │  │  ├─ p-ZjP4CjeZ-legacy-ClCrdaHU.js.jar
 │  │  │  │  │              │  │  ├─ perbaikan-nks_goA9.mp4.jar
 │  │  │  │  │              │  │  ├─ polyfills-legacy-Cf6COcgz.js.jar
 │  │  │  │  │              │  │  ├─ Siteplan-CngvOS8r.png.jar
-│  │  │  │  │              │  │  ├─ web-DQ7JwQX5.js.jar
-│  │  │  │  │              │  │  └─ web-legacy-DfndzAI3.js.jar
+│  │  │  │  │              │  │  ├─ Verified_Mascot-QFrbpffe.png.jar
+│  │  │  │  │              │  │  ├─ web-cMF5Mo9W.js.jar
+│  │  │  │  │              │  │  └─ web-legacy-B9ongcLS.js.jar
 │  │  │  │  │              │  ├─ mascot-frames/
 │  │  │  │  │              │  │  ├─ mascot_01_password_cover/
 │  │  │  │  │              │  │  │  ├─ frame-0001.webp.jar
@@ -2621,36 +2627,39 @@ poliland-mobile/
 │  │  │  │  │  ├─ public/
 │  │  │  │  │  │  ├─ assets/
 │  │  │  │  │  │  │  ├─ background-e-_69WVj.webp
+│  │  │  │  │  │  │  ├─ Confused_Mascot_and_Missing Panorama-AzWy7Q60.png
 │  │  │  │  │  │  │  ├─ hero-uWzP5N7y.jpg
 │  │  │  │  │  │  │  ├─ hero2-D2gUeXVJ.jpg
 │  │  │  │  │  │  │  ├─ hero3-Bh3EC1Ta.jpg
 │  │  │  │  │  │  │  ├─ hero4-BYa2-KG7.jpg
 │  │  │  │  │  │  │  ├─ hero5-BoNPapQb.jpg
 │  │  │  │  │  │  │  ├─ icons-DA6cNLpS.png
-│  │  │  │  │  │  │  ├─ index-BAEzksPc.js
-│  │  │  │  │  │  │  ├─ index-DC5sfmUI.css
-│  │  │  │  │  │  │  ├─ index-legacy-BAaDIzU1.js
+│  │  │  │  │  │  │  ├─ index-Cob2AEMf.js
+│  │  │  │  │  │  │  ├─ index-DZTdXXxJ.css
+│  │  │  │  │  │  │  ├─ index-legacy-nKGEB0hW.js
 │  │  │  │  │  │  │  ├─ LOTS_WITH_ID-Df835BtP.svg
+│  │  │  │  │  │  │  ├─ Mascot_No_Data_Scene-14nnpkH_.png
 │  │  │  │  │  │  │  ├─ NotFound-CvqaP6lT.webp
 │  │  │  │  │  │  │  ├─ p-CcOl6jEv-Bb8qW_oA.js
 │  │  │  │  │  │  │  ├─ p-CcOl6jEv-legacy-C4kYXftb.js
-│  │  │  │  │  │  │  ├─ p-CpcdCRug-BFwAkB0C.js
-│  │  │  │  │  │  │  ├─ p-CpcdCRug-legacy-Ceu1vWDz.js
+│  │  │  │  │  │  │  ├─ p-CpcdCRug-legacy-Brhj1E_g.js
+│  │  │  │  │  │  │  ├─ p-CpcdCRug-WsoVUTSp.js
 │  │  │  │  │  │  │  ├─ p-CthoZqG1-DkZFzvKD.js
 │  │  │  │  │  │  │  ├─ p-CthoZqG1-legacy-DcmmSyo4.js
-│  │  │  │  │  │  │  ├─ p-DcrAT6v8-5CiVFdbJ.js
-│  │  │  │  │  │  │  ├─ p-DcrAT6v8-legacy-LaT9b5nQ.js
+│  │  │  │  │  │  │  ├─ p-DcrAT6v8-aPoXmZI9.js
+│  │  │  │  │  │  │  ├─ p-DcrAT6v8-legacy-C9Y06bsM.js
 │  │  │  │  │  │  │  ├─ p-DEvF_E6y-BoOLTKgx.js
 │  │  │  │  │  │  │  ├─ p-DEvF_E6y-legacy-DYti21NK.js
-│  │  │  │  │  │  │  ├─ p-S-gGoI4A-CwRqcoJz.js
-│  │  │  │  │  │  │  ├─ p-S-gGoI4A-legacy-NVjf2yMv.js
+│  │  │  │  │  │  │  ├─ p-S-gGoI4A-Cr_PSd1z.js
+│  │  │  │  │  │  │  ├─ p-S-gGoI4A-legacy-jLroO-xu.js
 │  │  │  │  │  │  │  ├─ p-ZjP4CjeZ-DJ1DGIsW.js
 │  │  │  │  │  │  │  ├─ p-ZjP4CjeZ-legacy-ClCrdaHU.js
 │  │  │  │  │  │  │  ├─ perbaikan-nks_goA9.mp4
 │  │  │  │  │  │  │  ├─ polyfills-legacy-Cf6COcgz.js
 │  │  │  │  │  │  │  ├─ Siteplan-CngvOS8r.png
-│  │  │  │  │  │  │  ├─ web-DQ7JwQX5.js
-│  │  │  │  │  │  │  └─ web-legacy-DfndzAI3.js
+│  │  │  │  │  │  │  ├─ Verified_Mascot-QFrbpffe.png
+│  │  │  │  │  │  │  ├─ web-cMF5Mo9W.js
+│  │  │  │  │  │  │  └─ web-legacy-B9ongcLS.js
 │  │  │  │  │  │  ├─ mascot-frames/
 │  │  │  │  │  │  │  ├─ mascot_01_password_cover/
 │  │  │  │  │  │  │  │  ├─ frame-0001.webp
@@ -3716,36 +3725,29 @@ poliland-mobile/
 ├─ dist/
 │  ├─ assets/
 │  │  ├─ background-e-_69WVj.webp
+│  │  ├─ Confused_Mascot_and_Missing Panorama-AzWy7Q60.png
 │  │  ├─ hero-uWzP5N7y.jpg
 │  │  ├─ hero2-D2gUeXVJ.jpg
 │  │  ├─ hero3-Bh3EC1Ta.jpg
 │  │  ├─ hero4-BYa2-KG7.jpg
 │  │  ├─ hero5-BoNPapQb.jpg
 │  │  ├─ icons-DA6cNLpS.png
-│  │  ├─ index-BAEzksPc.js
-│  │  ├─ index-DC5sfmUI.css
-│  │  ├─ index-legacy-BAaDIzU1.js
+│  │  ├─ index-BOA0f4UI.css
+│  │  ├─ index-JHKwtYZC.js
 │  │  ├─ LOTS_WITH_ID-Df835BtP.svg
+│  │  ├─ Mascot_No_Data_Scene-14nnpkH_.png
 │  │  ├─ NotFound-CvqaP6lT.webp
-│  │  ├─ p-CcOl6jEv-Bb8qW_oA.js
-│  │  ├─ p-CcOl6jEv-legacy-C4kYXftb.js
-│  │  ├─ p-CpcdCRug-BFwAkB0C.js
-│  │  ├─ p-CpcdCRug-legacy-Ceu1vWDz.js
-│  │  ├─ p-CthoZqG1-DkZFzvKD.js
-│  │  ├─ p-CthoZqG1-legacy-DcmmSyo4.js
-│  │  ├─ p-DcrAT6v8-5CiVFdbJ.js
-│  │  ├─ p-DcrAT6v8-legacy-LaT9b5nQ.js
-│  │  ├─ p-DEvF_E6y-BoOLTKgx.js
-│  │  ├─ p-DEvF_E6y-legacy-DYti21NK.js
-│  │  ├─ p-S-gGoI4A-CwRqcoJz.js
-│  │  ├─ p-S-gGoI4A-legacy-NVjf2yMv.js
+│  │  ├─ p-CcOl6jEv-fTR6QqsK.js
+│  │  ├─ p-CpcdCRug-BVv5G_Px.js
+│  │  ├─ p-CthoZqG1-BBfXIPpb.js
+│  │  ├─ p-DcrAT6v8-CuAfQzaP.js
+│  │  ├─ p-DEvF_E6y-Dii5CmNW.js
+│  │  ├─ p-S-gGoI4A-CqiikkwI.js
 │  │  ├─ p-ZjP4CjeZ-DJ1DGIsW.js
-│  │  ├─ p-ZjP4CjeZ-legacy-ClCrdaHU.js
 │  │  ├─ perbaikan-nks_goA9.mp4
-│  │  ├─ polyfills-legacy-Cf6COcgz.js
 │  │  ├─ Siteplan-CngvOS8r.png
-│  │  ├─ web-DQ7JwQX5.js
-│  │  └─ web-legacy-DfndzAI3.js
+│  │  ├─ Verified_Mascot-QFrbpffe.png
+│  │  └─ web-BRq4WRN9.js
 │  ├─ mascot-frames/
 │  │  ├─ mascot_01_password_cover/
 │  │  │  ├─ frame-0001.webp
@@ -4514,6 +4516,860 @@ poliland-mobile/
 │  ├─ icon-512.webp
 │  ├─ icon-72.webp
 │  └─ icon-96.webp
+├─ ios/
+│  ├─ App/
+│  │  ├─ App/
+│  │  │  ├─ Assets.xcassets/
+│  │  │  │  ├─ AppIcon.appiconset/
+│  │  │  │  │  ├─ AppIcon-512@2x.png
+│  │  │  │  │  └─ Contents.json
+│  │  │  │  ├─ Splash.imageset/
+│  │  │  │  │  ├─ Contents.json
+│  │  │  │  │  ├─ splash-2732x2732-1.png
+│  │  │  │  │  ├─ splash-2732x2732-2.png
+│  │  │  │  │  └─ splash-2732x2732.png
+│  │  │  │  └─ Contents.json
+│  │  │  ├─ Base.lproj/
+│  │  │  │  ├─ LaunchScreen.storyboard
+│  │  │  │  └─ Main.storyboard
+│  │  │  ├─ public/
+│  │  │  │  ├─ assets/
+│  │  │  │  │  ├─ background-e-_69WVj.webp
+│  │  │  │  │  ├─ hero-uWzP5N7y.jpg
+│  │  │  │  │  ├─ hero2-D2gUeXVJ.jpg
+│  │  │  │  │  ├─ hero3-Bh3EC1Ta.jpg
+│  │  │  │  │  ├─ hero4-BYa2-KG7.jpg
+│  │  │  │  │  ├─ hero5-BoNPapQb.jpg
+│  │  │  │  │  ├─ icons-DA6cNLpS.png
+│  │  │  │  │  ├─ index-BcCRTeWV.css
+│  │  │  │  │  ├─ index-legacy-D-f2XeaY.js
+│  │  │  │  │  ├─ index-vM3VulA7.js
+│  │  │  │  │  ├─ LOTS_WITH_ID-Df835BtP.svg
+│  │  │  │  │  ├─ Mascot_No_Data_Scene-14nnpkH_.png
+│  │  │  │  │  ├─ NotFound-CvqaP6lT.webp
+│  │  │  │  │  ├─ p-CcOl6jEv-Bb8qW_oA.js
+│  │  │  │  │  ├─ p-CcOl6jEv-CfFstdgP.js
+│  │  │  │  │  ├─ p-CcOl6jEv-legacy-C4kYXftb.js
+│  │  │  │  │  ├─ p-CcOl6jEv-legacy-DIj-JkyT.js
+│  │  │  │  │  ├─ p-CpcdCRug-4OJ2BlVd.js
+│  │  │  │  │  ├─ p-CpcdCRug-jG8lSn_b.js
+│  │  │  │  │  ├─ p-CpcdCRug-legacy-BUFtPMvh.js
+│  │  │  │  │  ├─ p-CpcdCRug-legacy-CRzZwWRw.js
+│  │  │  │  │  ├─ p-CthoZqG1-1B6Z0Gul.js
+│  │  │  │  │  ├─ p-CthoZqG1-DkZFzvKD.js
+│  │  │  │  │  ├─ p-CthoZqG1-legacy-DcmmSyo4.js
+│  │  │  │  │  ├─ p-CthoZqG1-legacy-DGeV7P7o.js
+│  │  │  │  │  ├─ p-DcrAT6v8-99iMJI6_.js
+│  │  │  │  │  ├─ p-DcrAT6v8-Bk5CKIox.js
+│  │  │  │  │  ├─ p-DcrAT6v8-legacy-BT2ALPZt.js
+│  │  │  │  │  ├─ p-DcrAT6v8-legacy-Ca5pWnR1.js
+│  │  │  │  │  ├─ p-DEvF_E6y-BoOLTKgx.js
+│  │  │  │  │  ├─ p-DEvF_E6y-cP-srbRZ.js
+│  │  │  │  │  ├─ p-DEvF_E6y-legacy-DN-IGlAh.js
+│  │  │  │  │  ├─ p-DEvF_E6y-legacy-DYti21NK.js
+│  │  │  │  │  ├─ p-S-gGoI4A-DZGyK1RB.js
+│  │  │  │  │  ├─ p-S-gGoI4A-ICy0SyI_.js
+│  │  │  │  │  ├─ p-S-gGoI4A-legacy-Cq8OFDnP.js
+│  │  │  │  │  ├─ p-S-gGoI4A-legacy-DO181OOH.js
+│  │  │  │  │  ├─ p-ZjP4CjeZ-CwBTbtsb.js
+│  │  │  │  │  ├─ p-ZjP4CjeZ-DJ1DGIsW.js
+│  │  │  │  │  ├─ p-ZjP4CjeZ-legacy-B3DZJHBB.js
+│  │  │  │  │  ├─ p-ZjP4CjeZ-legacy-ClCrdaHU.js
+│  │  │  │  │  ├─ perbaikan-nks_goA9.mp4
+│  │  │  │  │  ├─ polyfills-legacy-Cf6COcgz.js
+│  │  │  │  │  ├─ preload-helper-BZ1Pz5am.js
+│  │  │  │  │  ├─ preload-helper-legacy-Cz4LJ9k0.js
+│  │  │  │  │  ├─ Siteplan-CngvOS8r.png
+│  │  │  │  │  ├─ Verified_Mascot-QFrbpffe.png
+│  │  │  │  │  ├─ web-Bs1-SsBH.js
+│  │  │  │  │  └─ web-legacy-CGXP_7aM.js
+│  │  │  │  ├─ mascot-frames/
+│  │  │  │  │  ├─ mascot_01_password_cover/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  ├─ frame-0025.webp
+│  │  │  │  │  │  ├─ frame-0026.webp
+│  │  │  │  │  │  ├─ frame-0027.webp
+│  │  │  │  │  │  ├─ frame-0028.webp
+│  │  │  │  │  │  ├─ frame-0029.webp
+│  │  │  │  │  │  ├─ frame-0030.webp
+│  │  │  │  │  │  ├─ frame-0031.webp
+│  │  │  │  │  │  ├─ frame-0032.webp
+│  │  │  │  │  │  ├─ frame-0033.webp
+│  │  │  │  │  │  ├─ frame-0034.webp
+│  │  │  │  │  │  ├─ frame-0035.webp
+│  │  │  │  │  │  ├─ frame-0036.webp
+│  │  │  │  │  │  ├─ frame-0037.webp
+│  │  │  │  │  │  ├─ frame-0038.webp
+│  │  │  │  │  │  ├─ frame-0039.webp
+│  │  │  │  │  │  ├─ frame-0040.webp
+│  │  │  │  │  │  ├─ frame-0041.webp
+│  │  │  │  │  │  ├─ frame-0042.webp
+│  │  │  │  │  │  ├─ frame-0043.webp
+│  │  │  │  │  │  ├─ frame-0044.webp
+│  │  │  │  │  │  ├─ frame-0045.webp
+│  │  │  │  │  │  ├─ frame-0046.webp
+│  │  │  │  │  │  ├─ frame-0047.webp
+│  │  │  │  │  │  ├─ frame-0048.webp
+│  │  │  │  │  │  ├─ frame-0049.webp
+│  │  │  │  │  │  ├─ frame-0050.webp
+│  │  │  │  │  │  ├─ frame-0051.webp
+│  │  │  │  │  │  ├─ frame-0052.webp
+│  │  │  │  │  │  ├─ frame-0053.webp
+│  │  │  │  │  │  ├─ frame-0054.webp
+│  │  │  │  │  │  ├─ frame-0055.webp
+│  │  │  │  │  │  └─ frame-0056.webp
+│  │  │  │  │  ├─ mascot_02_password_enter/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  └─ frame-0021.webp
+│  │  │  │  │  ├─ mascot_03_cover_exit/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  └─ frame-0021.webp
+│  │  │  │  │  ├─ mascot_04_password_peek/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  ├─ frame-0025.webp
+│  │  │  │  │  │  ├─ frame-0026.webp
+│  │  │  │  │  │  ├─ frame-0027.webp
+│  │  │  │  │  │  ├─ frame-0028.webp
+│  │  │  │  │  │  ├─ frame-0029.webp
+│  │  │  │  │  │  ├─ frame-0030.webp
+│  │  │  │  │  │  ├─ frame-0031.webp
+│  │  │  │  │  │  ├─ frame-0032.webp
+│  │  │  │  │  │  ├─ frame-0033.webp
+│  │  │  │  │  │  ├─ frame-0034.webp
+│  │  │  │  │  │  ├─ frame-0035.webp
+│  │  │  │  │  │  ├─ frame-0036.webp
+│  │  │  │  │  │  ├─ frame-0037.webp
+│  │  │  │  │  │  ├─ frame-0038.webp
+│  │  │  │  │  │  ├─ frame-0039.webp
+│  │  │  │  │  │  ├─ frame-0040.webp
+│  │  │  │  │  │  ├─ frame-0041.webp
+│  │  │  │  │  │  ├─ frame-0042.webp
+│  │  │  │  │  │  ├─ frame-0043.webp
+│  │  │  │  │  │  ├─ frame-0044.webp
+│  │  │  │  │  │  ├─ frame-0045.webp
+│  │  │  │  │  │  ├─ frame-0046.webp
+│  │  │  │  │  │  ├─ frame-0047.webp
+│  │  │  │  │  │  ├─ frame-0048.webp
+│  │  │  │  │  │  ├─ frame-0049.webp
+│  │  │  │  │  │  └─ frame-0050.webp
+│  │  │  │  │  ├─ mascot_05_peek_enter/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  └─ frame-0011.webp
+│  │  │  │  │  ├─ mascot_06_peek_exit/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  └─ frame-0019.webp
+│  │  │  │  │  ├─ mascot_07_point_down/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  ├─ frame-0025.webp
+│  │  │  │  │  │  ├─ frame-0026.webp
+│  │  │  │  │  │  ├─ frame-0027.webp
+│  │  │  │  │  │  ├─ frame-0028.webp
+│  │  │  │  │  │  ├─ frame-0029.webp
+│  │  │  │  │  │  ├─ frame-0030.webp
+│  │  │  │  │  │  ├─ frame-0031.webp
+│  │  │  │  │  │  ├─ frame-0032.webp
+│  │  │  │  │  │  ├─ frame-0033.webp
+│  │  │  │  │  │  ├─ frame-0034.webp
+│  │  │  │  │  │  ├─ frame-0035.webp
+│  │  │  │  │  │  ├─ frame-0036.webp
+│  │  │  │  │  │  ├─ frame-0037.webp
+│  │  │  │  │  │  └─ frame-0038.webp
+│  │  │  │  │  ├─ mascot_08_wave/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  ├─ frame-0025.webp
+│  │  │  │  │  │  ├─ frame-0026.webp
+│  │  │  │  │  │  ├─ frame-0027.webp
+│  │  │  │  │  │  ├─ frame-0028.webp
+│  │  │  │  │  │  ├─ frame-0029.webp
+│  │  │  │  │  │  ├─ frame-0030.webp
+│  │  │  │  │  │  ├─ frame-0031.webp
+│  │  │  │  │  │  ├─ frame-0032.webp
+│  │  │  │  │  │  ├─ frame-0033.webp
+│  │  │  │  │  │  ├─ frame-0034.webp
+│  │  │  │  │  │  ├─ frame-0035.webp
+│  │  │  │  │  │  ├─ frame-0036.webp
+│  │  │  │  │  │  ├─ frame-0037.webp
+│  │  │  │  │  │  ├─ frame-0038.webp
+│  │  │  │  │  │  ├─ frame-0039.webp
+│  │  │  │  │  │  ├─ frame-0040.webp
+│  │  │  │  │  │  ├─ frame-0041.webp
+│  │  │  │  │  │  ├─ frame-0042.webp
+│  │  │  │  │  │  ├─ frame-0043.webp
+│  │  │  │  │  │  ├─ frame-0044.webp
+│  │  │  │  │  │  ├─ frame-0045.webp
+│  │  │  │  │  │  ├─ frame-0046.webp
+│  │  │  │  │  │  ├─ frame-0047.webp
+│  │  │  │  │  │  ├─ frame-0048.webp
+│  │  │  │  │  │  ├─ frame-0049.webp
+│  │  │  │  │  │  ├─ frame-0050.webp
+│  │  │  │  │  │  ├─ frame-0051.webp
+│  │  │  │  │  │  ├─ frame-0052.webp
+│  │  │  │  │  │  ├─ frame-0053.webp
+│  │  │  │  │  │  ├─ frame-0054.webp
+│  │  │  │  │  │  ├─ frame-0055.webp
+│  │  │  │  │  │  ├─ frame-0056.webp
+│  │  │  │  │  │  └─ frame-0057.webp
+│  │  │  │  │  ├─ mascot_09_peek_to_cover/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  └─ frame-0011.webp
+│  │  │  │  │  ├─ mascot_10_password_error/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  ├─ frame-0025.webp
+│  │  │  │  │  │  ├─ frame-0026.webp
+│  │  │  │  │  │  ├─ frame-0027.webp
+│  │  │  │  │  │  ├─ frame-0028.webp
+│  │  │  │  │  │  ├─ frame-0029.webp
+│  │  │  │  │  │  ├─ frame-0030.webp
+│  │  │  │  │  │  ├─ frame-0031.webp
+│  │  │  │  │  │  ├─ frame-0032.webp
+│  │  │  │  │  │  ├─ frame-0033.webp
+│  │  │  │  │  │  ├─ frame-0034.webp
+│  │  │  │  │  │  ├─ frame-0035.webp
+│  │  │  │  │  │  ├─ frame-0036.webp
+│  │  │  │  │  │  ├─ frame-0037.webp
+│  │  │  │  │  │  ├─ frame-0038.webp
+│  │  │  │  │  │  ├─ frame-0039.webp
+│  │  │  │  │  │  ├─ frame-0040.webp
+│  │  │  │  │  │  ├─ frame-0041.webp
+│  │  │  │  │  │  ├─ frame-0042.webp
+│  │  │  │  │  │  ├─ frame-0043.webp
+│  │  │  │  │  │  ├─ frame-0044.webp
+│  │  │  │  │  │  ├─ frame-0045.webp
+│  │  │  │  │  │  ├─ frame-0046.webp
+│  │  │  │  │  │  ├─ frame-0047.webp
+│  │  │  │  │  │  ├─ frame-0048.webp
+│  │  │  │  │  │  ├─ frame-0049.webp
+│  │  │  │  │  │  ├─ frame-0050.webp
+│  │  │  │  │  │  ├─ frame-0051.webp
+│  │  │  │  │  │  ├─ frame-0052.webp
+│  │  │  │  │  │  ├─ frame-0053.webp
+│  │  │  │  │  │  ├─ frame-0054.webp
+│  │  │  │  │  │  ├─ frame-0055.webp
+│  │  │  │  │  │  ├─ frame-0056.webp
+│  │  │  │  │  │  ├─ frame-0057.webp
+│  │  │  │  │  │  ├─ frame-0058.webp
+│  │  │  │  │  │  ├─ frame-0059.webp
+│  │  │  │  │  │  ├─ frame-0060.webp
+│  │  │  │  │  │  ├─ frame-0061.webp
+│  │  │  │  │  │  ├─ frame-0062.webp
+│  │  │  │  │  │  ├─ frame-0063.webp
+│  │  │  │  │  │  ├─ frame-0064.webp
+│  │  │  │  │  │  ├─ frame-0065.webp
+│  │  │  │  │  │  ├─ frame-0066.webp
+│  │  │  │  │  │  ├─ frame-0067.webp
+│  │  │  │  │  │  ├─ frame-0068.webp
+│  │  │  │  │  │  ├─ frame-0069.webp
+│  │  │  │  │  │  ├─ frame-0070.webp
+│  │  │  │  │  │  ├─ frame-0071.webp
+│  │  │  │  │  │  ├─ frame-0072.webp
+│  │  │  │  │  │  ├─ frame-0073.webp
+│  │  │  │  │  │  ├─ frame-0074.webp
+│  │  │  │  │  │  ├─ frame-0075.webp
+│  │  │  │  │  │  ├─ frame-0076.webp
+│  │  │  │  │  │  ├─ frame-0077.webp
+│  │  │  │  │  │  ├─ frame-0078.webp
+│  │  │  │  │  │  ├─ frame-0079.webp
+│  │  │  │  │  │  ├─ frame-0080.webp
+│  │  │  │  │  │  ├─ frame-0081.webp
+│  │  │  │  │  │  ├─ frame-0082.webp
+│  │  │  │  │  │  ├─ frame-0083.webp
+│  │  │  │  │  │  ├─ frame-0084.webp
+│  │  │  │  │  │  └─ frame-0085.webp
+│  │  │  │  │  ├─ mascot_11_idle/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  └─ frame-0025.webp
+│  │  │  │  │  ├─ mascot_12_look_down/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  └─ frame-0025.webp
+│  │  │  │  │  ├─ mascot_13_look_down_enter/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  └─ frame-0012.webp
+│  │  │  │  │  ├─ mascot_14_look_down_exit/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  └─ frame-0012.webp
+│  │  │  │  │  ├─ mascot_perbarui/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  ├─ frame-0025.webp
+│  │  │  │  │  │  ├─ frame-0026.webp
+│  │  │  │  │  │  ├─ frame-0027.webp
+│  │  │  │  │  │  ├─ frame-0028.webp
+│  │  │  │  │  │  ├─ frame-0029.webp
+│  │  │  │  │  │  ├─ frame-0030.webp
+│  │  │  │  │  │  ├─ frame-0031.webp
+│  │  │  │  │  │  ├─ frame-0032.webp
+│  │  │  │  │  │  ├─ frame-0033.webp
+│  │  │  │  │  │  ├─ frame-0034.webp
+│  │  │  │  │  │  ├─ frame-0035.webp
+│  │  │  │  │  │  ├─ frame-0036.webp
+│  │  │  │  │  │  ├─ frame-0037.webp
+│  │  │  │  │  │  ├─ frame-0038.webp
+│  │  │  │  │  │  ├─ frame-0039.webp
+│  │  │  │  │  │  ├─ frame-0040.webp
+│  │  │  │  │  │  ├─ frame-0041.webp
+│  │  │  │  │  │  ├─ frame-0042.webp
+│  │  │  │  │  │  ├─ frame-0043.webp
+│  │  │  │  │  │  ├─ frame-0044.webp
+│  │  │  │  │  │  ├─ frame-0045.webp
+│  │  │  │  │  │  ├─ frame-0046.webp
+│  │  │  │  │  │  ├─ frame-0047.webp
+│  │  │  │  │  │  ├─ frame-0048.webp
+│  │  │  │  │  │  ├─ frame-0049.webp
+│  │  │  │  │  │  ├─ frame-0050.webp
+│  │  │  │  │  │  ├─ frame-0051.webp
+│  │  │  │  │  │  ├─ frame-0052.webp
+│  │  │  │  │  │  ├─ frame-0053.webp
+│  │  │  │  │  │  ├─ frame-0054.webp
+│  │  │  │  │  │  ├─ frame-0055.webp
+│  │  │  │  │  │  ├─ frame-0056.webp
+│  │  │  │  │  │  ├─ frame-0057.webp
+│  │  │  │  │  │  ├─ frame-0058.webp
+│  │  │  │  │  │  ├─ frame-0059.webp
+│  │  │  │  │  │  ├─ frame-0060.webp
+│  │  │  │  │  │  ├─ frame-0061.webp
+│  │  │  │  │  │  ├─ frame-0062.webp
+│  │  │  │  │  │  ├─ frame-0063.webp
+│  │  │  │  │  │  └─ frame-0064.webp
+│  │  │  │  │  ├─ memuat1/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  ├─ frame-0025.webp
+│  │  │  │  │  │  ├─ frame-0026.webp
+│  │  │  │  │  │  ├─ frame-0027.webp
+│  │  │  │  │  │  ├─ frame-0028.webp
+│  │  │  │  │  │  ├─ frame-0029.webp
+│  │  │  │  │  │  ├─ frame-0030.webp
+│  │  │  │  │  │  ├─ frame-0031.webp
+│  │  │  │  │  │  ├─ frame-0032.webp
+│  │  │  │  │  │  ├─ frame-0033.webp
+│  │  │  │  │  │  ├─ frame-0034.webp
+│  │  │  │  │  │  ├─ frame-0035.webp
+│  │  │  │  │  │  ├─ frame-0036.webp
+│  │  │  │  │  │  ├─ frame-0037.webp
+│  │  │  │  │  │  ├─ frame-0038.webp
+│  │  │  │  │  │  ├─ frame-0039.webp
+│  │  │  │  │  │  ├─ frame-0040.webp
+│  │  │  │  │  │  ├─ frame-0041.webp
+│  │  │  │  │  │  ├─ frame-0042.webp
+│  │  │  │  │  │  ├─ frame-0043.webp
+│  │  │  │  │  │  ├─ frame-0044.webp
+│  │  │  │  │  │  ├─ frame-0045.webp
+│  │  │  │  │  │  ├─ frame-0046.webp
+│  │  │  │  │  │  ├─ frame-0047.webp
+│  │  │  │  │  │  ├─ frame-0048.webp
+│  │  │  │  │  │  ├─ frame-0049.webp
+│  │  │  │  │  │  ├─ frame-0050.webp
+│  │  │  │  │  │  ├─ frame-0051.webp
+│  │  │  │  │  │  ├─ frame-0052.webp
+│  │  │  │  │  │  ├─ frame-0053.webp
+│  │  │  │  │  │  ├─ frame-0054.webp
+│  │  │  │  │  │  ├─ frame-0055.webp
+│  │  │  │  │  │  ├─ frame-0056.webp
+│  │  │  │  │  │  ├─ frame-0057.webp
+│  │  │  │  │  │  ├─ frame-0058.webp
+│  │  │  │  │  │  ├─ frame-0059.webp
+│  │  │  │  │  │  ├─ frame-0060.webp
+│  │  │  │  │  │  ├─ frame-0061.webp
+│  │  │  │  │  │  ├─ frame-0062.webp
+│  │  │  │  │  │  ├─ frame-0063.webp
+│  │  │  │  │  │  ├─ frame-0064.webp
+│  │  │  │  │  │  ├─ frame-0065.webp
+│  │  │  │  │  │  ├─ frame-0066.webp
+│  │  │  │  │  │  ├─ frame-0067.webp
+│  │  │  │  │  │  ├─ frame-0068.webp
+│  │  │  │  │  │  ├─ frame-0069.webp
+│  │  │  │  │  │  ├─ frame-0070.webp
+│  │  │  │  │  │  ├─ frame-0071.webp
+│  │  │  │  │  │  ├─ frame-0072.webp
+│  │  │  │  │  │  ├─ frame-0073.webp
+│  │  │  │  │  │  ├─ frame-0074.webp
+│  │  │  │  │  │  ├─ frame-0075.webp
+│  │  │  │  │  │  ├─ frame-0076.webp
+│  │  │  │  │  │  ├─ frame-0077.webp
+│  │  │  │  │  │  ├─ frame-0078.webp
+│  │  │  │  │  │  ├─ frame-0079.webp
+│  │  │  │  │  │  ├─ frame-0080.webp
+│  │  │  │  │  │  ├─ frame-0081.webp
+│  │  │  │  │  │  ├─ frame-0082.webp
+│  │  │  │  │  │  ├─ frame-0083.webp
+│  │  │  │  │  │  ├─ frame-0084.webp
+│  │  │  │  │  │  ├─ frame-0085.webp
+│  │  │  │  │  │  ├─ frame-0086.webp
+│  │  │  │  │  │  ├─ frame-0087.webp
+│  │  │  │  │  │  ├─ frame-0088.webp
+│  │  │  │  │  │  ├─ frame-0089.webp
+│  │  │  │  │  │  ├─ frame-0090.webp
+│  │  │  │  │  │  ├─ frame-0091.webp
+│  │  │  │  │  │  ├─ frame-0092.webp
+│  │  │  │  │  │  ├─ frame-0093.webp
+│  │  │  │  │  │  ├─ frame-0094.webp
+│  │  │  │  │  │  ├─ frame-0095.webp
+│  │  │  │  │  │  ├─ frame-0096.webp
+│  │  │  │  │  │  ├─ frame-0097.webp
+│  │  │  │  │  │  ├─ frame-0098.webp
+│  │  │  │  │  │  ├─ frame-0099.webp
+│  │  │  │  │  │  ├─ frame-0100.webp
+│  │  │  │  │  │  ├─ frame-0101.webp
+│  │  │  │  │  │  ├─ frame-0102.webp
+│  │  │  │  │  │  ├─ frame-0103.webp
+│  │  │  │  │  │  ├─ frame-0104.webp
+│  │  │  │  │  │  ├─ frame-0105.webp
+│  │  │  │  │  │  ├─ frame-0106.webp
+│  │  │  │  │  │  ├─ frame-0107.webp
+│  │  │  │  │  │  ├─ frame-0108.webp
+│  │  │  │  │  │  ├─ frame-0109.webp
+│  │  │  │  │  │  ├─ frame-0110.webp
+│  │  │  │  │  │  ├─ frame-0111.webp
+│  │  │  │  │  │  ├─ frame-0112.webp
+│  │  │  │  │  │  ├─ frame-0113.webp
+│  │  │  │  │  │  ├─ frame-0114.webp
+│  │  │  │  │  │  ├─ frame-0115.webp
+│  │  │  │  │  │  ├─ frame-0116.webp
+│  │  │  │  │  │  ├─ frame-0117.webp
+│  │  │  │  │  │  ├─ frame-0118.webp
+│  │  │  │  │  │  ├─ frame-0119.webp
+│  │  │  │  │  │  ├─ frame-0120.webp
+│  │  │  │  │  │  ├─ frame-0121.webp
+│  │  │  │  │  │  ├─ frame-0122.webp
+│  │  │  │  │  │  ├─ frame-0123.webp
+│  │  │  │  │  │  ├─ frame-0124.webp
+│  │  │  │  │  │  ├─ frame-0125.webp
+│  │  │  │  │  │  └─ frame-0126.webp
+│  │  │  │  │  ├─ poliland-splash/
+│  │  │  │  │  │  ├─ frame-0001.webp
+│  │  │  │  │  │  ├─ frame-0002.webp
+│  │  │  │  │  │  ├─ frame-0003.webp
+│  │  │  │  │  │  ├─ frame-0004.webp
+│  │  │  │  │  │  ├─ frame-0005.webp
+│  │  │  │  │  │  ├─ frame-0006.webp
+│  │  │  │  │  │  ├─ frame-0007.webp
+│  │  │  │  │  │  ├─ frame-0008.webp
+│  │  │  │  │  │  ├─ frame-0009.webp
+│  │  │  │  │  │  ├─ frame-0010.webp
+│  │  │  │  │  │  ├─ frame-0011.webp
+│  │  │  │  │  │  ├─ frame-0012.webp
+│  │  │  │  │  │  ├─ frame-0013.webp
+│  │  │  │  │  │  ├─ frame-0014.webp
+│  │  │  │  │  │  ├─ frame-0015.webp
+│  │  │  │  │  │  ├─ frame-0016.webp
+│  │  │  │  │  │  ├─ frame-0017.webp
+│  │  │  │  │  │  ├─ frame-0018.webp
+│  │  │  │  │  │  ├─ frame-0019.webp
+│  │  │  │  │  │  ├─ frame-0020.webp
+│  │  │  │  │  │  ├─ frame-0021.webp
+│  │  │  │  │  │  ├─ frame-0022.webp
+│  │  │  │  │  │  ├─ frame-0023.webp
+│  │  │  │  │  │  ├─ frame-0024.webp
+│  │  │  │  │  │  ├─ frame-0025.webp
+│  │  │  │  │  │  ├─ frame-0026.webp
+│  │  │  │  │  │  ├─ frame-0027.webp
+│  │  │  │  │  │  ├─ frame-0028.webp
+│  │  │  │  │  │  ├─ frame-0029.webp
+│  │  │  │  │  │  ├─ frame-0030.webp
+│  │  │  │  │  │  ├─ frame-0031.webp
+│  │  │  │  │  │  ├─ frame-0032.webp
+│  │  │  │  │  │  ├─ frame-0033.webp
+│  │  │  │  │  │  ├─ frame-0034.webp
+│  │  │  │  │  │  ├─ frame-0035.webp
+│  │  │  │  │  │  ├─ frame-0036.webp
+│  │  │  │  │  │  ├─ frame-0037.webp
+│  │  │  │  │  │  ├─ frame-0038.webp
+│  │  │  │  │  │  ├─ frame-0039.webp
+│  │  │  │  │  │  ├─ frame-0040.webp
+│  │  │  │  │  │  ├─ frame-0041.webp
+│  │  │  │  │  │  ├─ frame-0042.webp
+│  │  │  │  │  │  ├─ frame-0043.webp
+│  │  │  │  │  │  ├─ frame-0044.webp
+│  │  │  │  │  │  ├─ frame-0045.webp
+│  │  │  │  │  │  ├─ frame-0046.webp
+│  │  │  │  │  │  ├─ frame-0047.webp
+│  │  │  │  │  │  ├─ frame-0048.webp
+│  │  │  │  │  │  ├─ frame-0049.webp
+│  │  │  │  │  │  ├─ frame-0050.webp
+│  │  │  │  │  │  ├─ frame-0051.webp
+│  │  │  │  │  │  ├─ frame-0052.webp
+│  │  │  │  │  │  ├─ frame-0053.webp
+│  │  │  │  │  │  ├─ frame-0054.webp
+│  │  │  │  │  │  ├─ frame-0055.webp
+│  │  │  │  │  │  ├─ frame-0056.webp
+│  │  │  │  │  │  ├─ frame-0057.webp
+│  │  │  │  │  │  ├─ frame-0058.webp
+│  │  │  │  │  │  ├─ frame-0059.webp
+│  │  │  │  │  │  ├─ frame-0060.webp
+│  │  │  │  │  │  ├─ frame-0061.webp
+│  │  │  │  │  │  ├─ frame-0062.webp
+│  │  │  │  │  │  ├─ frame-0063.webp
+│  │  │  │  │  │  ├─ frame-0064.webp
+│  │  │  │  │  │  ├─ frame-0065.webp
+│  │  │  │  │  │  ├─ frame-0066.webp
+│  │  │  │  │  │  ├─ frame-0067.webp
+│  │  │  │  │  │  ├─ frame-0068.webp
+│  │  │  │  │  │  ├─ frame-0069.webp
+│  │  │  │  │  │  ├─ frame-0070.webp
+│  │  │  │  │  │  ├─ frame-0071.webp
+│  │  │  │  │  │  ├─ frame-0072.webp
+│  │  │  │  │  │  ├─ frame-0073.webp
+│  │  │  │  │  │  ├─ frame-0074.webp
+│  │  │  │  │  │  ├─ frame-0075.webp
+│  │  │  │  │  │  ├─ frame-0076.webp
+│  │  │  │  │  │  ├─ frame-0077.webp
+│  │  │  │  │  │  ├─ frame-0078.webp
+│  │  │  │  │  │  ├─ frame-0079.webp
+│  │  │  │  │  │  ├─ frame-0080.webp
+│  │  │  │  │  │  ├─ frame-0081.webp
+│  │  │  │  │  │  ├─ frame-0082.webp
+│  │  │  │  │  │  ├─ frame-0083.webp
+│  │  │  │  │  │  ├─ frame-0084.webp
+│  │  │  │  │  │  ├─ frame-0085.webp
+│  │  │  │  │  │  ├─ frame-0086.webp
+│  │  │  │  │  │  ├─ frame-0087.webp
+│  │  │  │  │  │  ├─ frame-0088.webp
+│  │  │  │  │  │  ├─ frame-0089.webp
+│  │  │  │  │  │  ├─ frame-0090.webp
+│  │  │  │  │  │  ├─ frame-0091.webp
+│  │  │  │  │  │  ├─ frame-0092.webp
+│  │  │  │  │  │  ├─ frame-0093.webp
+│  │  │  │  │  │  ├─ frame-0094.webp
+│  │  │  │  │  │  ├─ frame-0095.webp
+│  │  │  │  │  │  ├─ frame-0096.webp
+│  │  │  │  │  │  ├─ frame-0097.webp
+│  │  │  │  │  │  ├─ frame-0098.webp
+│  │  │  │  │  │  ├─ frame-0099.webp
+│  │  │  │  │  │  └─ frame-0100.webp
+│  │  │  │  │  └─ wave/
+│  │  │  │  ├─ splash/
+│  │  │  │  │  └─ poliland-splash.mp4
+│  │  │  │  ├─ videos/
+│  │  │  │  │  └─ mascot/
+│  │  │  │  │     └─ memuat1.mp4
+│  │  │  │  ├─ cordova_plugins.js
+│  │  │  │  ├─ cordova.js
+│  │  │  │  ├─ favicon.png
+│  │  │  │  ├─ index.html
+│  │  │  │  └─ manifest.webmanifest
+│  │  │  ├─ AppDelegate.swift
+│  │  │  ├─ capacitor.config.json
+│  │  │  ├─ config.xml
+│  │  │  ├─ Info.plist
+│  │  │  └─ SceneDelegate.swift
+│  │  ├─ App.xcodeproj/
+│  │  │  ├─ project.xcworkspace/
+│  │  │  │  └─ xcshareddata/
+│  │  │  │     └─ IDEWorkspaceChecks.plist
+│  │  │  └─ project.pbxproj
+│  │  └─ CapApp-SPM/
+│  │     ├─ Sources/
+│  │     │  └─ CapApp-SPM/
+│  │     │     └─ CapApp-SPM.swift
+│  │     ├─ .gitignore
+│  │     ├─ Package.swift
+│  │     └─ README.md
+│  ├─ capacitor-cordova-ios-plugins/
+│  │  ├─ resources/
+│  │  │  └─ .gitkeep
+│  │  ├─ sources/
+│  │  │  └─ .gitkeep
+│  │  └─ CordovaPluginsResources.podspec
+│  ├─ .gitignore
+│  └─ debug.xcconfig
 ├─ public/
 │  ├─ mascot-frames/
 │  │  ├─ mascot_01_password_cover/
@@ -5282,13 +6138,10 @@ poliland-mobile/
 │  │  ├─ icons/
 │  │  │  └─ icons.png
 │  │  ├─ illustrations/
-│  │  │  ├─ mascot_11_idle.mov
 │  │  │  ├─ memuat1.mp4
-│  │  │  ├─ memuat1.webm
 │  │  │  ├─ NotFound.webp
 │  │  │  ├─ perbaikan.mp4
-│  │  │  ├─ perbaikan.png
-│  │  │  └─ perbaikan.webm
+│  │  │  └─ perbaikan.png
 │  │  ├─ images/
 │  │  │  ├─ hero.jpg
 │  │  │  ├─ hero2.jpg
@@ -5296,11 +6149,15 @@ poliland-mobile/
 │  │  │  ├─ hero4.jpg
 │  │  │  ├─ hero5.jpg
 │  │  │  ├─ LB_reset_kirim.png
+│  │  │  ├─ Modern_Mountain House_at Sunrise.png
 │  │  │  └─ torn-edge.png
 │  │  ├─ logos/
 │  │  │  └─ logo.png
 │  │  ├─ mascot/
-│  │  │  └─ mascot.png
+│  │  │  ├─ Cheerful_Chibi_House_Mascot.png
+│  │  │  ├─ Confused_Mascot_and_Missing Panorama.png
+│  │  │  ├─ Mascot_No_Data_Scene.png
+│  │  │  └─ Verified_Mascot.png
 │  │  └─ siteplan/
 │  │     ├─ background.webp
 │  │     ├─ BG.svg
@@ -5329,8 +6186,14 @@ poliland-mobile/
 │  │  │  ├─ LocationSection.vue
 │  │  │  ├─ ProgressPreview.vue
 │  │  │  ├─ SiteplanPreview.vue
-│  │  │  └─ StatsSection.vue
+│  │  │  ├─ StatsSection.vue
+│  │  │  └─ TestimonialsSection.vue
 │  │  ├─ lots/
+│  │  ├─ marketing/
+│  │  │  ├─ MarketingActivity.vue
+│  │  │  ├─ MarketingCommission.vue
+│  │  │  ├─ MarketingMenu.vue
+│  │  │  └─ MarketingStats.vue
 │  │  ├─ navigation/
 │  │  ├─ siteplan/
 │  │  │  ├─ Compass.vue
@@ -5344,12 +6207,14 @@ poliland-mobile/
 │  │  │  ├─ SiteplanMap.vue
 │  │  │  ├─ Tooltip.vue
 │  │  │  └─ ZoomControl.vue
-│  │  ├─ skeletons/
-│  │  │  ├─ HomeSkeleton.vue
-│  │  │  ├─ ProgressDetailSkeleton.vue
-│  │  │  ├─ ProgressSkeleton.vue
-│  │  │  └─ SiteplanSkeleton.vue
 │  │  └─ ui/
+│  │     ├─ skeletons/
+│  │     │  ├─ ContactSkeleton.vue
+│  │     │  ├─ GallerySkeleton.vue
+│  │     │  ├─ HomeSkeleton.vue
+│  │     │  ├─ ProgressDetailSkeleton.vue
+│  │     │  ├─ ProgressSkeleton.vue
+│  │     │  └─ SiteplanSkeleton.vue
 │  │     ├─ AppButton.vue
 │  │     ├─ AppInput.vue
 │  │     └─ Skeleton.vue
@@ -5371,11 +6236,17 @@ poliland-mobile/
 │  │  │  └─ authService.ts
 │  │  ├─ config/
 │  │  │  └─ supabase.ts
+│  │  ├─ marketing/
+│  │  │  ├─ customerFollowupService.ts
+│  │  │  ├─ customerService.ts
+│  │  │  └─ spkService.ts
 │  │  ├─ contactService.ts
 │  │  ├─ faqService.ts
 │  │  ├─ featureService.ts
 │  │  ├─ galleryService.ts
 │  │  ├─ lotService.ts
+│  │  ├─ marketingProspectService.ts
+│  │  ├─ marketingService.ts
 │  │  ├─ progressService.ts
 │  │  └─ siteplanService.ts
 │  ├─ styles/
@@ -5387,6 +6258,8 @@ poliland-mobile/
 │  ├─ utils/
 │  │  └─ siteplan.ts
 │  ├─ views/
+│  │  ├─ Admin/
+│  │  │  └─ AdminDashboard.vue
 │  │  ├─ auth/
 │  │  │  ├─ AuthCallbackPage.vue
 │  │  │  ├─ ForgotPasswordPage.vue
@@ -5396,8 +6269,17 @@ poliland-mobile/
 │  │  │  └─ ResetPasswordPage.vue
 │  │  ├─ beranda/
 │  │  │  ├─ BerandaAdminPage.vue
-│  │  │  ├─ BerandaClientPage.vue
-│  │  │  └─ BerandaMarketingPage.vue
+│  │  │  └─ BerandaClientPage.vue
+│  │  ├─ marketing/
+│  │  │  ├─ BerandaMarketingPage.vue
+│  │  │  ├─ CalonPembeliMarketingPage.vue
+│  │  │  ├─ DetailCalonPembeliPage.vue
+│  │  │  ├─ KavlingMarketingPage.vue
+│  │  │  ├─ LainnyaPage.vue
+│  │  │  ├─ MarketingInfoPage.vue
+│  │  │  ├─ SPKMarketingPage.vue
+│  │  │  ├─ TambahCalonPembeli.vue
+│  │  │  └─ TindakLanjutPage.vue
 │  │  ├─ ContactPage.vue
 │  │  ├─ GalleryPage.vue
 │  │  ├─ HomePage.vue

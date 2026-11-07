@@ -1,13 +1,69 @@
 <template>
-  <div class="mobile-footer">
+  <div
+    v-show="!detailOpen"
+    class="mobile-footer"
+  >
 
     <div class="bottom-nav">
+
+      <!-- =========================
+           ADMIN
+           ========================= -->
+
+      <template v-if="variant === 'admin'">
+
+        <button
+          type="button"
+          :class="['nav-item', { active: isActive('/beranda-admin') }]"
+          @click="goTo('/beranda-admin')"
+        >
+          <span class="icon-wrap"><ion-icon :icon="homeOutline" /></span>
+          <span class="nav-label">Beranda</span>
+        </button>
+
+        <button
+          type="button"
+          :class="['nav-item', { active: isActive('/admin/kavling') }]"
+          @click="goTo('/admin/kavling')"
+        >
+          <span class="icon-wrap"><ion-icon :icon="gridOutline" /></span>
+          <span class="nav-label">Kavling</span>
+        </button>
+
+        <button
+          type="button"
+          :class="['nav-item', { active: isActive('/admin/pembeli') }]"
+          @click="goTo('/admin/pembeli')"
+        >
+          <span class="icon-wrap"><ion-icon :icon="personOutline" /></span>
+          <span class="nav-label">Pembeli</span>
+        </button>
+
+        <button
+          type="button"
+          :class="['nav-item', { active: isActive('/admin/keuangan') }]"
+          @click="goTo('/admin/keuangan')"
+        >
+          <span class="icon-wrap"><ion-icon :icon="walletOutline" /></span>
+          <span class="nav-label">Keuangan</span>
+        </button>
+
+        <button
+          type="button"
+          :class="['nav-item', { active: isActive('/admin/lainnya') }]"
+          @click="goTo('/admin/lainnya')"
+        >
+          <span class="icon-wrap"><ion-icon :icon="menuOutline" /></span>
+          <span class="nav-label">Lainnya</span>
+        </button>
+
+      </template>
 
       <!-- =========================
            MARKETING
            ========================= -->
 
-      <template v-if="variant === 'marketing'">
+      <template v-else-if="variant === 'marketing'">
 
         <!-- BERANDA -->
         <button
@@ -90,9 +146,9 @@
           type="button"
           :class="[
             'nav-item',
-            { active: isActive('/beranda-marketing') }
+            { active: isActive('/marketing/more') }
           ]"
-          @click="goTo('/beranda-marketing')"
+          @click="goTo('/marketing/more')"
         >
           <span class="icon-wrap">
             <ion-icon :icon="menuOutline" />
@@ -230,19 +286,40 @@ import {
   personOutline,
   checkmarkDoneOutline,
   menuOutline,
+  walletOutline,
 } from 'ionicons/icons'
 
 import { useRoute } from 'vue-router'
+import {
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue'
 
 
 withDefaults(
   defineProps<{
-    variant?: 'public' | 'marketing'
+    variant?: 'public' | 'marketing' | 'admin'
   }>(),
   {
     variant: 'public',
   },
 )
+
+const detailOpen = ref(false)
+
+function handleDetailMode(event: Event) {
+  const customEvent = event as CustomEvent<{ active?: boolean }>
+  detailOpen.value = customEvent.detail?.active === true
+}
+
+onMounted(() => {
+  window.addEventListener('poliland-detail-mode', handleDetailMode)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('poliland-detail-mode', handleDetailMode)
+})
 
 
 const ionRouter = useIonRouter()
@@ -271,6 +348,11 @@ function isActive(path: string) {
   if (path === '/beranda-marketing') {
     return route.path === '/beranda-marketing' ||
       route.path === '/marketing'
+  }
+
+  if (path === '/marketing/more') {
+    return route.path === '/marketing/more' ||
+      route.path === '/marketing/lainnya'
   }
 
   if (path === '/home') {

@@ -1,14 +1,51 @@
 :root {
-  /* PoliLand — Main */
-  --pl-charcoal: #1A1A1A;
+  /* PoliLand Modern-Natural design tokens */
+  --poliland-gold: #CBA044;
+  --poliland-gold-soft: #F4D69A;
+  --poliland-green: #355A2C;
+
+  --app-background: #FAF9F6;
+  --surface-primary: #FFFFFF;
+  --surface-muted: #F5F3EE;
+  --text-primary: #252525;
+  --text-secondary: #85858C;
+  --border-default: #EAE7E0;
+
+  --status-success: var(--poliland-green);
+  --status-success-bg: #E8EEE4;
+  --status-warning: var(--poliland-gold);
+  --status-danger: #D94B45;
+
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
+
+  /* Typography */
+  --font-primary: 'Plus Jakarta Sans', sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 32px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Legacy aliases preserve existing references while sharing semantic values. */
+  --pl-charcoal: var(--text-primary);
   --pl-slate: #2D2D2D;
-  --pl-gray: #6B6B6B;
+  --pl-gray: var(--text-secondary);
   --pl-silver: #E5E5E5;
-  --pl-background: #FAFAF7;
-  --pl-surface: #FFFFFF;
+  --pl-background: var(--app-background);
+  --pl-surface: var(--surface-primary);
 
   /* Accent */
-  --pl-olive: #556B2F;
+  --pl-olive: var(--poliland-green);
   --pl-sage: #8CA072; /* Hijau Pastel */
   --pl-sand: #EDE6D6;
   --pl-stone: #D9D3C4;
@@ -20,9 +57,9 @@
   --pl-cream: #F9F5EC;
 
   /* Semantic */
-  --pl-success: #2E7D32;
-  --pl-warning: #F2A900;
-  --pl-error: #D32F2F;
+  --pl-success: var(--status-success);
+  --pl-warning: var(--status-warning);
+  --pl-error: var(--status-danger);
   --pl-info: #2F6FEB;
   --pl-neutral: #6B7280;
 
@@ -36,17 +73,46 @@
   /* Ionic theme mapping */
   --ion-background-color: var(--pl-background);
   --ion-text-color: var(--pl-charcoal);
+  --ion-font-family: var(--font-primary);
+  --ion-border-color: var(--border-default);
 
-  /* Primary = Gold (Diselaraskan dengan Style Guide #B8860B) */
-  --ion-color-primary: #637748;
-  --ion-color-primary-rgb: 140, 160, 114;
+  --ion-color-primary: var(--poliland-green);
+  --ion-color-primary-rgb: 53, 90, 44;
   --ion-color-primary-contrast: #FFFFFF;
   --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #A2770A;
-  --ion-color-primary-tint: #C19324;
+  --ion-color-primary-shade: #2E4D26;
+  --ion-color-primary-tint: #496943;
+
+  --ion-color-secondary: var(--poliland-gold);
+  --ion-color-secondary-rgb: 203, 160, 68;
+  --ion-color-secondary-contrast: var(--text-primary);
+  --ion-color-secondary-contrast-rgb: 37, 37, 37;
+  --ion-color-secondary-shade: #B68E3D;
+  --ion-color-secondary-tint: #D0A957;
+
+  --ion-color-success: var(--status-success);
+  --ion-color-success-rgb: 53, 90, 44;
+  --ion-color-success-contrast: #FFFFFF;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #2E4D26;
+  --ion-color-success-tint: #496943;
+
+  --ion-color-warning: var(--status-warning);
+  --ion-color-warning-rgb: 203, 160, 68;
+  --ion-color-warning-contrast: var(--text-primary);
+  --ion-color-warning-contrast-rgb: 37, 37, 37;
+  --ion-color-warning-shade: #B68E3D;
+  --ion-color-warning-tint: #D0A957;
+
+  --ion-color-danger: var(--status-danger);
+  --ion-color-danger-rgb: 217, 75, 69;
+  --ion-color-danger-contrast: #FFFFFF;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #BF423D;
+  --ion-color-danger-tint: #DD5D58;
 
   /* Tambahan: Ionic Color Sage (Hijau Pastel untuk Tombol/Aksen Alternatif) */
-  --ion-color-sage: #8CA072;
+  --ion-color-sage: var(--pl-sage);
   --ion-color-sage-rgb: 140, 160, 114;
   --ion-color-sage-contrast: #FFFFFF;
   --ion-color-sage-contrast-rgb: 255, 255, 255;
@@ -55,9 +121,14 @@
 
   /* Other Ionic colors */
   --ion-color-medium: var(--pl-gray);
-  --ion-color-success: var(--pl-success);
-  --ion-color-warning: var(--pl-warning);
-  --ion-color-danger: var(--pl-error);
+  --ion-color-medium-rgb: 133, 133, 140;
+  --ion-color-medium-contrast: #FFFFFF;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #74747A;
+  --ion-color-medium-tint: #919196;
+  --ion-card-background: var(--surface-primary);
+  --ion-item-background: var(--surface-primary);
+  --ion-toolbar-background: var(--surface-primary);
 }
 
 /* Helper class agar ion-button bisa langsung mendeteksi warna sage */

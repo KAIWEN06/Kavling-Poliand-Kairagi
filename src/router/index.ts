@@ -18,7 +18,7 @@ import ForgotPasswordPage from '@/views/auth/ForgotPasswordPage.vue'
 import ResetPasswordPage from '@/views/auth/ResetPasswordPage.vue'
 import RegisterPage from '@/views/auth/RegisterPage.vue'
 import AuthCallbackPage from '@/views/auth/AuthCallbackPage.vue'
-import BerandaAdminPage from '@/views/beranda/BerandaAdminPage.vue'
+import BerandaAdminPage from '@/views/Admin/AdminDashboard.vue'
 import BerandaMarketingPage from '@/views/marketing/BerandaMarketingPage.vue'
 import KavlingMarketingPage from '@/views/marketing/KavlingMarketingPage.vue'
 import CalonPembeliMarketingPage from '@/views/marketing/CalonPembeliMarketingPage.vue'
@@ -26,6 +26,8 @@ import TambahCalonPembeliPage from '@/views/marketing/TambahCalonPembeli.vue'
 import DetailCalonPembeliPage from '@/views/marketing/DetailCalonPembeliPage.vue'
 import SPKMarketingPage from '@/views/marketing/SPKMarketingPage.vue'
 import TindakLanjutPage from '@/views/marketing/TindakLanjutPage.vue'
+import LainnyaPage from '@/views/marketing/LainnyaPage.vue'
+import MarketingInfoPage from '@/views/marketing/MarketingInfoPage.vue'
 import BerandaClientPage from '@/views/beranda/BerandaClientPage.vue'
 import { setupAuthGuards } from '@/router/guards'
 
@@ -111,6 +113,63 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'marketing' },
   },
   {
+    path: '/marketing/more',
+    alias: '/marketing/lainnya',
+    name: 'LainnyaMarketing',
+    component: LainnyaPage,
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
+    path: '/informasi-proyek',
+    name: 'InformasiProyek',
+    component: MarketingInfoPage,
+    props: {
+      title: 'Informasi Proyek',
+      description: 'Informasi dan perkembangan proyek perumahan Poliland Kairagi.',
+    },
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
+    path: '/kontak',
+    name: 'KontakMarketing',
+    component: MarketingInfoPage,
+    props: {
+      title: 'Kontak',
+      description: 'Hubungi tim Poliland untuk informasi pemasaran dan dukungan.',
+    },
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
+    path: '/marketing/profil',
+    name: 'ProfilMarketing',
+    component: MarketingInfoPage,
+    props: {
+      title: 'Profil Saya',
+      description: 'Kelola dan periksa informasi akun Marketing Anda.',
+    },
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
+    path: '/syarat-ketentuan',
+    name: 'SyaratKetentuan',
+    component: MarketingInfoPage,
+    props: {
+      title: 'Syarat & Ketentuan',
+      description: 'Syarat dan ketentuan penggunaan aplikasi Poliland.',
+    },
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
+    path: '/kebijakan-privasi',
+    name: 'KebijakanPrivasi',
+    component: MarketingInfoPage,
+    props: {
+      title: 'Kebijakan Privasi',
+      description: 'Informasi tentang pengelolaan dan perlindungan data pengguna.',
+    },
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
     path: '/marketing/spk',
     name: 'SPKMarketing',
     component: SPKMarketingPage,
@@ -146,10 +205,6 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/marketing/followups',
     redirect: '/marketing/tindak-lanjut',
-  },
-  {
-    path: '/marketing/more',
-    redirect: '/beranda-marketing',
   },
   {
     path: '/marketing/activity',
