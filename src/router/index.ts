@@ -20,6 +20,8 @@ import RegisterPage from '@/views/auth/RegisterPage.vue'
 import AuthCallbackPage from '@/views/auth/AuthCallbackPage.vue'
 import BerandaAdminPage from '@/views/Admin/AdminDashboard.vue'
 import AdminKavlingPage from '@/views/Admin/AdminKavling.vue'
+import AdminPembeliPage from '@/views/Admin/AdminPembeli.vue'
+import AdminPembeliDetailPage from '@/views/Admin/AdminPembeliDetail.vue'
 import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
 import BerandaMarketingPage from '@/views/marketing/BerandaMarketingPage.vue'
 import KavlingMarketingPage from '@/views/marketing/KavlingMarketingPage.vue'
@@ -87,7 +89,19 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/admin/pembeli',
     name: 'AdminPembeli',
-    component: CalonPembeliMarketingPage,
+    component: AdminPembeliPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/pembeli/:id',
+    name: 'AdminPembeliDetail',
+    component: AdminPembeliDetailPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/pembeli/:id/edit',
+    name: 'AdminPembeliEdit',
+    component: DetailCalonPembeliPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {

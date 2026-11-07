@@ -1,6 +1,6 @@
 <template>
   <ion-page>
-    <AppHeader variant="admin" title="Kavling" :show-back="false" />
+    <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="onRefresh">
@@ -8,8 +8,6 @@
       </ion-refresher>
 
       <div class="kv-page">
-        <h1 class="kv-title">Kelola Kavling &amp; Siteplan</h1>
-
         
         <!-- SITEPLAN (komponen yang sama dengan beranda) -->
         <section class="kv-siteplan" aria-labelledby="siteplan-heading">
@@ -18,13 +16,25 @@
               <ion-icon :icon="mapOutline" aria-hidden="true" />
               Siteplan PoliLand
             </h2>
-            <button type="button" class="kv-link" @click="openFullMap">
-              <ion-icon :icon="expandOutline" aria-hidden="true" />
-              Peta penuh
-            </button>
           </div>
 
-          <SiteplanPreview :lots="siteplanLots" @goToSiteplan="openFullMap" />
+          <div class="kv-siteplan-card">
+            <div class="kv-mini-siteplan">
+              <img :src="siteplanImage" alt="Siteplan PoliLand Kairagi" class="kv-siteplan-image" />
+              <div ref="siteplanLayer" class="kv-siteplan-layer" v-html="siteplanSvg" />
+            </div>
+
+            <div class="kv-siteplan-legend" aria-label="Legenda status kavling">
+              <span><i class="available"></i>Tersedia</span>
+              <span><i class="booking"></i>Dipesan</span>
+              <span><i class="sold"></i>Terjual</span>
+            </div>
+
+            <AppButton variant="primary" expand="block" class="kv-siteplan-button" @click="openFullMap">
+              Lihat Siteplan
+              <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
+            </AppButton>
+          </div>
         </section>
 
 
@@ -167,12 +177,24 @@
 
         <!-- LOADING -->
         <div v-if="loading" class="kv-state" role="status" aria-live="polite">
+          <img
+            :src="loadingMascot"
+            alt=""
+            class="kv-state-mascot"
+            aria-hidden="true"
+          />
           <ion-spinner name="crescent" />
           <strong>Memuat data kavling…</strong>
         </div>
 
         <!-- ERROR -->
         <div v-else-if="loadError" class="kv-state" role="alert">
+          <img
+            :src="errorMascot"
+            alt=""
+            class="kv-state-mascot"
+            aria-hidden="true"
+          />
           <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
           <strong>Data kavling gagal dimuat</strong>
           <p>Periksa koneksi internet, lalu coba lagi.</p>
@@ -267,13 +289,6 @@
 
           <!-- PAGINATION -->
           <nav v-if="filtered.length > 0 && totalPages > 1" class="kv-pager" aria-label="Halaman daftar kavling">
-            <div class="kv-pager-summary">
-              <span class="kv-pager-kicker">Daftar kavling</span>
-              <p class="kv-pager-info" aria-live="polite">
-                Menampilkan <strong>{{ pageStart }} sampai {{ pageEnd }}</strong> dari {{ filtered.length }} kavling
-              </p>
-            </div>
-
             <div class="kv-pager-controls">
               <button
                 type="button"
@@ -313,12 +328,14 @@
           </nav>
 
           <div v-if="filtered.length === 0" class="kv-state" role="status">
-            <ion-icon :icon="searchOutline" aria-hidden="true" />
+            <img
+              :src="emptyMascot"
+              alt=""
+              class="kv-state-mascot"
+              aria-hidden="true"
+            />
             <strong>{{ lots.length ? 'Tidak ada kavling yang sesuai' : 'Belum ada data kavling' }}</strong>
             <p v-if="lots.length">Coba ubah kata kunci, jenis pencarian, atau filter status.</p>
-            <button v-if="lots.length" type="button" class="kv-detail kv-detail-inline" @click="resetFilters">
-              Reset pencarian
-            </button>
           </div>
         </template>
       </div>
@@ -361,10 +378,16 @@ import {
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
-import SiteplanPreview from '@/components/home/SiteplanPreview.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import siteplanImage from '@/assets/siteplan/Siteplan.png'
+import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
+import loadingMascot from '@/assets/mascot/Chibi_House_Mascot_Exploring.png'
+import errorMascot from '@/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error.png'
+import emptyMascot from '@/assets/mascot/Mascot_No_Data_Scene.png'
 import { useSiteplan } from '@/composables/useSiteplant'
 import { lotService, type LotRecord } from '@/services/lotService'
 import { dimensionDistance, parseDimension, parseNumber, parsePrice } from '@/services/Admin/LotsearchService'
+import { getLotId, getLotStatusColor } from '@/utils/siteplan'
 
 type LotStatus = 'available' | 'booked' | 'sold'
 type StatusFilter = 'all' | LotStatus
@@ -405,6 +428,49 @@ const ionRouter = useIonRouter()
 
 /* siteplan: sumber data yang sama dengan halaman beranda */
 const { lots: siteplanLots, reload: reloadSiteplan } = useSiteplan()
+const siteplanLayer = ref<HTMLElement | null>(null)
+
+function renderSiteplanLayers() {
+  const svg = siteplanLayer.value?.querySelector('svg')
+  if (!svg) return
+
+  siteplanLots.value.forEach((lot) => {
+    const id = getLotId(lot)
+    const polygon = svg.querySelector(`#${CSS.escape(id)}`) as SVGElement | null
+    if (!polygon) return
+    polygon.style.setProperty('fill', getLotStatusColor(lot), 'important')
+    polygon.style.setProperty('stroke', '#A7A7A7', 'important')
+    polygon.style.setProperty('stroke-width', '1.2', 'important')
+  })
+
+  svg.querySelector('#admin-lot-label-layer')?.remove()
+  const labelLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  labelLayer.setAttribute('id', 'admin-lot-label-layer')
+
+  siteplanLots.value.forEach((lot) => {
+    const polygon = svg.querySelector(`#${CSS.escape(getLotId(lot))}`) as SVGGraphicsElement | null
+    if (!polygon || !lot.lot_number) return
+    const box = polygon.getBBox()
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('x', String(box.x + box.width / 2))
+    label.setAttribute('y', String(box.y + box.height / 2))
+    label.setAttribute('text-anchor', 'middle')
+    label.setAttribute('dominant-baseline', 'middle')
+    label.setAttribute('font-size', '12')
+    label.setAttribute('font-weight', '700')
+    label.setAttribute('fill', '#1A1A1A')
+    label.setAttribute('pointer-events', 'none')
+    label.textContent = String(lot.lot_number).replace(/^LOT[_-]?/i, '')
+    labelLayer.appendChild(label)
+  })
+
+  svg.appendChild(labelLayer)
+}
+
+watch(siteplanLots, async () => {
+  await nextTick()
+  renderSiteplanLayers()
+}, { deep: true, immediate: true })
 
 const lots = ref<Lot[]>([])
 const loading = ref(true)
@@ -453,10 +519,19 @@ const searchTypes: { key: SearchType; label: string; icon: string }[] = [
 
 /* ---------- mapping tabel lots -> Lot ---------- */
 
-function pick(source: Record<string, unknown> | null | undefined, keys: string[]): string | null {
+function pick(
+  source: Record<string, unknown> | Record<string, unknown>[] | null | undefined,
+  keys: string[],
+): string | null {
   if (!source) return null
+
+  // Supabase mengembalikan relasi many-to-one sebagai object, tetapi
+  // beberapa konfigurasi schema/client dapat mengembalikannya sebagai array.
+  const record = Array.isArray(source) ? source[0] : source
+  if (!record) return null
+
   for (const key of keys) {
-    const value = source[key]
+    const value = record[key]
     if (typeof value === 'string' && value.trim()) return value.trim()
   }
   return null
@@ -1213,6 +1288,118 @@ h2 {
   margin-bottom: 22px;
 }
 
+.kv-siteplan-card {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.kv-siteplan-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.kv-siteplan-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--poliland-gold-text);
+  font-size: 9px;
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: 1px;
+}
+
+.kv-siteplan-card-head h3 {
+  margin: 2px 0 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--font-weight-extrabold);
+}
+
+.kv-siteplan-card-head > ion-icon {
+  color: var(--poliland-green);
+  font-size: 22px;
+}
+
+.kv-mini-siteplan {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1252 / 1257;
+  padding: 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.kv-siteplan-image,
+.kv-siteplan-layer {
+  position: absolute;
+  inset: 10px;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
+  border-radius: 8px;
+}
+
+.kv-siteplan-image { display: block; object-fit: contain; }
+.kv-siteplan-layer { pointer-events: none; }
+.kv-siteplan-layer :deep(svg) { display: block; width: 100%; height: 100%; overflow: visible; }
+.kv-siteplan-layer :deep(path) { vector-effect: non-scaling-stroke; }
+
+.kv-siteplan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-top: 13px;
+}
+
+.kv-siteplan-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.kv-siteplan-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.kv-siteplan-legend .available { background: var(--poliland-green); }
+.kv-siteplan-legend .booking { background: var(--poliland-gold); }
+.kv-siteplan-legend .sold { background: var(--status-danger); }
+
+.kv-siteplan-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--poliland-gold);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.kv-siteplan-button:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 2px;
+}
+
 .kv-map-head {
   display: flex;
   align-items: center;
@@ -1572,7 +1759,7 @@ h2 {
 .kv-pager-position {
   color: var(--text-secondary);
   font-size: 12px;
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -1600,7 +1787,7 @@ h2 {
 .kv-pager-number.active {
   border-color: var(--poliland-green);
   background: var(--poliland-green);
-  color: var(--text-inverse);
+  color: #fff;
 }
 
 .kv-pager-btn:not(:disabled):hover,
@@ -1636,7 +1823,12 @@ h2 {
     justify-content: flex-start;
   }
 
-  .kv-pager-position { align-self: end; }
+  .kv-pager-position {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    align-self: center;
+    justify-self: center;
+  }
 }
 
 /* ---------- loading / empty / error ---------- */
@@ -1659,6 +1851,14 @@ h2 {
 
 .kv-state ion-spinner {
   color: var(--poliland-green);
+}
+
+.kv-state-mascot {
+  display: block;
+  width: min(132px, 42vw);
+  height: auto;
+  margin-bottom: 2px;
+  object-fit: contain;
 }
 
 .kv-state p {

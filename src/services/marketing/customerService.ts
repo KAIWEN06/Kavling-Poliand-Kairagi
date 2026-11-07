@@ -4,6 +4,7 @@ export interface Customer {
   id?: number
   full_name: string
   phone?: string | null
+  whatsapp_phone?: string | null
   email?: string | null
   nik?: string | null
   address?: string | null
@@ -33,6 +34,69 @@ export interface CreateCustomerPayload {
 }
 
 export const customerService = {
+  async getAdminCustomers() {
+    const { data, error } = await supabase
+      .from('customers')
+      .select(`
+        id,
+        full_name,
+        phone,
+        whatsapp_phone,
+        email,
+        address,
+        notes,
+        created_at,
+        marketing_id,
+        marketing:profiles!customers_marketing_id_fkey (id, full_name, role),
+        payments (id, lot_id, amount, payment_date, payment_method),
+        customer_notes (id, note, created_at),
+        customer_interests (
+          id,
+          lot_id,
+          payment_type,
+          plan_id,
+          notes,
+          created_at,
+          payment_plans (id, plan_name, months),
+          lots (
+            id,
+            lot_number,
+            polygon_id,
+            block_id,
+            dimension,
+            area,
+            blocks (id, code, name)
+          )
+        ),
+        lot_transactions (
+          id,
+          lot_id,
+          status,
+          payment_type,
+          final_price,
+          down_payment,
+          monthly_payment,
+          months,
+          booking_date,
+          sold_date,
+          cancelled_date,
+          created_at,
+          payment_plans (id, plan_name, months),
+          lots (
+            id,
+            lot_number,
+            polygon_id,
+            block_id,
+            blocks (id, code, name)
+          )
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data ?? []
+  },
+
   async getCustomers() {
     const { data, error } = await supabase
       .from('customers')

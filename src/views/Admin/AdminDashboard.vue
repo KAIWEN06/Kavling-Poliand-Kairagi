@@ -221,7 +221,6 @@ onBeforeUnmount(() => {
       <main class="dashboard-shell">
         <section class="welcome-row" aria-labelledby="dashboard-title">
           <div class="welcome-copy">
-            <p class="eyebrow">BERANDA ADMIN</p>
             <h1 id="dashboard-title">Selamat datang, Admin</h1>
             <p>{{ today }}</p>
           </div>

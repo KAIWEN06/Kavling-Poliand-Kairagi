@@ -21,7 +21,7 @@ export interface LotRecord {
   color: string | null;
   description: string | null;
   block: Record<string, unknown> | null;
-  customer: Record<string, unknown> | null;
+  customer: Record<string, unknown> | Record<string, unknown>[] | null;
 }
 
 export const lotService = {
@@ -57,7 +57,7 @@ export const lotService = {
   async getLots(): Promise<LotRecord[]> {
     const { data, error } = await supabase
       .from("lots")
-      .select("*, block:blocks(*), customer:customers(*)")
+      .select("*, block:blocks(*), customer:customers!lots_customer_id_fkey(*)")
       .order("lot_number", { ascending: true });
 
     if (error) {
