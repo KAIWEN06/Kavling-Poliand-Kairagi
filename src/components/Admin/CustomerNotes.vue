@@ -46,7 +46,7 @@
           @click="pinnedOnly = !pinnedOnly"
         >
           <ion-icon :icon="pinOutline" aria-hidden="true" />
-          {{ pinnedOnly ? 'Pinned' : 'Semua' }}
+          {{ pinnedOnly ? 'Disematkan' : 'Semua' }}
         </button>
       </div>
     </div>
@@ -108,9 +108,20 @@
       </div>
 
       <div v-else class="notes-state empty-state">
-        <div class="empty-state-icon">
-          <ion-icon :icon="documentTextOutline" aria-hidden="true" />
-        </div>
+        <img
+          v-if="!hasActiveFilters"
+          :src="emptyNotesMascot"
+          alt=""
+          class="empty-state-mascot"
+          aria-hidden="true"
+        />
+        <img
+          v-else
+          :src="emptyFilterMascot"
+          alt=""
+          class="empty-state-mascot"
+          aria-hidden="true"
+        />
         <strong>{{ hasActiveFilters ? 'Catatan tidak ditemukan' : 'Belum ada catatan' }}</strong>
         <p>
           {{
@@ -304,7 +315,6 @@ import {
   addOutline,
   closeOutline,
   createOutline,
-  documentTextOutline,
   ellipsisVertical,
   pinOutline,
   searchOutline,
@@ -312,6 +322,8 @@ import {
   trashOutline,
 } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
+import emptyFilterMascot from '@/assets/mascot/MascotInvestigatingSearch Filters.png'
+import emptyNotesMascot from '@/assets/mascot/MascotWritingaNewNote.png'
 import {
   customerNotesService,
   type CustomerNote,
@@ -544,6 +556,7 @@ async function deleteNote(note: CustomerNote) {
 
 async function showHistory(note: CustomerNote) {
   menuNote.value = null
+  window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: true } }))
   historyNote.value = note
   historyRows.value = []
   historyError.value = ''
@@ -564,6 +577,7 @@ function closeHistory() {
   historyNote.value = null
   historyRows.value = []
   historyError.value = ''
+  window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
 }
 
 function retryHistory() {
@@ -928,6 +942,15 @@ onUnmounted(() => {
   background: var(--surface-muted);
   color: var(--text-secondary);
   font-size: 20px;
+}
+
+.empty-state-mascot {
+  display: block;
+  width: min(180px, 58vw);
+  height: auto;
+  max-height: 150px;
+  object-fit: contain;
+  margin: -4px auto 0;
 }
 
 .state-action,

@@ -205,7 +205,22 @@ export const customerNotesService = {
       throw new Error(`Gagal mengambil riwayat catatan: ${error.message}`)
     }
 
-    return (data ?? []).map((row) => ({
+    const uniqueRows = new Map<string, (typeof data)[number]>()
+
+    for (const row of data ?? []) {
+      // Protect the timeline from duplicate rows created by duplicate database triggers.
+      const fingerprint = [
+        row.action,
+        row.created_at,
+        JSON.stringify(row.old_data ?? null),
+        JSON.stringify(row.new_data ?? null),
+        row.changed_by ?? '',
+      ].join('|')
+
+      if (!uniqueRows.has(fingerprint)) uniqueRows.set(fingerprint, row)
+    }
+
+    return [...uniqueRows.values()].map((row) => ({
       ...row,
       note_id: String(row.note_id),
     })) as CustomerNoteHistory[]

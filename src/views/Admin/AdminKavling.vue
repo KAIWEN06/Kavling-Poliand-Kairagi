@@ -206,7 +206,6 @@
           <div id="kv-list-top" class="kv-list-head">
             <h2>
               Daftar Kavling
-              <span class="kv-count">{{ filtered.length }} dari {{ lots.length }}</span>
             </h2>
 
             <div class="kv-sort">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   IonContent,
@@ -26,6 +26,7 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import { getLots, type SiteplanLot } from '@/services/siteplanService'
 import { normalizeLotStatus } from '@/utils/siteplan'
 import { authService } from '@/services/auth/authService'
+import { customerService } from '@/services/marketing/customerService'
 
 type LoadState = 'loading' | 'success' | 'empty' | 'error'
 type InventoryStatus = {
@@ -49,6 +50,9 @@ const loadState = ref<LoadState>('loading')
 const loadError = ref('')
 const loggingOut = ref(false)
 const refreshing = ref(false)
+const buyerDataLoading = ref(true)
+const buyerDataError = ref('')
+const dashboardCustomers = ref<any[]>([])
 let requestSequence = 0
 let isUnmounted = false
 
@@ -146,6 +150,129 @@ const inventoryDescription = computed(() => {
   return `Total ${totalUnits.value} unit: ${available.value} tersedia, ${booking.value} dipesan, dan ${sold.value} terjual.`
 })
 
+const buyerStats = computed(() => ({
+  prospects: dashboardCustomers.value.filter((customer) => !customer.lot_transactions?.some((transaction: any) => transaction.status === 'Sold') && !(customer.customer_notes?.length ?? 0) && !(customer.customer_interests?.length ?? 0)).length,
+  buyers: dashboardCustomers.value.filter((customer) => customer.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')).length,
+  followUps: dashboardCustomers.value.filter((customer) => !customer.lot_transactions?.some((transaction: any) => transaction.status === 'Sold') && ((customer.customer_notes?.length ?? 0) > 0 || (customer.customer_interests?.length ?? 0) > 0)).length,
+}))
+
+const pendingFinanceTasks = computed(() => dashboardCustomers.value.flatMap((customer) =>
+  (customer.payments ?? [])
+    .map((payment: any) => {
+      const transaction = (customer.lot_transactions ?? []).find((item: any) => item.lot_id === payment.lot_id)
+      return {
+        id: payment.id,
+        customerName: customer.full_name,
+        lotCode: transaction?.lots?.lot_number ?? `Lot #${payment.lot_id}`,
+        amount: Number(payment.amount ?? 0),
+        isOverdue: new Date(payment.payment_date ?? payment.created_at).getTime() < Date.now() - 1000 * 60 * 60 * 24 * 30,
+        isSold: transaction?.status === 'Sold',
+      }
+    })
+    .filter((task: any) => !task.isSold),
+))
+
+const actionTasks = computed(() => [
+  ...pendingFinanceTasks.value.map((task) => ({ ...task, type: 'payment' as const })),
+  { id: 'spk-placeholder', customerName: 'Konfirmasi SPK Konsumen', lotCode: '2 berkas pemesanan unit kavling baru', amount: 0, isOverdue: false, isSold: false, type: 'spk' as const },
+])
+
+const activityPage = ref(1)
+const ACTIVITY_PAGE_SIZE = 4
+const selectedActivityDate = ref('')
+
+const recentActivities = computed(() => {
+  const activities = dashboardCustomers.value.flatMap((customer) => {
+    const customerActivities = [{
+      id: `customer-${customer.id}`,
+      label: 'Customer baru ditambahkan',
+      detail: customer.full_name,
+      date: customer.created_at,
+      icon: peopleOutline,
+      tone: 'green',
+      route: `/admin/pembeli/${customer.id}`,
+    }]
+
+    const paymentActivities = (customer.payments ?? []).map((payment: any) => ({
+      id: `payment-${payment.id}`,
+      label: 'Pembayaran diterima',
+      detail: `${customer.full_name} · ${formatCurrency(Number(payment.amount ?? 0))}`,
+      date: payment.payment_date ?? payment.created_at,
+      icon: walletOutline,
+      tone: 'gold',
+      route: '/admin/keuangan',
+    }))
+
+    const transactionActivities = (customer.lot_transactions ?? []).map((transaction: any) => ({
+      id: `transaction-${transaction.id}`,
+      label: transaction.status === 'Sold' ? 'Kavling terjual' : 'Status kavling diperbarui',
+      detail: `${customer.full_name} · ${transaction.lots?.lot_number ?? `Lot #${transaction.lot_id}`}`,
+      date: transaction.sold_date ?? transaction.created_at,
+      icon: checkmarkCircleOutline,
+      tone: transaction.status === 'Sold' ? 'green' : 'gold',
+      route: '/admin/keuangan',
+    }))
+
+    return [...customerActivities, ...paymentActivities, ...transactionActivities]
+  })
+
+  return activities
+    .filter((activity) => activity.date)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+})
+
+const filteredActivities = computed(() => {
+  if (!selectedActivityDate.value) return recentActivities.value
+  return recentActivities.value.filter((activity) => activity.date.slice(0, 10) === selectedActivityDate.value)
+})
+const filteredActivityTotalPages = computed(() => Math.max(1, Math.ceil(filteredActivities.value.length / ACTIVITY_PAGE_SIZE)))
+const pagedActivities = computed(() => filteredActivities.value.slice((activityPage.value - 1) * ACTIVITY_PAGE_SIZE, activityPage.value * ACTIVITY_PAGE_SIZE))
+
+function openActivity(activity: { route: string }) {
+  void router.push(activity.route)
+}
+
+function resetActivityPage() {
+  activityPage.value = 1
+}
+
+function openTask(task: any) {
+  if (task.type === 'spk') {
+    buyerDataError.value = ''
+    window.dispatchEvent(new CustomEvent('poliland-dashboard-message', { detail: { message: 'Halaman SPK belum tersedia.' } }))
+    return
+  }
+  void router.push({ path: '/admin/keuangan', query: { status: task.isOverdue ? 'overdue' : 'pending', payment: String(task.id) } })
+}
+
+async function goToActivityPage(page: number) {
+  activityPage.value = Math.min(Math.max(page, 1), filteredActivityTotalPages.value)
+  await nextTick()
+  document.querySelector('.activity-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function formatCurrency(value: number) {
+  return `Rp ${value.toLocaleString('id-ID')}`
+}
+
+function formatActivityDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date)
+}
+
+async function loadBuyerData() {
+  buyerDataLoading.value = true
+  buyerDataError.value = ''
+  try {
+    dashboardCustomers.value = await customerService.getAdminCustomers()
+  } catch (error) {
+    buyerDataError.value = error instanceof Error ? error.message : 'Data customer belum dapat dimuat.'
+  } finally {
+    buyerDataLoading.value = false
+  }
+}
+
 async function loadInventory(forceRefresh = false) {
   const requestId = ++requestSequence
   const hasExistingData = lots.value.length > 0
@@ -205,6 +332,7 @@ async function logout() {
 
 onMounted(() => {
   void loadInventory()
+  void loadBuyerData()
 })
 
 onBeforeUnmount(() => {
@@ -339,19 +467,27 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <div class="empty-inline">
-            <span class="empty-symbol"><IonIcon :icon="checkmarkCircleOutline" /></span>
-            <div>
-              <strong>Belum ada daftar tugas</strong>
-              <p>Tugas verifikasi pembayaran dan SPK akan tampil setelah sumber datanya dihubungkan.</p>
-            </div>
+          <div v-if="buyerDataLoading" class="dashboard-data-state" role="status">
+            <IonSpinner name="crescent" />
+            <span>Memuat tugas operasional...</span>
+          </div>
+          <div v-else-if="actionTasks.length" class="task-list">
+            <button v-for="task in actionTasks.slice(0, 5)" :key="task.id" type="button" class="task-item" @click="openTask(task)">
+              <span class="empty-symbol"><IonIcon :icon="task.type === 'spk' ? documentTextOutline : (task.isOverdue ? timeOutline : walletOutline)" aria-hidden="true" /></span>
+              <span class="task-copy"><strong>{{ task.type === 'spk' ? 'Konfirmasi SPK Konsumen' : (task.isOverdue ? 'Pembayaran terlambat' : 'Verifikasi pembayaran') }}</strong><small>{{ task.type === 'spk' ? task.lotCode : `${task.customerName} · ${task.lotCode} · ${formatCurrency(task.amount)}` }}</small></span>
+              <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
+            </button>
+            <p v-if="actionTasks.length > 5" class="task-more">+{{ actionTasks.length - 5 }} tugas lainnya</p>
+          </div>
+          <div v-else class="empty-inline">
+            <span class="empty-symbol"><IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" /></span>
+            <div><strong>Belum ada daftar tugas</strong><p>Tugas baru akan muncul ketika ada pembayaran atau aktivitas yang perlu ditindaklanjuti.</p></div>
           </div>
         </section>
 
         <section class="quick-section" aria-labelledby="quick-title">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">NAVIGASI</p>
               <h2 id="quick-title">Aksi Cepat</h2>
             </div>
           </div>
@@ -387,15 +523,21 @@ onBeforeUnmount(() => {
                 <p>Ringkasan aktivitas marketing</p>
               </div>
             </div>
-            <span class="section-meta">Data belum terhubung</span>
+            <span class="section-meta">{{ dashboardCustomers.length }} customer</span>
           </div>
 
-          <div class="unavailable-panel">
-            <strong>Statistik belum tersedia</strong>
-            <p>
-              Prospek aktif, tindak lanjut, dan closing akan ditampilkan setelah data calon
-              pembeli terhubung ke dashboard.
-            </p>
+          <div v-if="buyerDataLoading" class="dashboard-data-state" role="status">
+            <IonSpinner name="crescent" />
+            <span>Memuat statistik customer...</span>
+          </div>
+          <div v-else-if="buyerDataError" class="dashboard-data-state dashboard-data-error" role="alert">
+            <strong>Statistik belum dapat dimuat</strong>
+            <p>{{ buyerDataError }}</p>
+          </div>
+          <div v-else class="buyer-stat-grid">
+            <div class="buyer-stat-card buyer-stat-card--gold"><span>Prospek aktif</span><strong>{{ buyerStats.prospects }}</strong><small>Belum melakukan pembelian</small></div>
+            <div class="buyer-stat-card buyer-stat-card--green"><span>Pembeli</span><strong>{{ buyerStats.buyers }}</strong><small>Transaksi terjual</small></div>
+            <div class="buyer-stat-card buyer-stat-card--neutral"><span>Tindak lanjut</span><strong>{{ buyerStats.followUps }}</strong><small>Memiliki catatan</small></div>
           </div>
         </section>
 
@@ -410,12 +552,43 @@ onBeforeUnmount(() => {
                 <p>Riwayat perubahan dan transaksi</p>
               </div>
             </div>
-            <span class="section-meta">Belum terhubung</span>
+          </div>
+          <div class="activity-toolbar">
+            <label class="activity-date-filter">
+              <span>Pilih tanggal</span>
+              <input v-model="selectedActivityDate" type="date" aria-label="Pilih tanggal aktivitas" @change="resetActivityPage" />
+            </label>
+            <button v-if="selectedActivityDate" type="button" class="activity-clear-date" aria-label="Hapus filter tanggal" @click="selectedActivityDate = ''; resetActivityPage()"><span class="activity-clear-label">Hapus filter tanggal</span><span class="activity-clear-icon" aria-hidden="true">×</span></button>
           </div>
 
-          <div class="unavailable-panel activity-empty">
-            <strong>Belum ada aktivitas untuk ditampilkan</strong>
-            <p>Aktivitas akan muncul setelah audit log atau sumber riwayat diintegrasikan.</p>
+          <div v-if="buyerDataLoading" class="dashboard-data-state" role="status">
+            <IonSpinner name="crescent" />
+            <span>Memuat aktivitas...</span>
+          </div>
+          <div v-else-if="buyerDataError" class="dashboard-data-state dashboard-data-error" role="alert">
+            <strong>Aktivitas belum dapat dimuat</strong>
+            <p>{{ buyerDataError }}</p>
+          </div>
+          <div v-else-if="filteredActivities.length" class="activity-list">
+            <button v-for="activity in pagedActivities" :key="activity.id" type="button" class="activity-item" @click="openActivity(activity)">
+              <span class="activity-icon" :class="`activity-icon--${activity.tone}`"><IonIcon :icon="activity.icon" aria-hidden="true" /></span>
+              <div class="activity-copy"><strong>{{ activity.label }}</strong><p>{{ activity.detail }}</p></div>
+              <time :datetime="activity.date">{{ formatActivityDate(activity.date) }}</time>
+            </button>
+            <nav v-if="filteredActivityTotalPages > 1" class="activity-pager" aria-label="Halaman aktivitas terkini">
+              <button type="button" aria-label="Aktivitas sebelumnya" :disabled="activityPage === 1" @click="goToActivityPage(activityPage - 1)">‹</button>
+              <span>Halaman {{ activityPage }} dari {{ filteredActivityTotalPages }}</span>
+              <button type="button" aria-label="Aktivitas berikutnya" :disabled="activityPage === filteredActivityTotalPages" @click="goToActivityPage(activityPage + 1)">›</button>
+            </nav>
+          </div>
+          <div v-else class="dashboard-data-state">
+            <img
+              class="activity-empty-mascot"
+              src="@/assets/mascot/Cheerful House Mascot Desk Scene.png"
+              alt="Mascot rumah sedang duduk di meja"
+            />
+            <strong>{{ selectedActivityDate ? 'Tidak ada aktivitas pada tanggal ini' : 'Belum ada aktivitas' }}</strong>
+            <p>{{ selectedActivityDate ? 'Pilih tanggal lain untuk melihat aktivitas.' : 'Aktivitas customer dan pembayaran akan muncul di sini.' }}</p>
           </div>
         </section>
       </main>
@@ -806,6 +979,14 @@ onBeforeUnmount(() => {
   height: 18px;
 }
 
+.task-list { display: grid; gap: 8px; }
+.task-item { display: grid; grid-template-columns: 34px minmax(0, 1fr) 18px; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
+.task-item:hover { border-color: var(--poliland-green); background: var(--surface-muted); }
+.task-item:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+.task-item > ion-icon { color: var(--text-secondary); }
+.task-copy { min-width: 0; }.task-copy strong, .task-copy small { display: block; }.task-copy strong { font-size: 12px; }.task-copy small { margin-top: 3px; overflow: hidden; color: var(--text-secondary); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.task-more { margin: 2px 0 0; color: var(--text-secondary); font-size: 11px; text-align: center; }
+
 .quick-section {
   margin-bottom: 27px;
 }
@@ -914,6 +1095,40 @@ onBeforeUnmount(() => {
   background: var(--surface-muted);
 }
 
+.dashboard-data-state {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.dashboard-data-state ion-spinner { color: var(--poliland-green); }
+.dashboard-data-state strong { color: var(--text-primary); font-size: 13px; }
+.dashboard-data-state p { margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
+.dashboard-data-error strong { color: var(--status-danger); }
+
+.buyer-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.buyer-stat-card { min-width: 0; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }
+.buyer-stat-card span, .buyer-stat-card small { display: block; color: var(--text-secondary); font-size: 10px; line-height: 1.35; }
+.buyer-stat-card strong { display: block; margin: 7px 0 3px; color: var(--text-primary); font-size: 25px; line-height: 1; }
+.buyer-stat-card--gold strong { color: var(--poliland-gold-text); }.buyer-stat-card--green strong { color: var(--poliland-green); }.buyer-stat-card--neutral strong { color: var(--text-primary); }
+
+.activity-list { display: grid; gap: 0; }
+.activity-item { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--border-default); }
+.activity-item:last-child { border-bottom: 0; }
+.activity-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; background: var(--surface-muted); color: var(--text-secondary); }.activity-icon ion-icon { width: 17px; height: 17px; }.activity-icon--green { background: var(--status-success-bg); color: var(--poliland-green); }.activity-icon--gold { background: var(--poliland-gold-soft); color: var(--poliland-gold-text); }
+.activity-copy { min-width: 0; }.activity-copy strong { display: block; color: var(--text-primary); font-size: 12px; }.activity-copy p { margin: 3px 0 0; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }.activity-item time { color: var(--text-secondary); font-size: 10px; white-space: nowrap; }
+.activity-item { border-inline: 0; border-top: 0; border-right: 0; border-left: 0; cursor: pointer; font: inherit; text-align: left; }.activity-item:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }.activity-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 0 0 10px; padding: 10px 0; border-top: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); }.activity-date-filter { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 11px; font-weight: var(--font-weight-semibold); }.activity-date-filter input { min-height: 36px; padding: 0 9px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; }.activity-date-filter input:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }.activity-clear-date { min-height: 36px; padding: 0 9px; border: 0; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--poliland-green); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.activity-clear-date:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
+.activity-pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-default); color: var(--text-secondary); font-size: 11px; }.activity-pager button { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font-size: 20px; cursor: pointer; }.activity-pager button:disabled { opacity: .45; cursor: default; }.activity-pager button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+
 .activity-empty {
   background: transparent;
   border-top: 1px solid var(--border-default);
@@ -992,6 +1207,24 @@ onBeforeUnmount(() => {
     min-height: 104px;
     padding: 11px 9px;
   }
+
+  .buyer-stat-card { padding: 9px 7px; }
+  .buyer-stat-card strong { font-size: 21px; }
+  .buyer-stat-card span, .buyer-stat-card small { font-size: 9px; }
+  .activity-item { grid-template-columns: 30px minmax(0, 1fr); }
+  .activity-item time { grid-column: 2; }
+  .activity-toolbar { align-items: stretch; flex-direction: column; gap: 8px; }
+  .activity-date-filter { justify-content: space-between; }
+  .activity-date-filter input { flex: 1; min-width: 0; }
+  .activity-clear-date { display: inline-grid; width: 38px; min-width: 38px; height: 36px; padding: 0; place-items: center; }
+  .activity-clear-label { display: none; }
+  .activity-clear-icon { display: block; font-size: 20px; line-height: 1; }
+}
+
+@media (max-width: 520px) {
+  .activity-clear-date { display: inline-grid; width: 38px; min-width: 38px; height: 36px; padding: 0; place-items: center; }
+  .activity-clear-label { display: none; }
+  .activity-clear-icon { display: block; font-size: 20px; line-height: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

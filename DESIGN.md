@@ -22,6 +22,14 @@ The shared foundation provides consistent typography, colors, and interaction pa
 - Meet WCAG AA contrast requirements.
 - Keep the interface usable at mobile widths and with safe-area insets.
 
+## 2.1 Bahasa dan Terminologi UI
+
+- Gunakan Bahasa Indonesia yang konsisten untuk teks antarmuka pengguna.
+- Hindari istilah bahasa Inggris jika padanan Indonesia yang jelas tersedia.
+- Gunakan “Disematkan” untuk status/filter catatan yang dipasang di bagian atas.
+- Gunakan “Sematkan” untuk aksi memasang catatan dan “Lepas sematan” untuk aksi membatalkannya.
+- Nama field database, properti TypeScript, dan API internal boleh tetap menggunakan istilah teknis aslinya.
+
 ## 3. Visual Direction
 
 The PoliLand visual direction is Modern-Natural, combining brand green and gold with warm neutral surfaces. Brand green is the primary operational color. Gold is an accent and may be used as a surface or icon accent. Gold used for small text must use an accessible gold text token.
