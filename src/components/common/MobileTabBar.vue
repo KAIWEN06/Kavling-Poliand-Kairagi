@@ -1,6 +1,6 @@
 <template>
   <div
-    v-show="!detailOpen"
+    v-show="!detailOpen && !keyboardVisible && !modalVisible"
     class="mobile-footer"
   >
 
@@ -275,6 +275,8 @@ import {
   IonIcon,
   useIonRouter,
 } from '@ionic/vue'
+import { Keyboard } from '@capacitor/keyboard'
+import type { PluginListenerHandle } from '@capacitor/core'
 
 import {
   homeOutline,
@@ -307,18 +309,70 @@ withDefaults(
 )
 
 const detailOpen = ref(false)
+const keyboardVisible = ref(false)
+const modalVisible = ref(false)
+let keyboardListeners: PluginListenerHandle[] = []
+let focusRecoveryTimer: number | undefined
+
+function isTextEntry(element: EventTarget | null) {
+  return element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement ||
+    (element instanceof HTMLElement && element.isContentEditable)
+}
+
+function handleInputFocus(event: FocusEvent) {
+  if (isTextEntry(event.target)) {
+    keyboardVisible.value = true
+  }
+}
+
+function handleInputBlur() {
+  window.clearTimeout(focusRecoveryTimer)
+  focusRecoveryTimer = window.setTimeout(() => {
+    if (!isTextEntry(document.activeElement)) {
+      keyboardVisible.value = false
+    }
+  }, 250)
+}
+
+function handleModalMode(event: Event) {
+  const customEvent = event as CustomEvent<{ active?: boolean }>
+  modalVisible.value = customEvent.detail?.active === true
+}
 
 function handleDetailMode(event: Event) {
   const customEvent = event as CustomEvent<{ active?: boolean }>
   detailOpen.value = customEvent.detail?.active === true
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('poliland-detail-mode', handleDetailMode)
+  window.addEventListener('poliland-modal-mode', handleModalMode)
+  document.addEventListener('focusin', handleInputFocus)
+  document.addEventListener('focusout', handleInputBlur)
+
+  try {
+    keyboardListeners = await Promise.all([
+      Keyboard.addListener('keyboardWillShow', () => {
+        keyboardVisible.value = true
+      }),
+      Keyboard.addListener('keyboardWillHide', () => {
+        keyboardVisible.value = false
+      }),
+    ])
+  } catch {
+    // Browser fallback is handled through focusin/focusout above.
+  }
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('poliland-detail-mode', handleDetailMode)
+  window.removeEventListener('poliland-modal-mode', handleModalMode)
+  document.removeEventListener('focusin', handleInputFocus)
+  document.removeEventListener('focusout', handleInputBlur)
+  window.clearTimeout(focusRecoveryTimer)
+  keyboardListeners.forEach((listener) => listener.remove())
 })
 
 
