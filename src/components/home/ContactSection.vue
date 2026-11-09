@@ -168,7 +168,7 @@
             </ion-button>
             <ion-button type="submit" class="btn-primary-custom" :disabled="saving">
               <ion-spinner v-if="saving" name="crescent"></ion-spinner>
-              <span v-else>Simpan Perubahan</span>
+              <span v-else>Simpan</span>
             </ion-button>
           </div>
         </form>

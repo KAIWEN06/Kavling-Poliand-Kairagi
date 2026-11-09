@@ -42,13 +42,13 @@ The primary typeface is Plus Jakarta Sans, loaded through Fontsource in `src/mai
 
 Available weights:
 
-| Weight | Token |
-|---|---|
-| 400 | `--font-weight-regular` |
-| 500 | `--font-weight-medium` |
-| 600 | `--font-weight-semibold` |
-| 700 | `--font-weight-bold` |
-| 800 | `--font-weight-extrabold` |
+| Weight | Token                     |
+| ------ | ------------------------- |
+| 400    | `--font-weight-regular`   |
+| 500    | `--font-weight-medium`    |
+| 600    | `--font-weight-semibold`  |
+| 700    | `--font-weight-bold`      |
+| 800    | `--font-weight-extrabold` |
 
 Font tokens:
 
@@ -60,29 +60,29 @@ Font tokens:
 
 ## 5. Brand Colors
 
-| Token | Value | Intended usage |
-|---|---|---|
-| `--poliland-green` | `#355A2C` | Primary brand and action color |
-| `--poliland-gold` | `#CBA044` | Brand accent and graphic accent |
-| `--poliland-gold-soft` | `#F4D69A` | Soft gold surface accent |
-| `--poliland-gold-text` | `#966A12` | Accessible gold text on light surfaces |
+| Token                       | Value     | Intended usage                                |
+| --------------------------- | --------- | --------------------------------------------- |
+| `--poliland-green`          | `#355A2C` | Primary brand and action color                |
+| `--poliland-gold`           | `#CBA044` | Brand accent and graphic accent               |
+| `--poliland-gold-soft`      | `#F4D69A` | Soft gold surface accent                      |
+| `--poliland-gold-text`      | `#966A12` | Accessible gold text on light surfaces        |
 | `--poliland-gold-text-soft` | `#805708` | Accessible deeper gold text on cream surfaces |
 
 Brand gold must not be used as text by default. Gold used as text should use a gold text token and be contrast-tested.
 
 ## 6. Semantic Colors
 
-| Function | Token | Current value |
-|---|---|---|
-| Application background | `--app-background` | `#FAF9F6` |
-| Primary surface | `--surface-primary` | `#FFFFFF` |
-| Muted surface | `--surface-muted` | `#F5F3EE` |
-| Primary text | `--text-primary` | `#252525` |
-| Secondary text | `--text-secondary` | `#717178` |
-| Default border | `--border-default` | `#EAE7E0` |
-| Success | `--status-success` | Alias to `--poliland-green` |
-| Warning | `--status-warning` | Alias to `--poliland-gold` |
-| Danger | `--status-danger` | `#D94B45` |
+| Function               | Token               | Current value               |
+| ---------------------- | ------------------- | --------------------------- |
+| Application background | `--app-background`  | `#FAF9F6`                   |
+| Primary surface        | `--surface-primary` | `#FFFFFF`                   |
+| Muted surface          | `--surface-muted`   | `#F5F3EE`                   |
+| Primary text           | `--text-primary`    | `#252525`                   |
+| Secondary text         | `--text-secondary`  | `#717178`                   |
+| Default border         | `--border-default`  | `#EAE7E0`                   |
+| Success                | `--status-success`  | Alias to `--poliland-green` |
+| Warning                | `--status-warning`  | Alias to `--poliland-gold`  |
+| Danger                 | `--status-danger`   | `#D94B45`                   |
 
 Additional status surfaces include `--status-success-bg`. Ionic mappings are defined in `src/theme/variables.css` for primary, secondary, success, warning, danger, medium, card, item, and toolbar.
 
@@ -118,11 +118,11 @@ This spacing section records the current state; it does not claim tokens that do
 
 ## 10. Border Radius
 
-| Token | Value |
-|---|---|
+| Token              | Value  |
+| ------------------ | ------ |
 | `--radius-control` | `12px` |
-| `--radius-card` | `16px` |
-| `--radius-panel` | `20px` |
+| `--radius-card`    | `16px` |
+| `--radius-panel`   | `20px` |
 
 Radius should communicate component hierarchy. It should not make every control a pill.
 
@@ -159,28 +159,28 @@ Current implementation:
 
 Implemented API:
 
-| Prop | Type | Default |
-|---|---|---|
-| `variant` | `primary \| secondary \| success \| danger \| neutral` | Inferred: `primary` when no legacy `color` is provided |
-| `fill` | `solid \| outline \| clear` | `solid` |
-| `size` | `small \| medium \| large` | `medium` |
-| `expand` | `block \| full` | None |
-| `loading` | `boolean` | `false` |
-| `disabled` | `boolean` | `false` |
-| `type` | `button \| submit \| reset` | `button` |
-| `color` | Ionic-compatible color | None |
+| Prop       | Type                                                   | Default                                                |
+| ---------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| `variant`  | `primary \| secondary \| success \| danger \| neutral` | Inferred: `primary` when no legacy `color` is provided |
+| `fill`     | `solid \| outline \| clear`                            | `solid`                                                |
+| `size`     | `small \| medium \| large`                             | `medium`                                               |
+| `expand`   | `block \| full`                                        | None                                                   |
+| `loading`  | `boolean`                                              | `false`                                                |
+| `disabled` | `boolean`                                              | `false`                                                |
+| `type`     | `button \| submit \| reset`                            | `button`                                               |
+| `color`    | Ionic-compatible color                                 | None                                                   |
 
 The `variant` API takes priority over legacy `color`. Legacy `color` and Ionic fill values remain supported. `fill="default"` is normalized to `solid`.
 
 #### Variants
 
-| Variant | Solid visual direction |
-|---|---|
-| `primary` | PoliLand green |
+| Variant     | Solid visual direction               |
+| ----------- | ------------------------------------ |
+| `primary`   | PoliLand green                       |
 | `secondary` | PoliLand gold with dark primary text |
-| `success` | Semantic success green |
-| `danger` | Semantic danger red |
-| `neutral` | Muted surface with primary text |
+| `success`   | Semantic success green               |
+| `danger`    | Semantic danger red                  |
+| `neutral`   | Muted surface with primary text      |
 
 Outline and clear fills preserve the same variant meaning while using transparent surfaces or borders.
 
@@ -224,15 +224,15 @@ Additional props:
 
 #### Semantic mapping
 
-| Element | Token |
-|---|---|
-| Label and input text | `--text-primary` |
-| Placeholder and icon | `--text-secondary` |
+| Element                                | Token                                  |
+| -------------------------------------- | -------------------------------------- |
+| Label and input text                   | `--text-primary`                       |
+| Placeholder and icon                   | `--text-secondary`                     |
 | Control and password button background | `--surface-primary`, `--surface-muted` |
-| Border | `--border-default` |
-| Focus | `--poliland-green` |
-| Error | `--status-danger` |
-| Radius | `--radius-control` |
+| Border                                 | `--border-default`                     |
+| Focus                                  | `--poliland-green`                     |
+| Error                                  | `--status-danger`                      |
+| Radius                                 | `--radius-control`                     |
 
 #### States
 
@@ -280,6 +280,87 @@ The role appearance remains differentiated. Shared implementation uses semantic 
 
 An existing shared tab bar supports public, marketing, and admin variants. Navigation structure, menu count, labels, route targets, and role access must remain distinct. Shared typography, active and inactive state, icon sizing, spacing, radius, safe area, and accessibility can be standardized.
 
+### AppFormSheet — Standar Formulir Bottom Sheet
+
+Semua interaksi **tambah, edit, ubah, atau perbarui data** menggunakan pola formulir yang konsisten. Pada perangkat mobile, formulir ditampilkan sebagai panel/card yang muncul dari bawah layar (_bottom sheet_), mengikuti pola visual referensi Edit Data Customer.
+
+Tujuannya agar pengguna tidak mendapatkan bentuk modal yang berbeda-beda pada setiap halaman atau role.
+
+#### Kapan digunakan
+
+Gunakan `AppFormSheet` untuk:
+
+- Menambahkan data baru.
+- Mengedit data yang sudah ada.
+- Mengubah informasi atau pengaturan suatu data.
+- Formulir CRUD yang dapat diselesaikan dalam satu alur.
+
+Jangan gunakan bottom sheet formulir untuk:
+
+- Konfirmasi singkat seperti hapus data atau membatalkan tindakan. Gunakan `ConfirmDialog`.
+- Informasi detail yang hanya dibaca. Gunakan halaman atau panel detail yang sesuai.
+- Alur panjang, bertahap, atau formulir kompleks yang membutuhkan banyak ruang. Gunakan halaman khusus agar pengguna tidak harus mengisi formulir di area yang terlalu sempit.
+
+#### Struktur visual wajib
+
+Urutan struktur pada bottom sheet:
+
+1. **Backdrop** — halaman di belakang diberi overlay gelap agar fokus pengguna tertuju pada formulir.
+2. **Sheet container** — panel berwarna `--surface-primary`, menempel pada sisi bawah viewport, memenuhi lebar layar, dan memiliki sudut atas membulat.
+3. **Header** — judul tindakan di sebelah kiri dan tombol tutup di sebelah kanan.
+4. **Divider** — garis pemisah halus antara header dan isi formulir.
+5. **Form body** — label, input, textarea, select, helper text, dan pesan validasi disusun vertikal.
+6. **Action footer** — tombol Batal dan tombol aksi utama, misalnya Simpan Perubahan, berada di bagian bawah sheet.
+
+#### Aturan tampilan mobile
+
+- Sheet muncul dari bawah layar dengan animasi singkat dan halus.
+- Lebar sheet `100%`; posisinya menempel pada bagian bawah viewport.
+- Sudut kiri dan kanan bagian atas menggunakan `--radius-panel` (`20px`).
+- Tinggi mengikuti isi formulir, tetapi dibatasi maksimal sekitar `90dvh` agar header dan konteks layar tetap terasa.
+- Gunakan `--surface-primary` untuk latar sheet, `--text-primary` untuk judul dan isi, serta `--border-default` untuk divider dan batas kontrol.
+- Gunakan padding horizontal yang konsisten, direkomendasikan `16px`.
+- Judul menggunakan Plus Jakarta Sans, weight `700` atau `600`, dengan ukuran sekitar `18–20px`.
+- Tombol tutup memiliki target sentuh minimal `44 × 44px`, latar `--surface-muted`, dan nama aksesibel seperti `Tutup formulir`.
+- Label selalu berada di atas input. Jangan mengandalkan placeholder sebagai pengganti label.
+- Jarak antar-field harus konsisten. Kelompok field yang berkaitan boleh didekatkan, tetapi tetap memiliki pemisahan visual yang jelas.
+- Input dan textarea menggunakan standar `AppInput` atau komponen form bersama yang sudah ditetapkan.
+- Footer memiliki latar `--surface-primary`, dua tombol berdampingan dengan tinggi minimum `44px`, dan jarak yang konsisten.
+- Tombol **Batal** menggunakan gaya `neutral` atau `outline`; tombol aksi utama menggunakan `primary`.
+- Footer harus memperhitungkan `env(safe-area-inset-bottom)` agar tidak bertabrakan dengan indikator Home perangkat.
+- Jika isi formulir lebih tinggi daripada ruang yang tersedia, hanya area form body yang dapat digulir. Header dan footer tetap terlihat.
+- Saat keyboard virtual terbuka, field aktif harus tetap dapat terlihat dan footer tidak boleh menutupi input yang sedang digunakan.
+
+#### Aturan tampilan desktop dan tablet
+
+- Pertahankan pola header, body, field, dan footer yang sama.
+- Pada viewport yang cukup lebar, tampilkan sebagai dialog terpusat dengan lebar maksimum yang wajar (direkomendasikan `560px`), bukan panel yang melebar memenuhi seluruh layar.
+- Backdrop, hierarki tombol, radius, tipografi, dan jarak tetap mengikuti standar bottom sheet mobile.
+- Jangan membuat desain formulir baru hanya karena perangkat menggunakan pointer atau layar lebih besar.
+
+#### Perilaku dan interaksi
+
+- Judul harus menyebutkan tindakan dan objek secara jelas, misalnya `Edit data customer`, `Tambah data kavling`, atau `Ubah informasi pembayaran`.
+- Teks tombol utama harus sesuai tindakan: `Simpan Perubahan`, `Tambah Data`, atau label spesifik lainnya.
+- Tombol Batal dan tombol tutup membatalkan proses tanpa menyimpan perubahan.
+- Jika formulir sudah berubah (_dirty state_), meminta pengguna mengonfirmasi sebelum menutup melalui backdrop, tombol tutup, atau tombol Batal. Jangan membuang perubahan secara diam-diam.
+- Ketika proses simpan berlangsung, cegah pengiriman berulang, tampilkan loading pada tombol utama, dan pertahankan nilai formulir.
+- Setelah berhasil, tutup sheet dan tampilkan notifikasi keberhasilan menggunakan pola notifikasi aplikasi yang sudah ada.
+- Jika gagal, sheet tetap terbuka, nilai yang sudah diisi tidak hilang, dan pesan kesalahan ditampilkan secara jelas.
+- Validasi ditampilkan dekat field terkait. Field yang salah diberi `aria-invalid` dan pesan error yang terhubung melalui `aria-describedby`.
+- Fokus keyboard diarahkan ke formulir saat dibuka, dibatasi di dalam dialog selama terbuka, lalu dikembalikan ke elemen pemicu setelah ditutup.
+- Mendukung tombol Escape pada keyboard. Penutupan tetap harus mengikuti aturan konfirmasi ketika terdapat perubahan yang belum disimpan.
+- Saat sheet terbuka, scrolling halaman di belakang harus dikunci.
+
+#### Konsistensi implementasi
+
+- Gunakan satu komponen pembungkus bersama, direkomendasikan bernama `AppFormSheet`, untuk seluruh halaman dan role.
+- Halaman hanya memasok judul, konten/form fields, label tombol, status loading, validasi, dan handler tindakan. Halaman tidak membuat overlay, radius, animasi, atau footer modal sendiri-sendiri.
+- Komponen form di dalam sheet tetap menggunakan komponen bersama seperti `AppInput`, `AppButton`, dan komponen select/textarea yang tersedia.
+- Jangan menyalin CSS modal ke setiap halaman.
+- Perbedaan antar-role hanya boleh berasal dari kebutuhan field, hak akses, dan alur bisnis. Pola visual dan perilaku sheet harus tetap sama.
+- Jika implementasi saat ini belum memiliki `AppFormSheet`, bagian ini adalah standar yang harus diterapkan; dokumentasi ini tidak menyatakan bahwa komponennya sudah tersedia.
+
 ## 15. Role-specific UI Rules
 
 The five roles share:
@@ -315,6 +396,7 @@ Public, marketing, admin, client, and supervisor differences must remain intenti
 - Every icon-only control has an accessible name.
 - Every input has a visible label associated with its control.
 - Dialogs support Escape and keyboard focus handling.
+- Formulir tambah/edit/ubah data mengikuti standar `AppFormSheet`; jangan membuat pola modal formulir yang berbeda per halaman atau role.
 - Loading, empty, and error states provide visible and accessible context.
 - Status must use text or an icon in addition to color.
 - Reduced motion must be respected where transitions are added.
@@ -339,6 +421,7 @@ Do not remove a legacy token until its references have been mapped and migrated.
 - Preserve existing props, native attributes, events, navigation, and form behavior.
 - Do not change routes, Supabase queries, database access, or business logic.
 - Do not change page layout when standardizing a component.
+- Semua alur tambah/edit/ubah data yang menggunakan formulir harus memakai `AppFormSheet` sesuai bagian Shared Components.
 - Keep role variants separate when users need different workflows.
 - Add or change a token only when the existing tokens cannot represent the state.
 - Run production build, TypeScript validation, and `git diff --check`.
@@ -370,24 +453,24 @@ This component is implemented with the semantic mapping documented above. Remain
 
 Recommended token mapping:
 
-| Existing style | Recommended token |
-|---|---|
-| Toolbar background | `--surface-muted` or existing cream background rule if role appearance requires it |
-| Toolbar border | `--border-default` |
-| Primary text and icons | `--text-primary` |
-| Secondary label text | `--text-secondary` |
-| Notification dot | `--status-danger` |
-| Notification dot border | Surface and toolbar background |
+| Existing style          | Recommended token                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| Toolbar background      | `--surface-muted` or existing cream background rule if role appearance requires it |
+| Toolbar border          | `--border-default`                                                                 |
+| Primary text and icons  | `--text-primary`                                                                   |
+| Secondary label text    | `--text-secondary`                                                                 |
+| Notification dot        | `--status-danger`                                                                  |
+| Notification dot border | Surface and toolbar background                                                     |
 
 ### MobileTabBar
 
 The three variants remain separate:
 
-| Variant | Current menu purpose |
-|---|---|
-| Public | Home, siteplan, progress, gallery, contact |
+| Variant   | Current menu purpose                             |
+| --------- | ------------------------------------------------ |
+| Public    | Home, siteplan, progress, gallery, contact       |
 | Marketing | Home, kavling, potential buyers, follow-up, more |
-| Admin | Home, kavling, buyers, finance, more |
+| Admin     | Home, kavling, buyers, finance, more             |
 
 Shared recommendations are semantic colors, identical icon sizing, consistent labels, 44px minimum interaction targets, visible active state, visible focus, safe-area handling, and Plus Jakarta Sans.
 

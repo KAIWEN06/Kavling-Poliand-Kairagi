@@ -20,6 +20,7 @@ import RegisterPage from '@/views/auth/RegisterPage.vue'
 import AuthCallbackPage from '@/views/auth/AuthCallbackPage.vue'
 import BerandaAdminPage from '@/views/Admin/AdminDashboard.vue'
 import AdminKavlingPage from '@/views/Admin/AdminKavling.vue'
+import AdminKavlingDetailPage from '@/views/Admin/AdminDetailKavling.vue'
 import AdminPembeliPage from '@/views/Admin/AdminPembeli.vue'
 import AdminPembeliDetailPage from '@/views/Admin/AdminPembeliDetail.vue'
 import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
@@ -85,6 +86,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/admin/kavling',
     name: 'AdminKavling',
     component: AdminKavlingPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/kavling/:id',
+    name: 'AdminKavlingDetail',
+    component: AdminKavlingDetailPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {

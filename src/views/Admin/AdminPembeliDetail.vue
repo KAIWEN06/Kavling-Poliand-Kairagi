@@ -75,9 +75,9 @@
                   <span>Coba kata kunci nomor kavling atau blok lain.</span>
                 </div>
                 <fieldset v-else class="lot-picker-list">
-                  <legend>Pilih kavling tersedia</legend>
-                  <label v-for="lot in filteredAvailableLots" :key="lot.id" :class="['lot-picker-option', { selected: interestForm.lot_id === lot.id }]">
-                    <input v-model="interestForm.lot_id" type="radio" name="interest-lot" :value="lot.id" />
+                  <legend>Pilih satu atau beberapa kavling ({{ interestForm.lot_ids.length }} dipilih)</legend>
+                  <label v-for="lot in filteredAvailableLots" :key="lot.id" :class="['lot-picker-option', { selected: interestForm.lot_ids.includes(lot.id) }]">
+                    <input v-model="interestForm.lot_ids" type="checkbox" name="interest-lots" :value="lot.id" />
                     <span class="lot-picker-copy">
                       <strong>Kavling {{ lot.lot_number }}</strong>
                       <span>{{ blockLabel(lot.blocks) }} · {{ lot.dimension || 'Dimensi belum tercatat' }}</span>
@@ -87,7 +87,7 @@
                 </fieldset>
                 <label for="interest-payment">Jenis pembayaran<select id="interest-payment" v-model="interestForm.payment_type"><option value="Cash">Tunai</option><option value="Installment">Cicilan</option></select></label>
                 <p v-if="interestError" class="edit-error" role="alert">{{ interestError }}</p>
-                <div class="interest-form-actions"><button type="button" @click="closeInterestForm">Batal</button><button type="submit" :disabled="interestSaving || !interestForm.lot_id">{{ interestSaving ? 'Menyimpan...' : 'Simpan kavling' }}</button></div>
+                <div class="interest-form-actions"><button type="button" @click="closeInterestForm">Batal</button><button type="submit" :disabled="interestSaving || !interestForm.lot_ids.length">{{ interestSaving ? 'Menyimpan...' : `Simpan ${interestForm.lot_ids.length || ''} kavling` }}</button></div>
               </form>
             </section>
             <section class="detail-card" aria-labelledby="transaction-title"><h2 id="transaction-title">Ringkasan pembayaran</h2><div v-if="!customer.transactions.length" style="display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 8px 10px; border-radius: var(--radius-control); background: var(--app-background);"><img src="/src/assets/mascot/SadBeeHouseMascotwithShoppingReceipt.png" alt="Mascot PoliLand sedih belum ada transaksi" style="width: 76px; height: 76px; flex: 0 0 76px; object-fit: contain; object-position: center;" /><p class="muted" style="margin: 0; line-height: 1.5;">Belum ada transaksi.</p></div><div v-else class="payment-list"><article v-for="transaction in customer.transactions" :key="transaction.id" class="payment-item"><div class="payment-item-head"><strong>{{ transaction.lotNumber }}</strong><span :class="['transaction-status', transaction.status.toLowerCase()]">{{ transaction.statusLabel }}</span></div><dl><div><dt>Metode</dt><dd>{{ transaction.paymentType }}</dd></div><div><dt>Harga final</dt><dd>{{ formatCurrency(transaction.finalPrice) }}</dd></div><div><dt>Sudah dibayar</dt><dd class="paid">{{ formatCurrency(transaction.paidAmount) }}</dd></div><div><dt>Sisa pembayaran</dt><dd :class="{ settled: transaction.remainingAmount === 0 }">{{ transaction.remainingAmount === 0 ? 'Lunas' : formatCurrency(transaction.remainingAmount) }}</dd></div><div v-if="transaction.paymentType === 'Cicilan'"><dt>Rencana cicilan</dt><dd>{{ transaction.months ? `${transaction.months} bulan` : 'Belum diatur' }}{{ transaction.monthlyPayment ? ` · ${formatCurrency(transaction.monthlyPayment)}/bulan` : '' }}</dd></div></dl></article></div><button type="button" class="finance-link" disabled>Detail keuangan akan tersedia di Laporan Keuangan</button></section>
@@ -110,7 +110,7 @@
                 Batal
               </AppButton>
               <AppButton class="save-customer-button" type="submit" variant="primary" :loading="saving" :disabled="saving">
-                Simpan perubahan
+                Simpan
               </AppButton>
             </div>
           </form>
@@ -155,7 +155,7 @@ const interestError = ref('')
 const interestLotsLoading = ref(false)
 const interestLotsError = ref('')
 const interestSearch = ref('')
-const interestForm = reactive({ lot_id: 0, payment_type: 'Cash' as 'Cash' | 'Installment' })
+const interestForm = reactive({ lot_ids: [] as number[], payment_type: 'Cash' as 'Cash' | 'Installment' })
 
 function initials(name: string) { return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() }
 function formatDate(value: string | null) { return value ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Tanggal belum tercatat' }
@@ -194,7 +194,8 @@ async function openInterestForm() {
     availableLots.value = await customerService.getAvailableLots()
     const selectedIds = new Set((customer.value?.interests ?? []).map((interest: any) => interest.lotId))
     availableLots.value = availableLots.value.filter((lot) => !selectedIds.has(lot.id))
-    interestForm.lot_id = availableLots.value[0]?.id ?? 0
+    interestForm.lot_ids = []
+    interestForm.payment_type = 'Cash'
     interestFormOpen.value = true
   } catch (error) {
     interestLotsError.value = error instanceof Error ? error.message : 'Daftar kavling tersedia gagal dimuat.'
@@ -210,15 +211,36 @@ function closeInterestForm() {
 }
 
 async function addCustomerInterest() {
-  if (!customer.value || !interestForm.lot_id) return
+  if (!customer.value || !interestForm.lot_ids.length) return
+
   interestSaving.value = true
   interestError.value = ''
+  const selectedLotIds = [...new Set(interestForm.lot_ids)]
+  const savedLotIds: number[] = []
+
   try {
-    await customerService.addInterest({ customer_id: customer.value.id, lot_id: interestForm.lot_id, payment_type: interestForm.payment_type, plan_id: null, notes: null })
+    // Simpan satu per satu agar hasil yang berhasil diketahui jika terjadi kegagalan parsial.
+    for (const lotId of selectedLotIds) {
+      await customerService.addInterest({
+        customer_id: customer.value.id,
+        lot_id: lotId,
+        payment_type: interestForm.payment_type,
+        plan_id: null,
+        notes: null,
+      })
+      savedLotIds.push(lotId)
+    }
+
     await loadCustomer()
     closeInterestForm()
   } catch (error) {
-    interestError.value = error instanceof Error ? error.message : 'Kavling gagal ditambahkan.'
+    // Muat ulang daftar minat agar kavling yang sudah tersimpan tidak bisa terkirim ulang.
+    await loadCustomer()
+    const savedIds = new Set(savedLotIds)
+    const alreadyAddedIds = new Set((customer.value?.interests ?? []).map((interest: any) => interest.lotId))
+    availableLots.value = availableLots.value.filter((lot) => !alreadyAddedIds.has(lot.id))
+    interestForm.lot_ids = selectedLotIds.filter((lotId) => !savedIds.has(lotId) && !alreadyAddedIds.has(lotId))
+    interestError.value = `Sebagian kavling berhasil disimpan (${savedLotIds.length}/${selectedLotIds.length}). ${error instanceof Error ? error.message : 'Kavling lainnya gagal ditambahkan.'}`
   } finally {
     interestSaving.value = false
   }

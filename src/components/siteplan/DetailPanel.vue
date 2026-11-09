@@ -15,7 +15,7 @@
       <!-- HEADER -->
       <header class="detail-header">
         <div>
-          <div class="detail-label">Detail Kavling</div>
+          <div class="detail-label">PoliLand Kairagi</div>
           <h2>{{ lot.lot_number || lot.polygon_id || '-' }}</h2>
         </div>
 
