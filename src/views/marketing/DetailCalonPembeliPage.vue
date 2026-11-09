@@ -843,27 +843,27 @@
     </ion-content>
 
 
-    <ion-modal
-      :is-open="showEditSummaryModal"
-      class="edit-data-modal"
-      @didDismiss="showEditSummaryModal = false"
+    <AppModal
+      v-model="showEditSummaryModal"
+      title="Ubah Data Calon Pembeli"
+      variant="bottom-sheet"
     >
       <form
+        id="edit-summary-form"
         class="edit-data-content"
         @submit.prevent="saveSummary"
       >
-        <h2>Ubah Data Calon Pembeli</h2>
         <label>
           Nama Lengkap
-          <input v-model.trim="summaryForm.name" required />
+          <input v-model.trim="summaryForm.name" type="text" autocomplete="name" required />
         </label>
         <label>
           Nomor WhatsApp
-          <input v-model.trim="summaryForm.phone" type="tel" required />
+          <input v-model.trim="summaryForm.phone" type="tel" autocomplete="tel" required />
         </label>
         <label>
           Email
-          <input v-model.trim="summaryForm.email" type="email" />
+          <input v-model.trim="summaryForm.email" type="email" autocomplete="email" />
         </label>
         <label>
           Alamat
@@ -873,31 +873,36 @@
           Sumber Informasi
           <input v-model.trim="summaryForm.source" />
         </label>
-        <div class="edit-data-actions">
-          <button
-            type="button"
-            class="modal-button cancel"
-            @click="showEditSummaryModal = false"
-          >
-            Batal
-          </button>
-          <button type="submit" class="modal-button confirm-edit">
-            Simpan
-          </button>
-        </div>
       </form>
-    </ion-modal>
 
-    <ion-modal
-      :is-open="showEditLotModal"
-      class="edit-data-modal"
-      @didDismiss="showEditLotModal = false"
+      <template #footer>
+        <button
+          type="button"
+          class="modal-button cancel"
+          @click="showEditSummaryModal = false"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          form="edit-summary-form"
+          class="modal-button confirm-edit"
+        >
+          Simpan
+        </button>
+      </template>
+    </AppModal>
+
+    <AppModal
+      v-model="showEditLotModal"
+      title="Ubah Minat Kavling"
+      variant="bottom-sheet"
     >
       <form
+        id="edit-lot-form"
         class="edit-data-content"
         @submit.prevent="saveLotSelection"
       >
-        <h2>Ubah Minat Kavling</h2>
         <p class="edit-data-description">
           Pilih kavling tersedia dari database.
         </p>
@@ -925,99 +930,76 @@
             </option>
           </select>
         </label>
-        <div class="edit-data-actions">
-          <button
-            type="button"
-            class="modal-button cancel"
-            @click="showEditLotModal = false"
-          >
-            Batal
-          </button>
-          <button
-            type="submit"
-            class="modal-button confirm-edit"
-            :disabled="lotOptionsLoading || Boolean(lotOptionsError)"
-          >
-            Simpan
-          </button>
-        </div>
       </form>
-    </ion-modal>
+
+      <template #footer>
+        <button
+          type="button"
+          class="modal-button cancel"
+          @click="showEditLotModal = false"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          form="edit-lot-form"
+          class="modal-button confirm-edit"
+          :disabled="lotOptionsLoading || Boolean(lotOptionsError) || !selectedLotId"
+        >
+          Simpan
+        </button>
+      </template>
+    </AppModal>
 
     <!-- =====================================================
          MODAL BATALKAN SPK
     ====================================================== -->
 
-    <ion-modal
-      :is-open="showCancelSpkModal"
-      class="cancel-spk-modal"
-      @didDismiss="closeCancelSpkModal"
+    <AppModal
+      v-model="showCancelSpkModal"
+      title="Batalkan SPK?"
+      variant="dialog"
+      max-width="350px"
     >
-
       <div class="modal-wrapper">
-
         <div class="modal-icon danger">
-
           <ion-icon :icon="alertCircleOutline" />
-
         </div>
-
-
-        <h2>
-          Batalkan SPK?
-        </h2>
-
 
         <p class="modal-description">
           Apakah Anda yakin ingin membatalkan SPK
           calon pembeli ini?
         </p>
 
-
         <div class="refund-warning">
-
           <ion-icon :icon="warningOutline" />
-
           <div>
-
-            <strong>
-              Perhatian
-            </strong>
-
+            <strong>Perhatian</strong>
             <p>
               Uang yang sudah dibayarkan
               <b>tidak dapat dikembalikan</b>.
             </p>
-
           </div>
-
         </div>
-
-
-        <div class="modal-actions">
-
-          <button
-            type="button"
-            class="modal-button cancel"
-            @click="closeCancelSpkModal"
-          >
-            Tidak
-          </button>
-
-
-          <button
-            type="button"
-            class="modal-button confirm-danger"
-            @click="confirmCancelSpk"
-          >
-            Ya, Batalkan SPK
-          </button>
-
-        </div>
-
       </div>
 
-    </ion-modal>
+      <template #footer>
+        <button
+          type="button"
+          class="modal-button cancel"
+          @click="closeCancelSpkModal"
+        >
+          Tidak
+        </button>
+        <button
+          type="button"
+          class="modal-button confirm-danger"
+          @click="confirmCancelSpk"
+        >
+          Ya, Batalkan SPK
+        </button>
+      </template>
+    </AppModal>
 
   </ion-page>
 </template>
@@ -1040,7 +1022,6 @@ import {
   IonPage,
   IonContent,
   IonIcon,
-  IonModal,
   useIonRouter,
 } from '@ionic/vue'
 
@@ -1084,6 +1065,7 @@ import {
   getLotByNumber,
   type Lot,
 } from '@/services/marketing/spkService'
+import AppModal from '@/components/ui/AppModal.vue'
 
 
 const router = useIonRouter()
@@ -3526,25 +3508,8 @@ function formatRupiah(
 
 
 /* =========================================================
-   MODAL BATAL SPK
+   MODAL CONTENT
 ========================================================= */
-
-.edit-data-modal {
-
-  --width:
-    min(
-      calc(100% - 32px),
-      420px
-    );
-
-  --height:
-    auto;
-
-  --border-radius:
-    14px;
-
-}
-
 
 .edit-data-content {
 
@@ -3553,25 +3518,6 @@ function formatRupiah(
   flex-direction: column;
 
   gap: 12px;
-
-  max-height: 85vh;
-
-  overflow-y: auto;
-
-  padding: 20px;
-
-  background: #ffffff;
-
-}
-
-
-.edit-data-content h2 {
-
-  margin: 0;
-
-  color: #222222;
-
-  font-size: 17px;
 
 }
 
@@ -3649,19 +3595,6 @@ function formatRupiah(
 }
 
 
-.edit-data-actions {
-
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 8px;
-
-  margin-top: 4px;
-
-}
-
-
 .modal-button.confirm-edit {
 
   background: var(--gold);
@@ -3689,30 +3622,9 @@ function formatRupiah(
 }
 
 
-.cancel-spk-modal {
-
-  --width:
-    min(
-      calc(100% - 32px),
-      350px
-    );
-
-  --height:
-    auto;
-
-  --border-radius:
-    14px;
-
-}
-
-
 .modal-wrapper {
 
-  padding:
-    24px 20px 20px;
-
-  background:
-    #ffffff;
+  padding: 0;
 
 }
 
@@ -3750,24 +3662,6 @@ function formatRupiah(
 .modal-icon ion-icon {
 
   font-size: 25px;
-
-}
-
-
-.modal-wrapper h2 {
-
-  margin:
-    0 0 7px;
-
-  text-align: center;
-
-  color:
-    #222222;
-
-  font-size:
-    18px;
-
-  font-weight: 800;
 
 }
 
@@ -3845,23 +3739,9 @@ function formatRupiah(
 }
 
 
-.modal-actions {
-
-  display: grid;
-
-  grid-template-columns:
-    1fr 1fr;
-
-  gap: 8px;
-
-  margin-top: 16px;
-
-}
-
-
 .modal-button {
 
-  min-height: 40px;
+  min-height: 44px;
 
   border-radius: 7px;
 

@@ -280,86 +280,124 @@ The role appearance remains differentiated. Shared implementation uses semantic 
 
 An existing shared tab bar supports public, marketing, and admin variants. Navigation structure, menu count, labels, route targets, and role access must remain distinct. Shared typography, active and inactive state, icon sizing, spacing, radius, safe area, and accessibility can be standardized.
 
-### AppFormSheet — Standar Formulir Bottom Sheet
+### AppModal — Shared Modal Component
 
-Semua interaksi **tambah, edit, ubah, atau perbarui data** menggunakan pola formulir yang konsisten. Pada perangkat mobile, formulir ditampilkan sebagai panel/card yang muncul dari bawah layar (_bottom sheet_), mengikuti pola visual referensi Edit Data Customer.
+`src/components/ui/AppModal.vue` is the shared modal foundation for the application. It uses a Vue-rendered fixed overlay rather than `ion-modal`, following the visual and interaction pattern already used by the Edit Data Customer panel in `AdminPembeliDetail.vue`.
 
-Tujuannya agar pengguna tidak mendapatkan bentuk modal yang berbeda-beda pada setiap halaman atau role.
+Use this component for form sheets, compact dialogs, and full-screen modal flows. Pages provide their own form content and business logic through slots; the shared component owns the overlay, panel, header, footer, transitions, focus behavior, and page scroll lock.
 
-#### Kapan digunakan
+#### Variants
 
-Gunakan `AppFormSheet` untuk:
+| Variant        | Intended use                            | Mobile behavior                                 | Desktop behavior                    |
+| -------------- | --------------------------------------- | ----------------------------------------------- | ----------------------------------- |
+| `bottom-sheet` | Add, edit, and update forms             | Anchored to the bottom with rounded top corners | Centered panel, maximum width 560px |
+| `dialog`       | Short confirmations and focused actions | Centered panel                                  | Centered panel                      |
+| `fullscreen`   | Complex or space-intensive flows        | Fills the viewport                              | Fills the viewport                  |
 
-- Menambahkan data baru.
-- Mengedit data yang sudah ada.
-- Mengubah informasi atau pengaturan suatu data.
-- Formulir CRUD yang dapat diselesaikan dalam satu alur.
+#### Props
 
-Jangan gunakan bottom sheet formulir untuk:
+| Prop              | Type                                                   | Default        | Purpose                                             |
+| ----------------- | ------------------------------------------------------ | -------------- | --------------------------------------------------- |
+| `modelValue`      | `boolean`                                              | Required       | Controls visibility with `v-model`                  |
+| `title`           | `string`                                               | `''`           | Visible heading and accessible dialog label         |
+| `ariaLabel`       | `string`                                               | `'Dialog'`     | Accessible name when no title is supplied           |
+| `variant`         | `bottom-sheet \| dialog \| fullscreen`                 | `bottom-sheet` | Modal layout                                        |
+| `showHeader`      | `boolean`                                              | `true`         | Shows the header region                             |
+| `showClose`       | `boolean`                                              | `true`         | Shows the close control in the default header       |
+| `showDivider`     | `boolean`                                              | `true`         | Shows the divider below the header                  |
+| `showFooter`      | `boolean`                                              | `true`         | Shows the footer region                             |
+| `showCancel`      | `boolean`                                              | `true`         | Shows the default cancel button                     |
+| `showConfirm`     | `boolean`                                              | `true`         | Shows the default confirmation button               |
+| `cancelText`      | `string`                                               | `'Batal'`      | Default cancel label                                |
+| `confirmText`     | `string`                                               | `'Simpan'`     | Default confirmation label                          |
+| `confirmVariant`  | `primary \| secondary \| success \| danger \| neutral` | `primary`      | AppButton variant for confirmation                  |
+| `loading`         | `boolean`                                              | `false`        | Disables closing and displays confirm loading state |
+| `confirmDisabled` | `boolean`                                              | `false`        | Disables the confirmation button                    |
+| `closeOnBackdrop` | `boolean`                                              | `true`         | Allows backdrop click to request close              |
+| `closeOnEscape`   | `boolean`                                              | `true`         | Allows Escape to request close                      |
+| `maxWidth`        | `string`                                               | `560px`        | Maximum panel width                                 |
+| `maxHeight`       | `string`                                               | `90dvh`        | Maximum panel height                                |
 
-- Konfirmasi singkat seperti hapus data atau membatalkan tindakan. Gunakan `ConfirmDialog`.
-- Informasi detail yang hanya dibaca. Gunakan halaman atau panel detail yang sesuai.
-- Alur panjang, bertahap, atau formulir kompleks yang membutuhkan banyak ruang. Gunakan halaman khusus agar pengguna tidak harus mengisi formulir di area yang terlalu sempit.
+#### Slots
 
-#### Struktur visual wajib
+- Default slot: modal body content.
+- `header`: replaces the default title and close-control layout.
+- `footer`: replaces the default cancel and confirm buttons.
 
-Urutan struktur pada bottom sheet:
+When a custom footer is supplied, the page is responsible for its button actions and loading/disabled presentation.
 
-1. **Backdrop** — halaman di belakang diberi overlay gelap agar fokus pengguna tertuju pada formulir.
-2. **Sheet container** — panel berwarna `--surface-primary`, menempel pada sisi bawah viewport, memenuhi lebar layar, dan memiliki sudut atas membulat.
-3. **Header** — judul tindakan di sebelah kiri dan tombol tutup di sebelah kanan.
-4. **Divider** — garis pemisah halus antara header dan isi formulir.
-5. **Form body** — label, input, textarea, select, helper text, dan pesan validasi disusun vertikal.
-6. **Action footer** — tombol Batal dan tombol aksi utama, misalnya Simpan Perubahan, berada di bagian bawah sheet.
+#### Events
 
-#### Aturan tampilan mobile
+| Event               | Payload                                        | Behavior                                                |
+| ------------------- | ---------------------------------------------- | ------------------------------------------------------- |
+| `update:modelValue` | `boolean`                                      | Supports `v-model` visibility                           |
+| `confirm`           | none                                           | Emitted when the default confirmation button is clicked |
+| `cancel`            | none                                           | Emitted when the default cancel button is clicked       |
+| `close`             | `close-button \| cancel \| backdrop \| escape` | Reports why a close was requested                       |
 
-- Sheet muncul dari bawah layar dengan animasi singkat dan halus.
-- Lebar sheet `100%`; posisinya menempel pada bagian bawah viewport.
-- Sudut kiri dan kanan bagian atas menggunakan `--radius-panel` (`20px`).
-- Tinggi mengikuti isi formulir, tetapi dibatasi maksimal sekitar `90dvh` agar header dan konteks layar tetap terasa.
-- Gunakan `--surface-primary` untuk latar sheet, `--text-primary` untuk judul dan isi, serta `--border-default` untuk divider dan batas kontrol.
-- Gunakan padding horizontal yang konsisten, direkomendasikan `16px`.
-- Judul menggunakan Plus Jakarta Sans, weight `700` atau `600`, dengan ukuran sekitar `18–20px`.
-- Tombol tutup memiliki target sentuh minimal `44 × 44px`, latar `--surface-muted`, dan nama aksesibel seperti `Tutup formulir`.
-- Label selalu berada di atas input. Jangan mengandalkan placeholder sebagai pengganti label.
-- Jarak antar-field harus konsisten. Kelompok field yang berkaitan boleh didekatkan, tetapi tetap memiliki pemisahan visual yang jelas.
-- Input dan textarea menggunakan standar `AppInput` atau komponen form bersama yang sudah ditetapkan.
-- Footer memiliki latar `--surface-primary`, dua tombol berdampingan dengan tinggi minimum `44px`, dan jarak yang konsisten.
-- Tombol **Batal** menggunakan gaya `neutral` atau `outline`; tombol aksi utama menggunakan `primary`.
-- Footer harus memperhitungkan `env(safe-area-inset-bottom)` agar tidak bertabrakan dengan indikator Home perangkat.
-- Jika isi formulir lebih tinggi daripada ruang yang tersedia, hanya area form body yang dapat digulir. Header dan footer tetap terlihat.
-- Saat keyboard virtual terbuka, field aktif harus tetap dapat terlihat dan footer tidak boleh menutupi input yang sedang digunakan.
+The component does not own form submission or data persistence. The parent page handles validation, API/Supabase operations, success notifications, and error messages. Keep the modal open when saving fails.
 
-#### Aturan tampilan desktop dan tablet
+#### Usage example
 
-- Pertahankan pola header, body, field, dan footer yang sama.
-- Pada viewport yang cukup lebar, tampilkan sebagai dialog terpusat dengan lebar maksimum yang wajar (direkomendasikan `560px`), bukan panel yang melebar memenuhi seluruh layar.
-- Backdrop, hierarki tombol, radius, tipografi, dan jarak tetap mengikuti standar bottom sheet mobile.
-- Jangan membuat desain formulir baru hanya karena perangkat menggunakan pointer atau layar lebih besar.
+```vue
+<AppModal
+  v-model="editModalOpen"
+  title="Edit data customer"
+  variant="bottom-sheet"
+  :loading="saving"
+  confirm-text="Simpa"
+  @confirm="saveCustomer"
+>
+  <form class="customer-form" @submit.prevent="saveCustomer">
+    <!-- Page-specific fields -->
+  </form>
+</AppModal>
+```
 
-#### Perilaku dan interaksi
+For forms that use native form submission, prefer a custom footer slot and a submit button associated with the form, or keep the submit action in the body. Do not nest a `<form>` inside another `<form>`.
 
-- Judul harus menyebutkan tindakan dan objek secara jelas, misalnya `Edit data customer`, `Tambah data kavling`, atau `Ubah informasi pembayaran`.
-- Teks tombol utama harus sesuai tindakan: `Simpan Perubahan`, `Tambah Data`, atau label spesifik lainnya.
-- Tombol Batal dan tombol tutup membatalkan proses tanpa menyimpan perubahan.
-- Jika formulir sudah berubah (_dirty state_), meminta pengguna mengonfirmasi sebelum menutup melalui backdrop, tombol tutup, atau tombol Batal. Jangan membuang perubahan secara diam-diam.
-- Ketika proses simpan berlangsung, cegah pengiriman berulang, tampilkan loading pada tombol utama, dan pertahankan nilai formulir.
-- Setelah berhasil, tutup sheet dan tampilkan notifikasi keberhasilan menggunakan pola notifikasi aplikasi yang sudah ada.
-- Jika gagal, sheet tetap terbuka, nilai yang sudah diisi tidak hilang, dan pesan kesalahan ditampilkan secara jelas.
-- Validasi ditampilkan dekat field terkait. Field yang salah diberi `aria-invalid` dan pesan error yang terhubung melalui `aria-describedby`.
-- Fokus keyboard diarahkan ke formulir saat dibuka, dibatasi di dalam dialog selama terbuka, lalu dikembalikan ke elemen pemicu setelah ditutup.
-- Mendukung tombol Escape pada keyboard. Penutupan tetap harus mengikuti aturan konfirmasi ketika terdapat perubahan yang belum disimpan.
-- Saat sheet terbuka, scrolling halaman di belakang harus dikunci.
+A confirmation dialog can use:
 
-#### Konsistensi implementasi
+```vue
+<AppModal
+  v-model="deleteModalOpen"
+  title="Hapus data?"
+  variant="dialog"
+  confirm-text="Hapus"
+  confirm-variant="danger"
+  @confirm="deleteRecord"
+>
+  Yakin ingin menghapus data ini?
+</AppModal>
+```
 
-- Gunakan satu komponen pembungkus bersama, direkomendasikan bernama `AppFormSheet`, untuk seluruh halaman dan role.
-- Halaman hanya memasok judul, konten/form fields, label tombol, status loading, validasi, dan handler tindakan. Halaman tidak membuat overlay, radius, animasi, atau footer modal sendiri-sendiri.
-- Komponen form di dalam sheet tetap menggunakan komponen bersama seperti `AppInput`, `AppButton`, dan komponen select/textarea yang tersedia.
-- Jangan menyalin CSS modal ke setiap halaman.
-- Perbedaan antar-role hanya boleh berasal dari kebutuhan field, hak akses, dan alur bisnis. Pola visual dan perilaku sheet harus tetap sama.
-- Jika implementasi saat ini belum memiliki `AppFormSheet`, bagian ini adalah standar yang harus diterapkan; dokumentasi ini tidak menyatakan bahwa komponennya sudah tersedia.
+#### Visual rules
+
+- Use the existing semantic tokens: `--surface-primary`, `--surface-muted`, `--text-primary`, `--border-default`, `--radius-panel`, `--radius-control`, and `--poliland-green`.
+- Bottom sheet mobile layout is full width, anchored to the viewport bottom, with top corners using `--radius-panel`.
+- Header title uses Plus Jakarta Sans, 18–20px, semibold or bold.
+- Close control has a minimum 44 × 44px touch target.
+- Body is the only scrollable region when content exceeds available height.
+- Default footer uses two equal-width actions with a minimum 44px touch target.
+- Footer accounts for `env(safe-area-inset-bottom)`.
+- Desktop bottom sheets become centered panels with a maximum width of 560px.
+- Reduced-motion preferences must be respected.
+- Avoid page-specific copies of overlay, panel, header, footer, transition, or backdrop CSS.
+
+#### Behavior and accessibility
+
+- The component locks background page scrolling while open and restores the previous body styles on close.
+- Focus moves into the dialog when opened, remains trapped while navigating with Tab, and returns to the previously focused element when closed.
+- Escape and backdrop interactions request closing according to their respective props.
+- Closing is blocked while `loading` is true.
+- Every modal must have an accessible name through `title` or `ariaLabel`.
+- Form labels, field validation, and error descriptions remain the responsibility of the page and its form controls.
+- The parent page must handle unsaved-change confirmation when necessary; do not silently discard a dirty form.
+- Do not put business logic, Supabase queries, routing, or page-specific field definitions inside `AppModal.vue`.
+
+#### Migration rule
+
+Use `AppModal` for new modal work. Migrate existing modals incrementally after checking their current behavior. Do not migrate all pages in one change, and do not remove an existing implementation until the replacement has been tested on mobile and desktop.
 
 ## 15. Role-specific UI Rules
 

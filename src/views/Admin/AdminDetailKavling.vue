@@ -219,93 +219,149 @@
 
     <MobileTabBar variant="admin" />
 
-    <!-- Modal ubah status -->
-    <ion-modal :is-open="statusModalOpen" @didDismiss="statusModalOpen = false">
-      <ion-content class="modal-content">
-        <div class="modal-sheet">
-          <div class="modal-heading"><h2>Ubah Status Kavling</h2><AppButton class="modal-close" variant="neutral" fill="clear" size="small" aria-label="Tutup" @click="statusModalOpen = false"><ion-icon :icon="closeOutline" aria-hidden="true" /></AppButton></div>
-          <label class="field-label" for="lot-status">Status</label>
-          <select id="lot-status" v-model="statusDraft" class="form-control">
-            <option value="Available">Tersedia</option>
-            <option value="Booking">Dipesan</option>
-            <option value="Sold">Terjual</option>
-          </select>
-          <p class="helper-note">Perubahan status langsung memperbarui data kavling.</p>
-          <AppButton expand="block" :loading="saving" @click="saveStatus">Simpan Status</AppButton>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <!-- Modal Bottom Sheet: seluruh modal menggunakan AppModal bersama -->
+    <AppModal
+      v-model="statusModalOpen"
+      title="Ubah Status Kavling"
+      variant="bottom-sheet"
+      :loading="saving"
+      confirm-text="Simpan Status"
+      @confirm="saveStatus"
+    >
+      <label class="field-label" for="lot-status">Status</label>
+      <select id="lot-status" v-model="statusDraft" class="form-control">
+        <option value="Available">Tersedia</option>
+        <option value="Booking">Dipesan</option>
+        <option value="Sold">Terjual</option>
+      </select>
+      <p class="helper-note">Perubahan status langsung memperbarui data kavling.</p>
+    </AppModal>
 
-    <!-- Modal edit informasi -->
-    <ion-modal :is-open="editModalOpen" @didDismiss="editModalOpen = false">
-      <ion-content class="modal-content">
-        <div class="modal-sheet">
-          <div class="modal-heading"><h2>Edit Informasi Kavling</h2><AppButton class="modal-close" variant="neutral" fill="clear" size="small" aria-label="Tutup" @click="editModalOpen = false"><ion-icon :icon="closeOutline" aria-hidden="true" /></AppButton></div>
-          <label class="field-label">Nomor Kavling</label><input v-model="editDraft.lot_number" class="form-control" />
-          <label class="field-label">Dimensi</label><input v-model="editDraft.dimension" class="form-control" placeholder="10 x 12 m" />
-          <label class="field-label">Luas Tanah (m²)</label><input v-model="editDraft.area" class="form-control" type="number" min="0" />
-          <label class="field-label">Keterangan</label><textarea v-model="editDraft.description" class="form-control" rows="3"></textarea>
-          <AppButton expand="block" :loading="saving" @click="saveInfo">Simpan Perubahan</AppButton>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <AppModal
+      v-model="editModalOpen"
+      title="Edit Informasi Kavling"
+      variant="bottom-sheet"
+      :loading="saving"
+      confirm-text="Simpan"
+      @confirm="saveInfo"
+    >
+      <label class="field-label" for="edit-lot-number">Nomor Kavling</label>
+      <input
+        id="edit-lot-number"
+        v-model="editDraft.lot_number"
+        class="form-control"
+        type="text"
+        inputmode="text"
+        @focus="showAndroidKeyboard"
+      />
+      <label class="field-label" for="edit-lot-dimension">Dimensi</label>
+      <input
+        id="edit-lot-dimension"
+        v-model="editDraft.dimension"
+        class="form-control"
+        type="text"
+        inputmode="text"
+        placeholder="10 x 12 m"
+        @focus="showAndroidKeyboard"
+      />
+      <label class="field-label" for="edit-lot-area">Luas Tanah (m²)</label>
+      <input id="edit-lot-area" v-model="editDraft.area" class="form-control" type="number" min="0" />
+      <label class="field-label" for="edit-lot-description">Keterangan</label>
+      <textarea id="edit-lot-description" v-model="editDraft.description" class="form-control" rows="3"></textarea>
+    </AppModal>
 
-    <!-- Modal harga -->
-    <ion-modal :is-open="priceModalOpen" @didDismiss="priceModalOpen = false">
-      <ion-content class="modal-content">
-        <div class="modal-sheet">
-          <div class="modal-heading"><h2>{{ priceDraft.type === 'cash' ? 'Ubah Harga Normal' : 'Atur Harga Promo' }}</h2><AppButton class="modal-close" variant="neutral" fill="clear" size="small" aria-label="Tutup" @click="priceModalOpen = false"><ion-icon :icon="closeOutline" aria-hidden="true" /></AppButton></div>
-          <label class="field-label">Nominal (Rupiah)</label>
-          <input v-model="priceDraft.value" class="form-control" type="number" min="0" inputmode="numeric" placeholder="Contoh: 425000000" />
-          <AppButton expand="block" :loading="saving" @click="savePrice">Simpan Harga</AppButton>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <AppModal
+      v-model="priceModalOpen"
+      :title="priceDraft.type === 'cash' ? 'Ubah Harga Normal' : 'Atur Harga Promo'"
+      variant="bottom-sheet"
+      :loading="saving"
+      confirm-text="Simpan Harga"
+      @confirm="savePrice"
+    >
+      <label class="field-label" for="lot-price-value">Nominal (Rupiah)</label>
+      <input
+        id="lot-price-value"
+        v-model="priceDraft.value"
+        class="form-control"
+        type="number"
+        min="0"
+        inputmode="numeric"
+        placeholder="Contoh: 425000000"
+      />
+    </AppModal>
 
-    <!-- Modal skema cicilan -->
-    <ion-modal :is-open="planModalOpen" @didDismiss="planModalOpen = false">
-      <ion-content class="modal-content">
-        <div class="modal-sheet">
-          <div class="modal-heading"><h2>Tambah Skema Cicilan</h2><AppButton class="modal-close" variant="neutral" fill="clear" size="small" aria-label="Tutup" @click="planModalOpen = false"><ion-icon :icon="closeOutline" aria-hidden="true" /></AppButton></div>
-          <label class="field-label">Pilih skema</label>
-          <select v-model="planDraft.plan_id" class="form-control">
-            <option value="">Pilih tenor</option>
-            <option v-for="plan in availablePlans" :key="plan.id" :value="String(plan.id)">{{ plan.plan_name }} · {{ plan.months }} bulan · Margin {{ plan.margin_percent }}%</option>
-          </select>
-          <label class="field-label">Cicilan per bulan (opsional)</label>
-          <input v-model="planDraft.monthly_payment" class="form-control" type="number" min="0" placeholder="Kosongkan untuk hitung otomatis" />
-          <p class="helper-note">Perhitungan otomatis menggunakan harga promo jika tersedia, jika tidak menggunakan harga normal. Rumus: harga × (1 + margin) ÷ tenor.</p>
-          <AppButton expand="block" :loading="saving" :disabled="!planDraft.plan_id" @click="addInstallment">Tambahkan Skema</AppButton>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <AppModal
+      v-model="planModalOpen"
+      title="Tambah Skema Cicilan"
+      variant="bottom-sheet"
+      :loading="saving"
+      :confirm-disabled="!planDraft.plan_id"
+      confirm-text="Tambahkan Skema"
+      @confirm="addInstallment"
+    >
+      <label class="field-label" for="installment-plan">Pilih skema</label>
+      <select id="installment-plan" v-model="planDraft.plan_id" class="form-control">
+        <option value="">Pilih tenor</option>
+        <option
+          v-for="plan in availablePlans"
+          :key="plan.id"
+          :value="String(plan.id)"
+        >
+          {{ plan.plan_name }} · {{ plan.months }} bulan · Margin {{ plan.margin_percent }}%
+        </option>
+      </select>
+      <label class="field-label" for="installment-monthly">Cicilan per bulan (opsional)</label>
+      <input
+        id="installment-monthly"
+        v-model="planDraft.monthly_payment"
+        class="form-control"
+        type="number"
+        min="0"
+        placeholder="Kosongkan untuk hitung otomatis"
+      />
+      <p class="helper-note">
+        Perhitungan otomatis menggunakan harga promo jika tersedia, jika tidak menggunakan harga normal.
+        Rumus: harga × (1 + margin) ÷ tenor.
+      </p>
+    </AppModal>
 
-    <!-- Modal URL panorama -->
-    <ion-modal :is-open="panoramaModalOpen" @didDismiss="panoramaModalOpen = false">
-      <ion-content class="modal-content">
-        <div class="modal-sheet">
-          <div class="modal-heading"><h2>Panorama 360°</h2><AppButton class="modal-close" variant="neutral" fill="clear" size="small" aria-label="Tutup" @click="panoramaModalOpen = false"><ion-icon :icon="closeOutline" aria-hidden="true" /></AppButton></div>
-          <label class="field-label">URL Panorama</label>
-          <input v-model="panoramaDraft" class="form-control" type="url" placeholder="https://..." />
-          <p class="helper-note">Masukkan URL publik file panorama equirectangular (rasio 2:1). Pastikan file dapat diakses oleh aplikasi.</p>
-          <AppButton expand="block" :loading="saving" @click="savePanorama">Simpan Panorama</AppButton>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <AppModal
+      v-model="panoramaModalOpen"
+      title="Panorama 360°"
+      variant="bottom-sheet"
+      :loading="saving"
+      confirm-text="Simpan Panorama"
+      @confirm="savePanorama"
+    >
+      <label class="field-label" for="panorama-url">URL Panorama</label>
+      <input
+        id="panorama-url"
+        v-model="panoramaDraft"
+        class="form-control"
+        type="url"
+        placeholder="https://..."
+      />
+      <p class="helper-note">
+        Masukkan URL publik file panorama equirectangular (rasio 2:1).
+        Pastikan file dapat diakses oleh aplikasi.
+      </p>
+    </AppModal>
 
     <ion-toast :is-open="toast.open" :message="toast.message" :color="toast.color" :duration="3000" @didDismiss="toast.open = false" />
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import { Capacitor } from '@capacitor/core'
+import { Keyboard } from '@capacitor/keyboard'
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  IonPage, IonContent, IonIcon, IonSpinner, IonModal, IonToast, onIonViewWillEnter,
+  IonPage, IonContent, IonIcon, IonSpinner, IonToast, onIonViewWillEnter,
 } from '@ionic/vue'
 import {
   alertCircleOutline, arrowBackOutline, imageOutline, expandOutline, syncOutline, createOutline,
-  trashOutline, addOutline, settingsOutline, imagesOutline, closeOutline,
+  trashOutline, addOutline, settingsOutline, imagesOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -313,6 +369,7 @@ import loadingMascot from '@/assets/mascot/Mascot Examining Transaction History.
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
 import emptyReceiptMascot from '@/assets/mascot/MascotwithEmptyReceiptandCoins.png'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 import { supabase } from '@/services/config/supabase'
 import { lotService, type LotRecord } from '@/services/lotService'
 
@@ -390,6 +447,13 @@ const availablePrice = computed(() => Number(lot.value?.promo_price || lot.value
 
 function notify(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
   toast.message = message; toast.color = color; toast.open = true
+}
+function showAndroidKeyboard() {
+  if (Capacitor.getPlatform() !== 'android') return
+
+  void Keyboard.show().catch((error: unknown) => {
+    console.error('[AdminKavlingDetail] Gagal membuka keyboard:', error)
+  })
 }
 function rupiah(value: number | string | null | undefined) {
   const n = Number(value)
@@ -638,14 +702,11 @@ onIonViewWillEnter(() => { void loadDetail() })
 .history-empty img{width:min(180px,60%);height:auto;object-fit:contain}
 .state-card ion-icon{font-size:30px}
 .state-card strong{color:var(--text-primary)}
-.modal-content{--background:var(--app-background)}
-.modal-sheet{padding:22px 18px calc(24px + env(safe-area-inset-bottom))}
-.modal-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
-.modal-heading h2{margin:0;font-size:18px;font-weight:700}
-.modal-heading button{width:40px;height:40px;border:0;border-radius:10px;background:var(--surface-muted);font-size:20px}
-.field-label{display:block;margin:14px 0 7px;font-size:13px;font-weight:600}
-.form-control{width:100%;min-height:46px;border:1px solid var(--border-default);border-radius:12px;padding:10px 12px;background:var(--surface-primary);color:var(--text-primary);font:inherit;font-size:14px}
-textarea.form-control{resize:vertical}
-.modal-sheet ion-button,.modal-sheet .app-button{margin-top:20px}
+.field-label{display:block;margin:14px 0 7px;font-size:12px;font-weight:600;color:var(--text-primary)}
+.form-control{display:block;width:100%;min-height:46px;border:1px solid var(--border-default);border-radius:12px;padding:10px 12px;background:var(--surface-primary);color:var(--text-primary);font:inherit;font-size:13px;outline:none}
+.form-control:focus{border-color:var(--poliland-green);box-shadow:0 0 0 3px color-mix(in srgb,var(--poliland-green) 13%,transparent)}
+textarea.form-control{min-height:88px;resize:vertical}
+.helper-note{font-size:11px;line-height:1.5;color:var(--text-secondary);margin:10px 0 0}
+
 @media(min-width:700px){.detail-page{max-width:760px;margin:0 auto;padding-top:20px}.hero-actions{grid-template-columns:1fr 1fr}.detail-tabs{margin-left:0;margin-right:0;border:1px solid var(--border-default);border-radius:12px}.tab-content{max-width:760px}}
 </style>
