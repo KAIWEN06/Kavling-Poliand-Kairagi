@@ -557,7 +557,7 @@ function mapStatus(value: LotRecord['status']): LotStatus {
 }
 
 function mapLot(row: LotRecord): Lot {
-  const status = mapStatus(row.status)
+  const status = row.sold_date ? 'sold' : mapStatus(row.status)
 
   const rawBlock = pick(row.block, ['name', 'block_name', 'title', 'code', 'label'])
   const blockName = rawBlock ? (/^blok\b/i.test(rawBlock) ? rawBlock : `Blok ${rawBlock}`) : 'Tanpa blok'

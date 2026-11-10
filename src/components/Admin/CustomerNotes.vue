@@ -150,80 +150,77 @@
     </template>
 
     <!-- Editor catatan -->
-    <div v-if="editing" class="modal-overlay" @click.self="closeEditor">
-      <section
-        class="modal-panel editor-panel"
-        role="dialog"
-        aria-modal="true"
-        :aria-labelledby="'note-editor-title'"
-      >
-        <header class="sheet-head">
-          <div>
-            <p class="eyebrow">{{ form.id ? 'PERBARUI INFORMASI' : 'INFORMASI CUSTOMER' }}</p>
-            <h2 id="note-editor-title">
-              {{ form.id ? 'Edit catatan' : 'Catatan baru' }}
-            </h2>
-          </div>
-          <button type="button" class="icon-button close-button" aria-label="Tutup" @click="closeEditor">
-            <ion-icon :icon="closeOutline" aria-hidden="true" />
-          </button>
-        </header>
+    <AppModal
+      v-model="editing"
+      variant="bottom-sheet"
+      :loading="saving"
+      confirm-text="Simpan catatan"
+      cancel-text="Batal"
+      @confirm="saveNote"
+      @cancel="closeEditor"
+      @close="closeEditor"
+    >
+      <template #header>
+        <div>
+          <h2 class="app-modal__title">
+            {{ form.id ? 'Edit catatan' : 'Catatan baru' }}
+          </h2>
+        </div>
+        <button
+          type="button"
+          class="app-modal__close"
+          aria-label="Tutup modal"
+          :disabled="saving"
+          @click="closeEditor"
+        >
+          <ion-icon :icon="closeOutline" aria-hidden="true" />
+        </button>
+      </template>
 
-        <form class="note-form" @submit.prevent="saveNote">
-          <label class="form-field">
-            <span>Judul catatan</span>
-            <input
-              v-model.trim="form.title"
-              type="text"
-              maxlength="80"
-              placeholder="Contoh: Preferensi lokasi customer"
-              required
-            />
-          </label>
+      <form class="note-form" @submit.prevent="saveNote">
+        <label class="form-field">
+          <span>Judul catatan</span>
+          <input
+            v-model.trim="form.title"
+            type="text"
+            maxlength="80"
+            placeholder="Contoh: Preferensi lokasi customer"
+            required
+          />
+        </label>
 
-          <label class="form-field">
-            <span>Isi catatan</span>
-            <textarea
-              v-model.trim="form.content"
-              rows="6"
-              maxlength="3000"
-              placeholder="Tuliskan informasi yang perlu diingat..."
-              required
-            />
-            <small>{{ form.content.length }}/3000 karakter</small>
-          </label>
+        <label class="form-field">
+          <span>Isi catatan</span>
+          <textarea
+            v-model.trim="form.content"
+            rows="6"
+            maxlength="3000"
+            placeholder="Tuliskan informasi yang perlu diingat..."
+            required
+          />
+          <small>{{ form.content.length }}/3000 karakter</small>
+        </label>
 
-          <label class="form-field">
-            <span>Kategori</span>
-            <select v-model="form.category">
-              <option v-for="category in categories" :key="category" :value="category">
-                {{ category }}
-              </option>
-            </select>
-          </label>
+        <label class="form-field">
+          <span>Kategori</span>
+          <select v-model="form.category">
+            <option v-for="category in categories" :key="category" :value="category">
+              {{ category }}
+            </option>
+          </select>
+        </label>
 
-          <label class="pin-toggle">
-            <input v-model="form.is_pinned" type="checkbox" />
-            <span>
-              <strong>Sematkan catatan</strong>
-              <small>Catatan akan ditampilkan lebih dahulu.</small>
-            </span>
-          </label>
+        <label class="pin-toggle">
+          <input v-model="form.is_pinned" type="checkbox" />
+          <span>
+            <strong>Sematkan catatan</strong>
+            <small>Catatan akan ditampilkan lebih dahulu.</small>
+          </span>
+        </label>
 
-          <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
-
-          <div class="sheet-actions">
-            <button type="button" class="secondary-action" :disabled="saving" @click="closeEditor">
-              Batal
-            </button>
-            <button type="submit" class="primary-action" :disabled="saving">
-              <ion-spinner v-if="saving" name="crescent" />
-              {{ saving ? 'Menyimpan...' : 'Simpan catatan' }}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
+        <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+      </form>
+    </AppModal>
 
     <!-- Menu aksi catatan -->
     <div v-if="menuNote" class="menu-backdrop" @click.self="menuNote = null">
@@ -322,6 +319,7 @@ import {
   trashOutline,
 } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 import emptyFilterMascot from '@/assets/mascot/MascotInvestigatingSearch Filters.png'
 import emptyNotesMascot from '@/assets/mascot/MascotWritingaNewNote.png'
 import {
@@ -448,14 +446,12 @@ function openEditor(note?: CustomerNote) {
   )
 
   editing.value = true
-  window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: true } }))
 }
 
 function closeEditor() {
   if (saving.value) return
   editing.value = false
   formError.value = ''
-  window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
 }
 
 async function saveNote() {
@@ -493,7 +489,6 @@ async function saveNote() {
     }
 
     editing.value = false
-    window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
     window.setTimeout(() => {
       saveMessage.value = ''
     }, 2800)

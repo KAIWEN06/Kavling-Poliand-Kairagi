@@ -35,48 +35,126 @@
             <button type="button" :class="{ active: activeTab === 'notes' }" @click="activeTab = 'notes'">Catatan</button>
           </div>
 
-          <section v-if="activeTab === 'summary'" class="detail-card" aria-labelledby="personal-title">
-            <h2 id="personal-title">Informasi pribadi</h2>
-            <dl><div><dt>Nomor telepon</dt><dd>{{ customer.phone || 'Belum tercatat' }}</dd></div><div><dt>WhatsApp</dt><dd>{{ customer.whatsapp_phone || customer.phone || 'Belum tercatat' }}</dd></div><div><dt>Email</dt><dd>{{ customer.email || 'Belum tercatat' }}</dd></div><div><dt>Alamat</dt><dd>{{ customer.address || 'Belum tercatat' }}</dd></div><div><dt>Catatan</dt><dd>{{ customer.notes || 'Belum ada catatan' }}</dd></div></dl>
+          <section v-if="activeTab === 'summary'" class="detail-card personal-card" aria-labelledby="personal-title">
+            <div class="card-head">
+              <div>
+                <h2 id="personal-title">Informasi pribadi</h2>
+                <p class="head-sub">Informasi kontak dan data customer</p>
+              </div>
+            </div>
+            <dl class="personal-info-list">
+              <div class="personal-info-item"><dt>Nomor telepon</dt><dd>{{ customer.phone || 'Belum tercatat' }}</dd></div>
+              <div class="personal-info-item"><dt>WhatsApp</dt><dd>{{ customer.whatsapp_phone || customer.phone || 'Belum tercatat' }}</dd></div>
+              <div class="personal-info-item"><dt>Email</dt><dd>{{ customer.email || 'Belum tercatat' }}</dd></div>
+              <div class="personal-info-item"><dt>Alamat</dt><dd>{{ customer.address || 'Belum tercatat' }}</dd></div>
+              <div class="personal-info-item personal-info-note"><dt>Catatan</dt><dd>{{ customer.notes || 'Belum ada catatan' }}</dd></div>
+            </dl>
           </section>
 
           <template v-else-if="activeTab === 'lots'">
+            <!-- Section Kavling Diminati -->
             <section class="detail-card" aria-labelledby="interest-title">
-              <div class="interest-section-head"><h2 id="interest-title">Kavling yang diminati</h2><button type="button" class="add-interest-button" @click="openInterestForm">+ Tambah</button></div>
-              <div v-if="!customer.interests.length" class="interest-empty">
+              <div class="card-head">
+                <div>
+                  <h2 id="interest-title">Kavling yang Diminati</h2>
+                  <p class="head-sub">Daftar minat awal customer</p>
+                </div>
+                <AppButton size="small" variant="primary" @click="openInterestForm">
+                  + Tambah
+                </AppButton>
+              </div>
+
+              <div v-if="!customer.interests.length" class="empty-box">
                 <img
                   src="/src/assets/mascot/Worried_BeeHouseMascotwithClipboard-Map.png"
                   alt="Mascot PoliLand sedang memeriksa peta kavling"
-                  style="width: 76px; height: 76px; flex: 0 0 76px; object-fit: contain; object-position: center;"
+                  class="empty-mascot"
                 />
-                <p class="muted" style="margin: 0; line-height: 1.5;">Belum ada kavling yang diminati. Admin dapat menambahkannya.</p>
+                <p class="muted">Belum ada kavling yang diminati. Admin dapat menambahkannya.</p>
               </div>
-              <ul v-else class="interest-list"><li v-for="interest in customer.interests" :key="interest.id"><div><strong>{{ interest.lotNumber }}</strong><span>{{ interest.block }} · {{ interest.paymentType }}</span></div><button type="button" class="remove-interest-button" aria-label="Hapus kavling dari minat" @click="removeCustomerInterest(interest.id)">Hapus</button></li></ul>
+
+              <div v-else class="lot-cards-list">
+                <article v-for="interest in customer.interests" :key="interest.id" class="lot-card-item">
+                  <div class="lot-card-main">
+                    <div class="lot-card-info">
+                      <div class="lot-card-badge-row">
+                        <span class="lot-badge-num">{{ interest.lotNumber }}</span>
+                        <span class="lot-badge-type">{{ interest.paymentType }}</span>
+                        <span :class="['lot-status-chip', lotStatusClass(interest.status)]">
+                          {{ transactionStatusLabel(interest.status) }}
+                        </span>
+                      </div>
+                      <p class="lot-card-meta">
+                        {{ interest.block }}
+                        <template v-if="interest.area"> · {{ interest.area }} m²</template>
+                        <template v-if="interest.dimension"> · {{ interest.dimension }}</template>
+                      </p>
+                    </div>
+
+                    <div class="lot-card-actions">
+                      <button
+                        v-if="interest.lotId"
+                        type="button"
+                        class="btn-nav-lot"
+                        @click="router.push({ name: 'AdminKavlingDetail', params: { id: interest.lotId } })"
+                      >
+                        Lihat Kavling
+                        <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-remove-lot"
+                        aria-label="Hapus kavling dari minat"
+                        @click="removeCustomerInterest(interest.id)"
+                      >
+                        <ion-icon :icon="trashOutline" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+
+              <!-- Form Tambah Minat Kavling -->
               <form v-if="interestFormOpen" class="interest-form" @submit.prevent="addCustomerInterest">
                 <div class="lot-picker-head">
-                  <label for="interest-lot-search">Cari kavling</label>
-                  <input id="interest-lot-search" v-model="interestSearch" type="search" placeholder="Nomor kavling atau blok" autocomplete="off" />
+                  <label for="interest-lot-search">Cari kavling tersedia</label>
+                  <input
+                    id="interest-lot-search"
+                    v-model="interestSearch"
+                    type="search"
+                    placeholder="Ketik nomor kavling atau blok..."
+                    autocomplete="off"
+                  />
                 </div>
+
                 <div v-if="interestLotsLoading" class="lot-picker-state" role="status">
                   <ion-spinner name="crescent" />
                   <span>Memuat kavling tersedia...</span>
                 </div>
+
                 <div v-else-if="interestLotsError" class="lot-picker-state lot-picker-error" role="alert">
                   <strong>Kavling tersedia gagal dimuat</strong>
                   <span>{{ interestLotsError }}</span>
                   <button type="button" @click="openInterestForm">Coba lagi</button>
                 </div>
+
                 <div v-else-if="!availableLots.length" class="lot-picker-state">
                   <strong>Belum ada kavling tersedia</strong>
                   <span>Semua kavling sedang dipesan atau sudah terjual.</span>
                 </div>
+
                 <div v-else-if="!filteredAvailableLots.length" class="lot-picker-state">
                   <strong>Kavling tidak ditemukan</strong>
                   <span>Coba kata kunci nomor kavling atau blok lain.</span>
                 </div>
+
                 <fieldset v-else class="lot-picker-list">
                   <legend>Pilih satu atau beberapa kavling ({{ interestForm.lot_ids.length }} dipilih)</legend>
-                  <label v-for="lot in filteredAvailableLots" :key="lot.id" :class="['lot-picker-option', { selected: interestForm.lot_ids.includes(lot.id) }]">
+                  <label
+                    v-for="lot in filteredAvailableLots"
+                    :key="lot.id"
+                    :class="['lot-picker-option', { selected: interestForm.lot_ids.includes(lot.id) }]"
+                  >
                     <input v-model="interestForm.lot_ids" type="checkbox" name="interest-lots" :value="lot.id" />
                     <span class="lot-picker-copy">
                       <strong>Kavling {{ lot.lot_number }}</strong>
@@ -85,19 +163,139 @@
                     <span class="lot-picker-price">{{ formatLotPrice(lot) }}</span>
                   </label>
                 </fieldset>
-                <label for="interest-payment">Jenis pembayaran<select id="interest-payment" v-model="interestForm.payment_type"><option value="Cash">Tunai</option><option value="Installment">Cicilan</option></select></label>
+
+                <label for="interest-payment" class="field-label-custom">
+                  Jenis pembayaran
+                  <select id="interest-payment" v-model="interestForm.payment_type">
+                    <option value="Cash">Tunai</option>
+                    <option value="Installment">Cicilan</option>
+                  </select>
+                </label>
+
                 <p v-if="interestError" class="edit-error" role="alert">{{ interestError }}</p>
-                <div class="interest-form-actions"><button type="button" @click="closeInterestForm">Batal</button><button type="submit" :disabled="interestSaving || !interestForm.lot_ids.length">{{ interestSaving ? 'Menyimpan...' : `Simpan ${interestForm.lot_ids.length || ''} kavling` }}</button></div>
+
+                <div class="interest-form-actions">
+                  <button type="button" class="btn-cancel" @click="closeInterestForm">Batal</button>
+                  <button
+                    type="submit"
+                    class="btn-submit"
+                    :disabled="interestSaving || !interestForm.lot_ids.length"
+                  >
+                    {{ interestSaving ? 'Menyimpan...' : `Simpan (${interestForm.lot_ids.length})` }}
+                  </button>
+                </div>
               </form>
             </section>
-            <section class="detail-card" aria-labelledby="transaction-title"><h2 id="transaction-title">Ringkasan pembayaran</h2><div v-if="!customer.transactions.length" style="display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 8px 10px; border-radius: var(--radius-control); background: var(--app-background);"><img src="/src/assets/mascot/SadBeeHouseMascotwithShoppingReceipt.png" alt="Mascot PoliLand sedih belum ada transaksi" style="width: 76px; height: 76px; flex: 0 0 76px; object-fit: contain; object-position: center;" /><p class="muted" style="margin: 0; line-height: 1.5;">Belum ada transaksi.</p></div><div v-else class="payment-list"><article v-for="transaction in customer.transactions" :key="transaction.id" class="payment-item"><div class="payment-item-head"><strong>{{ transaction.lotNumber }}</strong><span :class="['transaction-status', transaction.status.toLowerCase()]">{{ transaction.statusLabel }}</span></div><dl><div><dt>Metode</dt><dd>{{ transaction.paymentType }}</dd></div><div><dt>Harga final</dt><dd>{{ formatCurrency(transaction.finalPrice) }}</dd></div><div><dt>Sudah dibayar</dt><dd class="paid">{{ formatCurrency(transaction.paidAmount) }}</dd></div><div><dt>Sisa pembayaran</dt><dd :class="{ settled: transaction.remainingAmount === 0 }">{{ transaction.remainingAmount === 0 ? 'Lunas' : formatCurrency(transaction.remainingAmount) }}</dd></div><div v-if="transaction.paymentType === 'Cicilan'"><dt>Rencana cicilan</dt><dd>{{ transaction.months ? `${transaction.months} bulan` : 'Belum diatur' }}{{ transaction.monthlyPayment ? ` · ${formatCurrency(transaction.monthlyPayment)}/bulan` : '' }}</dd></div></dl></article></div><button type="button" class="finance-link" disabled>Detail keuangan akan tersedia di Laporan Keuangan</button></section>
+
+            <!-- Section Transaksi & Pembayaran Kavling -->
+            <section class="detail-card" aria-labelledby="transaction-title">
+              <div class="card-head">
+                <div>
+                  <h2 id="transaction-title">Transaksi & Pembayaran</h2>
+                  <p class="head-sub">Kavling yang sudah di-booking atau dibeli</p>
+                </div>
+              </div>
+
+              <div v-if="!customer.transactions.length" class="empty-box">
+                <img
+                  src="/src/assets/mascot/SadBeeHouseMascotwithShoppingReceipt.png"
+                  alt="Mascot PoliLand sedih belum ada transaksi"
+                  class="empty-mascot"
+                />
+                <p class="muted">Belum ada transaksi transaksi kavling tercatat.</p>
+              </div>
+
+              <div v-else class="payment-list">
+                <article v-for="transaction in customer.transactions" :key="transaction.id" class="tx-card">
+                  <header class="tx-card-head">
+                    <div class="tx-card-title">
+                      <strong>{{ transaction.lotNumber }}</strong>
+                      <span class="tx-card-block">{{ transaction.block }}</span>
+                    </div>
+
+                    <div class="tx-card-badges">
+                      <span :class="['transaction-status', lotStatusClass(transaction.status)]">
+                        {{ transaction.statusLabel }}
+                      </span>
+                      <button
+                        v-if="transaction.lotId"
+                        type="button"
+                        class="btn-nav-lot-sm"
+                        title="Buka Halaman Detail Kavling"
+                        @click="router.push({ name: 'AdminKavlingDetail', params: { id: transaction.lotId } })"
+                      >
+                        Detail Kavling
+                        <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </header>
+
+                  <div class="tx-card-body">
+                    <div class="tx-grid">
+                      <div class="tx-grid-item">
+                        <span class="tx-label">Skema Bayar</span>
+                        <strong class="tx-value">{{ transaction.paymentType }}</strong>
+                      </div>
+                      <div class="tx-grid-item">
+                        <span class="tx-label">Harga Final</span>
+                        <strong class="tx-value">{{ formatCurrency(transaction.finalPrice) }}</strong>
+                      </div>
+                      <div class="tx-grid-item">
+                        <span class="tx-label">Total Terbayar</span>
+                        <strong class="tx-value text-success">{{ formatCurrency(transaction.paidAmount) }}</strong>
+                      </div>
+                      <div class="tx-grid-item">
+                        <span class="tx-label">Sisa Pembayaran</span>
+                        <strong :class="['tx-value', { 'text-success': transaction.remainingAmount === 0 }]">
+                          {{ formatCurrency(transaction.remainingAmount) }}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <!-- Breakdown Detail accordion-style or clean list -->
+                    <details class="tx-details">
+                      <summary class="tx-details-summary">Rincian Pembayaran Lanjutan</summary>
+                      <dl class="tx-dl">
+                        <div><dt>Biaya Booking</dt><dd>{{ formatCurrency(transaction.bookingFee) }}</dd></div>
+                        <div><dt>Booking Terbayar</dt><dd class="paid">{{ formatCurrency(transaction.bookingPaid) }}</dd></div>
+                        <div><dt>Sisa Booking</dt><dd>{{ formatCurrency(transaction.bookingRemaining) }}</dd></div>
+                        <div><dt>DP Disepakati</dt><dd>{{ formatCurrency(transaction.downPayment) }}</dd></div>
+                        <template v-if="transaction.paymentType === 'Cicilan'">
+                          <div><dt>DP Dibayar</dt><dd class="paid">{{ formatCurrency(transaction.paidDownPayment) }}</dd></div>
+                          <div><dt>Sisa DP</dt><dd>{{ formatCurrency(transaction.dpRemaining) }}</dd></div>
+                          <div><dt>Sisa Pokok</dt><dd>{{ formatCurrency(transaction.principalAmount) }}</dd></div>
+                          <div><dt>Margin ({{ transaction.marginPercent }}%)</dt><dd>{{ formatCurrency(transaction.marginAmount) }}</dd></div>
+                          <div><dt>Total Cicilan</dt><dd>{{ formatCurrency(transaction.installmentTotal) }}</dd></div>
+                          <div>
+                            <dt>Tenor & Angsuran</dt>
+                            <dd>
+                              {{ transaction.months ? `${transaction.months} bln` : 'Belum diatur' }}
+                              {{ transaction.monthlyPayment ? `(${formatCurrency(transaction.monthlyPayment)}/bln)` : '' }}
+                            </dd>
+                          </div>
+                        </template>
+                      </dl>
+                    </details>
+                  </div>
+                </article>
+              </div>
+            </section>
           </template>
           <CustomerNotes v-else :customer-id="customer.id" />
         </template>
         <div v-else class="buyer-detail-state"><ion-icon :icon="peopleOutline" /><strong>Customer tidak ditemukan</strong><p>Data customer mungkin sudah dihapus atau tidak dapat diakses.</p></div>
-        <div v-if="editing && customer" class="edit-panel" role="dialog" aria-modal="true" aria-labelledby="edit-title">
-          <form @submit.prevent="saveCustomer">
-            <div class="edit-panel-head"><h2 id="edit-title">Edit data customer</h2><button type="button" aria-label="Tutup edit" @click="closeEditor"><ion-icon :icon="closeOutline" /></button></div>
+        <AppModal
+          v-model="editing"
+          title="Edit data customer"
+          variant="bottom-sheet"
+          :loading="saving"
+          confirm-text="Simpan"
+          cancel-text="Batal"
+          @confirm="saveCustomer"
+          @cancel="closeEditor"
+          @close="closeEditor"
+        >
+          <form class="edit-modal-form" @submit.prevent="saveCustomer">
             <label for="edit-full-name">Nama lengkap<input id="edit-full-name" v-model.trim="editForm.full_name" type="text" autocomplete="name" required /></label>
             <label for="edit-phone">Nomor telepon<input id="edit-phone" v-model.trim="editForm.phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
             <label for="edit-whatsapp">Nomor WhatsApp<input id="edit-whatsapp" v-model.trim="editForm.whatsapp_phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
@@ -105,16 +303,8 @@
             <label for="edit-address">Alamat<textarea id="edit-address" v-model.trim="editForm.address" rows="2" autocomplete="street-address" /></label>
             <label for="edit-notes">Catatan<textarea id="edit-notes" v-model.trim="editForm.notes" rows="3" /></label>
             <p v-if="editError" class="edit-error" role="alert">{{ editError }}</p>
-            <div class="edit-panel-actions">
-              <AppButton type="button" variant="neutral" fill="outline" :disabled="saving" @click="closeEditor">
-                Batal
-              </AppButton>
-              <AppButton class="save-customer-button" type="submit" variant="primary" :loading="saving" :disabled="saving">
-                Simpan
-              </AppButton>
-            </div>
           </form>
-        </div>
+        </AppModal>
       </main>
     </ion-content>
     <MobileTabBar variant="admin" />
@@ -122,13 +312,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
-import { alertCircleOutline, arrowBackOutline, callOutline, closeOutline, createOutline, logoWhatsapp, peopleOutline } from 'ionicons/icons'
+import { alertCircleOutline, arrowBackOutline, callOutline, chevronForwardOutline, createOutline, logoWhatsapp, peopleOutline, trashOutline } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 import CustomerNotes from '@/components/Admin/CustomerNotes.vue'
 import { customerService } from '@/services/marketing/customerService'
 
@@ -172,17 +363,22 @@ function transactionStatusLabel(status: string) {
   if (status === 'Available') return 'Tersedia'
   return status || 'Belum ditentukan'
 }
+function lotStatusClass(status: string | null) {
+  if (status === 'Sold') return 'is-sold'
+  if (status === 'Booking') return 'is-booking'
+  if (status === 'Available') return 'is-available'
+  if (status === 'Cancelled') return 'is-cancelled'
+  return 'is-unknown'
+}
 function editCustomer() {
   if (!customer.value) return
   Object.assign(editForm, { full_name: customer.value.full_name || '', phone: customer.value.phone || '', whatsapp_phone: customer.value.whatsapp_phone || customer.value.phone || '', email: customer.value.email || '', address: customer.value.address || '', notes: customer.value.notes || '' })
   editError.value = ''
   editing.value = true
-  window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: true } }))
 }
 
 function closeEditor() {
   editing.value = false
-  window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
 }
 
 async function openInterestForm() {
@@ -288,11 +484,95 @@ async function loadCustomer() {
           ? 'Tindak Lanjut'
           : 'Prospek',
       tone: 'mint',
-      interests: (row.customer_interests ?? []).map((interest: any) => ({ id: interest.id, lotId: interest.lot_id, lotNumber: interest.lots?.lot_number || `Lot #${interest.lot_id}`, block: blockLabel(interest.lots?.blocks), paymentType: interest.payment_type === 'Installment' ? 'Cicilan' : 'Cash' })),
+      interests: (row.customer_interests ?? []).map((interest: any) => {
+        const lot = interest.lots ?? {}
+        return {
+          id: interest.id,
+          lotId: Number(interest.lot_id ?? 0),
+          lotNumber: lot.lot_number || `Lot #${interest.lot_id}`,
+          block: blockLabel(lot.blocks),
+          dimension: lot.dimension || null,
+          area: lot.area != null ? Number(lot.area) : null,
+          status: lot.status || null,
+          paymentType: interest.payment_type === 'Installment' ? 'Cicilan' : 'Cash',
+        }
+      }),
       transactions: (row.lot_transactions ?? []).map((transaction: any) => {
-        const paidAmount = (row.payments ?? []).filter((payment: any) => payment.lot_id === transaction.lot_id).reduce((total: number, payment: any) => total + Number(payment.amount || 0), 0)
-        const finalPrice = Number(transaction.final_price || 0)
-        return { id: transaction.id, lotNumber: transaction.lots?.lot_number || `Lot #${transaction.lot_id}`, block: blockLabel(transaction.lots?.blocks), status: transaction.status, statusLabel: transactionStatusLabel(transaction.status), paymentType: transaction.payment_type === 'Installment' ? 'Cicilan' : 'Cash', finalPrice, paidAmount, remainingAmount: Math.max(finalPrice - paidAmount, 0), months: transaction.months ?? null, monthlyPayment: transaction.monthly_payment ?? null }
+        const transactionPayments = (row.payments ?? []).filter(
+          (payment: any) => Number(payment.transaction_id) === Number(transaction.id)
+        )
+        const confirmed = transactionPayments.filter((payment: any) => payment.status === 'Confirmed')
+        const sumCategory = (category: string) => confirmed
+          .filter((payment: any) => payment.payment_category === category)
+          .reduce((sum: number, payment: any) => {
+            const amount = Number(payment.amount ?? 0)
+            return sum + (Number.isFinite(amount) && amount > 0 ? amount : 0)
+          }, 0)
+
+        const bookingPaid = sumCategory('Booking')
+        const downPayment = Math.max(Number(transaction.down_payment ?? 0), 0)
+        const paidDownPayment = sumCategory('Down Payment')
+        const paidInstallment = sumCategory('Installment')
+        const paidCash = sumCategory('Cash Purchase')
+        const principalAmount = Math.max(
+          Number(transaction.principal_amount ?? (Number(transaction.final_price ?? 0) - downPayment)), 0
+        )
+        const installmentTotal = Math.max(Number(transaction.installment_total ?? principalAmount), 0)
+        const finalPrice = Math.max(Number(transaction.final_price ?? 0), 0)
+        // Booking fee berdiri sendiri dan tidak mengurangi kewajiban pembelian.
+        // Untuk cicilan, kewajiban = DP + total cicilan setelah DP.
+        // Untuk cash, kewajiban = harga final.
+        const totalDue = transaction.payment_type === 'Installment'
+          ? downPayment + installmentTotal
+          : finalPrice
+        const paidAmount = transaction.payment_type === 'Installment'
+          ? paidDownPayment + paidInstallment
+          : paidCash
+        const remainingAmount = Math.max(totalDue - paidAmount, 0)
+        const bookingFee = 1_000_000
+        const bookingRemaining = Math.max(bookingFee - bookingPaid, 0)
+        const dpRemaining = Math.max(downPayment - paidDownPayment, 0)
+        const dpSettled = downPayment === 0 || dpRemaining === 0
+        const firstInstallmentConfirmed = paidInstallment > 0
+        const bookingSettled = bookingPaid >= bookingFee
+        const eligibleForSold = bookingSettled && (
+          transaction.payment_type === 'Cash'
+            ? paidCash >= finalPrice && finalPrice > 0
+            : dpSettled && firstInstallmentConfirmed
+        )
+        const pendingCount = transactionPayments.filter((payment: any) => payment.status === 'Pending').length
+        const rejectedCount = transactionPayments.filter((payment: any) => payment.status === 'Rejected').length
+
+        return {
+          id: transaction.id,
+          lotId: Number(transaction.lot_id ?? 0),
+          lotNumber: transaction.lots?.lot_number || `Lot #${transaction.lot_id}`,
+          block: blockLabel(transaction.lots?.blocks),
+          status: transaction.status,
+          statusLabel: transactionStatusLabel(transaction.status),
+          paymentType: transaction.payment_type === 'Installment' ? 'Cicilan' : 'Cash',
+          finalPrice,
+          bookingFee,
+          bookingPaid,
+          bookingRemaining,
+          downPayment,
+          paidDownPayment,
+          dpRemaining,
+          dpSettled,
+          firstInstallmentConfirmed,
+          eligibleForSold,
+          principalAmount,
+          marginPercent: Number(transaction.margin_percent ?? 0),
+          marginAmount: Number(transaction.margin_amount ?? 0),
+          installmentTotal,
+          totalDue,
+          paidAmount,
+          remainingAmount,
+          pendingCount,
+          rejectedCount,
+          months: transaction.months ?? null,
+          monthlyPayment: transaction.monthly_payment ?? null,
+        }
       }),
     }
   } catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.' }
@@ -300,9 +580,6 @@ async function loadCustomer() {
 }
 
 onMounted(loadCustomer)
-onUnmounted(() => {
-  window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
-})
 </script>
 
 <style scoped>
@@ -324,32 +601,68 @@ onUnmounted(() => {
 .detail-tabs { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 -16px; border-bottom: 1px solid var(--border-default); }
 .detail-tabs button { min-height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); }
 .detail-tabs button.active { border-bottom-color: var(--poliland-gold); color: var(--poliland-gold-text); }
-.detail-card { margin-top: 12px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
-.detail-card h2 { margin: 0 0 12px; font-size: 15px; }
-dl { display: grid; gap: 10px; margin: 0; } dt { color: var(--text-secondary); font-size: 11px; } dd { margin: 2px 0 0; font-size: 13px; }
-ul { display: grid; gap: 9px; margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 12px; } li strong { color: var(--text-primary); } li span, li small { display: block; margin-top: 2px; }
-.payment-list { display: grid; gap: 10px; }
-.payment-item { padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }
-.payment-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-.transaction-status { padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: var(--font-weight-bold); }
-.transaction-status.sold { background: var(--status-success-bg); color: var(--poliland-green); }
-.transaction-status.booking { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
-.transaction-status.cancelled { background: color-mix(in srgb, var(--status-danger) 11%, white); color: var(--status-danger); }
-.payment-item dl { display: grid; gap: 7px; }
-.payment-item dd { font-weight: var(--font-weight-semibold); }
-.payment-item dd.paid, .payment-item dd.settled { color: var(--poliland-green); }
-.finance-link { width: 100%; min-height: 40px; margin-top: 12px; border: 1px dashed var(--border-default); border-radius: var(--radius-control); background: transparent; color: var(--text-secondary); font: inherit; font-size: 11px; }
+.detail-card { margin-top: 14px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.card-head h2 { margin: 0; font-size: 16px; font-weight: var(--font-weight-extrabold); }
+.head-sub { margin: 2px 0 0; color: var(--text-secondary); font-size: 12px; }
+
+.empty-box { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: var(--radius-control); background: var(--surface-muted); }
+.empty-mascot { width: 64px; height: 64px; flex: 0 0 64px; object-fit: contain; }
+
+.lot-cards-list { display: grid; gap: 10px; }
+.lot-card-item { padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); transition: border-color 0.2s; }
+.lot-card-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lot-card-info { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.lot-card-badge-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lot-badge-num { font-size: 15px; font-weight: var(--font-weight-extrabold); color: var(--text-primary); }
+.lot-badge-type { padding: 2px 8px; border-radius: 6px; background: var(--surface-primary); border: 1px solid var(--border-default); font-size: 11px; font-weight: var(--font-weight-bold); color: var(--poliland-green); }
+.lot-card-meta { margin: 0; color: var(--text-secondary); font-size: 12px; }
+
+.lot-card-actions { display: flex; align-items: center; gap: 8px; }
+.btn-nav-lot { display: inline-flex; align-items: center; gap: 4px; min-height: 38px; padding: 0 12px; border: 1px solid var(--poliland-green); border-radius: var(--radius-control); background: var(--status-success-bg); color: var(--poliland-green); font: inherit; font-size: 12px; font-weight: var(--font-weight-bold); cursor: pointer; text-decoration: none; }
+.btn-nav-lot ion-icon { font-size: 14px; }
+.btn-nav-lot:hover, .btn-nav-lot:focus-visible { background: var(--poliland-green); color: #fff; }
+.btn-remove-lot { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; min-height: 38px; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--status-danger); font-size: 16px; cursor: pointer; }
+.btn-remove-lot:hover, .btn-remove-lot:focus-visible { border-color: var(--status-danger); background: #fdf2f2; }
+
+.field-label-custom { display: grid; gap: 6px; color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); margin-top: 12px; }
+.field-label-custom select { min-height: 44px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px; }
+
+.btn-cancel, .btn-submit { min-height: 44px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); font: inherit; font-size: 12px; font-weight: var(--font-weight-bold); cursor: pointer; }
+.btn-cancel { background: var(--surface-primary); color: var(--text-primary); }
+.btn-submit { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }
+
+.tx-card { padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); display: grid; gap: 12px; }
+.tx-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tx-card-title { display: grid; gap: 2px; }
+.tx-card-title strong { font-size: 16px; font-weight: var(--font-weight-extrabold); }
+.tx-card-block { font-size: 12px; color: var(--text-secondary); }
+.tx-card-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.btn-nav-lot-sm { display: inline-flex; align-items: center; gap: 3px; min-height: 32px; padding: 0 10px; border: 1px solid var(--poliland-green); border-radius: 20px; background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size: 11px; font-weight: var(--font-weight-bold); cursor: pointer; }
+.btn-nav-lot-sm ion-icon { font-size: 13px; }
+.btn-nav-lot-sm:hover, .btn-nav-lot-sm:focus-visible { background: var(--poliland-green); color: #fff; }
+
+.tx-body { display: grid; gap: 10px; }
+.tx-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-primary); border: 1px solid var(--border-default); }
+.tx-grid-item { display: grid; gap: 2px; }
+.tx-label { font-size: 11px; color: var(--text-secondary); }
+.tx-value { font-size: 13px; font-weight: var(--font-weight-bold); }
+.text-success { color: var(--poliland-green); }
+
+.tx-details { margin-top: 2px; }
+.tx-details-summary { font-size: 12px; font-weight: var(--font-weight-bold); color: var(--poliland-green); cursor: pointer; padding: 4px 0; outline: none; }
+.tx-dl { display: grid; gap: 6px; margin-top: 8px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-primary); border: 1px solid var(--border-default); }
+.tx-dl div { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.tx-dl dt { color: var(--text-secondary); }
+.tx-dl dd { margin: 0; font-weight: var(--font-weight-semibold); text-align: right; }
+.tx-dl dd.paid { color: var(--poliland-green); }
 .buyer-detail-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 42px 18px; text-align: center; border: 1px dashed var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); } .buyer-detail-state ion-icon { font-size: 30px; color: var(--poliland-green); } .buyer-detail-state p { margin: 0; color: var(--text-secondary); font-size: 13px; }
 .note-copy { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
-.edit-panel { position: fixed; inset: 0; z-index: 11000; display: flex; align-items: flex-end; background: rgb(37 37 37 / 42%); }
-.edit-panel form { width: 100%; max-height: min(calc(100dvh - 24px), 760px); overflow-y: auto; padding: 20px 16px calc(24px + env(safe-area-inset-bottom)); border: 1px solid var(--border-default); border-radius: var(--radius-panel) var(--radius-panel) 0 0; background: var(--surface-primary); }
-.edit-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-default); }
-.edit-panel-head h2 { margin: 0; color: var(--text-primary); font-size: 19px; font-weight: var(--font-weight-bold); }
-.edit-panel-head button { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); }
-.edit-panel label { display: grid; gap: 7px; margin-top: 14px; color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); }
-.edit-panel input, .edit-panel textarea { width: 100%; min-height: 44px; padding: 11px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px; }
-.edit-panel textarea { resize: vertical; }
-.edit-panel-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
+.edit-modal-form label { display: grid; gap: 7px; margin-top: 14px; color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); }
+.edit-modal-form label:first-child { margin-top: 0; }
+.edit-modal-form input, .edit-modal-form textarea { width: 100%; min-height: 44px; padding: 11px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px; }
+.edit-modal-form textarea { resize: vertical; }
 .edit-error { margin: 12px 0 0; color: var(--status-danger); font-size: 12px; }
 .interest-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.interest-section-head h2 { margin: 0; }.add-interest-button, .remove-interest-button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.interest-empty { display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 8px 10px; border-radius: var(--radius-control); background: var(--app-background); }.interest-list { display: grid; gap: 8px; margin-top: 12px; padding: 0; list-style: none; }.interest-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }.interest-list li span { color: var(--text-secondary); font-size: 11px; }.remove-interest-button { color: var(--status-danger); }.interest-form { display: grid; gap: 10px; margin-top: 12px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }.interest-form label { display: grid; gap: 6px; color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }.interest-form select { min-height: 44px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 12px; }.interest-form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.interest-form-actions button { min-height: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); }.interest-form-actions button[type='submit'] { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }.add-interest-button:focus-visible, .remove-interest-button:focus-visible, .interest-form button:focus-visible, .interest-form select:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .lot-picker-head { display: grid; gap: 6px; }
@@ -370,6 +683,102 @@ ul { display: grid; gap: 9px; margin: 0; padding-left: 18px; color: var(--text-s
 .lot-picker-price { max-width: 112px; color: var(--poliland-green); font-size: 11px; font-weight: var(--font-weight-bold); text-align: right; overflow-wrap: anywhere; }
 .lot-picker-head input:focus-visible, .lot-picker-option input:focus-visible, .lot-picker-option:has(input:focus-visible) { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .interest-form-actions button:disabled { cursor: not-allowed; opacity: 0.55; }
+/* Ringkasan: pisahkan setiap informasi agar mudah dipindai di layar kecil. */
+.personal-card .card-head { margin-bottom: 4px; }
+.personal-info-list {
+  display: grid;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+}
+.personal-info-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px 13px;
+  border-bottom: 1px solid var(--border-default);
+}
+.personal-info-item:last-child { border-bottom: 0; }
+.personal-info-item dt {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+}
+.personal-info-item dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.personal-info-note { background: var(--surface-muted); }
+
+/* Status kavling memakai warna semantik dan label yang eksplisit. */
+.lot-card-badge-row { row-gap: 7px; }
+.lot-status-chip, .transaction-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 3px 9px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+.lot-status-chip.is-available, .transaction-status.is-available {
+  border-color: color-mix(in srgb, var(--status-success) 35%, var(--border-default));
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+.lot-status-chip.is-booking, .transaction-status.is-booking {
+  border-color: color-mix(in srgb, var(--status-warning) 45%, var(--border-default));
+  background: #fbf4e5;
+  color: var(--poliland-gold-text);
+}
+.lot-status-chip.is-sold, .transaction-status.is-sold {
+  border-color: color-mix(in srgb, var(--status-danger) 30%, var(--border-default));
+  background: #fdf0ef;
+  color: var(--status-danger);
+}
+.lot-status-chip.is-cancelled, .transaction-status.is-cancelled,
+.lot-status-chip.is-unknown, .transaction-status.is-unknown {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+.payment-list { display: grid; gap: 12px; }
+.tx-card {
+  gap: 13px;
+  padding: 14px;
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
+}
+.tx-card-head {
+  align-items: center;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--border-default);
+}
+.tx-card-title strong { font-size: 15px; letter-spacing: 0.01em; }
+.tx-card-badges { justify-content: flex-end; }
+.tx-grid { gap: 12px 10px; padding: 12px; }
+.tx-grid-item { min-width: 0; }
+.tx-value { overflow-wrap: anywhere; }
+.tx-details { padding-top: 1px; }
+.tx-details-summary {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 32px;
+}
+.tx-details[open] .tx-details-summary { margin-bottom: 5px; }
+
 @media (max-width: 360px) {
   .lot-picker-option { grid-template-columns: 20px minmax(0, 1fr); }
   .lot-picker-price { grid-column: 2; max-width: none; text-align: left; }

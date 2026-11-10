@@ -103,15 +103,15 @@
 
           <section v-if="activeTab === 'info'" class="tab-content">
             <article class="panel">
-              <p class="eyebrow">SPESIFIKASI KAVLING</p>
               <h2>Informasi Kavling</h2>
               <dl class="info-list">
                 <div><dt>Nomor Kavling</dt><dd>{{ lot.lot_number }}</dd></div>
                 <div><dt>Blok</dt><dd>{{ blockLabel }}</dd></div>
                 <div><dt>Luas Tanah</dt><dd>{{ formatArea(lot.area) }}</dd></div>
                 <div><dt>Dimensi</dt><dd>{{ lot.dimension || '-' }}</dd></div>
-                <div><dt>Kode Polygon</dt><dd>{{ lot.polygon_id }}</dd></div>
                 <div><dt>Jenis Pembayaran</dt><dd>{{ paymentTypeLabel }}</dd></div>
+                <div v-if="bookingCustomer"><dt>Nama Pemesan</dt><dd><RouterLink class="info-customer-link" :to="{ name: 'AdminPembeliDetail', params: { id: bookingCustomer.id } }">{{ bookingCustomer.name }}</RouterLink></dd></div>
+                <div v-if="buyerCustomer"><dt>Nama Pembeli</dt><dd><RouterLink class="info-customer-link" :to="{ name: 'AdminPembeliDetail', params: { id: buyerCustomer.id } }">{{ buyerCustomer.name }}</RouterLink></dd></div>
                 <div><dt>Tanggal Dipesan</dt><dd>{{ formatDate(lot.booking_date) }}</dd></div>
                 <div><dt>Tanggal Terjual</dt><dd>{{ formatDate(lot.sold_date) }}</dd></div>
                 <div><dt>Keterangan</dt><dd>{{ lot.description || '-' }}</dd></div>
@@ -121,7 +121,6 @@
 
           <section v-else-if="activeTab === 'price'" class="tab-content">
             <article class="panel">
-              <p class="eyebrow">HARGA KAVLING</p>
               <h2>Harga Kavling</h2>
               <div class="price-edit-row">
                 <div><span>HARGA NORMAL</span><strong>{{ rupiah(lot.cash_price) }}</strong></div>
@@ -185,29 +184,53 @@
 
           <section v-else class="tab-content">
             <article class="panel">
-              <p class="eyebrow">AKTIVITAS KAVLING</p>
+              <h2>Aktivitas Kaveling</h2>
               <div v-if="historyLoading" class="inline-state"><ion-spinner name="crescent" /> Memuat riwayat...</div>
               <div v-else-if="!transactions.length && !payments.length" class="empty-inline history-empty">
                 <img :src="emptyReceiptMascot" alt="Ilustrasi kuitansi dan koin kosong" />
                 <span>Belum ada riwayat transaksi atau pembayaran.</span>
               </div>
               <div v-else class="timeline">
-                <div v-for="transaction in transactions" :key="`t-${transaction.id}`" class="timeline-item">
-                  <span class="timeline-dot"></span>
-                  <div>
-                    <strong>Transaksi {{ transaction.status }}</strong>
-                    <span>{{ formatDate(transaction.booking_date) }} · {{ transaction.customer_name || 'Customer' }}</span>
-                    <b>{{ rupiah(transaction.final_price) }}</b>
-                    <small>{{ transaction.payment_type === 'Installment' ? 'Cicilan' : 'Tunai' }}</small>
+                <template v-for="transaction in transactions" :key="`t-${transaction.id}`">
+                  <div class="timeline-item">
+                    <span class="timeline-dot"></span>
+                    <div>
+                      <strong>Transaksi Booking</strong>
+                      <span>{{ formatDate(transaction.booking_date) }} · {{ transaction.customer_name || 'Customer' }}</span>
+                      <b>{{ rupiah(BOOKING_FEE_FIXED) }}</b>
+                      <small>
+                        Biaya Booking ·
+                        {{ getBookingPaid(transaction.id) >= BOOKING_FEE_FIXED
+                          ? 'Lunas dan dikonfirmasi'
+                          : `Belum lunas · Terbayar ${rupiah(getBookingPaid(transaction.id))}` }}
+                      </small>
+                    </div>
                   </div>
-                </div>
+                  <div v-if="transaction.status === 'Sold'" class="timeline-item">
+                    <span class="timeline-dot"></span>
+                    <div>
+                      <strong>Transaksi Sold</strong>
+                      <span>{{ formatDate(transaction.booking_date) }} · {{ transaction.customer_name || 'Customer' }}</span>
+                      <b>{{ rupiah(transaction.final_price) }}</b>
+                      <small>{{ transaction.payment_type === 'Installment' ? 'Penjualan · Cicilan' : 'Penjualan · Tunai' }}</small>
+                    </div>
+                  </div>
+                </template>
                 <div v-for="payment in payments" :key="`p-${payment.id}`" class="timeline-item">
                   <span class="timeline-dot payment"></span>
                   <div>
-                    <strong>Pembayaran diterima</strong>
+                    <strong>
+                      {{ payment.status === 'Confirmed'
+                        ? 'Pembayaran diterima'
+                        : payment.status === 'Pending'
+                          ? 'Menunggu konfirmasi'
+                          : payment.status === 'Rejected'
+                            ? 'Pembayaran ditolak'
+                            : 'Status pembayaran tidak diketahui' }}
+                    </strong>
                     <span>{{ formatDate(payment.payment_date) }} · {{ payment.payment_method || 'Metode tidak dicatat' }}</span>
                     <b>{{ rupiah(payment.amount) }}</b>
-                    <small>{{ payment.note || 'Tidak ada catatan' }}</small>
+                    <small>{{ payment.payment_category || 'Kategori belum ditentukan' }} · {{ payment.note || 'Tidak ada catatan' }}</small>
                   </div>
                 </div>
               </div>
@@ -355,7 +378,7 @@
 import { Capacitor } from '@capacitor/core'
 import { Keyboard } from '@capacitor/keyboard'
 import { computed, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   IonPage, IonContent, IonIcon, IonSpinner, IonToast, onIonViewWillEnter,
 } from '@ionic/vue'
@@ -371,7 +394,7 @@ import emptyReceiptMascot from '@/assets/mascot/MascotwithEmptyReceiptandCoins.p
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { supabase } from '@/services/config/supabase'
-import { lotService, type LotRecord } from '@/services/lotService'
+import { lotService, BOOKING_FEE_FIXED, type LotRecord } from '@/services/lotService'
 
 type TabKey = 'info' | 'price' | 'panorama' | 'history'
 interface InstallmentRow {
@@ -385,12 +408,27 @@ interface InstallmentRow {
 }
 interface PlanRow { id: number; plan_name: string; months: number; margin_percent: number }
 interface TransactionRow {
-  id: number; status: string; payment_type: string; final_price: number
-  booking_date: string | null; customer_name: string | null
+  id: number
+  customer_id: number
+  status: string
+  payment_type: string
+  final_price: number
+  booking_fee: number
+  booking_date: string | null
+  customer_name: string | null
 }
 interface PaymentRow {
-  id: number; payment_date: string | null; amount: number | null
-  payment_method: string | null; note: string | null
+  id: number
+  transaction_id: number
+  customer_id: number | null
+  lot_id: number | null
+  payment_date: string | null
+  amount: number | null
+  payment_method: string | null
+  payment_category: string
+  note: string | null
+  status: 'Pending' | 'Confirmed' | 'Rejected' | string
+  created_at: string
 }
 const route = useRoute()
 const router = useRouter()
@@ -426,14 +464,17 @@ const historyLoading = ref(false)
 const toast = reactive<{ open: boolean; message: string; color: 'success' | 'danger' | 'warning' }>({
   open: false, message: '', color: 'success',
 })
+const effectiveStatus = computed(() => {
+  return lot.value?.status || 'Available'
+})
 const statusLabel = computed(() => {
-  const value = (lot.value?.status || '').toLowerCase()
+  const value = effectiveStatus.value.toLowerCase()
   if (['booking', 'booked'].includes(value)) return 'Dipesan'
   if (['sold', 'terjual'].includes(value)) return 'Terjual'
   return 'Tersedia'
 })
 const statusClass = computed(() => {
-  const value = (lot.value?.status || '').toLowerCase()
+  const value = effectiveStatus.value.toLowerCase()
   return ['booking', 'booked'].includes(value) ? 'booking' : ['sold', 'terjual'].includes(value) ? 'sold' : 'available'
 })
 const blockLabel = computed(() => {
@@ -444,6 +485,34 @@ const blockLabel = computed(() => {
 const hasPromo = computed(() => Number(lot.value?.promo_price || 0) > 0 && Number(lot.value?.promo_price) < Number(lot.value?.cash_price || 0))
 const paymentTypeLabel = computed(() => lot.value?.payment_type === 'Installment' ? 'Cicilan' : lot.value?.payment_type === 'Cash' ? 'Tunai' : '-')
 const availablePrice = computed(() => Number(lot.value?.promo_price || lot.value?.cash_price || 0))
+const lotCustomer = computed(() => {
+  const customer = Array.isArray(lot.value?.customer) ? lot.value.customer[0] : lot.value?.customer
+  const id = lot.value?.customer_id
+  const name = customer?.full_name
+  if (!id || id <= 0 || typeof name !== 'string' || !name.trim()) return null
+  return { id, name: name.trim() }
+})
+function transactionCustomer(status: 'Booking' | 'Sold') {
+  const transaction = transactions.value.find((item) =>
+    item.status === status
+    && typeof item.customer_id === 'number'
+    && item.customer_id > 0
+    && typeof item.customer_name === 'string'
+    && item.customer_name.trim(),
+  )
+  if (!transaction || !transaction.customer_id || !transaction.customer_name) return null
+  return { id: transaction.customer_id, name: transaction.customer_name.trim() }
+}
+const bookingCustomer = computed(() => {
+  const status = effectiveStatus.value.toLowerCase()
+  return transactionCustomer('Booking')
+    ?? (['booking', 'booked'].includes(status) ? lotCustomer.value : null)
+})
+const buyerCustomer = computed(() => {
+  const status = effectiveStatus.value.toLowerCase()
+  return transactionCustomer('Sold')
+    ?? (['sold', 'terjual'].includes(status) ? lotCustomer.value : null)
+})
 
 function notify(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
   toast.message = message; toast.color = color; toast.open = true
@@ -479,7 +548,7 @@ async function loadDetail() {
   loading.value = true; loadError.value = false; errorMessage.value = ''
   try {
     lot.value = await lotService.getLotById(lotId.value)
-    statusDraft.value = lot.value.status || 'Available'
+    statusDraft.value = effectiveStatus.value || 'Available'
     editDraft.lot_number = lot.value.lot_number || ''
     editDraft.dimension = lot.value.dimension || ''
     editDraft.area = lot.value.area == null ? '' : String(lot.value.area)
@@ -500,18 +569,49 @@ async function loadInstallments() {
   } catch (error) { console.error('Gagal memuat skema cicilan:', error) }
   finally { installmentsLoading.value = false }
 }
+function getBookingPaid(transactionId: number): number {
+  return payments.value
+    .filter((payment) =>
+      Number(payment.transaction_id) === Number(transactionId) &&
+      payment.payment_category === 'Booking' &&
+      payment.status === 'Confirmed'
+    )
+    .reduce((total, payment) => total + Number(payment.amount ?? 0), 0)
+}
+
 async function loadHistory() {
   if (!lot.value) return
+
   historyLoading.value = true
   try {
-    const [tx, pay] = await Promise.all([lotService.getLotTransactions(lot.value.id), lotService.getLotPayments(lot.value.id)])
+    // Pembayaran terhubung ke transaksi, bukan langsung ke ID kavling.
+    const tx = await lotService.getLotTransactions(lot.value.id)
     transactions.value = tx
-    payments.value = pay.map(payment => {
-      const amount = payment.amount == null ? null : Number(payment.amount)
-      return { ...payment, amount: amount != null && Number.isFinite(amount) ? amount : null }
-    })
-  } catch (error) { console.error('Gagal memuat riwayat:', error) }
-  finally { historyLoading.value = false }
+
+    const paymentGroups = await Promise.all(
+      tx.map((transaction) => lotService.getLotPayments(transaction.id))
+    )
+
+    payments.value = paymentGroups
+      .flat()
+      .map((payment) => {
+        const amount = payment.amount == null ? null : Number(payment.amount)
+        return {
+          ...payment,
+          amount: amount != null && Number.isFinite(amount) ? amount : null,
+        }
+      })
+      .sort((a, b) => {
+        const dateA = a.payment_date ? new Date(a.payment_date).getTime() : 0
+        const dateB = b.payment_date ? new Date(b.payment_date).getTime() : 0
+        return dateB - dateA
+      })
+  } catch (error) {
+    console.error('Gagal memuat riwayat:', error)
+    payments.value = []
+  } finally {
+    historyLoading.value = false
+  }
 }
 async function runSave(task: () => Promise<void>, success: string) {
   saving.value = true
@@ -522,9 +622,9 @@ async function runSave(task: () => Promise<void>, success: string) {
 async function saveStatus() {
   if (!lot.value) return
   await runSave(async () => {
-    const { error } = await supabase.from('lots').update({ status: statusDraft.value, updated_at: new Date().toISOString() }).eq('id', lot.value!.id)
-    if (error) throw error
-    statusModalOpen.value = false
+    throw new Error(
+      'Status kavling tidak dapat diubah manual. Status Available, Booking, dan Sold harus mengikuti konfirmasi pembayaran melalui alur transaksi.'
+    )
   }, 'Status kavling berhasil diperbarui.')
 }
 async function saveInfo() {
@@ -658,6 +758,10 @@ onIonViewWillEnter(() => { void loadDetail() })
 .info-list>div:last-child{border:0}
 .info-list dt{color:var(--text-secondary)}
 .info-list dd{margin:0;text-align:right;font-weight:600;max-width:58%;overflow-wrap:anywhere}
+.info-customer-link{color:inherit;text-decoration:underline;text-decoration-color:var(--poliland-green);text-underline-offset:2px;cursor:pointer}
+.info-customer-link:hover{text-decoration-thickness:2px}
+.info-customer-link:active{opacity:.75}
+.info-customer-link:focus-visible{outline:3px solid var(--text-primary);outline-offset:3px;border-radius:2px}
 .helper-note{font-size:11px;line-height:1.5;color:var(--text-secondary);margin:12px 0 0}
 .price-edit-row{display:flex;align-items:center;gap:8px;border:1px solid var(--border-default);border-radius:var(--radius-control);padding:12px;margin:10px 0}
 .price-edit-row>div{display:flex;flex:1;flex-direction:column;gap:5px;min-width:0}
