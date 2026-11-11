@@ -1,68 +1,61 @@
 <template>
   <ion-page class="main-layout">
-
-    <!-- =================================================
-         MASCOT PULL TO REFRESH
-         BERADA DI ATAS APP HEADER
-         ================================================= -->
+    <!-- Mascot pull to refresh -->
     <MascotPullRefresh />
 
-    <!-- =================================================
-         HEADER
-         ================================================= -->
-    <AppHeader />
+    <!-- Header umum: disembunyikan pada halaman Admin dan client -->
+    <AppHeader v-if="!isRolePage" />
 
-    <!-- =================================================
-         CONTENT
-         ================================================= -->
-    <div class="content-container">
-
+    <!-- Konten halaman -->
+    <div
+      class="content-container"
+      :class="{ 'role-page-content': isRolePage }"
+    >
       <ion-router-outlet />
-
     </div>
 
-    <!-- =================================================
-         TAB BAR
-         ================================================= -->
+    <!-- Tab bar umum: disembunyikan pada halaman Admin dan client -->
     <div
+      v-if="!isRolePage"
       class="tabbar-overlay"
       :class="{
         'search-mode-hidden': isSearchActive,
         'detail-mode-hidden': isDetailOpen,
       }"
     >
-
       <MobileTabBar />
-
     </div>
-
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { IonPage, IonRouterOutlet } from '@ionic/vue'
 
-import {
-  IonPage,
-  IonRouterOutlet
-} from '@ionic/vue'
+import AppHeader from '@/components/common/AppHeader.vue'
+import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import MascotPullRefresh from '@/components/common/MascotPullRefresh.vue'
 
-import {
-  ref,
-  onMounted,
-  onBeforeUnmount
-} from 'vue'
-
-import AppHeader
-  from '@/components/common/AppHeader.vue'
-
-import MobileTabBar
-  from '@/components/common/MobileTabBar.vue'
-
-import MascotPullRefresh
-  from '@/components/common/MascotPullRefresh.vue'
+const route = useRoute()
 
 const isSearchActive = ref(false)
 const isDetailOpen = ref(false)
+
+/*
+ * Halaman Admin dan client memiliki header serta tab bar sendiri.
+ * Pastikan path di bawah cocok dengan route yang terdaftar di router.
+ */
+const isRolePage = computed(() => {
+  const path = route.path
+
+  return (
+    path.startsWith('/admin') ||
+    path.startsWith('/client') ||
+    path === '/beranda-admin' ||
+    path === '/berandaclient'
+  )
+})
 
 function handleSearchMode(event: Event) {
   const customEvent = event as CustomEvent<{ active?: boolean }>
@@ -75,55 +68,29 @@ function handleDetailMode(event: Event) {
 }
 
 onMounted(() => {
-  window.addEventListener(
-    'poliland-search-mode',
-    handleSearchMode
-  )
-
-  window.addEventListener(
-    'poliland-detail-mode',
-    handleDetailMode
-  )
+  window.addEventListener('poliland-search-mode', handleSearchMode)
+  window.addEventListener('poliland-detail-mode', handleDetailMode)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener(
-    'poliland-search-mode',
-    handleSearchMode
-  )
-
-  window.removeEventListener(
-    'poliland-detail-mode',
-    handleDetailMode
-  )
+  window.removeEventListener('poliland-search-mode', handleSearchMode)
+  window.removeEventListener('poliland-detail-mode', handleDetailMode)
 })
-
 </script>
 
 <style scoped>
-
-/* =====================================================
-   MAIN LAYOUT
-   ===================================================== */
-
+/* Layout utama */
 .main-layout {
-  position: relative;
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-
-  /* Mencegah layout ikut ter-resize paksa oleh virtual keyboard */
-  position: fixed;
-  inset: 0;
 }
 
-
-/* =====================================================
-   CONTENT
-   ===================================================== */
-
+/* Area konten, dengan ruang untuk header umum */
 .content-container {
   position: absolute;
   top: 68px;
@@ -137,11 +104,12 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+/* Halaman role memakai header sendiri */
+.content-container.role-page-content {
+  top: 0;
+}
 
-/* =====================================================
-   ROUTER OUTLET
-   ===================================================== */
-
+/* Router outlet memenuhi area konten */
 .content-container :deep(ion-router-outlet) {
   position: absolute;
   inset: 0;
@@ -149,34 +117,27 @@ onBeforeUnmount(() => {
   height: 100%;
 }
 
-
-/* =====================================================
-   TAB BAR
-   ===================================================== */
-
+/* Tab bar umum */
 .tabbar-overlay {
   position: fixed;
-  left: 0;
   right: 0;
   bottom: 0;
-  width: 100%;
+  left: 0;
   z-index: 10000;
+  width: 100%;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   pointer-events: none;
 }
-
-/* =====================================================
-   TAB BAR INTERACTION
-   ===================================================== */
 
 .tabbar-overlay :deep(*) {
   pointer-events: auto;
 }
 
-/* Search mode: sembunyikan Tabbar sepenuhnya. */
+/* Sembunyikan tab bar pada mode pencarian atau detail */
 .tabbar-overlay.search-mode-hidden,
 .tabbar-overlay.detail-mode-hidden {
-  opacity: 0;
   visibility: hidden;
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -185,37 +146,13 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-/* =====================================================
-   SAFE AREA
-   ===================================================== */
-
-@supports (
-  padding-bottom:
-  env(safe-area-inset-bottom)
-) {
-
-  .tabbar-overlay {
-
-    padding-bottom:
-      env(safe-area-inset-bottom);
-
-  }
-
-}
-
-
-/* =====================================================
-   MOBILE
-   ===================================================== */
-
 @media (max-width: 480px) {
-
   .content-container {
-
     top: 68px;
-
   }
 
+  .content-container.role-page-content {
+    top: 0;
+  }
 }
-
 </style>

@@ -35,6 +35,7 @@ import TindakLanjutPage from '@/views/marketing/TindakLanjutPage.vue'
 import LainnyaPage from '@/views/marketing/LainnyaPage.vue'
 import MarketingInfoPage from '@/views/marketing/MarketingInfoPage.vue'
 import BerandaClientPage from '@/views/client/BerandaClientPage.vue'
+import PembayaranClientPage from '@/views/client/PembayaranClientPage.vue' 
 import { setupAuthGuards } from '@/router/guards'
 
 const routes: Array<RouteRecordRaw> = [
@@ -230,11 +231,16 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'marketing' },
   },
   {
-  path: '/berandaclient',
+  path: '/beranda-client',
   name: 'BerandaClient',
   component: BerandaClientPage,
   },
-
+  {
+    path: '/client/pembayaran',
+    alias: '/pembayaran-client',
+    name: 'PembayaranClient',
+    component: PembayaranClientPage,
+  },
   {
     path: '/marketing',
     redirect: '/beranda-marketing',
@@ -307,4 +313,3 @@ const router = createRouter({
 setupAuthGuards(router)
 
 export default router
- 

@@ -27,6 +27,8 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'SitePlanCompass' })
+
 defineProps({
   rotation: {
     type: Number,

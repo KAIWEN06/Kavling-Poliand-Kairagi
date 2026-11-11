@@ -59,9 +59,57 @@
 
       </template>
 
+      <!-- CLIENT -->
+<template v-else-if="variant === 'client' || route.path.startsWith('/client/')">
+  <button
+    type="button"
+    :class="['nav-item', { active: isActive('/beranda-client') }]"
+    @click="goTo('/beranda-client')"
+  >
+    <span class="icon-wrap"><ion-icon :icon="homeOutline" /></span>
+    <span class="nav-label">Beranda</span>
+  </button>
+
+  <button
+    type="button"
+    :class="['nav-item', { active: isActive('/client/kavling') }]"
+    @click="goTo('/client/kavling')"
+  >
+    <span class="icon-wrap"><ion-icon :icon="gridOutline" /></span>
+    <span class="nav-label">Kavling</span>
+  </button>
+
+  <button
+    type="button"
+    :class="['nav-item', { active: isActive('/client/pembayaran') }]"
+    @click="goTo('/client/pembayaran')"
+  >
+    <span class="icon-wrap"><ion-icon :icon="documentTextOutline" /></span>
+    <span class="nav-label">Pembayaran</span>
+  </button>
+
+  <button
+    type="button"
+    :class="['nav-item', { active: isActive('/client/dokumen') }]"
+    @click="goTo('/client/dokumen')"
+  >
+    <span class="icon-wrap"><ion-icon :icon="documentsOutline" /></span>
+    <span class="nav-label">Dokumen</span>
+  </button>
+
+  <button
+    type="button"
+    :class="['nav-item', { active: isActive('/client/akun') }]"
+    @click="goTo('/client/akun')"
+  >
+    <span class="icon-wrap"><ion-icon :icon="personOutline" /></span>
+    <span class="nav-label">Akun</span>
+  </button>
+</template>
+
       <!-- =========================
-           MARKETING
-           ========================= -->
+          MARKETING
+        ========================= -->
 
       <template v-else-if="variant === 'marketing'">
 
@@ -285,6 +333,8 @@ import {
   imagesOutline,
   callOutline,
   gridOutline,
+  documentTextOutline,
+  documentsOutline,
   personOutline,
   checkmarkDoneOutline,
   menuOutline,
@@ -301,7 +351,7 @@ import {
 
 withDefaults(
   defineProps<{
-    variant?: 'public' | 'marketing' | 'admin'
+    variant?: 'public' | 'marketing' | 'admin' | 'client'
   }>(),
   {
     variant: 'public',

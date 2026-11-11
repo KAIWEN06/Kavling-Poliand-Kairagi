@@ -816,7 +816,9 @@ function releasePointer(
       )
     }
 
-  } catch {}
+  } catch {
+    // The pointer capture may already have been released.
+  }
 }
 
 
@@ -850,7 +852,9 @@ function onPointerDown(
       event.pointerId
     )
 
-  } catch {}
+  } catch {
+    // Pointer capture may fail if the pointer is no longer active.
+  }
 
 
   if (activePointers.size === 1) {
