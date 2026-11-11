@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   IonAlert,
   IonContent,
@@ -29,8 +28,6 @@ type PaymentTransaction = {
   method: string
   status: PaymentStatus
 }
-
-const router = useRouter()
 
 const searchQuery = ref('')
 const selectedFilter = ref<'all' | PaymentStatus>('all')
@@ -132,10 +129,6 @@ const detailMessage = computed(() => {
   ].join('<br>')
 })
 
-function goBack() {
-  void router.push('/beranda-client')
-}
-
 function formatCurrency(amount: number) {
   return `Rp ${amount.toLocaleString('id-ID')}`
 }
@@ -176,18 +169,6 @@ function openTransaction(transaction: PaymentTransaction) {
 
     <ion-content class="payment-content" :fullscreen="true">
       <main class="payment-shell">
-        <div class="page-heading">
-          <button
-            class="back-button"
-            type="button"
-            aria-label="Kembali ke Beranda"
-            @click="goBack"
-          >
-            <ion-icon :icon="chevronForward" />
-          </button>
-          <h1>Pembayaran</h1>
-        </div>
-
         <!-- Informasi kavling -->
         <section class="lot-card" aria-labelledby="lot-title">
           <div class="section-title">
@@ -202,9 +183,7 @@ function openTransaction(transaction: PaymentTransaction) {
             type="button"
             aria-label="Detail Blok A Nomor A03"
           >
-            <span class="lot-thumbnail" aria-hidden="true">
-              <span>A03</span>
-            </span>
+            <span class="lot-thumbnail" aria-hidden="true"></span>
 
             <span class="lot-copy">
               <strong>Blok A - No. A03</strong>
@@ -354,40 +333,7 @@ function openTransaction(transaction: PaymentTransaction) {
   gap: 20px;
   width: min(100%, 760px);
   margin: 0 auto;
-  padding: 0 16px calc(104px + env(safe-area-inset-bottom, 0px));
-}
-
-.page-heading {
-  display: flex;
-  min-height: 60px;
-  align-items: center;
-  gap: 8px;
-  margin: 0 -16px;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--border-default, #eae7e0);
-  background: var(--surface-primary, #fff);
-}
-
-.page-heading h1 {
-  margin: 0;
-  color: var(--text-primary, #252525);
-  font-size: 22px;
-  font-weight: var(--font-weight-bold, 700);
-}
-
-.back-button {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  place-items: center;
-  transform: rotate(180deg);
-  border: 0;
-  border-radius: var(--radius-control, 12px);
-  color: var(--text-primary, #252525);
-  background: transparent;
-  font-size: 26px;
-  cursor: pointer;
+  padding: 20px 16px calc(104px + env(safe-area-inset-bottom, 0px));
 }
 
 .lot-card,
@@ -455,18 +401,9 @@ function openTransaction(transaction: PaymentTransaction) {
   min-height: 88px;
   place-items: center;
   overflow: hidden;
-  border: 3px solid var(--poliland-gold, #cba044);
+  border: 1px solid var(--border-default, #eae7e0);
   border-radius: var(--radius-control, 12px);
-  background:
-    linear-gradient(180deg, transparent 35%, rgb(37 37 37 / 48%)),
-    linear-gradient(135deg, #9db198, #d8c9a8 45%, #637c58);
-}
-
-.lot-thumbnail span {
-  color: #fff;
-  font-size: 22px;
-  font-weight: var(--font-weight-bold, 700);
-  text-shadow: 0 1px 4px rgb(0 0 0 / 45%);
+  background: var(--surface-muted, #f5f3ee);
 }
 
 .lot-copy {
@@ -626,9 +563,9 @@ function openTransaction(transaction: PaymentTransaction) {
 }
 
 .filter-chip-active {
-  border-color: var(--poliland-gold-text, #966a12);
-  color: #fff;
-  background: var(--poliland-gold-text, #966a12);
+  border-color: var(--poliland-gold-soft, #f4d69a);
+  color: var(--poliland-gold-text-soft, #805708);
+  background: var(--poliland-gold-soft, #f4d69a);
 }
 
 .transaction-list {
@@ -787,10 +724,7 @@ function openTransaction(transaction: PaymentTransaction) {
   .payment-shell {
     gap: 16px;
     padding-inline: 12px;
-  }
-
-  .page-heading {
-    margin-inline: -12px;
+    padding-top: 16px;
   }
 
   .lot-card {
@@ -819,26 +753,29 @@ function openTransaction(transaction: PaymentTransaction) {
   }
 
   .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
 
   .summary-card {
-    min-height: 142px;
+    min-height: 148px;
     gap: 8px;
-    padding: 12px;
+    padding: 10px;
   }
 
   .summary-icon {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
   }
 
   .summary-label {
-    font-size: 12px;
+    min-height: 32px;
+    font-size: 11px;
   }
 
   .summary-card > strong {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .transaction-card {

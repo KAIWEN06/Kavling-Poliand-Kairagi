@@ -10,6 +10,7 @@ import {
   documentTextOutline,
   linkOutline,
   listOutline,
+  logOutOutline,
   mapOutline,
   timeOutline,
 } from 'ionicons/icons'
@@ -42,8 +43,20 @@ function goTo(path: string) {
       <main class="dashboard">
         <!-- Sambutan -->
         <section class="welcome-card" aria-labelledby="welcome-title">
-          <p class="welcome-eyebrow">SELAMAT DATANG,</p>
-          <h1 id="welcome-title">Kevin Sondakh</h1>
+          <div class="welcome-heading">
+            <div class="welcome-copy">
+              <p class="welcome-eyebrow">SELAMAT DATANG,</p>
+              <h1 id="welcome-title">Kevin Sondakh</h1>
+            </div>
+            <ion-button
+              class="logout-icon-button"
+              fill="solid"
+              aria-label="Keluar dari akun"
+              @click="logout"
+            >
+              <ion-icon :icon="logOutOutline" />
+            </ion-button>
+          </div>
           <p class="welcome-description">
             Pantau proses pembelian kavling Anda di PoliLand Kairagi.
           </p>
@@ -187,22 +200,22 @@ function goTo(path: string) {
             type="button"
             @click="goTo('/client/pembayaran')"
           >
-            <div class="quick-card-top">
-              <span class="heading-icon gold-icon">
-                <ion-icon :icon="calendarOutline" />
-              </span>
-              <ion-icon class="quick-chevron" :icon="chevronForward" />
-            </div>
+            <span class="heading-icon gold-icon quick-card-icon">
+              <ion-icon :icon="calendarOutline" />
+            </span>
 
-            <h2>Jadwal Pembayaran Berikutnya</h2>
-
-            <div class="next-payment">
-              <strong>12 Okt 2026</strong>
-              <div class="installment-caption">
-                <span>Cicilan ke-4</span>
-                <span class="status-badge status-danger">Belum Dibayar</span>
+            <div class="quick-card-content">
+              <h2>Jadwal Pembayaran Berikutnya</h2>
+              <div class="next-payment">
+                <strong>12 Okt 2026</strong>
+                <div class="installment-caption">
+                  <span>Cicilan ke-4</span>
+                  <span class="status-badge status-danger">Belum Dibayar</span>
+                </div>
               </div>
             </div>
+
+            <ion-icon class="quick-chevron" :icon="chevronForward" />
           </button>
 
           <button
@@ -210,22 +223,22 @@ function goTo(path: string) {
             type="button"
             @click="goTo('/client/dokumen')"
           >
-            <div class="quick-card-top">
-              <span class="heading-icon gold-icon">
-                <ion-icon :icon="documentTextOutline" />
+            <span class="heading-icon gold-icon quick-card-icon">
+              <ion-icon :icon="documentTextOutline" />
+            </span>
+
+            <div class="quick-card-content">
+              <h2>Dokumen Saya</h2>
+              <p class="document-description">
+                KTP, KK, NPWP, SPK, Bukti Pembayaran
+              </p>
+              <span class="document-status">
+                <ion-icon :icon="checkmarkCircle" />
+                <span>3 dari 4 dokumen diunggah</span>
               </span>
-              <ion-icon class="quick-chevron" :icon="chevronForward" />
             </div>
 
-            <h2>Dokumen Saya</h2>
-            <p class="document-description">
-              KTP, KK, NPWP, SPK, Bukti Pembayaran
-            </p>
-
-            <div class="document-status">
-              <ion-icon :icon="checkmarkCircle" />
-              <span>3 dari 4 dokumen diunggah</span>
-            </div>
+            <ion-icon class="quick-chevron" :icon="chevronForward" />
           </button>
         </div>
 
@@ -276,12 +289,6 @@ function goTo(path: string) {
           </div>
         </section>
 
-        <!-- Fungsi logout dari halaman awal tetap tersedia -->
-        <div class="logout-row">
-          <ion-button fill="clear" class="logout-button" @click="logout">
-            Keluar
-          </ion-button>
-        </div>
       </main>
     </ion-content>
 
@@ -312,6 +319,17 @@ function goTo(path: string) {
   box-shadow: 0 2px 4px rgb(37 37 37 / 6%);
 }
 
+.welcome-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.welcome-copy {
+  min-width: 0;
+}
+
 .welcome-eyebrow {
   margin: 0 0 8px;
   color: var(--text-secondary, #717178);
@@ -323,7 +341,7 @@ function goTo(path: string) {
 .welcome-card h1 {
   margin: 0;
   color: var(--text-primary, #252525);
-  font-size: clamp(26px, 7vw, 36px);
+  font-size: clamp(22px, 6vw, 24px);
   font-weight: var(--font-weight-bold, 700);
   line-height: 1.2;
 }
@@ -332,15 +350,15 @@ function goTo(path: string) {
   max-width: 420px;
   margin: 12px 0 24px;
   color: var(--text-secondary, #717178);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
 .gold-button {
-  --background: var(--poliland-gold, #cba044);
-  --background-hover: var(--poliland-gold, #cba044);
-  --background-activated: var(--poliland-gold-text, #966a12);
-  --color: #fff;
+  --background: var(--poliland-gold-soft, #f4d69a);
+  --background-hover: var(--poliland-gold-soft, #f4d69a);
+  --background-activated: var(--poliland-gold, #cba044);
+  --color: var(--poliland-gold-text-soft, #805708);
   --border-radius: var(--radius-control, 12px);
   --box-shadow: none;
   min-height: 44px;
@@ -382,7 +400,7 @@ function goTo(path: string) {
 .quick-card h2 {
   margin: 0;
   color: var(--text-primary, #252525);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: var(--font-weight-semibold, 600);
   line-height: 1.4;
 }
@@ -393,20 +411,20 @@ function goTo(path: string) {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: var(--poliland-gold, #cba044);
+  color: var(--poliland-gold-text-soft, #805708);
+  background: var(--poliland-gold-soft, #f4d69a);
 }
 
 .heading-icon {
   width: 44px;
   height: 44px;
   border-radius: var(--radius-control, 12px);
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .gold-icon {
-  color: #fff;
-  background: var(--poliland-gold, #cba044);
+  color: var(--poliland-gold-text-soft, #805708);
+  background: var(--poliland-gold-soft, #f4d69a);
 }
 
 .booking-badge,
@@ -415,7 +433,7 @@ function goTo(path: string) {
   align-items: center;
   justify-content: center;
   border-radius: 9px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: var(--font-weight-medium, 500);
   line-height: 1.3;
 }
@@ -437,15 +455,15 @@ function goTo(path: string) {
 
 .lot-icon {
   display: inline-flex;
-  width: 58px;
-  height: 58px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-panel, 20px);
-  color: var(--poliland-green, #355a2c);
-  background: var(--status-success-bg, #eaf7ef);
-  font-size: 28px;
+  border-radius: var(--radius-control, 12px);
+  color: var(--poliland-gold-text-soft, #805708);
+  background: var(--poliland-gold-soft, #f4d69a);
+  font-size: 20px;
 }
 
 .lot-info {
@@ -455,7 +473,7 @@ function goTo(path: string) {
 
 .lot-info h3 {
   margin: 0 0 4px;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: var(--font-weight-semibold, 600);
 }
 
@@ -463,7 +481,7 @@ function goTo(path: string) {
 .section-subtitle {
   margin: 0;
   color: var(--text-secondary, #717178);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .icon-link {
@@ -475,9 +493,9 @@ function goTo(path: string) {
   justify-content: center;
   border: 0;
   border-radius: var(--radius-control, 12px);
-  color: #8b9bb3;
+  color: var(--text-secondary, #717178);
   background: transparent;
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
 }
 
@@ -509,7 +527,7 @@ function goTo(path: string) {
 }
 
 .detail-label ion-icon {
-  color: #8b9bb3;
+  color: var(--text-secondary, #717178);
   font-size: 18px;
 }
 
@@ -535,8 +553,16 @@ function goTo(path: string) {
 }
 
 .detail-button {
+  flex: 0 0 auto;
   min-height: 40px;
   font-size: 14px;
+  white-space: nowrap;
+  --padding-start: 10px;
+  --padding-end: 10px;
+}
+
+.detail-button::part(native) {
+  white-space: nowrap;
 }
 
 .progress-line-row {
@@ -606,7 +632,7 @@ function goTo(path: string) {
   align-items: center;
   gap: 10px;
   color: var(--text-secondary, #717178);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .small-icon {
@@ -617,8 +643,8 @@ function goTo(path: string) {
 }
 
 .success-icon {
-  color: var(--poliland-green, #355a2c);
-  background: var(--status-success-bg, #eaf7ef);
+  color: var(--poliland-gold-text-soft, #805708);
+  background: var(--poliland-gold-soft, #f4d69a);
 }
 
 .total-box > strong {
@@ -629,46 +655,54 @@ function goTo(path: string) {
 
 .quick-cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
 }
 
 .quick-card {
-  display: flex;
-  min-height: 230px;
-  flex-direction: column;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
   color: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.quick-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+.quick-card-icon {
+  grid-column: 1;
+  grid-row: 1;
 }
 
-.quick-chevron {
-  color: #8b9bb3;
-  font-size: 22px;
+.quick-card-content {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
 }
 
-.quick-card h2 {
+.quick-card-content h2 {
   font-size: 16px;
 }
 
+.quick-chevron {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  color: var(--text-secondary, #717178);
+  font-size: 22px;
+}
+
 .next-payment {
-  display: grid;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 14px;
-  border-top: 1px solid var(--border-default, #eae7e0);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 6px;
 }
 
 .next-payment > strong {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .installment-caption {
@@ -677,32 +711,37 @@ function goTo(path: string) {
   align-items: center;
   gap: 6px;
   color: var(--text-secondary, #717178);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .document-description {
-  margin: 8px 0 14px;
+  margin: 4px 0 8px;
   color: var(--text-secondary, #717178);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
 }
 
 .document-status {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: auto;
-  padding: 12px;
+  max-width: 100%;
+  padding: 8px 10px;
   border-radius: var(--radius-control, 12px);
   color: var(--poliland-green, #355a2c);
   background: var(--status-success-bg, #eaf7ef);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: var(--font-weight-medium, 500);
+  line-height: 1.35;
 }
 
 .document-status ion-icon {
   flex: 0 0 auto;
-  font-size: 19px;
+  font-size: 18px;
+}
+
+.document-status > span {
+  min-width: 0;
 }
 
 .history-heading {
@@ -745,15 +784,23 @@ function goTo(path: string) {
   font-weight: var(--font-weight-semibold, 600);
 }
 
-.logout-row {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.logout-button {
-  --color: var(--text-secondary, #717178);
+.logout-icon-button {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  --color: var(--text-primary, #252525);
+  --background: var(--surface-primary, #fff);
+  --background-hover: var(--surface-muted, #f5f3ee);
+  --background-activated: var(--surface-muted, #f5f3ee);
+  --border-radius: 50%;
+  --border-width: 1px;
+  --border-color: var(--border-default, #eae7e0);
+  --box-shadow: none;
+  --padding-start: 0;
+  --padding-end: 0;
   min-height: 44px;
-  text-transform: none;
+  margin: 0;
+  font-size: 22px;
 }
 
 .dashboard button:focus-visible,
@@ -787,33 +834,32 @@ function goTo(path: string) {
   .heading-icon {
     width: 40px;
     height: 40px;
-    font-size: 20px;
-  }
-
-  .quick-cards {
-    gap: 12px;
+    font-size: 18px;
   }
 
   .quick-card {
-    min-height: 245px;
-    padding: 15px;
+    grid-template-columns: 40px minmax(0, 1fr) 20px;
+    gap: 10px;
   }
 
-  .quick-card h2 {
+  .quick-card-content h2 {
     font-size: 14px;
   }
 
+  .document-status {
+    font-size: 12px;
+  }
   .detail-row {
     align-items: flex-start;
   }
 
   .detail-label,
   .detail-value {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .status-badge {
-    font-size: 11px;
+    font-size: 12px;
     white-space: normal;
     text-align: center;
   }
@@ -824,11 +870,36 @@ function goTo(path: string) {
 
   .total-label {
     gap: 7px;
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .total-box > strong {
     font-size: 14px;
+  }
+
+  .section-heading {
+    gap: 8px;
+  }
+
+  .section-heading .heading-title {
+    flex: 1 1 0;
+    gap: 8px;
+  }
+
+  .section-heading .heading-title > div,
+  .section-heading .heading-title h2 {
+    min-width: 0;
+  }
+
+  .section-heading .heading-title h2 {
+    font-size: 14px;
+  }
+
+  .detail-button {
+    flex: 0 0 auto;
+    font-size: 12px;
+    --padding-start: 7px;
+    --padding-end: 7px;
   }
 }
 

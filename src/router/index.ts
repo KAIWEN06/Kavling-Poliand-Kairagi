@@ -36,6 +36,9 @@ import LainnyaPage from '@/views/marketing/LainnyaPage.vue'
 import MarketingInfoPage from '@/views/marketing/MarketingInfoPage.vue'
 import BerandaClientPage from '@/views/client/BerandaClientPage.vue'
 import PembayaranClientPage from '@/views/client/PembayaranClientPage.vue' 
+import AkunClientPage from '@/views/client/AkunClientPage.vue'
+import DokumenClientPage from '@/views/client/DokumenClientPage.vue'
+import KavlingClientPage from '@/views/client/KavlingClientPage.vue'
 import { setupAuthGuards } from '@/router/guards'
 
 const routes: Array<RouteRecordRaw> = [
@@ -234,6 +237,21 @@ const routes: Array<RouteRecordRaw> = [
   path: '/beranda-client',
   name: 'BerandaClient',
   component: BerandaClientPage,
+  },
+  {
+    path: '/client/kavling',
+    name: 'KavlingClient',
+    component: KavlingClientPage,
+  },
+  {
+    path: '/client/akun',
+    name: 'AkunClient',
+    component: AkunClientPage,
+  },
+  {
+    path: '/client/dokumen',
+    name: 'DokumenClient',
+    component: DokumenClientPage,
   },
   {
     path: '/client/pembayaran',
