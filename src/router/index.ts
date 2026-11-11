@@ -34,7 +34,7 @@ import SPKMarketingPage from '@/views/marketing/SPKMarketingPage.vue'
 import TindakLanjutPage from '@/views/marketing/TindakLanjutPage.vue'
 import LainnyaPage from '@/views/marketing/LainnyaPage.vue'
 import MarketingInfoPage from '@/views/marketing/MarketingInfoPage.vue'
-import BerandaClientPage from '@/views/beranda/BerandaClientPage.vue'
+import BerandaClientPage from '@/views/client/BerandaClientPage.vue'
 import { setupAuthGuards } from '@/router/guards'
 
 const routes: Array<RouteRecordRaw> = [
@@ -230,10 +230,9 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'marketing' },
   },
   {
-    path: '/beranda-client',
-    name: 'BerandaClient',
-    component: BerandaClientPage,
-    meta: { requiresAuth: true, role: 'client' },
+  path: '/berandaclient',
+  name: 'BerandaClient',
+  component: BerandaClientPage,
   },
 
   {

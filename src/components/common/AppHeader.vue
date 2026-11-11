@@ -42,7 +42,7 @@
             </template>
           </div>
 
-
+          
           <!-- NOTIFICATION -->
           <button
             v-if="variant === 'marketing'"
