@@ -280,86 +280,124 @@ The role appearance remains differentiated. Shared implementation uses semantic 
 
 An existing shared tab bar supports public, marketing, and admin variants. Navigation structure, menu count, labels, route targets, and role access must remain distinct. Shared typography, active and inactive state, icon sizing, spacing, radius, safe area, and accessibility can be standardized.
 
-### AppFormSheet — Standar Formulir Bottom Sheet
+### AppModal — Shared Modal Component
 
-Semua interaksi **tambah, edit, ubah, atau perbarui data** menggunakan pola formulir yang konsisten. Pada perangkat mobile, formulir ditampilkan sebagai panel/card yang muncul dari bawah layar (_bottom sheet_), mengikuti pola visual referensi Edit Data Customer.
+`src/components/ui/AppModal.vue` is the shared modal foundation for the application. It uses a Vue-rendered fixed overlay rather than `ion-modal`, following the visual and interaction pattern already used by the Edit Data Customer panel in `AdminPembeliDetail.vue`.
 
-Tujuannya agar pengguna tidak mendapatkan bentuk modal yang berbeda-beda pada setiap halaman atau role.
+Use this component for form sheets, compact dialogs, and full-screen modal flows. Pages provide their own form content and business logic through slots; the shared component owns the overlay, panel, header, footer, transitions, focus behavior, and page scroll lock.
 
-#### Kapan digunakan
+#### Variants
 
-Gunakan `AppFormSheet` untuk:
+| Variant        | Intended use                            | Mobile behavior                                 | Desktop behavior                    |
+| -------------- | --------------------------------------- | ----------------------------------------------- | ----------------------------------- |
+| `bottom-sheet` | Add, edit, and update forms             | Anchored to the bottom with rounded top corners | Centered panel, maximum width 560px |
+| `dialog`       | Short confirmations and focused actions | Centered panel                                  | Centered panel                      |
+| `fullscreen`   | Complex or space-intensive flows        | Fills the viewport                              | Fills the viewport                  |
 
-- Menambahkan data baru.
-- Mengedit data yang sudah ada.
-- Mengubah informasi atau pengaturan suatu data.
-- Formulir CRUD yang dapat diselesaikan dalam satu alur.
+#### Props
 
-Jangan gunakan bottom sheet formulir untuk:
+| Prop              | Type                                                   | Default        | Purpose                                             |
+| ----------------- | ------------------------------------------------------ | -------------- | --------------------------------------------------- |
+| `modelValue`      | `boolean`                                              | Required       | Controls visibility with `v-model`                  |
+| `title`           | `string`                                               | `''`           | Visible heading and accessible dialog label         |
+| `ariaLabel`       | `string`                                               | `'Dialog'`     | Accessible name when no title is supplied           |
+| `variant`         | `bottom-sheet \| dialog \| fullscreen`                 | `bottom-sheet` | Modal layout                                        |
+| `showHeader`      | `boolean`                                              | `true`         | Shows the header region                             |
+| `showClose`       | `boolean`                                              | `true`         | Shows the close control in the default header       |
+| `showDivider`     | `boolean`                                              | `true`         | Shows the divider below the header                  |
+| `showFooter`      | `boolean`                                              | `true`         | Shows the footer region                             |
+| `showCancel`      | `boolean`                                              | `true`         | Shows the default cancel button                     |
+| `showConfirm`     | `boolean`                                              | `true`         | Shows the default confirmation button               |
+| `cancelText`      | `string`                                               | `'Batal'`      | Default cancel label                                |
+| `confirmText`     | `string`                                               | `'Simpan'`     | Default confirmation label                          |
+| `confirmVariant`  | `primary \| secondary \| success \| danger \| neutral` | `primary`      | AppButton variant for confirmation                  |
+| `loading`         | `boolean`                                              | `false`        | Disables closing and displays confirm loading state |
+| `confirmDisabled` | `boolean`                                              | `false`        | Disables the confirmation button                    |
+| `closeOnBackdrop` | `boolean`                                              | `true`         | Allows backdrop click to request close              |
+| `closeOnEscape`   | `boolean`                                              | `true`         | Allows Escape to request close                      |
+| `maxWidth`        | `string`                                               | `560px`        | Maximum panel width                                 |
+| `maxHeight`       | `string`                                               | `90dvh`        | Maximum panel height                                |
 
-- Konfirmasi singkat seperti hapus data atau membatalkan tindakan. Gunakan `ConfirmDialog`.
-- Informasi detail yang hanya dibaca. Gunakan halaman atau panel detail yang sesuai.
-- Alur panjang, bertahap, atau formulir kompleks yang membutuhkan banyak ruang. Gunakan halaman khusus agar pengguna tidak harus mengisi formulir di area yang terlalu sempit.
+#### Slots
 
-#### Struktur visual wajib
+- Default slot: modal body content.
+- `header`: replaces the default title and close-control layout.
+- `footer`: replaces the default cancel and confirm buttons.
 
-Urutan struktur pada bottom sheet:
+When a custom footer is supplied, the page is responsible for its button actions and loading/disabled presentation.
 
-1. **Backdrop** — halaman di belakang diberi overlay gelap agar fokus pengguna tertuju pada formulir.
-2. **Sheet container** — panel berwarna `--surface-primary`, menempel pada sisi bawah viewport, memenuhi lebar layar, dan memiliki sudut atas membulat.
-3. **Header** — judul tindakan di sebelah kiri dan tombol tutup di sebelah kanan.
-4. **Divider** — garis pemisah halus antara header dan isi formulir.
-5. **Form body** — label, input, textarea, select, helper text, dan pesan validasi disusun vertikal.
-6. **Action footer** — tombol Batal dan tombol aksi utama, misalnya Simpan Perubahan, berada di bagian bawah sheet.
+#### Events
 
-#### Aturan tampilan mobile
+| Event               | Payload                                        | Behavior                                                |
+| ------------------- | ---------------------------------------------- | ------------------------------------------------------- |
+| `update:modelValue` | `boolean`                                      | Supports `v-model` visibility                           |
+| `confirm`           | none                                           | Emitted when the default confirmation button is clicked |
+| `cancel`            | none                                           | Emitted when the default cancel button is clicked       |
+| `close`             | `close-button \| cancel \| backdrop \| escape` | Reports why a close was requested                       |
 
-- Sheet muncul dari bawah layar dengan animasi singkat dan halus.
-- Lebar sheet `100%`; posisinya menempel pada bagian bawah viewport.
-- Sudut kiri dan kanan bagian atas menggunakan `--radius-panel` (`20px`).
-- Tinggi mengikuti isi formulir, tetapi dibatasi maksimal sekitar `90dvh` agar header dan konteks layar tetap terasa.
-- Gunakan `--surface-primary` untuk latar sheet, `--text-primary` untuk judul dan isi, serta `--border-default` untuk divider dan batas kontrol.
-- Gunakan padding horizontal yang konsisten, direkomendasikan `16px`.
-- Judul menggunakan Plus Jakarta Sans, weight `700` atau `600`, dengan ukuran sekitar `18–20px`.
-- Tombol tutup memiliki target sentuh minimal `44 × 44px`, latar `--surface-muted`, dan nama aksesibel seperti `Tutup formulir`.
-- Label selalu berada di atas input. Jangan mengandalkan placeholder sebagai pengganti label.
-- Jarak antar-field harus konsisten. Kelompok field yang berkaitan boleh didekatkan, tetapi tetap memiliki pemisahan visual yang jelas.
-- Input dan textarea menggunakan standar `AppInput` atau komponen form bersama yang sudah ditetapkan.
-- Footer memiliki latar `--surface-primary`, dua tombol berdampingan dengan tinggi minimum `44px`, dan jarak yang konsisten.
-- Tombol **Batal** menggunakan gaya `neutral` atau `outline`; tombol aksi utama menggunakan `primary`.
-- Footer harus memperhitungkan `env(safe-area-inset-bottom)` agar tidak bertabrakan dengan indikator Home perangkat.
-- Jika isi formulir lebih tinggi daripada ruang yang tersedia, hanya area form body yang dapat digulir. Header dan footer tetap terlihat.
-- Saat keyboard virtual terbuka, field aktif harus tetap dapat terlihat dan footer tidak boleh menutupi input yang sedang digunakan.
+The component does not own form submission or data persistence. The parent page handles validation, API/Supabase operations, success notifications, and error messages. Keep the modal open when saving fails.
 
-#### Aturan tampilan desktop dan tablet
+#### Usage example
 
-- Pertahankan pola header, body, field, dan footer yang sama.
-- Pada viewport yang cukup lebar, tampilkan sebagai dialog terpusat dengan lebar maksimum yang wajar (direkomendasikan `560px`), bukan panel yang melebar memenuhi seluruh layar.
-- Backdrop, hierarki tombol, radius, tipografi, dan jarak tetap mengikuti standar bottom sheet mobile.
-- Jangan membuat desain formulir baru hanya karena perangkat menggunakan pointer atau layar lebih besar.
+```vue
+<AppModal
+  v-model="editModalOpen"
+  title="Edit data customer"
+  variant="bottom-sheet"
+  :loading="saving"
+  confirm-text="Simpa"
+  @confirm="saveCustomer"
+>
+  <form class="customer-form" @submit.prevent="saveCustomer">
+    <!-- Page-specific fields -->
+  </form>
+</AppModal>
+```
 
-#### Perilaku dan interaksi
+For forms that use native form submission, prefer a custom footer slot and a submit button associated with the form, or keep the submit action in the body. Do not nest a `<form>` inside another `<form>`.
 
-- Judul harus menyebutkan tindakan dan objek secara jelas, misalnya `Edit data customer`, `Tambah data kavling`, atau `Ubah informasi pembayaran`.
-- Teks tombol utama harus sesuai tindakan: `Simpan Perubahan`, `Tambah Data`, atau label spesifik lainnya.
-- Tombol Batal dan tombol tutup membatalkan proses tanpa menyimpan perubahan.
-- Jika formulir sudah berubah (_dirty state_), meminta pengguna mengonfirmasi sebelum menutup melalui backdrop, tombol tutup, atau tombol Batal. Jangan membuang perubahan secara diam-diam.
-- Ketika proses simpan berlangsung, cegah pengiriman berulang, tampilkan loading pada tombol utama, dan pertahankan nilai formulir.
-- Setelah berhasil, tutup sheet dan tampilkan notifikasi keberhasilan menggunakan pola notifikasi aplikasi yang sudah ada.
-- Jika gagal, sheet tetap terbuka, nilai yang sudah diisi tidak hilang, dan pesan kesalahan ditampilkan secara jelas.
-- Validasi ditampilkan dekat field terkait. Field yang salah diberi `aria-invalid` dan pesan error yang terhubung melalui `aria-describedby`.
-- Fokus keyboard diarahkan ke formulir saat dibuka, dibatasi di dalam dialog selama terbuka, lalu dikembalikan ke elemen pemicu setelah ditutup.
-- Mendukung tombol Escape pada keyboard. Penutupan tetap harus mengikuti aturan konfirmasi ketika terdapat perubahan yang belum disimpan.
-- Saat sheet terbuka, scrolling halaman di belakang harus dikunci.
+A confirmation dialog can use:
 
-#### Konsistensi implementasi
+```vue
+<AppModal
+  v-model="deleteModalOpen"
+  title="Hapus data?"
+  variant="dialog"
+  confirm-text="Hapus"
+  confirm-variant="danger"
+  @confirm="deleteRecord"
+>
+  Yakin ingin menghapus data ini?
+</AppModal>
+```
 
-- Gunakan satu komponen pembungkus bersama, direkomendasikan bernama `AppFormSheet`, untuk seluruh halaman dan role.
-- Halaman hanya memasok judul, konten/form fields, label tombol, status loading, validasi, dan handler tindakan. Halaman tidak membuat overlay, radius, animasi, atau footer modal sendiri-sendiri.
-- Komponen form di dalam sheet tetap menggunakan komponen bersama seperti `AppInput`, `AppButton`, dan komponen select/textarea yang tersedia.
-- Jangan menyalin CSS modal ke setiap halaman.
-- Perbedaan antar-role hanya boleh berasal dari kebutuhan field, hak akses, dan alur bisnis. Pola visual dan perilaku sheet harus tetap sama.
-- Jika implementasi saat ini belum memiliki `AppFormSheet`, bagian ini adalah standar yang harus diterapkan; dokumentasi ini tidak menyatakan bahwa komponennya sudah tersedia.
+#### Visual rules
+
+- Use the existing semantic tokens: `--surface-primary`, `--surface-muted`, `--text-primary`, `--border-default`, `--radius-panel`, `--radius-control`, and `--poliland-green`.
+- Bottom sheet mobile layout is full width, anchored to the viewport bottom, with top corners using `--radius-panel`.
+- Header title uses Plus Jakarta Sans, 18–20px, semibold or bold.
+- Close control has a minimum 44 × 44px touch target.
+- Body is the only scrollable region when content exceeds available height.
+- Default footer uses two equal-width actions with a minimum 44px touch target.
+- Footer accounts for `env(safe-area-inset-bottom)`.
+- Desktop bottom sheets become centered panels with a maximum width of 560px.
+- Reduced-motion preferences must be respected.
+- Avoid page-specific copies of overlay, panel, header, footer, transition, or backdrop CSS.
+
+#### Behavior and accessibility
+
+- The component locks background page scrolling while open and restores the previous body styles on close.
+- Focus moves into the dialog when opened, remains trapped while navigating with Tab, and returns to the previously focused element when closed.
+- Escape and backdrop interactions request closing according to their respective props.
+- Closing is blocked while `loading` is true.
+- Every modal must have an accessible name through `title` or `ariaLabel`.
+- Form labels, field validation, and error descriptions remain the responsibility of the page and its form controls.
+- The parent page must handle unsaved-change confirmation when necessary; do not silently discard a dirty form.
+- Do not put business logic, Supabase queries, routing, or page-specific field definitions inside `AppModal.vue`.
+
+#### Migration rule
+
+Use `AppModal` for new modal work. Migrate existing modals incrementally after checking their current behavior. Do not migrate all pages in one change, and do not remove an existing implementation until the replacement has been tested on mobile and desktop.
 
 ## 15. Role-specific UI Rules
 
@@ -501,3 +539,224 @@ Supported source keys include:
 The page renders loading, unavailable, and loading-error states. Contact and social cards are rendered only when their stored values are usable. A telephone link is created only for a stored telephone value. A WhatsApp link is created only when a stored number can be normalized. Email is shown only when a stored email value is available.
 
 Social profile values must be complete HTTP or HTTPS URLs. Addresses become a Google Maps search only when a `maps_url` is not stored. If neither a valid map URL nor address is available, the location card does not render a dead action.
+
+## 21. Data Integrity & Activity Audit Rules
+
+### 21.1 General Audit Requirements
+
+Every successful data mutation performed through the application must be recorded when the entity is covered by an activity audit system.
+
+The application must maintain reliable audit records for:
+
+- INSERT: New records created.
+- UPDATE: Existing records modified.
+- DELETE: Records permanently deleted.
+- Relevant file operations, including upload, replacement, and deletion.
+
+Audit records must reflect successful database operations only. Failed, rejected, cancelled, or rolled-back operations must not produce successful activity records.
+
+### 21.2 Lot Activity Audit — PoliLand
+
+The `lots` table must use `public.lot_activity_logs` as its audit history source.
+
+Every successful INSERT, UPDATE, and DELETE operation on `public.lots` must be recorded automatically through PostgreSQL triggers.
+
+Do not rely exclusively on frontend code to create audit records. Database-level triggers must be the primary source of truth for lot data changes.
+
+#### INSERT Rules
+
+When a new lot is created:
+
+- Record the action as `INSERT`.
+- Record the authenticated user's ID.
+- Record the new lot ID and lot number.
+- Preserve the complete new record in `new_value`.
+- Record the creation timestamp.
+- Do not create a log if the transaction fails or rolls back.
+
+#### UPDATE Rules
+
+When an existing lot is updated:
+
+- Record the action as `UPDATE`.
+- Detect actual field-level changes using `IS DISTINCT FROM`.
+- Ignore fields whose values have not changed.
+- Store the previous value in `old_value`.
+- Store the updated value in `new_value`.
+- Store the affected column in `field_name`.
+- Record the authenticated user's ID.
+- Record the lot ID, lot number, and timestamp.
+- Multiple changed fields may produce multiple audit entries for one update operation.
+
+The following lot fields must be monitored:
+
+- `lot_number`
+- `polygon_id`
+- `block_id`
+- `dimension`
+- `area`
+- `cash_price`
+- `promo_price`
+- `status`
+- `payment_type`
+- `customer_id`
+- `booking_date`
+- `sold_date`
+- `color`
+- `description`
+- `panorama_url`
+- `panorama_boundary`
+
+All new business-related fields added to `lots` must be evaluated and included in the audit configuration when relevant.
+
+#### DELETE Rules
+
+When a lot is permanently deleted:
+
+- Record the action as `DELETE`.
+- Preserve the complete deleted record in `old_value`.
+- Store the deleted lot ID and lot number in `metadata`.
+- Record the authenticated user's ID.
+- Preserve the audit record after the original lot is deleted.
+- Use `ON DELETE SET NULL` for the `lot_id` foreign key so deleting a lot does not delete its audit history.
+
+Never cascade-delete lot audit records when deleting a lot.
+
+### 21.3 Authenticated User Attribution
+
+Every audit entry must identify the user responsible for the operation whenever an authenticated user context is available.
+
+Use Supabase Auth `auth.uid()` as the authoritative source of the acting user's ID.
+
+Rules:
+
+- Never accept the acting user's ID directly from an untrusted frontend payload.
+- Do not use a hardcoded user ID.
+- Do not infer the actor from the lot owner, customer, or marketing assignment.
+- Store the actor in `lot_activity_logs.user_id`.
+- Resolve the actor's display name from `public.profiles` when displaying the history.
+- Handle missing or deleted profiles without breaking the history display.
+
+Operations executed through service-role credentials or background processes without a user authentication context must not be falsely attributed to an Admin. Their actor may be NULL or identified through a separately documented system-actor mechanism.
+
+### 21.4 Excluded Transaction Events
+
+The lot activity history must not duplicate the dedicated transaction history.
+
+The following transaction-related events must remain in their respective transaction records and must not be presented as ordinary lot data changes:
+
+- Booking creation and cancellation.
+- Payment creation and confirmation.
+- Installment payment updates.
+- Sale completion.
+- Transaction cancellation.
+- Customer payment status changes.
+
+If these processes update fields in `lots`, the audit implementation must distinguish transaction-driven changes from ordinary administrative edits.
+
+Do not silently exclude all `status` changes. Preserve legitimate administrative status changes and document how transaction-driven changes are identified.
+
+### 21.5 Panorama and Storage Audit
+
+Each lot has one 360-degree panorama referenced by `lots.panorama_url`.
+
+Panorama operations must be audited:
+
+- First panorama upload.
+- Panorama replacement.
+- Panorama deletion.
+- Panorama boundary changes.
+
+Rules:
+
+- A successful upload must be followed by a successful database update of `panorama_url`.
+- Use a unique Storage object path when replacing a panorama so that the new file can be distinguished from the previous file.
+- Record the old and new panorama references.
+- Clear `panorama_url` when a panorama is removed.
+- Do not delete the previous file until the database update succeeds.
+- If the database update fails after uploading a new file, perform appropriate cleanup or retain the file for recovery.
+- If Storage deletion fails, do not report the entire deletion workflow as successful.
+- Do not assume PostgreSQL triggers on `lots` automatically detect file changes in Supabase Storage.
+
+Storage operations must be coordinated through an application service or another explicitly implemented audit mechanism.
+
+### 21.6 Audit Reliability and Atomicity
+
+Audit logging must be reliable and consistent.
+
+Rules:
+
+- Use PostgreSQL triggers for database-level lot auditing.
+- Audit insertion must occur in the same database transaction as the original lot operation.
+- If audit insertion fails, the corresponding lot mutation must fail rather than silently losing the audit record.
+- Do not catch and suppress audit insertion errors.
+- Do not create duplicate audit entries through simultaneous frontend and database-trigger logging.
+- Do not allow ordinary authenticated users to directly INSERT, UPDATE, or DELETE audit records.
+- Restrict audit table access through appropriate Supabase grants and Row Level Security policies.
+- Ensure trigger functions use a controlled `search_path` and appropriately restricted ownership and privileges.
+- Review foreign key behavior so audit records survive lot deletion.
+
+### 21.7 Audit History Display
+
+The Admin lot detail page must display audit records in the `Riwayat Perubahan` tab.
+
+The history interface must:
+
+- Display the acting user's name.
+- Display the action type.
+- Display the affected field when applicable.
+- Display old and new values in a human-readable format.
+- Display the date and time.
+- Support INSERT, UPDATE, and DELETE records.
+- Display deleted lot information even when `lot_id` is NULL.
+- Handle empty, loading, and error states.
+- Sort records by `created_at` descending by default.
+
+Use Indonesian labels for user-facing descriptions.
+
+Examples:
+
+- `Kavling LOT-001 ditambahkan`
+- `Harga tunai diubah dari Rp250.000.000 menjadi Rp275.000.000`
+- `Luas kavling diubah dari 120 m² menjadi 130 m²`
+- `Panorama 360° diperbarui`
+- `Kavling LOT-001 dihapus`
+
+Do not display raw JSON, internal database column names, or Storage object paths directly to users.
+
+### 21.8 Audit Data Protection
+
+Activity audit records are historical evidence and must be treated as append-only data.
+
+Rules:
+
+- No ordinary application workflow may edit or delete existing audit records.
+- Do not expose audit mutation operations in the frontend.
+- Restrict audit history access to authorized roles.
+- Do not expose sensitive customer information unnecessarily in old or new JSON values.
+- Review retention and backup policies before introducing any audit cleanup mechanism.
+
+### 21.9 Development and Verification Requirements
+
+Before completing any feature that modifies lots, verify:
+
+1. INSERT creates exactly one creation audit entry.
+2. UPDATE records only fields that actually changed.
+3. UPDATE with no actual changes creates no audit entry.
+4. Multiple changed fields produce the expected field-level entries.
+5. DELETE preserves the complete deleted record in audit history.
+6. Audit records remain available after the original lot is deleted.
+7. The correct authenticated Admin is recorded.
+8. Failed database operations do not create successful audit entries.
+9. Transaction-related changes are not incorrectly duplicated in `Riwayat Perubahan`.
+10. Panorama upload, replacement, and deletion are handled consistently.
+11. Unauthorized users cannot manipulate audit records.
+12. Existing lot creation, editing, deletion, transaction, and panorama workflows continue to work.
+
+Before modifying existing implementation:
+
+- Inspect the existing database schema, triggers, services, and page workflows.
+- Preserve existing functionality and business rules.
+- Avoid duplicate triggers and duplicate audit services.
+- Do not assume a field or database relationship exists without checking the actual schema.
+- Run production build, TypeScript validation, and `git diff --check` after implementation.
