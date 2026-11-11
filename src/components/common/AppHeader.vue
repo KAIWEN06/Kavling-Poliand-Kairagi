@@ -60,12 +60,37 @@
 
       </template>
 
+      <!-- CLIENT HEADER -->
+<template v-if="variant === 'client'">
+  <div class="marketing-header">
+    <button
+      v-if="showBack"
+      type="button"
+      class="back-button"
+      aria-label="Kembali"
+      @click="goBack"
+    >
+      <ion-icon :icon="arrowBackOutline" />
+    </button>
+
+    <div class="marketing-title">
+      <img
+        src="@/assets/icons/icons.png"
+        alt=""
+        aria-hidden="true"
+        class="marketing-brand-mark"
+      />
+      <span>{{ title }}</span>
+    </div>
+  </div>
+</template>
+
 
       <!-- =================================================
            DEFAULT HEADER
            ================================================= -->
 
-      <template v-else>
+      <template v-if="variant === 'default'">
 
         <div class="header-content">
 
@@ -165,7 +190,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 const props = withDefaults(
   defineProps<{
-    variant?: 'default' | 'marketing' | 'admin'
+    variant?: 'default' | 'marketing' | 'admin' | 'client'
     title?: string
     showBack?: boolean
     backRoute?: string
