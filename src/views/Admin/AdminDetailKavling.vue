@@ -175,62 +175,72 @@
                   <strong>Panorama 360° belum tersedia</strong>
                 </div>
               <div class="panorama-actions">
-                <AppButton v-if="lot.panorama_url" variant="neutral" fill="outline" @click="openPanorama">Lihat</AppButton>
-                <AppButton variant="primary" @click="panoramaModalOpen = true"><ion-icon :icon="createOutline" slot="start" />{{ lot.panorama_url ? 'Ubah' : 'Tambahkan Panorama' }}</AppButton>
-                <AppButton v-if="lot.panorama_url" variant="danger" fill="outline" @click="removePanorama"><ion-icon :icon="trashOutline" slot="start" />Hapus</AppButton>
+                 <AppButton v-if="lot.panorama_url" variant="neutral" fill="outline" @click="openPanorama">Lihat</AppButton>
+                 <AppButton variant="primary" @click="panoramaModalOpen = true"><ion-icon :icon="createOutline" slot="start" />{{ lot.panorama_url ? 'Ubah' : 'Tambahkan' }}</AppButton>
+                 <AppButton v-if="lot.panorama_url" variant="danger" fill="outline" @click="removePanorama"><ion-icon :icon="trashOutline" slot="start" />Hapus</AppButton>
               </div>
             </article>
           </section>
 
           <section v-else class="tab-content">
             <article class="panel">
-              <h2>Aktivitas Kaveling</h2>
-              <div v-if="historyLoading" class="inline-state"><ion-spinner name="crescent" /> Memuat riwayat...</div>
-              <div v-else-if="!transactions.length && !payments.length" class="empty-inline history-empty">
-                <img :src="emptyReceiptMascot" alt="Ilustrasi kuitansi dan koin kosong" />
-                <span>Belum ada riwayat transaksi atau pembayaran.</span>
+              <div class="section-heading audit-heading">
+                <div>
+                  <h2>Riwayat Perubahan</h2>
+                  <p class="audit-subtitle">Catatan perubahan informasi kavling oleh Admin.</p>
+                </div>
               </div>
-              <div v-else class="timeline">
-                <template v-for="transaction in transactions" :key="`t-${transaction.id}`">
-                  <div class="timeline-item">
-                    <span class="timeline-dot"></span>
-                    <div>
-                      <strong>Transaksi Booking</strong>
-                      <span>{{ formatDate(transaction.booking_date) }} · {{ transaction.customer_name || 'Customer' }}</span>
-                      <b>{{ rupiah(BOOKING_FEE_FIXED) }}</b>
-                      <small>
-                        Biaya Booking ·
-                        {{ getBookingPaid(transaction.id) >= BOOKING_FEE_FIXED
-                          ? 'Lunas dan dikonfirmasi'
-                          : `Belum lunas · Terbayar ${rupiah(getBookingPaid(transaction.id))}` }}
-                      </small>
+
+              <div v-if="historyLoading" class="inline-state" role="status">
+                <ion-spinner name="crescent" /> Memuat riwayat perubahan...
+              </div>
+
+              <div v-else-if="historyError" class="empty-inline" role="alert">
+                <ion-icon :icon="alertCircleOutline" />
+                <span>{{ historyError }}</span>
+                <AppButton variant="neutral" fill="outline" size="small" @click="loadActivityLogs">
+                  Coba Lagi
+                </AppButton>
+              </div>
+
+              <div v-else-if="!activityLogs.length" class="empty-inline history-empty">
+                <img :src="emptyReceiptMascot" alt="Belum ada catatan perubahan" />
+                <strong>Belum ada riwayat perubahan</strong>
+                <span>Perubahan informasi kavling akan tercatat di sini secara otomatis.</span>
+              </div>
+
+              <div v-else class="timeline audit-timeline">
+                <div
+                  v-for="log in activityLogs"
+                  :key="log.id"
+                  class="timeline-item audit-item"
+                >
+                  <span :class="['timeline-dot', `audit-${log.action.toLowerCase()}`]"></span>
+                  <div class="audit-content">
+                    <div class="audit-title-row">
+                      <strong>{{ auditTitle(log) }}</strong>
+                      <span class="audit-action">{{ auditActionLabel(log.action, log) }}</span>
                     </div>
-                  </div>
-                  <div v-if="transaction.status === 'Sold'" class="timeline-item">
-                    <span class="timeline-dot"></span>
-                    <div>
-                      <strong>Transaksi Sold</strong>
-                      <span>{{ formatDate(transaction.booking_date) }} · {{ transaction.customer_name || 'Customer' }}</span>
-                      <b>{{ rupiah(transaction.final_price) }}</b>
-                      <small>{{ transaction.payment_type === 'Installment' ? 'Penjualan · Cicilan' : 'Penjualan · Tunai' }}</small>
+                    <span class="audit-actor">{{ log.actor_name || 'Admin tidak diketahui' }}</span>
+
+                    <div v-if="log.action === 'UPDATE'" class="audit-change">
+                      <span class="audit-field">{{ auditFieldLabel(log.field_name) }}</span>
+                      <div class="audit-values">
+                        <span class="audit-old">{{ formatAuditValue(log.field_name, log.old_value) }}</span>
+                        <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
+                        <strong class="audit-new">{{ formatAuditValue(log.field_name, log.new_value) }}</strong>
+                      </div>
                     </div>
-                  </div>
-                </template>
-                <div v-for="payment in payments" :key="`p-${payment.id}`" class="timeline-item">
-                  <span class="timeline-dot payment"></span>
-                  <div>
-                    <strong>
-                      {{ payment.status === 'Confirmed'
-                        ? 'Pembayaran diterima'
-                        : payment.status === 'Pending'
-                          ? 'Menunggu konfirmasi'
-                          : payment.status === 'Rejected'
-                            ? 'Pembayaran ditolak'
-                            : 'Status pembayaran tidak diketahui' }}
-                    </strong>
-                    <span>{{ formatDate(payment.payment_date) }} · {{ payment.payment_method || 'Metode tidak dicatat' }}</span>
-                    <b>{{ rupiah(payment.amount) }}</b>
-                    <small>{{ payment.payment_category || 'Kategori belum ditentukan' }} · {{ payment.note || 'Tidak ada catatan' }}</small>
+
+                    <div v-else-if="log.action === 'INSERT'" class="audit-detail">
+                      Kavling baru ditambahkan ke sistem.
+                    </div>
+
+                    <div v-else-if="log.action === 'DELETE'" class="audit-detail">
+                      Data kavling dihapus. Snapshot data sebelum penghapusan tersimpan pada log audit.
+                    </div>
+
+                    <span class="audit-date">{{ formatAuditDateTime(log.created_at) }}</span>
                   </div>
                 </div>
               </div>
@@ -306,11 +316,13 @@
         id="lot-price-value"
         v-model="priceDraft.value"
         class="form-control"
-        type="number"
-        min="0"
+        type="text"
         inputmode="numeric"
+        autocomplete="off"
         placeholder="Contoh: 425000000"
+        @input="sanitizePriceInput"
       />
+      <p class="helper-note">Nominal diformat otomatis dengan pemisah ribuan, misalnya 425.000.000.</p>
     </AppModal>
 
     <AppModal
@@ -319,7 +331,7 @@
       variant="bottom-sheet"
       :loading="saving"
       :confirm-disabled="!planDraft.plan_id"
-      confirm-text="Tambahkan Skema"
+      confirm-text="Tambahkan"
       @confirm="addInstallment"
     >
       <label class="field-label" for="installment-plan">Pilih skema</label>
@@ -353,20 +365,29 @@
       title="Panorama 360°"
       variant="bottom-sheet"
       :loading="saving"
-      confirm-text="Simpan Panorama"
+      confirm-text="Simpan"
       @confirm="savePanorama"
     >
-      <label class="field-label" for="panorama-url">URL Panorama</label>
+      <label class="field-label" for="panorama-file">File Panorama 360°</label>
       <input
-        id="panorama-url"
-        v-model="panoramaDraft"
+        id="panorama-file"
+        ref="panoramaFileInput"
         class="form-control"
-        type="url"
-        placeholder="https://..."
+        type="file"
+        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+        @change="handlePanoramaFile"
       />
       <p class="helper-note">
-        Masukkan URL publik file panorama equirectangular (rasio 2:1).
-        Pastikan file dapat diakses oleh aplikasi.
+        Pilih gambar panorama equirectangular dengan rasio 2:1.
+        File akan diunggah ke Supabase Storage bucket lot-media dan URL-nya disimpan otomatis.
+      </p>
+      <div v-if="panoramaSelectedFile" class="selected-file">
+        <ion-icon :icon="imageOutline" aria-hidden="true" />
+        <span>{{ panoramaSelectedFile.name }}</span>
+        <small>{{ formatFileSize(panoramaSelectedFile.size) }}</small>
+      </div>
+      <p v-if="lot?.panorama_url" class="helper-note">
+        Panorama saat ini sudah tersimpan. Memilih file baru akan menggantinya.
       </p>
     </AppModal>
 
@@ -430,6 +451,20 @@ interface PaymentRow {
   status: 'Pending' | 'Confirmed' | 'Rejected' | string
   created_at: string
 }
+
+interface ActivityLogRow {
+  id: number
+  lot_id: number | null
+  user_id: string | null
+  action: 'INSERT' | 'UPDATE' | 'DELETE' | string
+  field_name: string | null
+  old_value: unknown
+  new_value: unknown
+  description: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+  actor_name?: string | null
+}
 const route = useRoute()
 const router = useRouter()
 const lotId = computed(() => Number(route.params.id))
@@ -454,11 +489,14 @@ const statusDraft = ref('Available')
 const editDraft = reactive({ lot_number: '', dimension: '', area: '', description: '' })
 const priceDraft = reactive<{ type: 'cash' | 'promo'; value: string }>({ type: 'cash', value: '' })
 const planDraft = reactive({ plan_id: '', monthly_payment: '' })
-const panoramaDraft = ref('')
+const panoramaFileInput = ref<HTMLInputElement | null>(null)
+const panoramaSelectedFile = ref<File | null>(null)
 const installments = ref<InstallmentRow[]>([])
 const availablePlans = ref<PlanRow[]>([])
 const transactions = ref<TransactionRow[]>([])
 const payments = ref<PaymentRow[]>([])
+const activityLogs = ref<ActivityLogRow[]>([])
+const historyError = ref('')
 const installmentsLoading = ref(false)
 const historyLoading = ref(false)
 const toast = reactive<{ open: boolean; message: string; color: 'success' | 'danger' | 'warning' }>({
@@ -483,7 +521,22 @@ const blockLabel = computed(() => {
   return String(block.name || block.code || block.title || block.label || lot.value?.block_id || '-')
 })
 const hasPromo = computed(() => Number(lot.value?.promo_price || 0) > 0 && Number(lot.value?.promo_price) < Number(lot.value?.cash_price || 0))
-const paymentTypeLabel = computed(() => lot.value?.payment_type === 'Installment' ? 'Cicilan' : lot.value?.payment_type === 'Cash' ? 'Tunai' : '-')
+const paymentTypeLabel = computed(() => {
+  const status = effectiveStatus.value.toLowerCase()
+
+  // Jenis pembayaran hanya relevan setelah kavling memiliki transaksi aktif.
+  // Jangan membaca lots.payment_type karena nilainya bisa merupakan data lama/default.
+  if (!['booking', 'booked', 'sold', 'terjual'].includes(status)) return '-'
+
+  const transactionStatus = ['booking', 'booked'].includes(status) ? 'Booking' : 'Sold'
+  const activeTransaction = transactions.value.find(
+    (transaction) => transaction.status === transactionStatus,
+  )
+
+  if (activeTransaction?.payment_type === 'Installment') return 'Cicilan'
+  if (activeTransaction?.payment_type === 'Cash') return 'Tunai'
+  return '-'
+})
 const availablePrice = computed(() => Number(lot.value?.promo_price || lot.value?.cash_price || 0))
 const lotCustomer = computed(() => {
   const customer = Array.isArray(lot.value?.customer) ? lot.value.customer[0] : lot.value?.customer
@@ -553,7 +606,8 @@ async function loadDetail() {
     editDraft.dimension = lot.value.dimension || ''
     editDraft.area = lot.value.area == null ? '' : String(lot.value.area)
     editDraft.description = lot.value.description || ''
-    panoramaDraft.value = lot.value.panorama_url || ''
+    panoramaSelectedFile.value = null
+    if (panoramaFileInput.value) panoramaFileInput.value.value = ''
     await Promise.all([loadInstallments(), loadHistory()])
   } catch (error) {
     console.error('[AdminKavlingDetail] Gagal memuat:', error)
@@ -582,9 +636,9 @@ function getBookingPaid(transactionId: number): number {
 async function loadHistory() {
   if (!lot.value) return
 
-  historyLoading.value = true
+  // Riwayat transaksi tetap dimuat untuk kebutuhan informasi transaksi,
+  // tetapi tidak ditampilkan pada tab Riwayat Perubahan.
   try {
-    // Pembayaran terhubung ke transaksi, bukan langsung ke ID kavling.
     const tx = await lotService.getLotTransactions(lot.value.id)
     transactions.value = tx
 
@@ -607,12 +661,195 @@ async function loadHistory() {
         return dateB - dateA
       })
   } catch (error) {
-    console.error('Gagal memuat riwayat:', error)
+    console.error('[AdminKavlingDetail] Gagal memuat data transaksi:', error)
+    transactions.value = []
     payments.value = []
+  }
+
+  await loadActivityLogs()
+}
+
+async function loadActivityLogs() {
+  if (!lot.value) return
+
+  historyLoading.value = true
+  historyError.value = ''
+
+  try {
+    const { data, error } = await supabase
+      .from('lot_activity_logs')
+      .select('id, lot_id, user_id, action, field_name, old_value, new_value, description, metadata, created_at')
+      .eq('lot_id', lot.value.id)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    const rows = (data ?? []) as ActivityLogRow[]
+    const userIds = [...new Set(rows.map((row) => row.user_id).filter((id): id is string => Boolean(id)))]
+
+    let profileMap = new Map<string, string>()
+
+    if (userIds.length) {
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds)
+
+      if (profileError) {
+        // Riwayat tetap dapat dibaca meskipun nama profil tidak dapat dimuat.
+        console.warn('[AdminKavlingDetail] Nama Admin tidak dapat dimuat:', profileError)
+      } else {
+        profileMap = new Map<string, string>(
+          (profiles ?? []).map((profile) => [profile.id, profile.full_name || 'Admin'] as [string, string])
+        )
+      }
+    }
+
+    activityLogs.value = rows.map((row) => ({
+      ...row,
+      actor_name: row.user_id ? profileMap.get(row.user_id) ?? null : null,
+    }))
+  } catch (error) {
+    console.error('[AdminKavlingDetail] Gagal memuat riwayat perubahan:', error)
+    activityLogs.value = []
+    historyError.value = errorText(error)
   } finally {
     historyLoading.value = false
   }
 }
+
+function auditActionLabel(action: string, log?: ActivityLogRow) {
+  if (log?.field_name === 'installment_scheme') {
+    const operation = String(log.metadata?.source_operation || '').toUpperCase()
+    if (operation === 'INSERT') return 'Ditambahkan'
+    if (operation === 'DELETE') return 'Dihapus'
+    return 'Diubah'
+  }
+
+  const labels: Record<string, string> = {
+    INSERT: 'Dibuat',
+    UPDATE: 'Diubah',
+    DELETE: 'Dihapus',
+  }
+  return labels[action] || action
+}
+
+function auditTitle(log: ActivityLogRow) {
+  if (log.field_name === 'installment_scheme') {
+    const operation = String(log.metadata?.source_operation || '').toUpperCase()
+    if (operation === 'INSERT') return 'Skema cicilan ditambahkan'
+    if (operation === 'DELETE') return 'Skema cicilan dihapus'
+    return 'Skema cicilan diubah'
+  }
+
+  if (log.action === 'INSERT') return 'Kavling ditambahkan'
+  if (log.action === 'DELETE') {
+    const lotNumber = log.metadata?.lot_number
+    return `Kavling ${typeof lotNumber === 'string' ? lotNumber : ''} dihapus`.trim()
+  }
+  return 'Informasi kavling diperbarui'
+}
+
+function auditFieldLabel(field: string | null) {
+  const labels: Record<string, string> = {
+    lot_number: 'Nomor kavling',
+    polygon_id: 'ID polygon',
+    block_id: 'Blok',
+    dimension: 'Dimensi',
+    area: 'Luas tanah',
+    cash_price: 'Harga normal',
+    promo_price: 'Harga promo',
+    status: 'Status',
+    payment_type: 'Jenis pembayaran',
+    customer_id: 'Customer',
+    booking_date: 'Tanggal booking',
+    sold_date: 'Tanggal terjual',
+    color: 'Warna kavling',
+    description: 'Keterangan',
+    panorama_url: 'Panorama 360°',
+    panorama_boundary: 'Batas panorama',
+    installment_scheme: 'Skema cicilan',
+  }
+  return field ? labels[field] || field : 'Informasi'
+}
+
+function formatAuditValue(field: string | null, value: unknown) {
+  if (value === null || value === undefined || value === '') {
+    if (field === 'promo_price') return 'Tidak ada harga promo'
+    if (field === 'panorama_url') return 'Panorama tidak tersedia'
+    return 'Kosong'
+  }
+
+  let normalized = value
+  if (typeof value === 'string') {
+    try {
+      normalized = JSON.parse(value)
+    } catch {
+      normalized = value
+    }
+  }
+
+  if (field === 'cash_price' || field === 'promo_price') {
+    const amount = Number(normalized)
+    return Number.isFinite(amount) ? rupiah(amount) : String(normalized)
+  }
+
+  if (field === 'installment_scheme') {
+    if (typeof normalized === 'object' && normalized !== null) {
+      const scheme = normalized as Record<string, unknown>
+      const name = typeof scheme.plan_name === 'string' ? scheme.plan_name : `Skema #${scheme.plan_id ?? '-'}`
+      const months = Number(scheme.months ?? 0)
+      const monthly = scheme.monthly_payment == null ? null : Number(scheme.monthly_payment)
+      const margin = scheme.margin_percent == null ? null : Number(scheme.margin_percent)
+      const parts = [name]
+      if (months > 0) parts.push(`${months} bulan`)
+      if (monthly !== null && Number.isFinite(monthly)) parts.push(`${rupiah(monthly)} / bulan`)
+      if (margin !== null && Number.isFinite(margin)) parts.push(`Margin ${margin}%`)
+      if (scheme.is_custom === true) parts.push('Nominal manual')
+      return parts.join(' · ')
+    }
+    return String(normalized)
+  }
+
+  if (field === 'area') return formatArea(normalized as number | string)
+  if (field === 'status') {
+    const labels: Record<string, string> = {
+      Available: 'Tersedia',
+      Booking: 'Dipesan',
+      Sold: 'Terjual',
+    }
+    return labels[String(normalized)] || String(normalized)
+  }
+
+  if (field === 'panorama_url') {
+    return normalized ? 'Panorama tersedia' : 'Panorama tidak tersedia'
+  }
+
+  if (field === 'panorama_boundary') {
+    return 'Batas panorama diperbarui'
+  }
+
+  if (field === 'customer_id') return `ID Customer: ${String(normalized)}`
+  if (field === 'block_id') return `Blok ${String(normalized)}`
+  if (typeof normalized === 'object') return 'Data diperbarui'
+
+  return String(normalized)
+}
+
+function formatAuditDateTime(value: string) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
 async function runSave(task: () => Promise<void>, success: string) {
   saving.value = true
   try { await task(); notify(success); await loadDetail() }
@@ -644,25 +881,70 @@ async function saveInfo() {
 }
 function openPriceEditor(type: 'cash' | 'promo') {
   priceDraft.type = type
-  priceDraft.value = String(type === 'cash' ? lot.value?.cash_price ?? '' : lot.value?.promo_price ?? '')
+  const currentValue = type === 'cash' ? lot.value?.cash_price : lot.value?.promo_price
+  priceDraft.value = currentValue == null ? '' : Number(currentValue).toLocaleString('id-ID')
   priceModalOpen.value = true
 }
+
+function sanitizePriceInput(event: Event) {
+  const input = event.target as HTMLInputElement
+  const digits = input.value.replace(/\D/g, '')
+  const formatted = digits ? Number(digits).toLocaleString('id-ID') : ''
+  priceDraft.value = formatted
+  input.value = formatted
+}
+
 async function savePrice() {
   if (!lot.value) return
-  const amount = priceDraft.value.trim() === '' ? null : Number(priceDraft.value)
-  if (amount !== null && (!Number.isFinite(amount) || amount < 0)) { notify('Nominal harga tidak valid.', 'warning'); return }
+
+  // Tampilan memakai titik pemisah ribuan; database menerima integer Rupiah.
+  const rawValue = priceDraft.value.replace(/\D/g, '')
+  if (priceDraft.type === 'cash' && !rawValue) {
+    notify('Harga normal wajib diisi.', 'warning')
+    return
+  }
+
+  const amount = rawValue === '' ? null : Number(rawValue)
+  if (amount !== null && (!Number.isSafeInteger(amount) || amount <= 0)) {
+    notify('Nominal harga harus berupa bilangan Rupiah bulat lebih dari 0.', 'warning')
+    return
+  }
+
+  if (priceDraft.type === 'promo' && amount !== null) {
+    const cashPrice = Number(lot.value.cash_price ?? 0)
+    if (cashPrice > 0 && amount >= cashPrice) {
+      notify('Harga promo harus lebih rendah daripada harga normal.', 'warning')
+      return
+    }
+  }
+
   await runSave(async () => {
     const column = priceDraft.type === 'cash' ? 'cash_price' : 'promo_price'
-    const { error } = await supabase.from('lots').update({ [column]: amount, updated_at: new Date().toISOString() }).eq('id', lot.value!.id)
+    const { data, error } = await supabase
+      .from('lots')
+      .update({ [column]: amount, updated_at: new Date().toISOString() })
+      .eq('id', lot.value!.id)
+      .select('id, cash_price, promo_price')
+      .single()
+
     if (error) throw error
+    if (!data) throw new Error('Data kavling tidak ditemukan atau tidak memiliki izin untuk diperbarui.')
     priceModalOpen.value = false
   }, 'Harga kavling berhasil diperbarui.')
 }
+
 async function clearPromoPrice() {
   if (!lot.value || !window.confirm('Hapus harga promo kavling ini?')) return
   await runSave(async () => {
-    const { error } = await supabase.from('lots').update({ promo_price: null, updated_at: new Date().toISOString() }).eq('id', lot.value!.id)
+    const { data, error } = await supabase
+      .from('lots')
+      .update({ promo_price: null, updated_at: new Date().toISOString() })
+      .eq('id', lot.value!.id)
+      .select('id, promo_price')
+      .single()
+
     if (error) throw error
+    if (!data) throw new Error('Harga promo tidak berhasil dihapus.')
   }, 'Harga promo berhasil dihapus.')
 }
 async function addInstallment() {
@@ -687,22 +969,103 @@ async function removeInstallment(id: number) {
     if (error) throw error
   }, 'Skema cicilan berhasil dihapus.')
 }
+function handlePanoramaFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  panoramaSelectedFile.value = input.files?.[0] ?? null
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+async function validatePanoramaFile(file: File) {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) throw new Error('Format panorama harus JPG, PNG, atau WebP.')
+  if (file.size > 30 * 1024 * 1024) throw new Error('Ukuran file panorama maksimal 30 MB.')
+
+  const objectUrl = URL.createObjectURL(file)
+  try {
+    const image = new Image()
+    image.src = objectUrl
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error('File gambar tidak dapat dibaca.'))
+    })
+    const ratio = image.naturalWidth / image.naturalHeight
+    if (Math.abs(ratio - 2) > 0.02) {
+      throw new Error(`Rasio panorama harus 2:1. File ini memiliki rasio ${image.naturalWidth}:${image.naturalHeight}.`)
+    }
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
 async function savePanorama() {
   if (!lot.value) return
-  const url = panoramaDraft.value.trim()
-  if (url && !/^https?:\/\/\S+$/i.test(url)) { notify('Masukkan URL panorama HTTP atau HTTPS yang valid.', 'warning'); return }
+  const file = panoramaSelectedFile.value
+  if (!file) {
+    notify('Pilih file panorama terlebih dahulu.', 'warning')
+    return
+  }
+
   await runSave(async () => {
-    const { error } = await supabase.from('lots').update({ panorama_url: url || null, updated_at: new Date().toISOString() }).eq('id', lot.value!.id)
-    if (error) throw error
+    await validatePanoramaFile(file)
+
+    const extensionByType: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    }
+    const safeName = file.name.normalize('NFKD').replace(/[^a-zA-Z0-9._-]/g, '-').replace(/-+/g, '-')
+    const storagePath = `lots/${lot.value!.id}/panorama-${Date.now()}-${safeName || `panorama.${extensionByType[file.type]}`}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('lot-media')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        contentType: file.type,
+        upsert: false,
+      })
+    if (uploadError) throw uploadError
+
+    const { data: publicUrlData } = supabase.storage.from('lot-media').getPublicUrl(storagePath)
+    const publicUrl = publicUrlData.publicUrl
+    if (!publicUrl) {
+      await supabase.storage.from('lot-media').remove([storagePath])
+      throw new Error('URL publik gagal dibuat. Periksa konfigurasi bucket lot-media.')
+    }
+
+    const { data, error: updateError } = await supabase
+      .from('lots')
+      .update({ panorama_url: publicUrl, updated_at: new Date().toISOString() })
+      .eq('id', lot.value!.id)
+      .select('id, panorama_url')
+      .single()
+
+    if (updateError || !data) {
+      await supabase.storage.from('lot-media').remove([storagePath])
+      if (updateError) throw updateError
+      throw new Error('URL panorama gagal disimpan ke data kavling.')
+    }
+
     panoramaModalOpen.value = false
-  }, 'URL panorama berhasil disimpan.')
+    panoramaSelectedFile.value = null
+    if (panoramaFileInput.value) panoramaFileInput.value.value = ''
+  }, 'Panorama berhasil diunggah dan disimpan.')
 }
+
 async function removePanorama() {
-  if (!lot.value || !window.confirm('Hapus URL panorama dari kavling ini?')) return
-  panoramaDraft.value = ''
+  if (!lot.value || !window.confirm('Hapus panorama dari kavling ini?')) return
   await runSave(async () => {
-    const { error } = await supabase.from('lots').update({ panorama_url: null, updated_at: new Date().toISOString() }).eq('id', lot.value!.id)
+    const { data, error } = await supabase
+      .from('lots')
+      .update({ panorama_url: null, updated_at: new Date().toISOString() })
+      .eq('id', lot.value!.id)
+      .select('id')
+      .single()
     if (error) throw error
+    if (!data) throw new Error('Panorama tidak berhasil dilepas dari kavling.')
   }, 'Panorama berhasil dilepas dari kavling.')
 }
 function openPanorama() {
@@ -788,8 +1151,8 @@ onIonViewWillEnter(() => { void loadDetail() })
 .file-copy{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0}
 .file-copy strong{font-size:12px}
 .file-copy span{font-size:10px;color:var(--text-secondary);overflow-wrap:anywhere}
-.panorama-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
-.panorama-actions>*{flex:1}
+.selected-file{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border:1px solid var(--border-default);border-radius:var(--radius-control);color:var(--text-primary);font-size:12px}.selected-file span{min-width:0;overflow-wrap:anywhere}.selected-file small{margin-left:auto;white-space:nowrap;color:var(--text-secondary)}\n.panorama-actions{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:12px}
+.panorama-actions>*{flex:0 1 auto;min-width:104px}
 .panorama-empty{min-height:180px;border-radius:var(--radius-control);text-align:center;padding:20px}
 .panorama-empty strong{font-size:14px}
 .panorama-empty span{font-size:11px}
@@ -802,6 +1165,28 @@ onIonViewWillEnter(() => { void loadDetail() })
 .timeline-item strong{font-size:13px}
 .timeline-item span,.timeline-item small{font-size:11px;color:var(--text-secondary)}
 .timeline-item b{font-size:13px}
+
+.audit-heading{align-items:flex-start;margin:0 0 18px}
+.audit-heading h2{margin:0 0 5px}
+.audit-subtitle{margin:0;color:var(--text-secondary);font-size:11px;line-height:1.5}
+.audit-timeline{padding-left:2px}
+.audit-item{padding-bottom:22px}
+.audit-content{width:100%;min-width:0}
+.audit-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.audit-title-row strong{font-size:13px}
+.audit-action{flex:0 0 auto;padding:3px 7px;border-radius:6px;background:var(--surface-muted);color:var(--text-secondary)!important;font-size:10px!important;font-weight:700}
+.audit-actor{font-size:11px;color:var(--text-secondary)}
+.audit-change{margin-top:5px;padding:9px 10px;border:1px solid var(--border-default);border-radius:10px;background:var(--surface-muted)}
+.audit-field{display:block;margin-bottom:5px;font-size:10px;color:var(--text-secondary)}
+.audit-values{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12px}
+.audit-values ion-icon{font-size:13px;color:var(--text-secondary);transform:rotate(180deg)}
+.audit-old{color:var(--text-secondary);text-decoration:line-through}
+.audit-new{color:var(--text-primary);overflow-wrap:anywhere}
+.audit-detail{margin-top:5px;font-size:12px;color:var(--text-secondary)}
+.audit-date{display:block;margin-top:7px;font-size:10px;color:var(--text-secondary)}
+.timeline-dot.audit-insert{background:var(--status-success)}
+.timeline-dot.audit-update{background:var(--poliland-gold)}
+.timeline-dot.audit-delete{background:var(--status-danger)}
 .state-card,.inline-state,.empty-inline{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;text-align:center;padding:32px 16px;color:var(--text-secondary)}
 .history-empty img{width:min(180px,60%);height:auto;object-fit:contain}
 .state-card ion-icon{font-size:30px}

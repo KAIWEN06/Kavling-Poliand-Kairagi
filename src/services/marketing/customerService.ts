@@ -77,6 +77,9 @@ export const customerService = {
             block_id,
             dimension,
             area,
+            status,
+            cash_price,
+            promo_price,
             blocks (id, code, name)
           )
         ),

@@ -5,11 +5,6 @@
   >
 
     <ion-toolbar>
-
-      <!-- =================================================
-           MARKETING HEADER
-           ================================================= -->
-
       <template v-if="variant === 'marketing' || variant === 'admin'">
 
         <div class="marketing-header">

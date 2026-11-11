@@ -30,7 +30,7 @@
           </div>
 
           <div class="detail-tabs" role="tablist" aria-label="Detail customer">
-            <button type="button" :class="{ active: activeTab === 'summary' }" @click="activeTab = 'summary'">Ringkasan</button>
+            <button type="button" :class="{ active: activeTab === 'summary' }" @click="activeTab = 'summary'">Informasi</button>
             <button type="button" :class="{ active: activeTab === 'lots' }" @click="activeTab = 'lots'">Kavling ({{ customer.interests.length + customer.transactions.length }})</button>
             <button type="button" :class="{ active: activeTab === 'notes' }" @click="activeTab = 'notes'">Catatan</button>
           </div>
@@ -47,7 +47,7 @@
               <div class="personal-info-item"><dt>WhatsApp</dt><dd>{{ customer.whatsapp_phone || customer.phone || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Email</dt><dd>{{ customer.email || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Alamat</dt><dd>{{ customer.address || 'Belum tercatat' }}</dd></div>
-              <div class="personal-info-item personal-info-note"><dt>Catatan</dt><dd>{{ customer.notes || 'Belum ada catatan' }}</dd></div>
+              <div v-if="customer.marketingName" class="personal-info-item"><dt>Marketing</dt><dd>{{ customer.marketingName }}</dd></div>
             </dl>
           </section>
 
@@ -75,20 +75,43 @@
 
               <div v-else class="lot-cards-list">
                 <article v-for="interest in customer.interests" :key="interest.id" class="lot-card-item">
-                  <div class="lot-card-main">
-                    <div class="lot-card-info">
-                      <div class="lot-card-badge-row">
-                        <span class="lot-badge-num">{{ interest.lotNumber }}</span>
-                        <span class="lot-badge-type">{{ interest.paymentType }}</span>
-                        <span :class="['lot-status-chip', lotStatusClass(interest.status)]">
-                          {{ transactionStatusLabel(interest.status) }}
-                        </span>
-                      </div>
-                      <p class="lot-card-meta">
-                        {{ interest.block }}
-                        <template v-if="interest.area"> · {{ interest.area }} m²</template>
-                        <template v-if="interest.dimension"> · {{ interest.dimension }}</template>
-                      </p>
+                  <div class="lot-card-heading">
+                    <div class="lot-card-identity">
+                      <span class="lot-badge-num">{{ interest.lotNumber }}</span>
+                      <span class="lot-badge-type">{{ interest.paymentType }}</span>
+                    </div>
+                    <span :class="['lot-status-chip', lotStatusClass(interest.status)]">
+                      {{ transactionStatusLabel(interest.status) }}
+                    </span>
+                  </div>
+
+                  <div class="lot-card-details">
+                    <div class="lot-detail-cell">
+                      <span class="lot-detail-label">Blok</span>
+                      <strong>{{ interest.block || 'Belum ditentukan' }}</strong>
+                    </div>
+                    <div v-if="interest.area" class="lot-detail-cell">
+                      <span class="lot-detail-label">Luas tanah</span>
+                      <strong>{{ interest.area }} m²</strong>
+                    </div>
+                    <div v-if="interest.dimension" class="lot-detail-cell">
+                      <span class="lot-detail-label">Dimensi</span>
+                      <strong>{{ interest.dimension }}</strong>
+                    </div>
+                    <div v-if="interest.price !== null" class="lot-detail-cell">
+                      <span class="lot-detail-label">Harga kavling</span>
+                      <strong class="lot-card-price">
+                        {{ formatCurrency(interest.price) }}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div class="lot-card-footer">
+                    <div class="lot-price-group">
+                      <span
+                        v-if="interest.promoPrice != null && interest.cashPrice != null && interest.promoPrice < interest.cashPrice"
+                        class="lot-card-price-note"
+                      >Harga promo</span>
                     </div>
 
                     <div class="lot-card-actions">
@@ -301,7 +324,6 @@
             <label for="edit-whatsapp">Nomor WhatsApp<input id="edit-whatsapp" v-model.trim="editForm.whatsapp_phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
             <label for="edit-email">Email<input id="edit-email" v-model.trim="editForm.email" type="email" inputmode="email" autocomplete="email" /></label>
             <label for="edit-address">Alamat<textarea id="edit-address" v-model.trim="editForm.address" rows="2" autocomplete="street-address" /></label>
-            <label for="edit-notes">Catatan<textarea id="edit-notes" v-model.trim="editForm.notes" rows="3" /></label>
             <p v-if="editError" class="edit-error" role="alert">{{ editError }}</p>
           </form>
         </AppModal>
@@ -476,8 +498,23 @@ async function loadCustomer() {
     const rows = await customerService.getAdminCustomers()
     const row = rows.find((item: any) => String(item.id) === String(route.params.id)) as any
     if (!row) { customer.value = null; return }
+    const marketingRelation = Array.isArray(row.marketing)
+      ? row.marketing[0]
+      : row.marketing
+    const marketerRelation = Array.isArray(row.marketer)
+      ? row.marketer[0]
+      : row.marketer
+    const marketingProfile = Array.isArray(row.marketing_profile)
+      ? row.marketing_profile[0]
+      : row.marketing_profile
+
     customer.value = {
       ...row,
+      marketingName: marketingRelation?.full_name
+        || marketerRelation?.full_name
+        || marketingProfile?.full_name
+        || row.marketing_name
+        || null,
       statusLabel: row.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')
         ? 'Pembeli'
         : row.customer_notes?.length || row.customer_interests?.length
@@ -494,6 +531,13 @@ async function loadCustomer() {
           dimension: lot.dimension || null,
           area: lot.area != null ? Number(lot.area) : null,
           status: lot.status || null,
+          cashPrice: lot.cash_price != null ? Number(lot.cash_price) : null,
+          promoPrice: lot.promo_price != null ? Number(lot.promo_price) : null,
+          price: lot.promo_price != null
+            ? Number(lot.promo_price)
+            : lot.cash_price != null
+              ? Number(lot.cash_price)
+              : null,
           paymentType: interest.payment_type === 'Installment' ? 'Cicilan' : 'Cash',
         }
       }),
@@ -610,15 +654,47 @@ onMounted(loadCustomer)
 .empty-mascot { width: 64px; height: 64px; flex: 0 0 64px; object-fit: contain; }
 
 .lot-cards-list { display: grid; gap: 10px; }
-.lot-card-item { padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); transition: border-color 0.2s; }
-.lot-card-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.lot-card-info { display: grid; gap: 4px; min-width: 0; flex: 1; }
-.lot-card-badge-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.lot-badge-num { font-size: 15px; font-weight: var(--font-weight-extrabold); color: var(--text-primary); }
-.lot-badge-type { padding: 2px 8px; border-radius: 6px; background: var(--surface-primary); border: 1px solid var(--border-default); font-size: 11px; font-weight: var(--font-weight-bold); color: var(--poliland-green); }
-.lot-card-meta { margin: 0; color: var(--text-secondary); font-size: 12px; }
-
-.lot-card-actions { display: flex; align-items: center; gap: 8px; }
+.lot-card-item {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
+}
+.lot-card-heading,
+.lot-card-identity,
+.lot-card-footer,
+.lot-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lot-card-identity { justify-content: flex-start; min-width: 0; }
+.lot-badge-num { color: var(--text-primary); font-size: 15px; font-weight: var(--font-weight-extrabold); }
+.lot-badge-type {
+  padding: 3px 9px;
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+  background: var(--surface-primary);
+  color: var(--poliland-green);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+}
+.lot-card-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+}
+.lot-detail-cell { display: grid; gap: 3px; min-width: 0; }
+.lot-detail-label { color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-medium); }
+.lot-detail-cell strong { color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
+.lot-card-footer { align-items: flex-end; flex-wrap: wrap; }
+.lot-price-group { display: grid; gap: 3px; min-width: 0; }
+.lot-card-price { color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-extrabold); overflow-wrap: anywhere; }
+.lot-card-price-note { color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-semibold); }
+.lot-card-actions { flex-shrink: 0; }
 .btn-nav-lot { display: inline-flex; align-items: center; gap: 4px; min-height: 38px; padding: 0 12px; border: 1px solid var(--poliland-green); border-radius: var(--radius-control); background: var(--status-success-bg); color: var(--poliland-green); font: inherit; font-size: 12px; font-weight: var(--font-weight-bold); cursor: pointer; text-decoration: none; }
 .btn-nav-lot ion-icon { font-size: 14px; }
 .btn-nav-lot:hover, .btn-nav-lot:focus-visible { background: var(--poliland-green); color: #fff; }
@@ -785,4 +861,11 @@ onMounted(loadCustomer)
 }
 .edit-panel-actions :deep(.save-customer-button) { --color: #fff; }
 .edit-panel input:focus-visible, .edit-panel textarea:focus-visible, .edit-panel button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+
+@media (max-width: 380px) {
+  .lot-card-item { padding: 12px; gap: 10px; }
+  .lot-card-footer { align-items: stretch; }
+  .lot-card-actions { width: 100%; }
+  .btn-nav-lot { flex: 1; justify-content: center; }
+}
 </style>
