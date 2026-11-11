@@ -539,3 +539,224 @@ Supported source keys include:
 The page renders loading, unavailable, and loading-error states. Contact and social cards are rendered only when their stored values are usable. A telephone link is created only for a stored telephone value. A WhatsApp link is created only when a stored number can be normalized. Email is shown only when a stored email value is available.
 
 Social profile values must be complete HTTP or HTTPS URLs. Addresses become a Google Maps search only when a `maps_url` is not stored. If neither a valid map URL nor address is available, the location card does not render a dead action.
+
+## 21. Data Integrity & Activity Audit Rules
+
+### 21.1 General Audit Requirements
+
+Every successful data mutation performed through the application must be recorded when the entity is covered by an activity audit system.
+
+The application must maintain reliable audit records for:
+
+- INSERT: New records created.
+- UPDATE: Existing records modified.
+- DELETE: Records permanently deleted.
+- Relevant file operations, including upload, replacement, and deletion.
+
+Audit records must reflect successful database operations only. Failed, rejected, cancelled, or rolled-back operations must not produce successful activity records.
+
+### 21.2 Lot Activity Audit — PoliLand
+
+The `lots` table must use `public.lot_activity_logs` as its audit history source.
+
+Every successful INSERT, UPDATE, and DELETE operation on `public.lots` must be recorded automatically through PostgreSQL triggers.
+
+Do not rely exclusively on frontend code to create audit records. Database-level triggers must be the primary source of truth for lot data changes.
+
+#### INSERT Rules
+
+When a new lot is created:
+
+- Record the action as `INSERT`.
+- Record the authenticated user's ID.
+- Record the new lot ID and lot number.
+- Preserve the complete new record in `new_value`.
+- Record the creation timestamp.
+- Do not create a log if the transaction fails or rolls back.
+
+#### UPDATE Rules
+
+When an existing lot is updated:
+
+- Record the action as `UPDATE`.
+- Detect actual field-level changes using `IS DISTINCT FROM`.
+- Ignore fields whose values have not changed.
+- Store the previous value in `old_value`.
+- Store the updated value in `new_value`.
+- Store the affected column in `field_name`.
+- Record the authenticated user's ID.
+- Record the lot ID, lot number, and timestamp.
+- Multiple changed fields may produce multiple audit entries for one update operation.
+
+The following lot fields must be monitored:
+
+- `lot_number`
+- `polygon_id`
+- `block_id`
+- `dimension`
+- `area`
+- `cash_price`
+- `promo_price`
+- `status`
+- `payment_type`
+- `customer_id`
+- `booking_date`
+- `sold_date`
+- `color`
+- `description`
+- `panorama_url`
+- `panorama_boundary`
+
+All new business-related fields added to `lots` must be evaluated and included in the audit configuration when relevant.
+
+#### DELETE Rules
+
+When a lot is permanently deleted:
+
+- Record the action as `DELETE`.
+- Preserve the complete deleted record in `old_value`.
+- Store the deleted lot ID and lot number in `metadata`.
+- Record the authenticated user's ID.
+- Preserve the audit record after the original lot is deleted.
+- Use `ON DELETE SET NULL` for the `lot_id` foreign key so deleting a lot does not delete its audit history.
+
+Never cascade-delete lot audit records when deleting a lot.
+
+### 21.3 Authenticated User Attribution
+
+Every audit entry must identify the user responsible for the operation whenever an authenticated user context is available.
+
+Use Supabase Auth `auth.uid()` as the authoritative source of the acting user's ID.
+
+Rules:
+
+- Never accept the acting user's ID directly from an untrusted frontend payload.
+- Do not use a hardcoded user ID.
+- Do not infer the actor from the lot owner, customer, or marketing assignment.
+- Store the actor in `lot_activity_logs.user_id`.
+- Resolve the actor's display name from `public.profiles` when displaying the history.
+- Handle missing or deleted profiles without breaking the history display.
+
+Operations executed through service-role credentials or background processes without a user authentication context must not be falsely attributed to an Admin. Their actor may be NULL or identified through a separately documented system-actor mechanism.
+
+### 21.4 Excluded Transaction Events
+
+The lot activity history must not duplicate the dedicated transaction history.
+
+The following transaction-related events must remain in their respective transaction records and must not be presented as ordinary lot data changes:
+
+- Booking creation and cancellation.
+- Payment creation and confirmation.
+- Installment payment updates.
+- Sale completion.
+- Transaction cancellation.
+- Customer payment status changes.
+
+If these processes update fields in `lots`, the audit implementation must distinguish transaction-driven changes from ordinary administrative edits.
+
+Do not silently exclude all `status` changes. Preserve legitimate administrative status changes and document how transaction-driven changes are identified.
+
+### 21.5 Panorama and Storage Audit
+
+Each lot has one 360-degree panorama referenced by `lots.panorama_url`.
+
+Panorama operations must be audited:
+
+- First panorama upload.
+- Panorama replacement.
+- Panorama deletion.
+- Panorama boundary changes.
+
+Rules:
+
+- A successful upload must be followed by a successful database update of `panorama_url`.
+- Use a unique Storage object path when replacing a panorama so that the new file can be distinguished from the previous file.
+- Record the old and new panorama references.
+- Clear `panorama_url` when a panorama is removed.
+- Do not delete the previous file until the database update succeeds.
+- If the database update fails after uploading a new file, perform appropriate cleanup or retain the file for recovery.
+- If Storage deletion fails, do not report the entire deletion workflow as successful.
+- Do not assume PostgreSQL triggers on `lots` automatically detect file changes in Supabase Storage.
+
+Storage operations must be coordinated through an application service or another explicitly implemented audit mechanism.
+
+### 21.6 Audit Reliability and Atomicity
+
+Audit logging must be reliable and consistent.
+
+Rules:
+
+- Use PostgreSQL triggers for database-level lot auditing.
+- Audit insertion must occur in the same database transaction as the original lot operation.
+- If audit insertion fails, the corresponding lot mutation must fail rather than silently losing the audit record.
+- Do not catch and suppress audit insertion errors.
+- Do not create duplicate audit entries through simultaneous frontend and database-trigger logging.
+- Do not allow ordinary authenticated users to directly INSERT, UPDATE, or DELETE audit records.
+- Restrict audit table access through appropriate Supabase grants and Row Level Security policies.
+- Ensure trigger functions use a controlled `search_path` and appropriately restricted ownership and privileges.
+- Review foreign key behavior so audit records survive lot deletion.
+
+### 21.7 Audit History Display
+
+The Admin lot detail page must display audit records in the `Riwayat Perubahan` tab.
+
+The history interface must:
+
+- Display the acting user's name.
+- Display the action type.
+- Display the affected field when applicable.
+- Display old and new values in a human-readable format.
+- Display the date and time.
+- Support INSERT, UPDATE, and DELETE records.
+- Display deleted lot information even when `lot_id` is NULL.
+- Handle empty, loading, and error states.
+- Sort records by `created_at` descending by default.
+
+Use Indonesian labels for user-facing descriptions.
+
+Examples:
+
+- `Kavling LOT-001 ditambahkan`
+- `Harga tunai diubah dari Rp250.000.000 menjadi Rp275.000.000`
+- `Luas kavling diubah dari 120 m² menjadi 130 m²`
+- `Panorama 360° diperbarui`
+- `Kavling LOT-001 dihapus`
+
+Do not display raw JSON, internal database column names, or Storage object paths directly to users.
+
+### 21.8 Audit Data Protection
+
+Activity audit records are historical evidence and must be treated as append-only data.
+
+Rules:
+
+- No ordinary application workflow may edit or delete existing audit records.
+- Do not expose audit mutation operations in the frontend.
+- Restrict audit history access to authorized roles.
+- Do not expose sensitive customer information unnecessarily in old or new JSON values.
+- Review retention and backup policies before introducing any audit cleanup mechanism.
+
+### 21.9 Development and Verification Requirements
+
+Before completing any feature that modifies lots, verify:
+
+1. INSERT creates exactly one creation audit entry.
+2. UPDATE records only fields that actually changed.
+3. UPDATE with no actual changes creates no audit entry.
+4. Multiple changed fields produce the expected field-level entries.
+5. DELETE preserves the complete deleted record in audit history.
+6. Audit records remain available after the original lot is deleted.
+7. The correct authenticated Admin is recorded.
+8. Failed database operations do not create successful audit entries.
+9. Transaction-related changes are not incorrectly duplicated in `Riwayat Perubahan`.
+10. Panorama upload, replacement, and deletion are handled consistently.
+11. Unauthorized users cannot manipulate audit records.
+12. Existing lot creation, editing, deletion, transaction, and panorama workflows continue to work.
+
+Before modifying existing implementation:
+
+- Inspect the existing database schema, triggers, services, and page workflows.
+- Preserve existing functionality and business rules.
+- Avoid duplicate triggers and duplicate audit services.
+- Do not assume a field or database relationship exists without checking the actual schema.
+- Run production build, TypeScript validation, and `git diff --check` after implementation.
