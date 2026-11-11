@@ -19,7 +19,7 @@
         <template v-else-if="customer">
           <section class="detail-hero">
             <div :class="['detail-avatar', customer.tone]">{{ initials(customer.full_name) }}</div>
-            <div class="detail-hero-copy"><h1>{{ customer.full_name }}</h1><p>{{ customer.phone || 'Nomor belum tercatat' }}</p><p>{{ customer.email || 'Email belum tercatat' }}</p><p>{{ customer.address || 'Alamat belum tercatat' }}</p></div>
+            <div class="detail-hero-copy"><h1>{{ customer.full_name }}</h1></div>
             <span class="detail-status">{{ customer.statusLabel }}</span>
           </section>
 
@@ -27,6 +27,9 @@
             <a :href="customer.phone ? `tel:${customer.phone}` : undefined" class="detail-action"><ion-icon :icon="callOutline" /><span>Telepon</span></a>
             <a :href="whatsappPhone ? `https://wa.me/${whatsappPhone.replace(/\D/g, '')}` : undefined" class="detail-action"><ion-icon :icon="logoWhatsapp" /><span>WhatsApp</span></a>
             <button type="button" class="detail-action" @click="editCustomer"><ion-icon :icon="createOutline" /><span>Edit</span></button>
+            <button type="button" class="detail-action detail-action--danger" :aria-label="`Hapus data pembeli ${customer.full_name}`" @click="openDeleteConfirmation">
+              <ion-icon :icon="trashOutline" aria-hidden="true" /><span>Hapus</span>
+            </button>
           </div>
 
           <div class="detail-tabs" role="tablist" aria-label="Detail customer">
@@ -36,13 +39,8 @@
           </div>
 
           <section v-if="activeTab === 'summary'" class="detail-card personal-card" aria-labelledby="personal-title">
-            <div class="card-head">
-              <div>
-                <h2 id="personal-title">Informasi pribadi</h2>
-                <p class="head-sub">Informasi kontak dan data customer</p>
-              </div>
-            </div>
             <dl class="personal-info-list">
+              <div class="personal-info-item"><dt>Nama</dt><dd>{{(customer.full_name) }}</dd></div>
               <div class="personal-info-item"><dt>Nomor telepon</dt><dd>{{ customer.phone || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>WhatsApp</dt><dd>{{ customer.whatsapp_phone || customer.phone || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Email</dt><dd>{{ customer.email || 'Belum tercatat' }}</dd></div>
@@ -330,6 +328,47 @@
       </main>
     </ion-content>
     <MobileTabBar variant="admin" />
+    <AppModal
+      v-model="deleteModalOpen"
+      title="Hapus data pembeli"
+      variant="dialog"
+      :loading="deleteChecking || deleteSaving"
+      :confirm-disabled="!deleteChecked || deleteUsages.length > 0 || deleteChecking || deleteSaving || Boolean(deleteError)"
+      confirm-text="Hapus data"
+      confirm-variant="danger"
+      cancel-text="Batal"
+      @confirm="confirmDeleteCustomer"
+      @cancel="closeDeleteConfirmation"
+      @close="closeDeleteConfirmation"
+    >
+      <div class="customer-delete-check">
+        <p v-if="deleteChecking" role="status" aria-live="polite">
+          Memeriksa...
+        </p>
+        <div v-else-if="deleteError" class="customer-delete-error" role="alert">
+          <p>Data belum dihapus. Pemeriksaan atau penghapusan gagal: {{ deleteError }}</p>
+          <AppButton size="small" @click="checkDeleteEligibility">Periksa lagi</AppButton>
+        </div>
+        <div v-else-if="deleteUsages.length" role="alert">
+          <div class="customer-delete-usage-alert">
+            <img :src="worriedMascot" alt="Maskot khawatir karena data masih terhubung" />
+            <div>
+              <strong>Data pembeli masih memiliki relasi atau riwayat sehingga tidak dapat dihapus.</strong>
+              <ul>
+                <li v-for="usage in deleteUsages" :key="usage.label">
+                  {{ usage.label }} ({{ usage.count }})
+                </li>
+              </ul>
+              <p>Data minat, catatan, tindak lanjut, transaksi, pembayaran, dan hubungan kavling yang sudah tercatat tidak akan dihapus.</p>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="deleteChecked" class="customer-delete-ready">
+          <img :src="panickedMascot" alt="Maskot panik di samping tempat sampah" />
+          <p>Pembeli ini belum memiliki data atau riwayat yang terhubung. Penghapusan data pembeli tidak dapat dibatalkan.</p>
+        </div>
+      </div>
+    </AppModal>
   </ion-page>
 </template>
 
@@ -344,6 +383,8 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import CustomerNotes from '@/components/Admin/CustomerNotes.vue'
 import { customerService } from '@/services/marketing/customerService'
+import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.png'
+import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.png'
 
 const route = useRoute()
 const router = useRouter()
@@ -355,6 +396,13 @@ const whatsappPhone = computed(() => customer.value?.whatsapp_phone || customer.
 const editing = ref(false)
 const saving = ref(false)
 const editError = ref('')
+const deleteModalOpen = ref(false)
+const deleteChecking = ref(false)
+const deleteSaving = ref(false)
+const deleteChecked = ref(false)
+const deleteError = ref('')
+const deleteUsages = ref<Array<{ label: string; count: number }>>([])
+let deleteCheckSequence = 0
 const editForm = reactive({ full_name: '', phone: '', whatsapp_phone: '', email: '', address: '', notes: '' })
 const availableLots = ref<any[]>([])
 const filteredAvailableLots = computed(() => {
@@ -489,6 +537,63 @@ async function saveCustomer() {
   } finally {
     saving.value = false
   }
+}
+
+function openDeleteConfirmation() {
+  if (!customer.value) return
+  deleteModalOpen.value = true
+  void checkDeleteEligibility()
+}
+
+async function checkDeleteEligibility() {
+  const target = customer.value
+  if (!target) return
+
+  const sequence = ++deleteCheckSequence
+  deleteChecking.value = true
+  deleteChecked.value = false
+  deleteError.value = ''
+  deleteUsages.value = []
+
+  try {
+    const usages = await customerService.getCustomerUsage(target.id)
+    if (sequence !== deleteCheckSequence || customer.value?.id !== target.id) return
+    deleteUsages.value = usages
+    deleteChecked.value = true
+  } catch (error) {
+    if (sequence !== deleteCheckSequence || customer.value?.id !== target.id) return
+    deleteError.value = error instanceof Error ? error.message : 'Periksa koneksi dan coba lagi.'
+  } finally {
+    if (sequence === deleteCheckSequence) deleteChecking.value = false
+  }
+}
+
+function closeDeleteConfirmation() {
+  deleteCheckSequence += 1
+  deleteChecking.value = false
+  deleteChecked.value = false
+  deleteError.value = ''
+  deleteUsages.value = []
+}
+
+async function confirmDeleteCustomer() {
+  const target = customer.value
+  if (!target || !deleteChecked.value || deleteUsages.value.length || deleteError.value || deleteSaving.value) return
+
+  deleteSaving.value = true
+  deleteError.value = ''
+
+  try {
+    await customerService.deleteCustomer(target.id)
+  } catch (error) {
+    deleteError.value = error instanceof Error ? error.message : 'Data pembeli gagal dihapus. Periksa koneksi dan coba lagi.'
+    deleteSaving.value = false
+    return
+  }
+
+  deleteSaving.value = false
+  deleteModalOpen.value = false
+  await router.replace('/admin/pembeli')
 }
 
 async function loadCustomer() {
@@ -639,9 +744,13 @@ onMounted(loadCustomer)
 .detail-hero h1 { margin: 0 0 3px; font-size: 18px; font-weight: var(--font-weight-extrabold); }
 .detail-hero p, .muted { margin: 1px 0 0; color: var(--text-secondary); font-size: 12px; }
 .detail-status { align-self: flex-start; padding: 5px 9px; border: 1px solid var(--poliland-green); border-radius: 999px; color: var(--poliland-green); font-size: 11px; font-weight: var(--font-weight-bold); white-space: nowrap; }
-.detail-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 16px; }
+.detail-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-bottom: 16px; }
 .detail-action { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 58px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; text-decoration: none; }
 .detail-action ion-icon { color: var(--poliland-green); font-size: 20px; }
+.detail-action--danger { color: var(--status-danger); cursor: pointer; }
+.detail-action--danger ion-icon { color: var(--status-danger); }
+.detail-action--danger:hover, .detail-action--danger:active { border-color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 9%, white); }
+.detail-action--danger:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .detail-tabs { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 -16px; border-bottom: 1px solid var(--border-default); }
 .detail-tabs button { min-height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); }
 .detail-tabs button.active { border-bottom-color: var(--poliland-gold); color: var(--poliland-gold-text); }
@@ -740,6 +849,17 @@ onMounted(loadCustomer)
 .edit-modal-form input, .edit-modal-form textarea { width: 100%; min-height: 44px; padding: 11px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px; }
 .edit-modal-form textarea { resize: vertical; }
 .edit-error { margin: 12px 0 0; color: var(--status-danger); font-size: 12px; }
+.customer-delete-check { display: grid; gap: 10px; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
+.customer-delete-check p { margin: 0; }
+.customer-delete-check ul { display: grid; gap: 4px; margin: 0; padding-left: 20px; }
+.customer-delete-usage-alert { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 12px; }
+.customer-delete-usage-alert img { display: block; width: 84px; height: 84px; object-fit: contain; }
+.customer-delete-usage-alert > div { display: grid; gap: 8px; min-width: 0; }
+.customer-delete-usage-alert ul { margin: 0; }
+.customer-delete-usage-alert p { margin: 0; }
+.customer-delete-error { display: grid; gap: 10px; color: var(--status-danger); }
+.customer-delete-ready { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.customer-delete-ready img { display: block; width: 100px; height: 100px; object-fit: contain; }
 .interest-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.interest-section-head h2 { margin: 0; }.add-interest-button, .remove-interest-button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.interest-empty { display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 8px 10px; border-radius: var(--radius-control); background: var(--app-background); }.interest-list { display: grid; gap: 8px; margin-top: 12px; padding: 0; list-style: none; }.interest-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }.interest-list li span { color: var(--text-secondary); font-size: 11px; }.remove-interest-button { color: var(--status-danger); }.interest-form { display: grid; gap: 10px; margin-top: 12px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }.interest-form label { display: grid; gap: 6px; color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }.interest-form select { min-height: 44px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 12px; }.interest-form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.interest-form-actions button { min-height: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); }.interest-form-actions button[type='submit'] { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }.add-interest-button:focus-visible, .remove-interest-button:focus-visible, .interest-form button:focus-visible, .interest-form select:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .lot-picker-head { display: grid; gap: 6px; }
 .lot-picker-head label { color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }

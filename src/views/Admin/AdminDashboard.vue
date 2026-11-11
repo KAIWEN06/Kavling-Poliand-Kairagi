@@ -593,7 +593,6 @@ onBeforeUnmount(() => {
         </section>
       </main>
     </ion-content>
-
     <MobileTabBar variant="admin" />
   </ion-page>
 </template>

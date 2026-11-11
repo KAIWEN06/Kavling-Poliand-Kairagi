@@ -35,16 +35,32 @@ const router = useRouter()
 const message = ref('')
 const actions: QuickAction[] = [
   { label: 'Siteplan 2D', icon: mapOutline, tone: 'green', route: '/admin/kavling' },
-  { label: 'Tambah client', icon: peopleOutline, tone: 'neutral', route: '/marketing/clients/new' },
+  { label: 'Tambah client', icon: peopleOutline, tone: 'neutral', route: '/admin/pembeli' },
   { label: 'Pembayaran', icon: walletOutline, tone: 'gold', route: '/admin/keuangan' },
   { label: 'Kelola konten', icon: gridOutline, tone: 'neutral' },
   { label: 'Akses tim', icon: settingsOutline, tone: 'green' },
   { label: 'SPK', icon: documentTextOutline, tone: 'gold', route: '/admin/spk' },
 ]
 
-function handleAction(action: QuickAction) {
+async function handleAction(action: QuickAction) {
   if (action.route) {
-    void router.push(action.route)
+    await router.push(action.route)
+
+    if (action.label === 'Tambah client') {
+      const deadline = Date.now() + 10000
+      while (Date.now() < deadline) {
+        const addButton = document.querySelector<HTMLButtonElement>('button[aria-label="Tambah calon pembeli"]')
+        if (
+          router.currentRoute.value.path === action.route &&
+          addButton?.getClientRects().length &&
+          getComputedStyle(addButton).visibility !== 'hidden'
+        ) {
+          addButton.click()
+          break
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 50))
+      }
+    }
     return
   }
   message.value = `${action.label} akan tersedia pada tahap berikutnya.`
