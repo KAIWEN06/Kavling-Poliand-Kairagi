@@ -1,263 +1,336 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   IonAlert,
-  IonButton,
   IonContent,
   IonIcon,
   IonPage,
 } from '@ionic/vue'
 import {
-  calendarOutline,
-  checkmarkCircle,
-  closeOutline,
-  informationCircleOutline,
-  pricetagOutline,
-  shareSocialOutline,
-  walletOutline,
+  checkmarkCircleOutline,
+  chevronForward,
+  documentTextOutline,
+  hourglassOutline,
+  searchOutline,
 } from 'ionicons/icons'
-import { useRouter } from 'vue-router'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 
+type PaymentStatus = 'verified' | 'pending' | 'rejected'
+
+type PaymentTransaction = {
+  id: string
+  date: string
+  installment: number
+  amount: number
+  lot: string
+  method: string
+  status: PaymentStatus
+}
+
 const router = useRouter()
 
-const paymentType = ref<'cash' | 'installment'>('installment')
-const selectedTenor = ref(12)
-const showApplicationAlert = ref(false)
+const searchQuery = ref('')
+const selectedFilter = ref<'all' | PaymentStatus>('all')
+const selectedTransaction = ref<PaymentTransaction | null>(null)
+const showDetailAlert = ref(false)
 
-const installmentOptions = [
-  { tenor: 3, label: 'Tenor 3 Bulan (3x)', amount: 10_750_000 },
-  { tenor: 6, label: 'Tenor 6 Bulan (6x)', amount: 5_750_000 },
-  { tenor: 9, label: 'Tenor 9 Bulan (9x)', amount: 4_083_333 },
-  { tenor: 12, label: 'Tenor 12 Bulan (12x)', amount: 3_250_000, popular: true },
-  { tenor: 15, label: 'Tenor 15 Bulan (15x)', amount: 2_750_000 },
+const filters: Array<{ label: string; value: 'all' | PaymentStatus }> = [
+  { label: 'Semua', value: 'all' },
+  { label: 'Terverifikasi', value: 'verified' },
+  { label: 'Menunggu Verifikasi', value: 'pending' },
+  { label: 'Ditolak', value: 'rejected' },
 ]
 
-const selectedOption = computed(
-  () => installmentOptions.find((option) => option.tenor === selectedTenor.value),
+const transactions = ref<PaymentTransaction[]>([
+  {
+    id: 'PAY-004',
+    date: '2026-11-22',
+    installment: 3,
+    amount: 5_000_000,
+    lot: 'Blok A - No. A03',
+    method: 'Transfer Bank',
+    status: 'rejected',
+  },
+  {
+    id: 'PAY-003',
+    date: '2026-11-20',
+    installment: 3,
+    amount: 5_000_000,
+    lot: 'Blok A - No. A03',
+    method: 'Transfer Bank',
+    status: 'pending',
+  },
+  {
+    id: 'PAY-002',
+    date: '2026-11-12',
+    installment: 2,
+    amount: 5_000_000,
+    lot: 'Blok A - No. A03',
+    method: 'Transfer Bank',
+    status: 'verified',
+  },
+  {
+    id: 'PAY-001',
+    date: '2026-10-12',
+    installment: 1,
+    amount: 5_000_000,
+    lot: 'Blok A - No. A03',
+    method: 'Transfer Bank',
+    status: 'verified',
+  },
+])
+
+const verifiedTotal = computed(() =>
+  transactions.value
+    .filter((transaction) => transaction.status === 'verified')
+    .reduce((total, transaction) => total + transaction.amount, 0),
 )
 
-const formattedInstallment = computed(() =>
-  formatCurrency(selectedOption.value?.amount ?? 0),
+const pendingTotal = computed(() =>
+  transactions.value
+    .filter((transaction) => transaction.status === 'pending')
+    .reduce((total, transaction) => total + transaction.amount, 0),
 )
+
+const filteredTransactions = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase('id-ID')
+
+  return transactions.value.filter((transaction) => {
+    const matchesFilter =
+      selectedFilter.value === 'all' ||
+      transaction.status === selectedFilter.value
+
+    const searchableText = [
+      transaction.id,
+      transaction.lot,
+      transaction.method,
+      `pembayaran ke-${transaction.installment}`,
+      getStatusLabel(transaction.status),
+    ]
+      .join(' ')
+      .toLocaleLowerCase('id-ID')
+
+    return matchesFilter && (!query || searchableText.includes(query))
+  })
+})
+
+const detailMessage = computed(() => {
+  if (!selectedTransaction.value) return ''
+
+  const transaction = selectedTransaction.value
+
+  return [
+    `Nomor transaksi: ${transaction.id}`,
+    `Kavling: ${transaction.lot}`,
+    `Pembayaran ke-${transaction.installment}`,
+    `Jumlah: ${formatCurrency(transaction.amount)}`,
+    `Metode: ${transaction.method}`,
+    `Status: ${getStatusLabel(transaction.status)}`,
+  ].join('<br>')
+})
+
+function goBack() {
+  void router.push('/beranda-client')
+}
 
 function formatCurrency(amount: number) {
   return `Rp ${amount.toLocaleString('id-ID')}`
 }
 
-function goBack() {
-  router.back()
+function formatDateParts(value: string) {
+  const date = new Date(`${value}T00:00:00`)
+
+  return {
+    day: new Intl.DateTimeFormat('id-ID', { day: '2-digit' }).format(date),
+    month: new Intl.DateTimeFormat('id-ID', { month: 'short' }).format(date),
+    year: new Intl.DateTimeFormat('id-ID', { year: 'numeric' }).format(date),
+  }
 }
 
-function submitApplication() {
-  showApplicationAlert.value = true
+function getStatusLabel(status: PaymentStatus) {
+  const labels: Record<PaymentStatus, string> = {
+    verified: 'Terverifikasi',
+    pending: 'Menunggu Verifikasi',
+    rejected: 'Ditolak',
+  }
+
+  return labels[status]
+}
+
+function openTransaction(transaction: PaymentTransaction) {
+  selectedTransaction.value = transaction
+  showDetailAlert.value = true
 }
 </script>
 
 <template>
-  <ion-page class="simulation-page">
+  <ion-page class="payment-page">
     <AppHeader
       variant="client"
-      title="Simulasi Kavling Lot A03"
-      :show-back="true"
+      title="PoliLand Kairagi"
+      :show-back="false"
     />
 
-    <ion-content class="simulation-content" :fullscreen="false">
-      <main class="simulation-shell">
-        <header class="lot-context">
-          <div class="context-topline">
-            <span class="availability-badge">TERSEDIA</span>
-            <span>Blok A • No. A03</span>
-            <span class="lot-area">105 m²</span>
-          </div>
-
-          <div class="siteplan-preview" aria-label="Pratinjau siteplan kavling">
-            <div class="siteplan-grid" aria-hidden="true">
-              <span v-for="item in 24" :key="item" class="siteplan-lot" />
-            </div>
-          </div>
-        </header>
-
-        <section class="simulation-sheet" aria-labelledby="simulation-title">
-          <div class="sheet-handle" aria-hidden="true" />
-
-          <div class="sheet-heading">
-            <div>
-              <div class="eyebrow-row">
-                <p class="eyebrow">SIMULASI CICILAN</p>
-                <span class="lot-code">LOT_003</span>
-              </div>
-              <h1 id="simulation-title">Kavling Blok A — No. A03</h1>
-            </div>
-
-            <button
-              class="close-button"
-              type="button"
-              aria-label="Kembali"
-              @click="goBack"
-            >
-              <ion-icon :icon="closeOutline" />
-            </button>
-          </div>
-
-          <div class="price-grid">
-            <article class="price-card">
-              <h2>
-                <ion-icon :icon="walletOutline" />
-                Harga Cash
-              </h2>
-              <strong>{{ formatCurrency(30_000_000) }}</strong>
-              <p>Sertifikat SHM Lengkap</p>
-            </article>
-
-            <article class="price-card promo-card">
-              <h2>
-                <ion-icon :icon="pricetagOutline" />
-                Harga Promo
-              </h2>
-              <strong>{{ formatCurrency(30_000_000) }}</strong>
-              <p>Spesial launching PoliLand</p>
-            </article>
-          </div>
-
-          <div class="payment-switch" role="group" aria-label="Pilih metode pembayaran">
-            <button
-              type="button"
-              :class="{ selected: paymentType === 'cash' }"
-              :aria-pressed="paymentType === 'cash'"
-              @click="paymentType = 'cash'"
-            >
-              <ion-icon :icon="walletOutline" />
-              Cash / Tunai
-            </button>
-
-            <button
-              type="button"
-              :class="{ selected: paymentType === 'installment' }"
-              :aria-pressed="paymentType === 'installment'"
-              @click="paymentType = 'installment'"
-            >
-              <ion-icon :icon="calendarOutline" />
-              Cicilan Bertahap
-            </button>
-          </div>
-
-          <div v-if="paymentType === 'installment'" class="info-banner">
-            <ion-icon :icon="informationCircleOutline" />
-            <p>
-              <strong>Simulasi Cicilan Bertahap Pengembang:</strong>
-              Cicilan bertahap pengembang tanpa BI Checking dan tanpa denda
-              keterlambatan.
-            </p>
-          </div>
-
-          <div v-if="paymentType === 'installment'" class="tenor-list">
-            <button
-              v-for="option in installmentOptions"
-              :key="option.tenor"
-              type="button"
-              class="tenor-option"
-              :class="{ 'tenor-option-selected': selectedTenor === option.tenor }"
-              :aria-pressed="selectedTenor === option.tenor"
-              @click="selectedTenor = option.tenor"
-            >
-              <span class="tenor-circle">
-                <strong>{{ option.tenor }}x</strong>
-                <small>BULAN</small>
-              </span>
-
-              <span class="tenor-copy">
-                <span class="tenor-title">
-                  {{ option.label }}
-                  <span v-if="option.popular" class="popular-badge">
-                    Pilihan Populer
-                  </span>
-                </span>
-                <strong>
-                  {{ formatCurrency(option.amount) }}
-                  <small>/ bln</small>
-                </strong>
-              </span>
-
-              <span
-                class="radio-indicator"
-                :class="{ checked: selectedTenor === option.tenor }"
-                aria-hidden="true"
-              />
-            </button>
-          </div>
-
-          <div v-else class="cash-info">
-            <span class="cash-info-icon">
-              <ion-icon :icon="checkmarkCircle" />
-            </span>
-            <div>
-              <strong>Pembayaran Cash / Tunai</strong>
-              <p>Total pembayaran: {{ formatCurrency(30_000_000) }}</p>
-            </div>
-          </div>
-
-          <section
-            v-if="paymentType === 'installment' && selectedOption"
-            class="selected-summary"
-            aria-live="polite"
+    <ion-content class="payment-content" :fullscreen="true">
+      <main class="payment-shell">
+        <div class="page-heading">
+          <button
+            class="back-button"
+            type="button"
+            aria-label="Kembali ke Beranda"
+            @click="goBack"
           >
-            <div>
-              <span>Pilihan Dipilih</span>
-              <strong>Cicilan {{ selectedOption.tenor }} Bulan ({{ selectedOption.tenor }}x)</strong>
-            </div>
-            <div class="summary-amount">
-              <span>Angsuran / bln</span>
-              <strong>{{ formattedInstallment }}</strong>
-            </div>
-          </section>
+            <ion-icon :icon="chevronForward" />
+          </button>
+          <h1>Pembayaran</h1>
+        </div>
 
-          <section v-else class="selected-summary cash-summary">
-            <div>
-              <span>Pilihan Dipilih</span>
-              <strong>Cash / Tunai</strong>
-            </div>
-            <div class="summary-amount">
-              <span>Total Pembayaran</span>
-              <strong>{{ formatCurrency(30_000_000) }}</strong>
-            </div>
-          </section>
-
-          <div class="action-row">
-            <ion-button
-              class="survey-button"
-              fill="outline"
-              @click="goBack"
-            >
-              <ion-icon slot="start" :icon="calendarOutline" />
-              Survei Lokasi
-            </ion-button>
-
-            <ion-button
-              class="apply-button"
-              @click="submitApplication"
-            >
-              Ajukan Pemesanan
-            </ion-button>
+        <!-- Informasi kavling -->
+        <section class="lot-card" aria-labelledby="lot-title">
+          <div class="section-title">
+            <span class="title-icon title-icon-gold">
+              <ion-icon :icon="documentTextOutline" />
+            </span>
+            <h2 id="lot-title">Informasi Kavling</h2>
           </div>
 
-          <button class="whatsapp-button" type="button">
-            <ion-icon :icon="shareSocialOutline" />
-            Tanya Lebih Lanjut via WhatsApp Marketing
+          <button
+            class="lot-summary"
+            type="button"
+            aria-label="Detail Blok A Nomor A03"
+          >
+            <span class="lot-thumbnail" aria-hidden="true">
+              <span>A03</span>
+            </span>
+
+            <span class="lot-copy">
+              <strong>Blok A - No. A03</strong>
+              <span>⌗ 120 m²</span>
+              <span class="lot-location">◎ Kairagi, Manado</span>
+              <span class="spk-status">
+                <ion-icon :icon="documentTextOutline" />
+                Status: Dalam Proses SPK
+              </span>
+            </span>
+
+            <ion-icon class="lot-chevron" :icon="chevronForward" />
           </button>
+        </section>
+
+        <!-- Ringkasan transaksi -->
+        <section class="summary-grid" aria-label="Ringkasan pembayaran">
+          <article class="summary-card">
+            <span class="summary-icon summary-icon-gold">
+              <ion-icon :icon="documentTextOutline" />
+            </span>
+            <span class="summary-label">Total Transaksi</span>
+            <strong>{{ transactions.length }} kali</strong>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-icon summary-icon-green">
+              <ion-icon :icon="checkmarkCircleOutline" />
+            </span>
+            <span class="summary-label">Terverifikasi</span>
+            <strong class="amount-green">{{ formatCurrency(verifiedTotal) }}</strong>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-icon summary-icon-orange">
+              <ion-icon :icon="hourglassOutline" />
+            </span>
+            <span class="summary-label">Menunggu Verifikasi</span>
+            <strong class="amount-orange">{{ formatCurrency(pendingTotal) }}</strong>
+          </article>
+        </section>
+
+        <!-- Pencarian -->
+        <label class="search-box">
+          <ion-icon :icon="searchOutline" aria-hidden="true" />
+          <span class="visually-hidden">Cari transaksi atau nomor kavling</span>
+          <input
+            v-model="searchQuery"
+            type="search"
+            placeholder="Cari transaksi atau nomor kavling..."
+          />
+        </label>
+
+        <!-- Filter -->
+        <div class="filter-list" aria-label="Filter transaksi">
+          <button
+            v-for="filter in filters"
+            :key="filter.value"
+            type="button"
+            class="filter-chip"
+            :class="{ 'filter-chip-active': selectedFilter === filter.value }"
+            :aria-pressed="selectedFilter === filter.value"
+            @click="selectedFilter = filter.value"
+          >
+            {{ filter.label }}
+          </button>
+        </div>
+
+        <!-- Daftar transaksi -->
+        <section class="transaction-list" aria-label="Daftar transaksi pembayaran">
+          <button
+            v-for="transaction in filteredTransactions"
+            :key="transaction.id"
+            class="transaction-card"
+            type="button"
+            @click="openTransaction(transaction)"
+          >
+            <span class="transaction-date">
+              <strong>{{ formatDateParts(transaction.date).day }}</strong>
+              <span>{{ formatDateParts(transaction.date).month }}</span>
+              <small>{{ formatDateParts(transaction.date).year }}</small>
+            </span>
+
+            <span class="transaction-info">
+              <strong>Pembayaran ke-{{ transaction.installment }}</strong>
+              <span>{{ transaction.lot }}</span>
+            </span>
+
+            <span class="transaction-payment">
+              <strong>{{ formatCurrency(transaction.amount) }}</strong>
+              <span class="payment-meta">
+                <span>{{ transaction.method }}</span>
+                <span
+                  class="status-badge"
+                  :class="`status-${transaction.status}`"
+                >
+                  {{ getStatusLabel(transaction.status) }}
+                </span>
+              </span>
+            </span>
+
+            <ion-icon
+              class="transaction-chevron"
+              :icon="chevronForward"
+              aria-hidden="true"
+            />
+          </button>
+
+          <div
+            v-if="filteredTransactions.length === 0"
+            class="empty-state"
+            role="status"
+          >
+            <ion-icon :icon="searchOutline" />
+            <strong>Transaksi tidak ditemukan</strong>
+            <span>Coba ubah kata pencarian atau filter status.</span>
+          </div>
         </section>
       </main>
 
       <ion-alert
-        :is-open="showApplicationAlert"
-        header="Pengajuan Pemesanan"
-        :message="paymentType === 'cash'
-          ? 'Pilihan pembayaran Cash / Tunai telah dipilih.'
-          : `Pilihan cicilan ${selectedTenor} bulan dengan angsuran ${formattedInstallment} per bulan telah dipilih.`"
+        :is-open="showDetailAlert"
+        header="Detail Pembayaran"
+        :message="detailMessage"
         :buttons="['Tutup']"
-        @did-dismiss="showApplicationAlert = false"
+        @did-dismiss="showDetailAlert = false"
       />
     </ion-content>
 
@@ -266,535 +339,564 @@ function submitApplication() {
 </template>
 
 <style scoped>
-.simulation-page {
+.payment-page {
   --background: var(--app-background, #faf9f6);
   color: var(--text-primary, #252525);
   font-family: var(--font-primary, var(--ion-font-family, sans-serif));
 }
 
-.simulation-content {
+.payment-content {
   --background: var(--app-background, #faf9f6);
 }
 
-.simulation-shell {
-  width: min(100%, 640px);
+.payment-shell {
+  display: grid;
+  gap: 20px;
+  width: min(100%, 760px);
   margin: 0 auto;
-  padding: 16px 16px calc(108px + env(safe-area-inset-bottom, 0px));
+  padding: 0 16px calc(104px + env(safe-area-inset-bottom, 0px));
 }
 
-.lot-context {
-  padding: 4px 4px 18px;
-}
-
-.context-topline {
+.page-heading {
   display: flex;
+  min-height: 60px;
   align-items: center;
-  gap: 10px;
-  color: var(--text-secondary, #717178);
-  font-size: 13px;
-}
-
-.availability-badge {
-  padding: 6px 10px;
-  border-radius: 999px;
-  color: var(--poliland-green, #355a2c);
-  background: var(--status-success-bg, #eaf7ef);
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.lot-area {
-  margin-left: auto;
-}
-
-.siteplan-preview {
-  height: 140px;
-  margin-top: 14px;
-  overflow: hidden;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-card, 16px);
-  background:
-    radial-gradient(ellipse at 20% 25%, #d9e2ce 0 13%, transparent 14%),
-    radial-gradient(ellipse at 72% 70%, #d9e2ce 0 16%, transparent 17%),
-    linear-gradient(135deg, #e6e9d8, #d7decb 48%, #ece8dd);
-  filter: blur(1px);
-}
-
-.siteplan-grid {
-  display: grid;
-  width: 78%;
-  height: 90px;
-  margin: 25px auto;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 5px;
-  transform: rotate(-2deg);
-}
-
-.siteplan-lot {
-  border: 2px solid #d1cbbd;
-  border-radius: 5px;
-  background: rgb(248 246 239 / 78%);
-}
-
-.simulation-sheet {
-  display: grid;
-  gap: 16px;
+  gap: 8px;
   margin: 0 -16px;
-  padding: 16px 20px 24px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-bottom: 0;
-  border-radius: var(--radius-panel, 20px) var(--radius-panel, 20px) 0 0;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-default, #eae7e0);
   background: var(--surface-primary, #fff);
-  box-shadow: 0 -8px 24px rgb(37 37 37 / 8%);
 }
 
-.sheet-handle {
-  width: 56px;
-  height: 7px;
-  margin: 0 auto 2px;
-  border-radius: 99px;
-  background: var(--border-default, #eae7e0);
-}
-
-.sheet-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.eyebrow-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.eyebrow {
+.page-heading h1 {
   margin: 0;
-  color: var(--poliland-gold-text, #966a12);
-  font-size: 13px;
-  font-weight: var(--font-weight-bold, 700);
-  letter-spacing: 0.06em;
-}
-
-.lot-code,
-.popular-badge {
-  border-radius: 999px;
-  color: #fff;
-  background: var(--poliland-gold, #cba044);
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.lot-code {
-  padding: 5px 10px;
-}
-
-.sheet-heading h1 {
-  margin: 7px 0 0;
   color: var(--text-primary, #252525);
   font-size: 22px;
   font-weight: var(--font-weight-bold, 700);
-  line-height: 1.25;
 }
 
-.close-button {
+.back-button {
   display: grid;
   width: 44px;
   height: 44px;
   flex: 0 0 auto;
   place-items: center;
+  transform: rotate(180deg);
   border: 0;
-  border-radius: 50%;
-  color: var(--text-secondary, #717178);
-  background: var(--surface-muted, #f5f3ee);
-  font-size: 22px;
+  border-radius: var(--radius-control, 12px);
+  color: var(--text-primary, #252525);
+  background: transparent;
+  font-size: 26px;
   cursor: pointer;
 }
 
-.price-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.price-card {
-  min-width: 0;
-  padding: 16px;
+.lot-card,
+.summary-card,
+.transaction-card {
   border: 1px solid var(--border-default, #eae7e0);
   border-radius: var(--radius-panel, 20px);
   background: var(--surface-primary, #fff);
-  box-shadow: 0 3px 10px rgb(37 37 37 / 5%);
+  box-shadow: 0 2px 8px rgb(37 37 37 / 4%);
 }
 
-.price-card h2 {
+.lot-card {
+  padding: 20px;
+}
+
+.section-title {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin: 0 0 10px;
-  color: var(--text-secondary, #717178);
-  font-size: 13px;
-  font-weight: var(--font-weight-semibold, 600);
-  text-transform: uppercase;
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
-.price-card h2 ion-icon {
-  color: var(--poliland-gold-text, #966a12);
-  font-size: 17px;
-}
-
-.price-card > strong {
-  display: block;
-  color: var(--text-primary, #252525);
-  font-size: 19px;
-  font-weight: var(--font-weight-bold, 700);
-}
-
-.promo-card > strong {
-  color: var(--poliland-gold-text, #966a12);
-}
-
-.price-card p {
-  margin: 8px 0 0;
-  color: var(--text-secondary, #717178);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-.payment-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--surface-muted, #f5f3ee);
-}
-
-.payment-switch button {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px;
-  border: 0;
-  border-radius: 999px;
-  color: var(--text-secondary, #717178);
-  background: transparent;
-  font: inherit;
-  font-size: 13px;
-  font-weight: var(--font-weight-semibold, 600);
-  cursor: pointer;
-}
-
-.payment-switch button.selected {
-  color: #fff;
-  background: var(--poliland-gold, #cba044);
-}
-
-.payment-switch ion-icon {
-  font-size: 18px;
-}
-
-.info-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  color: var(--text-primary, #252525);
-  background: var(--surface-muted, #f5f3ee);
-}
-
-.info-banner > ion-icon {
-  flex: 0 0 auto;
-  margin-top: 1px;
-  color: var(--poliland-gold-text, #966a12);
-  font-size: 21px;
-}
-
-.info-banner p {
+.section-title h2 {
   margin: 0;
-  color: var(--text-secondary, #717178);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.info-banner strong {
   color: var(--text-primary, #252525);
+  font-size: 18px;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
-.tenor-list {
+.title-icon,
+.summary-icon {
   display: grid;
-  gap: 10px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-control, 12px);
 }
 
-.tenor-option {
+.title-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
+}
+
+.title-icon-gold,
+.summary-icon-gold {
+  color: var(--poliland-gold-text, #966a12);
+  background: var(--poliland-gold-soft, #f4d69a);
+}
+
+.lot-summary {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 120px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.lot-thumbnail {
   display: grid;
   min-height: 88px;
-  grid-template-columns: 54px minmax(0, 1fr) 28px;
+  place-items: center;
+  overflow: hidden;
+  border: 3px solid var(--poliland-gold, #cba044);
+  border-radius: var(--radius-control, 12px);
+  background:
+    linear-gradient(180deg, transparent 35%, rgb(37 37 37 / 48%)),
+    linear-gradient(135deg, #9db198, #d8c9a8 45%, #637c58);
+}
+
+.lot-thumbnail span {
+  color: #fff;
+  font-size: 22px;
+  font-weight: var(--font-weight-bold, 700);
+  text-shadow: 0 1px 4px rgb(0 0 0 / 45%);
+}
+
+.lot-copy {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.lot-copy > strong {
+  color: var(--text-primary, #252525);
+  font-size: 17px;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.lot-copy > span:not(.spk-status) {
+  color: var(--text-secondary, #717178);
+  font-size: 14px;
+}
+
+.lot-copy .lot-location {
+  color: var(--poliland-gold-text, #966a12);
+}
+
+.spk-status {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  padding: 6px 9px;
+  border: 1px solid var(--poliland-gold-soft, #f4d69a);
+  border-radius: var(--radius-control, 12px);
+  color: var(--poliland-gold-text, #966a12);
+  background: var(--surface-muted, #f5f3ee);
+  font-size: 12px;
+}
+
+.lot-chevron,
+.transaction-chevron {
+  color: #aab3c0;
+  font-size: 22px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-card {
+  display: grid;
+  min-width: 0;
+  min-height: 150px;
+  align-content: space-between;
+  justify-items: start;
+  gap: 10px;
+  padding: 16px;
+}
+
+.summary-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
+}
+
+.summary-icon-green {
+  color: var(--poliland-green, #355a2c);
+  background: var(--status-success-bg, #eaf7ef);
+}
+
+.summary-icon-orange {
+  color: #a85a13;
+  background: #fff3e5;
+}
+
+.summary-label {
+  min-height: 36px;
+  color: var(--text-secondary, #717178);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.summary-card > strong {
+  overflow-wrap: anywhere;
+  color: var(--text-primary, #252525);
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.summary-card .amount-green {
+  color: var(--poliland-green, #355a2c);
+}
+
+.summary-card .amount-orange {
+  color: #a85a13;
+}
+
+.search-box {
+  display: flex;
+  min-height: 56px;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 0 16px;
   border: 1px solid var(--border-default, #eae7e0);
   border-radius: var(--radius-panel, 20px);
-  color: var(--text-primary, #252525);
   background: var(--surface-primary, #fff);
+  box-shadow: 0 2px 5px rgb(37 37 37 / 4%);
+}
+
+.search-box ion-icon {
+  flex: 0 0 auto;
+  color: var(--text-secondary, #717178);
+  font-size: 23px;
+}
+
+.search-box input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text-primary, #252525);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+}
+
+.search-box input::placeholder {
+  color: var(--text-secondary, #717178);
+  opacity: 0.8;
+}
+
+.search-box:focus-within {
+  outline: 3px solid var(--poliland-green, #355a2c);
+  outline-offset: 2px;
+}
+
+.filter-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 0 6px;
+  scrollbar-width: thin;
+}
+
+.filter-chip {
+  min-height: 44px;
+  flex: 0 0 auto;
+  padding: 0 18px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-control, 12px);
+  color: var(--text-secondary, #717178);
+  background: var(--surface-primary, #fff);
+  font: inherit;
+  font-size: 14px;
+  font-weight: var(--font-weight-medium, 500);
+  cursor: pointer;
+}
+
+.filter-chip-active {
+  border-color: var(--poliland-gold-text, #966a12);
+  color: #fff;
+  background: var(--poliland-gold-text, #966a12);
+}
+
+.transaction-list {
+  display: grid;
+  gap: 14px;
+}
+
+.transaction-card {
+  display: grid;
+  min-height: 132px;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1.2fr) 18px;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  color: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.tenor-option-selected {
-  border: 2px solid var(--poliland-gold, #cba044);
-  background: var(--surface-muted, #f5f3ee);
+.transaction-date {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding-right: 12px;
+  border-right: 1px solid var(--border-default, #eae7e0);
+  color: var(--text-secondary, #717178);
 }
 
-.tenor-circle {
-  display: flex;
-  width: 54px;
-  height: 54px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
+.transaction-date strong {
   color: var(--text-primary, #252525);
-  background: var(--surface-muted, #f5f3ee);
-}
-
-.tenor-option-selected .tenor-circle {
-  color: #fff;
-  background: var(--poliland-gold, #cba044);
-}
-
-.tenor-circle strong {
-  font-size: 16px;
+  font-size: 24px;
+  font-weight: var(--font-weight-bold, 700);
   line-height: 1.1;
 }
 
-.tenor-circle small {
-  margin-top: 2px;
-  font-size: 9px;
+.transaction-date span {
+  font-size: 14px;
 }
 
-.tenor-copy {
+.transaction-date small {
+  font-size: 12px;
+}
+
+.transaction-info,
+.transaction-payment,
+.payment-meta {
   display: grid;
   min-width: 0;
-  gap: 4px;
 }
 
-.tenor-title {
+.transaction-info {
+  gap: 5px;
+}
+
+.transaction-info strong,
+.transaction-payment > strong {
+  overflow: hidden;
+  color: var(--text-primary, #252525);
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold, 600);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-info > span,
+.payment-meta > span:first-child {
+  overflow: hidden;
+  color: var(--text-secondary, #717178);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-payment {
+  justify-items: end;
+  gap: 5px;
+}
+
+.payment-meta {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary, #717178);
-  font-size: 12px;
 }
 
-.tenor-copy > strong {
-  color: var(--text-primary, #252525);
-  font-size: 18px;
-  font-weight: var(--font-weight-bold, 700);
-}
-
-.tenor-option-selected .tenor-copy > strong {
-  color: var(--poliland-gold-text, #966a12);
-}
-
-.tenor-copy > strong small {
-  color: var(--text-secondary, #717178);
-  font-size: 12px;
-  font-weight: var(--font-weight-regular, 400);
-}
-
-.popular-badge {
-  padding: 4px 7px;
-  font-size: 9px;
-}
-
-.radio-indicator {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 2px solid var(--border-default, #eae7e0);
-  border-radius: 50%;
-}
-
-.radio-indicator.checked {
-  border-color: var(--poliland-gold, #cba044);
-  background: var(--poliland-gold, #cba044);
-}
-
-.radio-indicator.checked::after {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #fff;
-  content: '';
-}
-
-.cash-info,
-.selected-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--surface-primary, #fff);
-}
-
-.cash-info {
-  justify-content: flex-start;
-}
-
-.cash-info-icon {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--poliland-green, #355a2c);
-  background: var(--status-success-bg, #eaf7ef);
-  font-size: 22px;
-}
-
-.cash-info strong,
-.selected-summary strong {
-  display: block;
-  color: var(--text-primary, #252525);
-  font-size: 14px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.cash-info p {
-  margin: 4px 0 0;
-  color: var(--text-secondary, #717178);
-  font-size: 13px;
-}
-
-.selected-summary > div {
-  display: grid;
-  gap: 7px;
-}
-
-.selected-summary span {
-  color: var(--text-secondary, #717178);
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold, 600);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.selected-summary .summary-amount {
-  text-align: right;
-}
-
-.selected-summary .summary-amount strong {
-  color: var(--poliland-gold-text, #966a12);
-  font-size: 18px;
-}
-
-.action-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.action-row ion-button {
-  min-height: 48px;
-  margin: 0;
-  font-size: 13px;
-  font-weight: var(--font-weight-semibold, 600);
-  text-transform: none;
-  --border-radius: 999px;
-}
-
-.survey-button {
-  --border-color: var(--border-default, #eae7e0);
-  --color: var(--text-secondary, #717178);
-}
-
-.apply-button {
-  --background: var(--poliland-gold, #cba044);
-  --color: #fff;
-  --box-shadow: none;
-}
-
-.whatsapp-button {
-  display: flex;
-  min-height: 44px;
+.status-badge {
+  display: inline-flex;
+  min-height: 30px;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid var(--border-default, #eae7e0);
+  padding: 4px 10px;
+  border: 1px solid transparent;
   border-radius: 999px;
-  color: var(--text-primary, #252525);
-  background: var(--surface-primary, #fff);
-  font: inherit;
   font-size: 12px;
-  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.whatsapp-button ion-icon {
-  color: var(--poliland-gold-text, #966a12);
-  font-size: 18px;
+.status-verified {
+  border-color: #b9f2dc;
+  color: var(--poliland-green, #355a2c);
+  background: var(--status-success-bg, #eaf7ef);
 }
 
-.simulation-page button:focus-visible,
-.simulation-page ion-button:focus-visible {
+.status-pending {
+  border-color: #f4d69a;
+  color: #a85a13;
+  background: #fff9e9;
+}
+
+.status-rejected {
+  border-color: #ffd1d1;
+  color: var(--status-danger, #d94b45);
+  background: #fff1f1;
+}
+
+.empty-state {
+  display: grid;
+  min-height: 180px;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-panel, 20px);
+  color: var(--text-secondary, #717178);
+  background: var(--surface-primary, #fff);
+  text-align: center;
+}
+
+.empty-state ion-icon {
+  font-size: 28px;
+}
+
+.empty-state strong {
+  color: var(--text-primary, #252525);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.payment-page button:focus-visible {
   outline: 3px solid var(--poliland-green, #355a2c);
   outline-offset: 3px;
 }
 
-@media (min-width: 700px) {
-  .simulation-shell {
-    padding-top: 24px;
-  }
-
-  .simulation-sheet {
-    margin-inline: 0;
-    border-bottom: 1px solid var(--border-default, #eae7e0);
-    border-radius: var(--radius-panel, 20px);
-  }
-}
-
-@media (max-width: 360px) {
-  .simulation-shell {
+@media (max-width: 560px) {
+  .payment-shell {
+    gap: 16px;
     padding-inline: 12px;
   }
 
-  .simulation-sheet {
+  .page-heading {
     margin-inline: -12px;
-    padding-inline: 14px;
   }
 
-  .price-card {
-    padding: 13px 11px;
+  .lot-card {
+    padding: 16px;
   }
 
-  .price-card > strong {
-    font-size: 16px;
+  .lot-summary {
+    grid-template-columns: 96px minmax(0, 1fr) 16px;
+    gap: 10px;
   }
 
-  .tenor-option {
-    grid-template-columns: 48px minmax(0, 1fr) 24px;
-    gap: 9px;
-    padding-inline: 10px;
+  .lot-thumbnail {
+    min-height: 82px;
   }
 
-  .tenor-circle {
-    width: 48px;
-    height: 48px;
+  .lot-copy > strong {
+    font-size: 15px;
   }
 
-  .tenor-copy > strong {
-    font-size: 16px;
+  .lot-copy > span:not(.spk-status) {
+    font-size: 12px;
+  }
+
+  .spk-status {
+    font-size: 10px;
+  }
+
+  .summary-grid {
+    gap: 8px;
+  }
+
+  .summary-card {
+    min-height: 142px;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .summary-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .summary-label {
+    font-size: 12px;
+  }
+
+  .summary-card > strong {
+    font-size: 14px;
+  }
+
+  .transaction-card {
+    grid-template-columns: 52px minmax(0, 1fr) auto 14px;
+    gap: 10px;
+    padding: 14px 12px;
+  }
+
+  .transaction-date {
+    padding-right: 8px;
+  }
+
+  .transaction-date strong {
+    font-size: 22px;
+  }
+
+  .transaction-info strong,
+  .transaction-payment > strong {
+    font-size: 13px;
+  }
+
+  .transaction-info > span,
+  .payment-meta > span:first-child {
+    font-size: 11px;
+  }
+
+  .status-badge {
+    padding-inline: 8px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .summary-card {
+    min-height: 150px;
+    padding: 10px;
+  }
+
+  .summary-card > strong {
+    font-size: 12px;
+  }
+
+  .transaction-card {
+    grid-template-columns: 46px minmax(0, 1fr) 18px;
+  }
+
+  .transaction-payment {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .transaction-chevron {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .payment-meta {
+    justify-content: flex-start;
   }
 }
 
