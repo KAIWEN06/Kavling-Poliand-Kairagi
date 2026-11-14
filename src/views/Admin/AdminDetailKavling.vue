@@ -138,7 +138,7 @@
 
             <div class="section-heading">
               <h2>Skema Cicilan</h2>
-              <AppButton class="manage-action" variant="neutral" fill="clear" size="small" @click="planModalOpen = true"><ion-icon :icon="settingsOutline" slot="start" aria-hidden="true" /> Kelola Skema</AppButton>
+              <AppButton class="manage-action" variant="neutral" fill="clear" size="small" @click="router.push({ name: 'AdminKeuangan', query: { tab: 'plans' } })"><ion-icon :icon="settingsOutline" slot="start" aria-hidden="true" /> Kelola Skema</AppButton>
             </div>
 
             <article class="panel table-panel">
@@ -147,16 +147,12 @@
               <div v-else class="installment-list">
                 <div v-for="item in installments" :key="item.id" class="installment-row">
                   <div class="installment-main">
-                    <strong>{{ item.plan_name }}</strong>
-                    <span>{{ item.months }} bulan · Margin {{ item.margin_percent }}%</span>
+                    <strong>{{ formatPaymentPlanName(item.plan_name, item.months) }}</strong>
+                    <span>{{ item.months }} Bulan · Margin {{ item.margin_percent }}%</span>
                   </div>
                   <strong class="monthly-value">{{ rupiah(item.monthly_payment) }}<small>/bulan</small></strong>
-                  <AppButton class="icon-action" variant="danger" fill="outline" size="small" aria-label="Hapus skema cicilan" @click="removeInstallment(item.id)"><ion-icon :icon="trashOutline" aria-hidden="true" /></AppButton>
                 </div>
               </div>
-              <AppButton class="add-action" variant="primary" fill="outline" expand="block" @click="planModalOpen = true">
-                <ion-icon :icon="addOutline" slot="start" aria-hidden="true" /> Tambah Skema Cicilan
-              </AppButton>
             </article>
           </section>
 
@@ -326,41 +322,6 @@
     </AppModal>
 
     <AppModal
-      v-model="planModalOpen"
-      title="Tambah Skema Cicilan"
-      variant="bottom-sheet"
-      :loading="saving"
-      :confirm-disabled="!planDraft.plan_id"
-      confirm-text="Tambahkan"
-      @confirm="addInstallment"
-    >
-      <label class="field-label" for="installment-plan">Pilih skema</label>
-      <select id="installment-plan" v-model="planDraft.plan_id" class="form-control">
-        <option value="">Pilih tenor</option>
-        <option
-          v-for="plan in availablePlans"
-          :key="plan.id"
-          :value="String(plan.id)"
-        >
-          {{ plan.plan_name }} · {{ plan.months }} bulan · Margin {{ plan.margin_percent }}%
-        </option>
-      </select>
-      <label class="field-label" for="installment-monthly">Cicilan per bulan (opsional)</label>
-      <input
-        id="installment-monthly"
-        v-model="planDraft.monthly_payment"
-        class="form-control"
-        type="number"
-        min="0"
-        placeholder="Kosongkan untuk hitung otomatis"
-      />
-      <p class="helper-note">
-        Perhitungan otomatis menggunakan harga promo jika tersedia, jika tidak menggunakan harga normal.
-        Rumus: harga × (1 + margin) ÷ tenor.
-      </p>
-    </AppModal>
-
-    <AppModal
       v-model="panoramaModalOpen"
       title="Panorama 360°"
       variant="bottom-sheet"
@@ -404,8 +365,8 @@ import {
   IonPage, IonContent, IonIcon, IonSpinner, IonToast, onIonViewWillEnter,
 } from '@ionic/vue'
 import {
-  alertCircleOutline, arrowBackOutline, imageOutline, expandOutline, syncOutline, createOutline,
-  trashOutline, addOutline, settingsOutline, imagesOutline,
+  alertCircleOutline, arrowBackOutline, imageOutline, expandOutline, syncOutline, createOutline, addOutline,
+  trashOutline, settingsOutline, imagesOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -416,6 +377,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { supabase } from '@/services/config/supabase'
 import { lotService, BOOKING_FEE_FIXED, type LotRecord } from '@/services/lotService'
+import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
 type TabKey = 'info' | 'price' | 'panorama' | 'history'
 interface InstallmentRow {
@@ -427,7 +389,6 @@ interface InstallmentRow {
   months: number
   margin_percent: number
 }
-interface PlanRow { id: number; plan_name: string; months: number; margin_percent: number }
 interface TransactionRow {
   id: number
   customer_id: number
@@ -483,16 +444,13 @@ const tabs: { key: TabKey; label: string }[] = [
 const statusModalOpen = ref(false)
 const editModalOpen = ref(false)
 const priceModalOpen = ref(false)
-const planModalOpen = ref(false)
 const panoramaModalOpen = ref(false)
 const statusDraft = ref('Available')
 const editDraft = reactive({ lot_number: '', dimension: '', area: '', description: '' })
 const priceDraft = reactive<{ type: 'cash' | 'promo'; value: string }>({ type: 'cash', value: '' })
-const planDraft = reactive({ plan_id: '', monthly_payment: '' })
 const panoramaFileInput = ref<HTMLInputElement | null>(null)
 const panoramaSelectedFile = ref<File | null>(null)
 const installments = ref<InstallmentRow[]>([])
-const availablePlans = ref<PlanRow[]>([])
 const transactions = ref<TransactionRow[]>([])
 const payments = ref<PaymentRow[]>([])
 const activityLogs = ref<ActivityLogRow[]>([])
@@ -537,7 +495,6 @@ const paymentTypeLabel = computed(() => {
   if (activeTransaction?.payment_type === 'Cash') return 'Tunai'
   return '-'
 })
-const availablePrice = computed(() => Number(lot.value?.promo_price || lot.value?.cash_price || 0))
 const lotCustomer = computed(() => {
   const customer = Array.isArray(lot.value?.customer) ? lot.value.customer[0] : lot.value?.customer
   const id = lot.value?.customer_id
@@ -618,8 +575,7 @@ async function loadInstallments() {
   if (!lot.value) return
   installmentsLoading.value = true
   try {
-    const [rows, plans] = await Promise.all([lotService.getLotInstallments(lot.value.id), lotService.getPaymentPlans()])
-    installments.value = rows; availablePlans.value = plans.map(plan => ({ ...plan, margin_percent: Number(plan.margin_percent ?? 0) }))
+    installments.value = await lotService.getLotInstallments(lot.value.id)
   } catch (error) { console.error('Gagal memuat skema cicilan:', error) }
   finally { installmentsLoading.value = false }
 }
@@ -946,28 +902,6 @@ async function clearPromoPrice() {
     if (error) throw error
     if (!data) throw new Error('Harga promo tidak berhasil dihapus.')
   }, 'Harga promo berhasil dihapus.')
-}
-async function addInstallment() {
-  if (!lot.value) return
-  const plan = availablePlans.value.find((item) => item.id === Number(planDraft.plan_id))
-  if (!plan) { notify('Pilih skema cicilan yang valid.', 'warning'); return }
-  const customValue = planDraft.monthly_payment.trim() ? Number(planDraft.monthly_payment) : null
-  if (customValue !== null && (!Number.isFinite(customValue) || customValue < 0)) { notify('Nominal cicilan tidak valid.', 'warning'); return }
-  const monthly = customValue ?? Math.ceil((availablePrice.value * (1 + Number(plan.margin_percent || 0) / 100)) / plan.months)
-  await runSave(async () => {
-    const { error } = await supabase.from('lot_installments').insert({
-      lot_id: lot.value!.id, plan_id: plan.id, monthly_payment: monthly, is_custom: customValue !== null,
-    })
-    if (error) throw error
-    planModalOpen.value = false; planDraft.plan_id = ''; planDraft.monthly_payment = ''
-  }, 'Skema cicilan berhasil ditambahkan.')
-}
-async function removeInstallment(id: number) {
-  if (!window.confirm('Hapus skema cicilan ini dari kavling?')) return
-  await runSave(async () => {
-    const { error } = await supabase.from('lot_installments').delete().eq('id', id)
-    if (error) throw error
-  }, 'Skema cicilan berhasil dihapus.')
 }
 function handlePanoramaFile(event: Event) {
   const input = event.target as HTMLInputElement

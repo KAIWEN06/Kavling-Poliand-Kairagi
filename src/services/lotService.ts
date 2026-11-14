@@ -212,7 +212,7 @@ export const lotService = {
 
     if (error) throw error;
 
-    return ((data ?? []) as unknown as LotInstallmentRecord[]).map((row) => {
+    const mapped = ((data ?? []) as unknown as LotInstallmentRecord[]).map((row) => {
       const plan = Array.isArray(row.plan) ? row.plan[0] : row.plan;
 
       return {
@@ -226,6 +226,10 @@ export const lotService = {
         margin_percent: toNumber(plan?.margin_percent),
       };
     });
+
+    return mapped.filter((item, index, rows) =>
+      rows.findIndex((candidate) => candidate.plan_id === item.plan_id) === index,
+    );
   },
 
   async getLotTransactions(lotId: number): Promise<LotTransactionSummary[]> {

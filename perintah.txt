@@ -1,0 +1,406 @@
+# TASK: Implementasi Sistem Akses Tim dan Role Management PoliLand
+
+Bertindaklah sebagai Senior Vue.js Developer, Supabase Architect, dan UI/UX Engineer.
+
+Saya ingin mengembangkan fitur **Akses Tim (Team Management)** pada aplikasi PoliLand Kairagi yang menggunakan:
+
+- Vue 3
+- TypeScript
+- Ionic Vue
+- Vue Router
+- Supabase Auth
+- Supabase PostgreSQL
+- Supabase Edge Functions
+- Tailwind CSS / CSS Variables yang sudah digunakan project
+
+## 1. WAJIB: ANALISIS PROJECT SEBELUM CODING
+
+Sebelum melakukan perubahan:
+
+1. Periksa struktur folder project.
+2. Periksa `src/router/index.ts`.
+3. Periksa `src/router/guards.ts`.
+4. Periksa `src/services/config/supabase.ts`.
+5. Periksa `src/services/authService.ts`.
+6. Periksa `src/views/Admin/AdminLainnya.vue`.
+7. Periksa `src/views/Admin/AdminDashboard.vue`.
+8. Periksa `AppHeader.vue` dan `MobileTabBar.vue`.
+9. Periksa semua service yang berhubungan dengan profiles, customers, dan marketing.
+10. Periksa SQL schema, foreign key, trigger, RLS policies, serta Supabase Edge Functions yang sudah tersedia.
+
+Jangan mengasumsikan struktur folder atau nama file tanpa memeriksanya terlebih dahulu.
+
+Jangan membuat duplikasi service, komponen, tabel, maupun fungsi yang sebenarnya sudah tersedia.
+
+Pertahankan pola arsitektur dan design system yang sudah digunakan project.
+
+## 2. PERUBAHAN ROLE SISTEM
+
+Role final aplikasi adalah:
+
+- owner
+- admin
+- marketing
+- client
+
+Role `editor` harus dihilangkan dan diganti menjadi `owner`.
+
+Ketentuan:
+
+### Owner
+- Pemilik sistem.
+- Memiliki akses penuh.
+- Dapat melihat dan mengelola akun Admin.
+- Dapat melihat dan mengelola akun Marketing.
+- Dapat melihat seluruh data operasional.
+- Tidak boleh bergantung pada hak akses Admin untuk memperoleh akses Owner.
+
+### Admin
+- Mengelola operasional aplikasi.
+- Dapat membuat akun Marketing.
+- Dapat melihat, mengedit, dan menonaktifkan akun Marketing.
+- Dapat melihat informasi Owner dalam mode read-only.
+- Tidak dapat mengubah, menghapus, atau menonaktifkan Owner.
+- Tidak dapat membuat atau mengubah akun Admin.
+- Tidak boleh mengubah role dirinya sendiri menjadi Owner.
+
+### Marketing
+- Mengelola calon pembeli miliknya sendiri.
+- Mengakses data dan aktivitas penjualan yang menjadi tanggung jawabnya.
+- Dapat melihat dan mengubah informasi profil miliknya sendiri.
+- Dapat mengganti password sendiri.
+- Tidak dapat mengelola akun Marketing lain.
+- Tidak dapat mengubah role.
+
+### Client
+- Mempertahankan akses client yang sudah ada.
+- Tidak boleh mendapatkan akses ke halaman internal tim.
+
+Perbarui `UserRole`, `normalizeRole()`, `ROLE_HOME`, autentikasi, redirect, dan route guards sesuai role baru.
+
+Buat route dan dashboard Owner jika belum tersedia. Jangan mengubah alur login yang sudah berjalan tanpa alasan teknis.
+
+## 3. HALAMAN AKSES TIM
+
+Buat halaman baru dengan nama yang mengikuti konvensi project, misalnya:
+
+`src/views/Admin/AdminAksesTim.vue`
+
+Route yang direncanakan:
+
+`/admin/akses-tim`
+
+Halaman harus dapat diakses oleh Owner dan Admin dengan pemeriksaan role yang benar.
+
+Hubungkan tombol "Akses tim" di `AdminLainnya.vue` ke halaman tersebut.
+
+### Desain UI
+
+Ikuti design system PoliLand yang sudah tersedia.
+
+Gunakan:
+- AppHeader yang sudah ada.
+- MobileTabBar yang sudah ada jika sesuai pola halaman Admin.
+- Warna dan token CSS project.
+- Komponen UI yang sudah tersedia.
+- Ionicons yang sudah digunakan project.
+
+Prioritaskan mobile-first karena aplikasi ini digunakan melalui perangkat mobile.
+
+### Bagian halaman
+
+A. Header:
+- Judul Akses Tim.
+- Deskripsi singkat pengelolaan anggota tim.
+- Tombol tambah anggota sesuai hak akses.
+
+B. Statistik:
+- Total anggota tim.
+- Jumlah anggota aktif.
+- Jumlah anggota nonaktif.
+
+Angka wajib diambil dari database, bukan hardcoded.
+
+C. Search dan filter:
+- Pencarian nama dan email.
+- Filter role.
+- Filter status aktif/nonaktif.
+
+D. Daftar anggota:
+- Foto profil.
+- Nama.
+- Email.
+- Nomor telepon.
+- Role.
+- Tanggal bergabung.
+- Status.
+- Tombol tindakan sesuai hak akses.
+
+E. Detail anggota:
+- Informasi akun.
+- Informasi profil.
+- Status akun.
+- Informasi aktivitas jika tersedia di sistem.
+
+### Perilaku berdasarkan role
+
+Jika login sebagai Owner:
+- Tampilkan Owner, Admin, dan Marketing.
+- Owner dapat mengelola akun Admin dan Marketing.
+- Informasi akun Owner tetap ditampilkan.
+- Hindari tindakan penghapusan akun Owner dari halaman biasa.
+
+Jika login sebagai Admin:
+- Tampilkan informasi Owner dalam mode read-only.
+- Tampilkan daftar Marketing.
+- Tampilkan tombol tambah Marketing.
+- Tampilkan edit profil dan nonaktifkan untuk Marketing.
+- Jangan tampilkan tindakan pengelolaan Owner.
+- Jangan tampilkan tindakan pengelolaan Admin.
+
+Jangan hanya menyembunyikan tombol di frontend. Semua tindakan harus tetap dilindungi backend dan RLS.
+
+## 4. FORM PEMBUATAN AKUN MARKETING
+
+Buat modal atau halaman form tambah anggota.
+
+Field:
+- Nama lengkap (required).
+- Email (required).
+- Nomor telepon.
+- Alamat.
+- Kode marketing (opsional).
+- Tanggal bergabung.
+- Password awal (required).
+- Konfirmasi password awal (required).
+
+Validasi:
+- Email valid.
+- Email belum terdaftar.
+- Password memenuhi ketentuan keamanan.
+- Konfirmasi password harus sama.
+- Nomor telepon memiliki format yang masuk akal.
+- Tidak boleh ada data wajib kosong.
+
+Ketika Admin membuat akun:
+1. Buat akun Supabase Auth.
+2. Buat data pada `profiles` dengan role `marketing`.
+3. Buat data pada `marketing_profiles`.
+4. Pastikan seluruh proses konsisten.
+5. Jika pembuatan profil gagal, lakukan rollback atau kompensasi agar tidak meninggalkan akun yang tidak lengkap.
+6. Tampilkan notifikasi keberhasilan atau kegagalan.
+
+Password awal hanya digunakan saat pembuatan akun dan tidak boleh disimpan sebagai plaintext di database atau log.
+
+## 5. SUPABASE EDGE FUNCTION
+
+Buat atau sesuaikan Edge Function untuk pengelolaan akun tim.
+
+Contoh nama:
+
+`manage-team-user`
+
+Gunakan Supabase Admin API melalui service-role key hanya di lingkungan server.
+
+Dilarang memasukkan `SUPABASE_SERVICE_ROLE_KEY` ke frontend, file `.env` yang terpapar ke browser, atau kode client.
+
+Edge Function harus:
+- Memverifikasi JWT pengguna yang melakukan request.
+- Mengambil role pemanggil dari database.
+- Memastikan hanya Owner/Admin yang dapat melakukan tindakan yang diizinkan.
+- Admin hanya boleh mengelola Marketing.
+- Owner dapat mengelola Admin dan Marketing.
+- Tidak mengizinkan Admin mengubah atau menonaktifkan Owner.
+- Tidak mengizinkan role escalation.
+- Memvalidasi input di server.
+- Menangani email duplikat.
+- Menangani kegagalan pembuatan profil.
+- Tidak mengembalikan password kepada client.
+
+Sediakan tindakan yang diperlukan:
+- list
+- create
+- update
+- deactivate
+- reactivate
+
+Jangan mengizinkan penghapusan permanen akun secara sembarangan.
+
+Gunakan mekanisme penonaktifan akun yang aman dan dapat dipulihkan. Periksa bagaimana status akun dikelola oleh Supabase Auth sebelum menentukan implementasinya.
+
+## 6. TABEL DATABASE
+
+Gunakan tabel `profiles` yang sudah tersedia.
+
+Perbarui role agar menjadi:
+
+`owner`, `admin`, `marketing`, `client`
+
+Ganti role lama `editor` menjadi `owner` hanya setelah memastikan akun editor yang ada memang merupakan akun Owner.
+
+Buat tabel khusus:
+
+`public.marketing_profiles`
+
+Kolom yang dibutuhkan:
+- user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE
+- employee_code TEXT UNIQUE
+- phone TEXT
+- address TEXT
+- photo_url TEXT
+- join_date DATE
+- is_active BOOLEAN DEFAULT TRUE
+- notes TEXT
+- created_at TIMESTAMPTZ
+- updated_at TIMESTAMPTZ
+
+Jangan membuat ulang tabel `profiles`, `customers`, `lots`, `lot_transactions`, atau `marketing_commissions`.
+
+Pertahankan relasi yang sudah tersedia:
+- customers.marketing_id -> profiles.id
+- spk_requests.marketing_id -> profiles.id
+- marketing_commissions.marketing_id -> profiles.id
+
+Buat file migration SQL baru di lokasi migration yang digunakan project.
+
+Jangan langsung menjalankan migrasi yang berpotensi mengubah data tanpa pemeriksaan.
+
+## 7. RLS DAN KEAMANAN
+
+Periksa seluruh RLS policies yang sudah ada sebelum menambahkan kebijakan baru.
+
+Terapkan prinsip least privilege.
+
+Ketentuan:
+- Owner memiliki akses penuh sesuai kebijakan sistem.
+- Admin hanya dapat mengelola Marketing.
+- Admin hanya dapat melihat informasi Owner.
+- Marketing hanya dapat mengakses profil miliknya.
+- Marketing tidak dapat mengubah role atau status akunnya sendiri.
+- Client tidak dapat mengakses data internal tim.
+
+Pastikan policy lama tidak memberikan akses tambahan yang bertentangan.
+
+Gunakan fungsi helper SECURITY DEFINER hanya jika diperlukan, dengan search_path yang aman.
+
+Jangan mengandalkan validasi frontend untuk keamanan.
+
+## 8. PENGGANTIAN PASSWORD MARKETING
+
+Marketing dapat mengganti password melalui halaman profil atau pengaturan akun.
+
+Gunakan:
+
+`supabase.auth.updateUser({ password: newPassword })`
+
+Pastikan:
+- User sudah login.
+- Password baru memenuhi validasi.
+- Konfirmasi password cocok.
+- Password tidak disimpan di tabel profil.
+- Proses perubahan password tidak membutuhkan Admin mengetahui password baru.
+
+Admin tidak dapat melihat password Marketing setelah akun dibuat.
+
+## 9. AUTH SERVICE DAN ROUTER
+
+Perbarui authService agar mengenali empat role.
+
+Contoh struktur:
+
+```ts
+export type UserRole =
+  | 'owner'
+  | 'admin'
+  | 'marketing'
+  | 'client'
+```
+
+Sesuaikan halaman tujuan:
+- owner -> dashboard Owner
+- admin -> dashboard Admin
+- marketing -> dashboard Marketing
+- client -> dashboard Client
+
+Buat route guard yang:
+- Memeriksa autentikasi.
+- Memeriksa role.
+- Mencegah akses lintas role.
+- Mengarahkan pengguna ke dashboard yang sesuai.
+- Tetap mendukung route publik dan callback OAuth.
+
+Periksa kompatibilitas dengan seluruh route lama sebelum melakukan perubahan.
+
+## 10. SERVICE LAYER
+
+Pisahkan operasi database dari komponen UI.
+
+Buat service sesuai konvensi project, misalnya:
+
+`src/services/marketingProfileService.ts`
+
+`src/services/teamManagementService.ts`
+
+Komponen halaman tidak boleh berisi seluruh query database dan business logic.
+
+Tangani:
+- Loading state.
+- Empty state.
+- Error state.
+- Success notification.
+- Konfirmasi sebelum menonaktifkan akun.
+- Refresh data setelah perubahan.
+- Pagination jika jumlah anggota berkembang.
+
+## 11. KUALITAS IMPLEMENTASI
+
+- Jangan merusak halaman yang sudah berjalan.
+- Jangan menghapus fitur lama.
+- Jangan mengubah struktur database tanpa alasan.
+- Jangan membuat data dummy sebagai data produksi.
+- Jangan hardcode jumlah anggota.
+- Jangan menggunakan service-role key di frontend.
+- Gunakan TypeScript dengan tipe data yang jelas.
+- Gunakan komponen yang sudah ada sebelum membuat komponen baru.
+- Pastikan desain responsif.
+- Gunakan empty state yang sesuai karakter desain PoliLand.
+- Hindari penggunaan alert browser jika project sudah memiliki sistem modal atau toast.
+
+## 12. TESTING DAN LAPORAN
+
+Setelah implementasi:
+
+1. Jalankan type check.
+2. Jalankan build.
+3. Periksa error import.
+4. Periksa route.
+5. Periksa login untuk setiap role.
+6. Periksa hak akses Owner.
+7. Periksa hak akses Admin.
+8. Periksa hak akses Marketing.
+9. Periksa hak akses Client.
+10. Uji pembuatan akun Marketing.
+11. Uji login menggunakan password awal.
+12. Uji perubahan password Marketing.
+13. Uji penonaktifan dan aktivasi akun.
+14. Uji agar Admin tidak dapat mengubah Owner.
+15. Uji agar Admin tidak dapat mengelola akun Admin lain.
+
+Jika terdapat perubahan yang memerlukan konfigurasi Supabase Dashboard atau deployment Edge Function, berikan instruksi yang jelas.
+
+## 13. LAPORAN AKHIR
+
+Berikan laporan:
+- File baru yang dibuat.
+- File lama yang diubah.
+- Perubahan database.
+- Edge Function yang dibuat.
+- RLS policies yang ditambahkan atau diubah.
+- Route baru.
+- Perubahan authService.
+- Hasil build dan type check.
+- Hal yang masih perlu dilakukan manual.
+
+Jangan menyatakan implementasi selesai jika masih ada bagian yang belum dibuat atau belum diuji.
+
+**Prioritas utama: keamanan hak akses, kompatibilitas dengan sistem yang sudah berjalan, dan konsistensi desain PoliLand.**

@@ -38,7 +38,7 @@ const actions: QuickAction[] = [
   { label: 'Tambah client', icon: peopleOutline, tone: 'neutral', route: '/admin/pembeli' },
   { label: 'Pembayaran', icon: walletOutline, tone: 'gold', route: '/admin/keuangan' },
   { label: 'Kelola konten', icon: gridOutline, tone: 'neutral' },
-  { label: 'Akses tim', icon: settingsOutline, tone: 'green' },
+  { label: 'Akses tim', icon: settingsOutline, tone: 'green', route: '/admin/akses-tim' },
   { label: 'SPK', icon: documentTextOutline, tone: 'gold', route: '/admin/spk' },
 ]
 

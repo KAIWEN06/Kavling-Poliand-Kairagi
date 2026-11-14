@@ -1,9 +1,10 @@
 import { supabase } from '@/services/config/supabase'
 import type { ID } from '@/types/common'
 
-export type UserRole = 'admin' | 'marketing' | 'client'
+export type UserRole = 'owner' | 'admin' | 'marketing' | 'client'
 
 const ROLE_HOME: Record<UserRole, string> = {
+  owner: '/beranda-owner',
   admin: '/beranda-admin',
   marketing: '/beranda-marketing',
   client: '/beranda-client',
@@ -15,6 +16,7 @@ function normalizeRole(value: unknown): UserRole | null {
   const role = value.trim().toLowerCase()
 
   if (
+    role === 'owner' ||
     role === 'admin' ||
     role === 'marketing' ||
     role === 'client'
@@ -140,6 +142,7 @@ export const authService = {
     role: UserRole | null | string
   ): string | null {
     if (
+      role === 'owner' ||
       role === 'admin' ||
       role === 'marketing' ||
       role === 'client'

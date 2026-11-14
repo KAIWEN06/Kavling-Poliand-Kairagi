@@ -210,7 +210,7 @@
                 class="installment-item"
               >
                 <span>
-                  {{ item.payment_plans?.plan_name || 'Cicilan' }}
+                  {{ formatPaymentPlanName(item.payment_plans?.plan_name, item.payment_plans?.months) }}
                 </span>
 
                 <strong>
@@ -472,6 +472,7 @@ import { cartOutline, closeOutline, compassOutline } from 'ionicons/icons'
 
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.png'
+import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
 import { getLotInstallments } from '../../services/siteplanService'
 

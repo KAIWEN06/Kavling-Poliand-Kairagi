@@ -1,4 +1,5 @@
 import { supabase } from '@/services/config/supabase'
+import type { FinanceCustomerRecord } from '@/types/finance'
 
 export interface Customer {
   id?: number
@@ -85,7 +86,7 @@ async function getCustomerUsage(customerId: number): Promise<CustomerUsage[]> {
 }
 
 export const customerService = {
-  async getAdminCustomers() {
+  async getAdminCustomers(): Promise<FinanceCustomerRecord[]> {
     const { data, error } = await supabase
       .from('customers')
       .select(`
@@ -169,7 +170,7 @@ export const customerService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data ?? []
+    return (data ?? []) as unknown as FinanceCustomerRecord[]
   },
 
   async getCustomers() {

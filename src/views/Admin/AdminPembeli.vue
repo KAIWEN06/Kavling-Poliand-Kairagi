@@ -55,16 +55,6 @@
               </div>
               <span :class="['buyer-status', customer.tone]">{{ customer.statusLabel }}</span>
               <ion-icon class="buyer-chevron" :icon="chevronForwardOutline" aria-hidden="true" />
-              <button
-                type="button"
-                class="buyer-delete-button"
-                :aria-label="`Hapus data pembeli ${customer.full_name}`"
-                :title="`Hapus data pembeli ${customer.full_name}`"
-                @click.stop="openDeleteConfirmation(customer)"
-                @keydown.enter.stop
-              >
-                <ion-icon :icon="trashOutline" aria-hidden="true" />
-              </button>
             </article>
           </section>
 
@@ -304,7 +294,6 @@ import {
   peopleOutline,
   personOutline,
   searchOutline,
-  trashOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -720,7 +709,7 @@ onMounted(loadCustomers)
 .buyers-list-head h2 { margin: 0; font-size: 16px; font-weight: var(--font-weight-bold); }
 .buyers-list-head span { color: var(--text-secondary); font-size: 12px; font-weight: var(--font-weight-bold); }
 .buyers-list { display: grid; gap: 12px; }
-.buyer-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 12px 44px; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+.buyer-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 12px; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .buyer-avatar { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; font-size: 13px; font-weight: var(--font-weight-bold); }
 .buyer-avatar.mint, .buyer-status.mint { background: var(--status-success-bg); color: var(--poliland-green); }
 .buyer-avatar.gold, .buyer-status.gold { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
@@ -734,9 +723,6 @@ onMounted(loadCustomers)
 .buyer-status { align-self: start; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: var(--font-weight-bold); white-space: nowrap; }
 .buyer-chevron { color: var(--text-secondary); font-size: 18px; }
 .buyer-card:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
-.buyer-delete-button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--status-danger); cursor: pointer; }
-.buyer-delete-button:hover, .buyer-delete-button:active { border-color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 9%, white); }
-.buyer-delete-button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .buyer-detail { margin-top: 14px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .buyer-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .buyer-detail-kicker { color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-bold); letter-spacing: .4px; text-transform: uppercase; }
@@ -828,7 +814,7 @@ onMounted(loadCustomers)
   .buyers-pager-position { grid-column: 1; }
 }
 @media (max-width: 360px) {
-  .buyer-card { grid-template-columns: 40px minmax(0, 1fr) 12px 44px; gap: 8px; }
+  .buyer-card { grid-template-columns: 40px minmax(0, 1fr) 12px; gap: 8px; }
   .buyer-status { grid-column: 2; justify-self: start; grid-row: 2; }
   .buyers-add-floating { right: 12px; }
 }

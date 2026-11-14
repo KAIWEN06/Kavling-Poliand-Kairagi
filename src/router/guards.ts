@@ -50,7 +50,8 @@ export function setupAuthGuards(router: Router) {
       try {
         const role = await authService.getUserRole(session.user.id)
         if (!role) return { name: 'Login', query: { error: 'role_missing' } }
-        if (role !== requiredRole) {
+        const roleAllowed = role === requiredRole || (requiredRole === 'admin' && role === 'owner')
+        if (!roleAllowed) {
           return authService.getRoleHomePath(role) ?? { name: 'Login' }
         }
       } catch {
