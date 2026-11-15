@@ -39,6 +39,7 @@ import PembayaranClientPage from '@/views/client/PembayaranClientPage.vue'
 import AkunClientPage from '@/views/client/AkunClientPage.vue'
 import DokumenClientPage from '@/views/client/DokumenClientPage.vue'
 import KavlingClientPage from '@/views/client/KavlingClientPage.vue'
+import SPKClientPage from '@/views/client/SPKClientPage.vue'
 import { setupAuthGuards } from '@/router/guards'
 
 const routes: Array<RouteRecordRaw> = [
@@ -242,6 +243,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/client/kavling',
     name: 'KavlingClient',
     component: KavlingClientPage,
+  },
+  {
+    path: '/client/spk',
+    name: 'SPKClient',
+    component: SPKClientPage,
   },
   {
     path: '/client/akun',
