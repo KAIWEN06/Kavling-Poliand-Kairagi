@@ -4,22 +4,6 @@ import type { CreateSPKRequestInput, SPKDocumentFile, SPKDocumentType } from '@/
 export type SPKStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Rejected' | 'Cancelled'
 export type SPKSource = 'Marketing' | 'Client' | 'Admin'
 
-export interface AdminAvailableLot {
-  id: number
-  lot_number: string
-  block_id: number | null
-  cash_price: number | null
-  promo_price: number | null
-  status: string
-}
-
-export interface AdminPaymentPlan {
-  id: number
-  plan_name: string
-  months: number
-  margin_percent: number | null
-}
-
 export interface SPKDocument {
   id: number
   spk_request_id: number
@@ -71,7 +55,14 @@ export interface SPKAdminStats {
   approved: number
   rejected: number
 }
-export type CreateAdminSPKInput = CreateSPKRequestInput
+export interface CreateAdminSPKInput extends CreateSPKRequestInput {
+  down_payment_snapshot: number
+  total_payment_snapshot: number
+}
+export interface AdminLotInstallmentOption {
+  id: number; lot_id: number; plan_id: number; monthly_payment: number | null;
+  is_custom: boolean; plan_name: string; months: number; margin_percent: number
+}
 
 function throwIfError(error: { message: string } | null): void {
   if (error) throw new Error(error.message)
@@ -122,28 +113,44 @@ export function getAdminSPKStats(rows: AdminSPKRequest[]): SPKAdminStats {
 }
 
 export async function getSPKDocumentUrl(filePath: string): Promise<string> {
-  const { data, error } = await supabase.storage.from('spk-documents').createSignedUrl(filePath, 300)
+  const { data, error } = await supabase.storage.from('spk-client-private-documents').createSignedUrl(filePath, 300)
   throwIfError(error)
   if (!data?.signedUrl) throw new Error('Tautan dokumen tidak tersedia.')
   return data.signedUrl
 }
 
-export async function getAvailableLotsForAdmin(): Promise<AdminAvailableLot[]> {
+export async function getAvailableLotsForAdmin() {
   const { data, error } = await supabase.from('lots')
     .select('id, lot_number, block_id, cash_price, promo_price, status')
     .eq('status', 'Available').order('lot_number')
   throwIfError(error)
-  return (data || []) as AdminAvailableLot[]
+  return data || []
 }
 
-export async function getPaymentPlansForAdmin(): Promise<AdminPaymentPlan[]> {
-  const { data, error } = await supabase.from('payment_plans')
-    .select('id, plan_name, months, margin_percent').order('months')
+export async function getLotInstallmentOptionsForAdmin(lotId: number): Promise<AdminLotInstallmentOption[]> {
+  const { data, error } = await supabase.from('lot_installments')
+    .select('id, lot_id, plan_id, monthly_payment, is_custom, payment_plans(id, plan_name, months, margin_percent)')
+    .eq('lot_id', lotId)
   throwIfError(error)
-  return (data || []) as AdminPaymentPlan[]
+  return (data || []).map((row: any) => {
+    const plan = Array.isArray(row.payment_plans) ? row.payment_plans[0] : row.payment_plans
+    const months = Number(plan?.months || 0)
+    return {
+      id: Number(row.id), lot_id: Number(row.lot_id), plan_id: Number(row.plan_id),
+      monthly_payment: row.monthly_payment == null ? null : Number(row.monthly_payment),
+      is_custom: Boolean(row.is_custom), plan_name: plan?.plan_name || `${months} Bulan`,
+      months, margin_percent: plan?.margin_percent != null ? Number(plan.margin_percent) : (months / 3) * 2.5,
+    }
+  }).filter((item: AdminLotInstallmentOption) => item.months > 0)
 }
 
 export async function createAdminSPKRequest(input: CreateAdminSPKInput, documents: SPKDocumentFile[]) {
+  if (input.payment_method === 'Installment') {
+    if (!(input.down_payment_snapshot > 0) || input.down_payment_snapshot >= input.lot_price_snapshot)
+      throw new Error('DP harus lebih besar dari 0 dan lebih kecil dari harga kavling.')
+    if (!(input.monthly_payment && input.months && input.total_payment_snapshot))
+      throw new Error('Rincian cicilan belum lengkap.')
+  }
   const required: SPKDocumentType[] = ['KTP', 'KK', 'Payment Proof']
   for (const type of required) {
     if (!documents.some(doc => doc.type === type)) throw new Error(`Dokumen ${type} wajib disertakan.`)
@@ -168,13 +175,13 @@ export async function createAdminSPKRequest(input: CreateAdminSPKInput, document
       status: 'Submitted',
     }).select('id, spk_number').single()
     throwIfError(insertError)
-    if (!request) throw new Error('SPK request was not created.')
+    if (!request) throw new Error('Permintaan SPK tidak berhasil dibuat.')
     requestId = Number(request.id)
 
     for (const doc of documents) {
       const ext = (doc.file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '')
       const path = `${user.id}/${requestId}/${doc.type.toLowerCase().replace(/\s+/g, '-')}-${crypto.randomUUID()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('spk-documents').upload(path, doc.file, {
+      const { error: uploadError } = await supabase.storage.from('spk-client-private-documents').upload(path, doc.file, {
         cacheControl: '3600', upsert: false, contentType: doc.file.type || undefined,
       })
       throwIfError(uploadError)
@@ -194,7 +201,7 @@ export async function createAdminSPKRequest(input: CreateAdminSPKInput, document
     return { id: requestId, spk_number: request.spk_number }
   } catch (error) {
     if (uploadedPaths.length) {
-      const { error: cleanupError } = await supabase.storage.from('spk-documents').remove(uploadedPaths)
+      const { error: cleanupError } = await supabase.storage.from('spk-client-private-documents').remove(uploadedPaths)
       if (cleanupError) console.error('Cleanup SPK storage failed:', cleanupError)
     }
     if (requestId !== null) {

@@ -31,8 +31,7 @@
               <span v-else>{{ initials(selectedMarketing) }}</span>
             </div>
             <div class="detail-heading__copy">
-              <p class="eyebrow">Detail anggota Marketing</p>
-              <h1>{{ selectedMarketing.full_name || 'Tanpa nama' }}</h1>
+              <h1>{{ selectedMarketing.full_name || 'Tanpa nama' }}</h1>Performa Marketing
               <p>{{ selectedMarketing.email || 'Email tidak tersedia' }}</p>
               <span :class="['status-pill', selectedMarketing.is_active ? 'is-active' : 'is-inactive']">
                 {{ selectedMarketing.is_active ? 'Aktif' : 'Nonaktif' }}
@@ -50,7 +49,6 @@
           <section class="section-block">
             <div class="section-heading section-heading--filter">
               <div>
-                <p class="eyebrow">Ringkasan kinerja</p>
                 <h2>Performa Marketing</h2>
               </div>
               <select v-model="detailPeriod" aria-label="Periode performa" @change="loadMarketingDetail">
@@ -84,7 +82,7 @@
               </div>
 
               <div class="commission-section">
-                <div class="section-heading"><div><p class="eyebrow">Ringkasan komisi</p><h2>Komisi Marketing</h2></div></div>
+                <div class="section-heading"><div><h2>Komisi Marketing</h2></div></div>
                 <div class="commission-total"><span>Total komisi periode ini</span><strong>{{ currency(marketingDetail.metrics.total_commission) }}</strong></div>
                 <div class="commission-breakdown">
                   <div><span>Belum dibayarkan</span><strong>{{ currency(marketingDetail.metrics.pending_commission) }}</strong></div>
@@ -96,7 +94,7 @@
           </section>
 
           <section class="section-block">
-            <div class="section-heading"><div><p class="eyebrow">Portofolio</p><h2>Client yang ditangani</h2></div><span class="count-pill">{{ marketingDetail?.clients.length || 0 }} client</span></div>
+            <div class="section-heading"><div><h2>Client yang ditangani</h2></div><span class="count-pill">{{ marketingDetail?.clients.length || 0 }} client</span></div>
             <p v-if="detailLoading" class="state-card">Memuat daftar client...</p>
             <p v-else-if="!marketingDetail?.clients.length" class="state-card">Belum ada client yang terhubung dengan Marketing ini.</p>
             <div v-else class="client-list">
@@ -113,11 +111,11 @@
                 </div>
                 <p v-else class="no-transaction">Belum memiliki transaksi.</p>
               </article>
-            </div>
+            </div>  
           </section>
 
           <section class="section-block">
-            <div class="section-heading"><div><p class="eyebrow">Riwayat pembayaran komisi</p><h2>Daftar komisi</h2></div></div>
+            <div class="section-heading"><div><h2>Daftar komisi</h2></div></div>
             <p v-if="!marketingDetail?.commissions.length" class="state-card">Belum ada catatan komisi.</p>
             <div v-else class="commission-list">
               <article v-for="commission in marketingDetail.commissions" :key="commission.id" class="commission-row">

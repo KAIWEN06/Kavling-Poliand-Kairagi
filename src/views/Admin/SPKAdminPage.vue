@@ -141,49 +141,60 @@
             <label class="spk-lot-search">Cari kavling
               <input v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kavling atau blok" />
             </label>
-            <div class="spk-lot-list" role="group" aria-label="Pilih satu atau beberapa kavling">
-              <button
-                v-for="lot in filteredAvailableLots"
-                :key="lot.id"
-                type="button"
-                class="spk-lot-option"
-                :class="{ selected: selectedLotIds.includes(lot.id) }"
-                :aria-pressed="selectedLotIds.includes(lot.id)"
-                @click="toggleLotSelection(lot.id)"
-              >
-                <span class="spk-lot-check" aria-hidden="true">{{ selectedLotIds.includes(lot.id) ? '✓' : '' }}</span>
+            <div class="spk-lot-list" role="radiogroup" aria-label="Pilih satu kavling">
+              <button v-for="lot in filteredAvailableLots" :key="lot.id" type="button"
+                class="spk-lot-option" :class="{ selected: selectedLotId === lot.id }"
+                :aria-pressed="selectedLotId === lot.id" @click="selectLot(lot.id)">
+                <span class="spk-lot-check" aria-hidden="true">{{ selectedLotId === lot.id ? '✓' : '' }}</span>
                 <span><strong>{{ lot.lot_number }}</strong><small>{{ lot.block_id ? `Blok ID ${lot.block_id}` : 'Tanpa blok' }}</small></span>
                 <b>{{ formatCurrency(lotPrice(lot)) }}</b>
               </button>
               <p v-if="!filteredAvailableLots.length" class="spk-lot-empty">Kavling tersedia tidak ditemukan.</p>
             </div>
-            <p v-if="selectedCreateLots.length" class="spk-selected-lot">{{ selectedCreateLots.length }} kavling dipilih · Total harga <strong>{{ formatCurrency(createLotPrice) }}</strong></p>
-            <!-- Legacy single-lot markup retained temporarily below until removed. -->
-            <!--
-                <option value="">Pilih kavling</option>
-                <option v-for="lot in availableLots" :key="lot.id" :value="String(lot.id)">
-                  {{ lot.lot_number }} · {{ lot.block_id ? `Blok ID ${lot.block_id}` : 'Tanpa blok' }} · {{ formatCurrency(Number(lot.promo_price || lot.cash_price || 0)) }}
-                </option>
-              </select>
-            </label>
-            <p v-if="selectedCreateLot" class="spk-selected-lot">Harga yang disimpan: <strong>{{ formatCurrency(createLotPrice) }}</strong></p>-->
+            <p v-if="selectedCreateLot" class="spk-selected-lot">Kavling dipilih: <strong>{{ selectedCreateLot.lot_number }}</strong> · Harga {{ formatCurrency(createLotPrice) }}</p>
           </section>
 
           <section class="spk-form-section">
-            <h3>3. Metode Pembayaran</h3>
+            <h3>3. Konfirmasi Pembayaran</h3>
             <div class="spk-payment-options">
               <label :class="{ chosen: createForm.payment_method === 'Cash' }"><input v-model="createForm.payment_method" type="radio" value="Cash" /> Tunai</label>
               <label :class="{ chosen: createForm.payment_method === 'Installment' }"><input v-model="createForm.payment_method" type="radio" value="Installment" /> Cicilan</label>
             </div>
+            <div v-if="selectedCreateLot" class="spk-price-summary">
+              <div><span>Harga kavling</span><strong>{{ formatCurrency(createLotPrice) }}</strong></div>
+            </div>
             <template v-if="createForm.payment_method === 'Installment'">
-              <label>Pilih tenor <b>*</b>
-                <select v-model="createForm.payment_plan_id" required>
-                  <option value="">Pilih paket cicilan</option>
-                  <option v-for="plan in createPaymentPlans" :key="plan.id" :value="String(plan.id)">{{ plan.plan_name }} · {{ plan.months }} bulan</option>
+              <div class="spk-dp-panel">
+                <label>Uang muka / DP <b>*</b>
+                  <input v-model="downPaymentInput" inputmode="numeric" type="text" required placeholder="Masukkan nominal DP" @input="updateAdminDownPayment" />
+                </label>
+                <div class="spk-dp-shortcuts">
+                  <button v-for="percentage in [10, 20, 30]" :key="percentage" type="button" @click="setAdminDownPayment(percentage)">{{ percentage }}%</button>
+                </div>
+                <div class="spk-summary-row"><span>Sisa setelah DP</span><strong>{{ formatCurrency(remainingAfterDp) }}</strong></div>
+              </div>
+              <label>Pilih skema cicilan <b>*</b>
+                <select v-model="createForm.payment_plan_id" required :disabled="!selectedCreateLot || loadingLotPlans">
+                  <option value="">{{ loadingLotPlans ? 'Memuat skema...' : 'Pilih tenor cicilan' }}</option>
+                  <option v-for="item in lotInstallmentOptions" :key="item.id" :value="String(item.plan_id)">
+                    {{ item.plan_name }} · {{ item.months }} bulan · Margin {{ formatNumber(item.margin_percent) }}%
+                  </option>
                 </select>
               </label>
-              <label>Nominal cicilan per bulan <b>*</b><input v-model.number="createForm.monthly_payment" type="number" min="1" required placeholder="Masukkan nominal cicilan" /></label>
+              <div v-if="selectedLotPlan" class="spk-payment-result">
+                <div><span>Tenor</span><strong>{{ selectedLotPlan.months }} bulan</strong></div>
+                <div><span>Margin</span><strong>{{ formatNumber(selectedLotPlan.margin_percent) }}%</strong></div>
+                <div><span>Cicilan per bulan</span><strong class="spk-monthly-value">{{ formatCurrency(calculatedMonthlyPayment) }}</strong></div>
+                <div><span>Total cicilan</span><strong>{{ formatCurrency(calculatedMonthlyPayment * selectedLotPlan.months) }}</strong></div>
+                <div class="spk-total-row"><span>Total pembayaran SPK</span><strong>{{ formatCurrency(totalConfirmedPayment) }}</strong></div>
+                <small>Rumus mengikuti Detail Kavling: (harga setelah DP + margin) ÷ tenor, dibulatkan ke atas.</small>
+              </div>
+              <p v-else class="spk-payment-hint">Pilih kavling untuk menampilkan skema cicilan yang tersedia.</p>
             </template>
+            <div v-else-if="selectedCreateLot" class="spk-payment-result">
+              <div class="spk-total-row"><span>Total pembayaran tunai</span><strong>{{ formatCurrency(createLotPrice) }}</strong></div>
+              <small>Harga ini disimpan sebagai snapshot SPK.</small>
+            </div>
           </section>
 
           <section class="spk-form-section">
@@ -203,15 +214,66 @@
           <p v-if="createError" class="spk-create-error" role="alert">{{ createError }}</p>
       </form>
     </AppModal>
+
+    <!-- Preview dokumen tetap di dalam aplikasi -->
+    <IonModal :is-open="documentPreviewOpen" class="spk-document-preview-modal" @didDismiss="closeDocumentPreview">
+      <div class="spk-preview-shell">
+        <header class="spk-preview-header">
+          <div class="spk-preview-heading">
+            <strong>{{ previewDocument?.file_name || 'Pratinjau dokumen' }}</strong>
+            <span>{{ previewDocument ? documentLabel(previewDocument.document_type) : '' }}</span>
+          </div>
+          <button type="button" class="spk-preview-close" aria-label="Tutup preview" @click="closeDocumentPreview">
+            <ion-icon :icon="closeOutline" />
+          </button>
+        </header>
+        <main class="spk-preview-content">
+          <div v-if="previewLoading" class="spk-preview-state"><ion-spinner name="crescent" /><span>Memuat dokumen...</span></div>
+          <div v-else-if="previewError" class="spk-preview-state spk-preview-error">{{ previewError }}</div>
+          <template v-else-if="previewUrl">
+            <div v-if="isPreviewImage" class="spk-image-stage">
+              <div class="spk-image-viewport">
+                <img :src="previewUrl" :alt="previewDocument?.file_name || 'Dokumen SPK'"
+                  :style="{ transform: `scale(${previewZoom})` }" />
+              </div>
+              <div class="spk-zoom-controls">
+                <button type="button" aria-label="Perkecil" :disabled="previewZoom <= 0.5" @click="changePreviewZoom(-0.25)">
+                  <ion-icon :icon="removeOutline" />
+                </button>
+                <span>{{ Math.round(previewZoom * 100) }}%</span>
+                <button type="button" aria-label="Perbesar" :disabled="previewZoom >= 4" @click="changePreviewZoom(0.25)">
+                  <ion-icon :icon="addOutline" />
+                </button>
+                <button type="button" aria-label="Reset zoom" @click="previewZoom = 1">
+                  <ion-icon :icon="scanOutline" />
+                </button>
+              </div>
+            </div>
+            <iframe v-else-if="isPreviewPdf" class="spk-pdf-frame" :src="previewUrl" :title="previewDocument?.file_name || 'PDF SPK'"></iframe>
+            <div v-else class="spk-preview-state">
+              <ion-icon :icon="documentTextOutline" />
+              <span>Format dokumen ini tidak dapat ditampilkan langsung. Silakan unduh.</span>
+            </div>
+          </template>
+        </main>
+        <footer class="spk-preview-footer">
+          <button type="button" class="spk-preview-download" :disabled="!previewUrl || downloadingDocument" @click="downloadPreviewDocument">
+            <ion-spinner v-if="downloadingDocument" name="crescent" />
+            <template v-else><ion-icon :icon="downloadOutline" /> Download</template>
+          </button>
+          <button type="button" class="spk-preview-done" @click="closeDocumentPreview">Selesai</button>
+        </footer>
+      </div>
+    </IonModal>
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
+import { IonContent, IonIcon, IonModal, IonPage, IonSpinner } from '@ionic/vue'
 import {
   addOutline, alertCircleOutline, cardOutline, chevronForwardOutline,
-  closeOutline, documentTextOutline, eyeOutline, fileTrayOutline, refreshOutline, searchOutline,
+  closeOutline, documentTextOutline, downloadOutline, eyeOutline, fileTrayOutline, refreshOutline, searchOutline, removeOutline, scanOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -221,10 +283,11 @@ import mascotImage from '@/assets/mascot/Curious Mascot Investigates Handshake F
 import {
   approveSPKRequest, getAdminSPKRequests, getAdminSPKStats,
   getSPKDocumentUrl, rejectSPKRequest,
-  createAdminSPKRequest, getAvailableLotsForAdmin, getPaymentPlansForAdmin,
-  type AdminAvailableLot, type AdminPaymentPlan, type AdminSPKRequest, type SPKDocument, type SPKStatus, type CreateAdminSPKInput,
+  createAdminSPKRequest, getAvailableLotsForAdmin, getLotInstallmentOptionsForAdmin,
+  type AdminLotInstallmentOption, type AdminSPKRequest, type SPKDocument, type SPKStatus, type CreateAdminSPKInput,
 } from '@/services/Admin/spkAdminService'
 import type { SPKDocumentType } from '@/services/marketing/spkService' 
+type AdminAvailableLot = Awaited<ReturnType<typeof getAvailableLotsForAdmin>>[number]
 const requests = ref<AdminSPKRequest[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -238,15 +301,34 @@ const selectedRequest = ref<AdminSPKRequest | null>(null)
 const actionRequest = ref<AdminSPKRequest | null>(null)
 const rejectionReason = ref('')
 const openingDocumentId = ref<number | null>(null)
+const documentPreviewOpen = ref(false)
+const previewDocument = ref<SPKDocument | null>(null)
+const previewUrl = ref('')
+const previewLoading = ref(false)
+const previewError = ref('')
+const previewZoom = ref(1)
+const downloadingDocument = ref(false)
+const isPreviewImage = computed(() => {
+  const mime = (previewDocument.value?.mime_type || '').toLowerCase()
+  const name = (previewDocument.value?.file_name || '').toLowerCase()
+  return mime.startsWith('image/') || /\\.(jpg|jpeg|png|webp|gif)$/i.test(name)
+})
+const isPreviewPdf = computed(() => {
+  const mime = (previewDocument.value?.mime_type || '').toLowerCase()
+  const name = (previewDocument.value?.file_name || '').toLowerCase()
+  return mime === 'application/pdf' || name.endsWith('.pdf')
+})
 const selectedSource = ref<'All' | 'Marketing' | 'Client' | 'Admin'>('All')
 const createOpen = ref(false)
 const creating = ref(false)
 const createError = ref('')
 const availableLots = ref<AdminAvailableLot[]>([])
-const createPaymentPlans = ref<AdminPaymentPlan[]>([])
+const lotInstallmentOptions = ref<AdminLotInstallmentOption[]>([])
+const loadingLotPlans = ref(false)
 const createFiles = reactive<Record<SPKDocumentType, File | null>>({
   KTP: null, KK: null, NPWP: null, 'Payment Proof': null,
 })
+const downPaymentInput = ref('')
 const createForm = reactive({
   customer_full_name: '',
   customer_phone: '',
@@ -254,11 +336,12 @@ const createForm = reactive({
   customer_address: '',
   payment_method: 'Cash' as 'Cash' | 'Installment',
   payment_plan_id: '',
+  down_payment: 0,
   monthly_payment: null as number | null,
   notes: '',
 })
 const lotSearchQuery = ref('')
-const selectedLotIds = ref<number[]>([])
+const selectedLotId = ref<number | null>(null)
 const sourceFilters = [
   { label: 'Semua', value: 'All' as const },
   { label: 'Marketing', value: 'Marketing' as const },
@@ -270,15 +353,30 @@ const filteredAvailableLots = computed(() => {
   if (!query) return availableLots.value
   return availableLots.value.filter((lot) => `${lot.lot_number} ${lot.block_id ?? ''}`.toLocaleLowerCase('id-ID').includes(query))
 })
-const selectedCreateLots = computed(() => availableLots.value.filter(lot => selectedLotIds.value.includes(lot.id)))
-const createLotPrice = computed(() => selectedCreateLots.value.reduce((total, lot) => total + Number(lot.promo_price || lot.cash_price || 0), 0))
+const selectedCreateLot = computed(() => availableLots.value.find(lot => lot.id === selectedLotId.value) || null)
+const createLotPrice = computed(() => selectedCreateLot.value ? lotPrice(selectedCreateLot.value) : 0)
+const remainingAfterDp = computed(() => Math.max(0, createLotPrice.value - Number(createForm.down_payment || 0)))
+const selectedLotPlan = computed(() => lotInstallmentOptions.value.find(item => String(item.plan_id) === createForm.payment_plan_id) || null)
+const calculatedMonthlyPayment = computed(() => {
+  if (!selectedLotPlan.value || !selectedLotPlan.value.months) return 0
+  const withMargin = remainingAfterDp.value * (1 + Number(selectedLotPlan.value.margin_percent || 0) / 100)
+  return Math.ceil(withMargin / selectedLotPlan.value.months)
+})
+const totalConfirmedPayment = computed(() => createForm.down_payment + calculatedMonthlyPayment.value * Number(selectedLotPlan.value?.months || 0))
 const canSubmitCreate = computed(() => Boolean(
   createForm.customer_full_name && createForm.customer_phone && createForm.customer_address &&
-  selectedLotIds.value.length > 0 && createFiles.KTP && createFiles.KK && createFiles['Payment Proof'] &&
-  (createForm.payment_method === 'Cash' || (createForm.payment_plan_id && Number(createForm.monthly_payment) > 0))
+  selectedLotId.value !== null && createFiles.KTP && createFiles.KK && createFiles['Payment Proof'] &&
+  (createForm.payment_method === 'Cash' || (createForm.payment_plan_id && createForm.down_payment > 0 && createForm.down_payment < createLotPrice.value && selectedLotPlan.value))
 ))
-watch(() => createForm.payment_method, value => {
-  if (value === 'Cash') { createForm.payment_plan_id = ''; createForm.monthly_payment = null }
+watch(() => createForm.payment_method, async value => {
+  createForm.payment_plan_id = ''
+  if (value === 'Cash') {
+    createForm.down_payment = 0
+    downPaymentInput.value = ''
+    lotInstallmentOptions.value = []
+  } else if (selectedLotId.value !== null) {
+    await selectLot(selectedLotId.value)
+  }
 })
 
 const stats = computed(() => getAdminSPKStats(requests.value))
@@ -341,13 +439,52 @@ function openReject(row: AdminSPKRequest) {
   rejectOpen.value = true
 }
 async function openDocument(doc: SPKDocument) {
+  previewDocument.value = doc
+  documentPreviewOpen.value = true
+  previewLoading.value = true
+  previewError.value = ''
+  previewUrl.value = ''
+  previewZoom.value = 1
   openingDocumentId.value = doc.id
   try {
-    const url = await getSPKDocumentUrl(doc.file_path)
-    window.open(url, '_blank', 'noopener,noreferrer')
+    previewUrl.value = await getSPKDocumentUrl(doc.file_path)
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Dokumen gagal dibuka.'
-  } finally { openingDocumentId.value = null }
+    previewError.value = error instanceof Error ? error.message : 'Dokumen gagal dibuka.'
+  } finally {
+    previewLoading.value = false
+    openingDocumentId.value = null
+  }
+}
+function closeDocumentPreview() {
+  documentPreviewOpen.value = false
+  previewDocument.value = null
+  previewUrl.value = ''
+  previewError.value = ''
+  previewZoom.value = 1
+}
+function changePreviewZoom(delta: number) {
+  previewZoom.value = Math.min(4, Math.max(0.5, Number((previewZoom.value + delta).toFixed(2))))
+}
+async function downloadPreviewDocument() {
+  if (!previewUrl.value || !previewDocument.value) return
+  downloadingDocument.value = true
+  try {
+    const response = await fetch(previewUrl.value)
+    if (!response.ok) throw new Error('File gagal diunduh.')
+    const blob = await response.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = previewDocument.value.file_name || 'dokumen-spk'
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(objectUrl)
+  } catch (error) {
+    previewError.value = error instanceof Error ? error.message : 'Dokumen gagal diunduh.'
+  } finally {
+    downloadingDocument.value = false
+  }
 }
 async function confirmApprove() {
   if (!actionRequest.value) return
@@ -380,19 +517,44 @@ async function openCreateForm() {
   createError.value = ''
   createOpen.value = true
   lotSearchQuery.value = ''
-  selectedLotIds.value = []
+  selectedLotId.value = null
   try {
-    const [lots, plans] = await Promise.all([getAvailableLotsForAdmin(), getPaymentPlansForAdmin()])
+    const lots = await getAvailableLotsForAdmin()
     availableLots.value = lots
-    createPaymentPlans.value = plans
+    lotInstallmentOptions.value = []
   } catch (error) {
     createError.value = error instanceof Error ? error.message : 'Data kavling atau paket pembayaran gagal dimuat.'
   }
 }
-function toggleLotSelection(lotId: number) {
-  selectedLotIds.value = selectedLotIds.value.includes(lotId)
-    ? selectedLotIds.value.filter(id => id !== lotId)
-    : [...selectedLotIds.value, lotId]
+async function selectLot(lotId: number) {
+  selectedLotId.value = lotId
+  createForm.payment_plan_id = ''
+  createForm.down_payment = 0
+  downPaymentInput.value = ''
+  lotInstallmentOptions.value = []
+  if (createForm.payment_method !== 'Installment') return
+  loadingLotPlans.value = true
+  try {
+    lotInstallmentOptions.value = await getLotInstallmentOptionsForAdmin(lotId)
+  } catch (error) {
+    createError.value = error instanceof Error ? error.message : 'Skema cicilan gagal dimuat.'
+  } finally {
+    loadingLotPlans.value = false
+  }
+}
+function updateAdminDownPayment() {
+  const digits = downPaymentInput.value.replace(/[^0-9]/g, '')
+  const amount = Math.min(createLotPrice.value, Math.max(0, Number(digits || 0)))
+  createForm.down_payment = amount
+  downPaymentInput.value = amount ? amount.toLocaleString('id-ID') : ''
+}
+function setAdminDownPayment(percentage: number) {
+  const amount = Math.round(createLotPrice.value * percentage / 100)
+  createForm.down_payment = amount
+  downPaymentInput.value = amount.toLocaleString('id-ID')
+}
+function formatNumber(value: number) {
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(value || 0))
 }
 function lotPrice(lot: AdminAvailableLot) {
   return Number(lot.promo_price || lot.cash_price || 0)
@@ -415,47 +577,43 @@ function onCreateFileChange(type: SPKDocumentType, event: Event) {
   createFiles[type] = file
 }
 async function submitAdminSPK() {
-  if (!canSubmitCreate.value || !selectedCreateLots.value.length) {
-    createError.value = 'Lengkapi data client, kavling, metode pembayaran, serta KTP, KK, dan bukti pembayaran.'
+  if (!canSubmitCreate.value || !selectedCreateLot.value) {
+    createError.value = 'Lengkapi data client, pilih satu kavling, rincian pembayaran, serta KTP, KK, dan bukti pembayaran.'
     return
   }
   creating.value = true
   createError.value = ''
   try {
-    const basePayload = {
+    const plan = selectedLotPlan.value
+    const payload: CreateAdminSPKInput = {
       customer_full_name: createForm.customer_full_name,
       customer_phone: createForm.customer_phone,
       customer_email: createForm.customer_email || null,
       customer_address: createForm.customer_address,
+      lot_id: selectedCreateLot.value.id,
+      lot_price_snapshot: createLotPrice.value,
       payment_method: createForm.payment_method,
-      payment_plan_id: createForm.payment_method === 'Installment' ? Number(createForm.payment_plan_id) : null,
-      months: createForm.payment_method === 'Installment'
-        ? Number(createPaymentPlans.value.find(p => String(p.id) === createForm.payment_plan_id)?.months || 0)
-        : null,
-      monthly_payment: createForm.payment_method === 'Installment' ? Number(createForm.monthly_payment) : null,
-      margin_percent_snapshot: createForm.payment_method === 'Installment'
-        ? Number(createPaymentPlans.value.find(p => String(p.id) === createForm.payment_plan_id)?.margin_percent || 0)
-        : null,
+      payment_plan_id: createForm.payment_method === 'Installment' ? Number(plan?.plan_id) : null,
+      months: createForm.payment_method === 'Installment' ? Number(plan?.months) : null,
+      monthly_payment: createForm.payment_method === 'Installment' ? calculatedMonthlyPayment.value : null,
+      margin_percent_snapshot: createForm.payment_method === 'Installment' ? Number(plan?.margin_percent || 0) : null,
+      down_payment_snapshot: createForm.payment_method === 'Installment' ? createForm.down_payment : 0,
+      total_payment_snapshot: createForm.payment_method === 'Installment' ? totalConfirmedPayment.value : createLotPrice.value,
       notes: createForm.notes || null,
     }
     const docs = (Object.entries(createFiles) as [SPKDocumentType, File | null][])
       .filter((entry): entry is [SPKDocumentType, File] => Boolean(entry[1]))
       .map(([type, file]) => ({ type, file }))
-    for (const lot of selectedCreateLots.value) {
-      const payload: CreateAdminSPKInput = {
-        ...basePayload,
-        lot_id: lot.id,
-        lot_price_snapshot: lotPrice(lot),
-      }
-      await createAdminSPKRequest(payload, docs)
-    }
+    await createAdminSPKRequest(payload, docs)
     createOpen.value = false
     Object.assign(createForm, {
       customer_full_name: '', customer_phone: '', customer_email: '', customer_address: '',
-      payment_method: 'Cash', payment_plan_id: '', monthly_payment: null, notes: '',
+      payment_method: 'Cash', payment_plan_id: '', down_payment: 0, monthly_payment: null, notes: '',
     })
-    selectedLotIds.value = []
+    selectedLotId.value = null
     lotSearchQuery.value = ''
+    lotInstallmentOptions.value = []
+    downPaymentInput.value = ''
     Object.keys(createFiles).forEach(key => { createFiles[key as SPKDocumentType] = null })
     await loadRequests()
   } catch (error) {
@@ -593,4 +751,44 @@ onMounted(loadRequests)
 .spk-upload-field small { color:#8a9488; font-weight:400; }
 .spk-create-error { margin:0; border-radius:10px; background:#fff1f0; color:#a63e38; padding:10px; font-size:11px; line-height:1.5; }
 @media (max-width:390px) { .spk-refresh { justify-content:center; } .spk-create-fab { right:calc(14px + env(safe-area-inset-right)); bottom:calc(84px + env(safe-area-inset-bottom)); } }
+
+.spk-price-summary,.spk-dp-panel,.spk-payment-result { display:grid; gap:10px; border:1px solid #e7ece3; border-radius:12px; background:#fbfcfa; padding:12px; }
+.spk-price-summary>div,.spk-summary-row,.spk-payment-result>div { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.spk-price-summary span,.spk-summary-row span,.spk-payment-result span { color:#7b8679; font-size:10px; }
+.spk-price-summary strong,.spk-summary-row strong,.spk-payment-result strong { color:#2e3b2e; font-size:11px; text-align:right; }
+.spk-dp-panel>label { display:grid; gap:7px; }
+.spk-dp-shortcuts { display:flex; gap:7px; }
+.spk-dp-shortcuts button { flex:1; border:1px solid #dfe7da; border-radius:9px; background:#fff; color:#355a2c; padding:8px; font-size:10px; font-weight:800; }
+.spk-payment-result .spk-monthly-value { color:#355a2c; font-size:14px; }
+.spk-payment-result .spk-total-row { border-top:1px solid #e5ebe1; padding-top:10px; }
+.spk-payment-result .spk-total-row strong { color:#355a2c; font-size:15px; }
+.spk-payment-result small,.spk-payment-hint { color:#879184; font-size:10px; line-height:1.5; }
+
+
+/* In-app document preview */
+.spk-document-preview-modal { --width:100%; --height:100%; --border-radius:0; }
+.spk-document-preview-modal::part(content) { background:#111713; }
+.spk-preview-shell { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; background:#111713; color:#fff; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+.spk-preview-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; background:#1b241d; border-bottom:1px solid #344036; }
+.spk-preview-heading { display:grid; gap:4px; min-width:0; }
+.spk-preview-heading strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.spk-preview-heading span { color:#aeb9ad; font-size:10px; }
+.spk-preview-close { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; border:0; border-radius:12px; background:#303b32; color:#fff; font-size:20px; }
+.spk-preview-content { display:flex; flex:1; min-height:0; align-items:center; justify-content:center; overflow:hidden; }
+.spk-preview-state { display:grid; justify-items:center; gap:12px; padding:24px; color:#d0d8cf; text-align:center; font-size:12px; }
+.spk-preview-error { color:#ffaaa3; }
+.spk-image-stage { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; }
+.spk-image-viewport { display:flex; flex:1; min-height:0; align-items:center; justify-content:center; overflow:auto; padding:14px; touch-action:pan-x pan-y; }
+.spk-image-viewport img { display:block; max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; transform-origin:center center; transition:transform .15s ease; }
+.spk-zoom-controls { display:flex; align-items:center; justify-content:center; gap:12px; padding:12px; background:#1b241d; }
+.spk-zoom-controls button { display:grid; place-items:center; width:38px; height:38px; border:1px solid #465348; border-radius:10px; background:#29352b; color:#fff; font-size:18px; }
+.spk-zoom-controls button:disabled { opacity:.35; }
+.spk-zoom-controls span { min-width:48px; color:#e3e9e1; text-align:center; font-size:11px; font-variant-numeric:tabular-nums; }
+.spk-pdf-frame { width:100%; height:100%; border:0; background:#fff; }
+.spk-preview-footer { display:flex; gap:10px; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:#1b241d; border-top:1px solid #344036; }
+.spk-preview-footer button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; border-radius:11px; font-size:12px; font-weight:800; }
+.spk-preview-download { flex:1; border:1px solid #58744e; background:#355a2c; color:#fff; }
+.spk-preview-done { min-width:100px; border:1px solid #485349; background:transparent; color:#fff; }
+.spk-preview-footer button:disabled { opacity:.5; }
+
 </style>
