@@ -1,30 +1,17 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   IonAlert,
-  IonButton,
-  IonButtons,
   IonContent,
-  IonHeader,
   IonIcon,
-  IonModal,
   IonPage,
-  IonTitle,
-  IonToolbar,
 } from '@ionic/vue'
 import {
-  calendarOutline,
-  cardOutline,
   checkmarkCircleOutline,
   chevronForward,
-  closeOutline,
-  cloudUploadOutline,
   documentTextOutline,
   hourglassOutline,
-  informationCircleOutline,
-  personOutline,
   searchOutline,
-  walletOutline,
 } from 'ionicons/icons'
 
 import AppHeader from '@/components/common/AppHeader.vue'
@@ -46,17 +33,6 @@ const searchQuery = ref('')
 const selectedFilter = ref<'all' | PaymentStatus>('all')
 const selectedTransaction = ref<PaymentTransaction | null>(null)
 const showDetailAlert = ref(false)
-const showTransferModal = ref(false)
-const transferForm = reactive({
-  amount: '',
-  date: '',
-  bankName: '',
-  senderName: '',
-  reference: '',
-})
-const transferReceipt = ref<File | null>(null)
-const transferError = ref('')
-const transferNotice = ref('')
 
 const filters: Array<{ label: string; value: 'all' | PaymentStatus }> = [
   { label: 'Semua', value: 'all' },
@@ -181,45 +157,6 @@ function openTransaction(transaction: PaymentTransaction) {
   selectedTransaction.value = transaction
   showDetailAlert.value = true
 }
-
-function openTransferForm() {
-  transferError.value = ''
-  transferNotice.value = ''
-  showTransferModal.value = true
-}
-
-function handleTransferReceipt(event: Event) {
-  const input = event.target
-  if (!(input instanceof HTMLInputElement)) return
-
-  const file = input.files?.[0] ?? null
-  if (file && file.size > 5 * 1024 * 1024) {
-    transferError.value = 'Ukuran bukti transfer maksimal 5 MB.'
-    transferReceipt.value = null
-    input.value = ''
-    return
-  }
-
-  transferReceipt.value = file
-  transferError.value = ''
-}
-
-function submitTransferForm() {
-  const amount = Number(transferForm.amount)
-  if (!Number.isSafeInteger(amount) || amount <= 0) {
-    transferError.value = 'Masukkan nominal transfer yang valid.'
-    return
-  }
-
-  if (!transferReceipt.value) {
-    transferError.value = 'Pilih bukti transfer terlebih dahulu.'
-    return
-  }
-
-  transferError.value = ''
-  transferNotice.value =
-    'Formulir terisi, tetapi data dan bukti transfer belum dikirim atau disimpan.'
-}
 </script>
 
 <template>
@@ -261,21 +198,6 @@ function submitTransferForm() {
             <ion-icon class="lot-chevron" :icon="chevronForward" />
           </button>
         </section>
-
-        <button
-          type="button"
-          class="transfer-entry-button"
-          @click="openTransferForm"
-        >
-          <span class="transfer-entry-icon">
-            <ion-icon :icon="walletOutline" aria-hidden="true" />
-          </span>
-          <span class="transfer-entry-copy">
-            <strong>Input Data Transfer</strong>
-            <small>Masukkan nominal dan bukti pembayaran</small>
-          </span>
-          <ion-icon class="transfer-entry-chevron" :icon="chevronForward" aria-hidden="true" />
-        </button>
 
         <!-- Ringkasan transaksi -->
         <section class="summary-grid" aria-label="Ringkasan pembayaran">
@@ -389,138 +311,6 @@ function submitTransferForm() {
         :buttons="['Tutup']"
         @did-dismiss="showDetailAlert = false"
       />
-
-      <ion-modal
-        :is-open="showTransferModal"
-        class="transfer-modal"
-        @did-dismiss="showTransferModal = false"
-      >
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>Input Data Transfer</ion-title>
-            <ion-buttons slot="end">
-              <ion-button
-                aria-label="Tutup formulir transfer"
-                @click="showTransferModal = false"
-              >
-                <ion-icon :icon="closeOutline" />
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="transfer-modal-content">
-          <form class="transfer-form" @submit.prevent="submitTransferForm">
-            <div class="transfer-lot-summary">
-              <ion-icon :icon="documentTextOutline" aria-hidden="true" />
-              <span>
-                <strong>Blok A - No. A03</strong>
-                <small>Pembayaran kavling PoliLand Kairagi</small>
-              </span>
-            </div>
-
-            <label class="transfer-field" for="transfer-amount">
-              <span>Nominal Transfer <em>*</em></span>
-              <span class="transfer-input-shell">
-                <span class="currency-prefix">Rp</span>
-                <input
-                  id="transfer-amount"
-                  v-model="transferForm.amount"
-                  type="number"
-                  min="1"
-                  step="1"
-                  inputmode="numeric"
-                  placeholder="Masukkan nominal transfer"
-                  required
-                />
-              </span>
-            </label>
-
-            <label class="transfer-field" for="transfer-date">
-              <span>Tanggal Transfer <em>*</em></span>
-              <span class="transfer-input-shell">
-                <ion-icon :icon="calendarOutline" aria-hidden="true" />
-                <input id="transfer-date" v-model="transferForm.date" type="date" required />
-              </span>
-            </label>
-
-            <label class="transfer-field" for="transfer-bank">
-              <span>Bank Pengirim <em>*</em></span>
-              <span class="transfer-input-shell">
-                <ion-icon :icon="cardOutline" aria-hidden="true" />
-                <input
-                  id="transfer-bank"
-                  v-model.trim="transferForm.bankName"
-                  type="text"
-                  placeholder="Contoh: BCA"
-                  autocomplete="organization"
-                  required
-                />
-              </span>
-            </label>
-
-            <label class="transfer-field" for="transfer-sender">
-              <span>Nama Pemilik Rekening <em>*</em></span>
-              <span class="transfer-input-shell">
-                <ion-icon :icon="personOutline" aria-hidden="true" />
-                <input
-                  id="transfer-sender"
-                  v-model.trim="transferForm.senderName"
-                  type="text"
-                  placeholder="Nama sesuai rekening pengirim"
-                  autocomplete="name"
-                  required
-                />
-              </span>
-            </label>
-
-            <label class="transfer-field" for="transfer-reference">
-              <span>Nomor Referensi <small>(Opsional)</small></span>
-              <span class="transfer-input-shell">
-                <ion-icon :icon="documentTextOutline" aria-hidden="true" />
-                <input
-                  id="transfer-reference"
-                  v-model.trim="transferForm.reference"
-                  type="text"
-                  placeholder="Masukkan nomor referensi"
-                />
-              </span>
-            </label>
-
-            <div class="transfer-field">
-              <span>Bukti Transfer <em>*</em></span>
-              <label class="transfer-file-picker">
-                <input
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  aria-label="Pilih bukti transfer"
-                  @change="handleTransferReceipt"
-                />
-                <ion-icon :icon="cloudUploadOutline" aria-hidden="true" />
-                {{ transferReceipt ? 'Ganti Bukti Transfer' : 'Pilih Bukti Transfer' }}
-              </label>
-              <small v-if="transferReceipt" class="transfer-file-name">
-                {{ transferReceipt.name }}
-              </small>
-              <small class="transfer-hint">JPG, PNG, atau PDF · Maksimal 5 MB</small>
-            </div>
-
-            <p v-if="transferError" class="transfer-feedback transfer-feedback-error" role="alert">
-              {{ transferError }}
-            </p>
-            <p v-if="transferNotice" class="transfer-feedback transfer-feedback-notice" role="status">
-              <ion-icon :icon="informationCircleOutline" aria-hidden="true" />
-              {{ transferNotice }}
-            </p>
-
-            <button type="submit" class="transfer-submit-button">
-              Kirim Bukti Pembayaran
-            </button>
-            <p class="transfer-disclaimer">
-              Formulir ini belum terhubung ke penyimpanan pembayaran. Data yang diisi tidak akan tersimpan.
-            </p>
-          </form>
-        </ion-content>
-      </ion-modal>
     </ion-content>
 
     <MobileTabBar variant="client" />
@@ -557,61 +347,6 @@ function submitTransferForm() {
 
 .lot-card {
   padding: 20px;
-}
-
-.transfer-entry-button {
-  display: flex;
-  min-height: 76px;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid var(--poliland-gold-soft, #f4d69a);
-  border-radius: var(--radius-panel, 20px);
-  color: var(--text-primary, #252525);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 8px rgb(37 37 37 / 4%);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.transfer-entry-icon {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: var(--radius-control, 12px);
-  color: var(--poliland-gold-text, #966a12);
-  background: var(--poliland-gold-soft, #f4d69a);
-}
-
-.transfer-entry-icon ion-icon {
-  font-size: 22px;
-}
-
-.transfer-entry-copy {
-  display: grid;
-  min-width: 0;
-  gap: 4px;
-}
-
-.transfer-entry-copy strong {
-  color: var(--text-primary, #252525);
-  font-size: 14px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.transfer-entry-copy small {
-  color: var(--text-secondary, #717178);
-  font-size: 12px;
-}
-
-.transfer-entry-chevron {
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: var(--poliland-gold-text, #966a12);
-  font-size: 20px;
 }
 
 .section-title {
@@ -978,231 +713,6 @@ function submitTransferForm() {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   clip-path: inset(50%);
-}
-
-.transfer-modal {
-  --width: min(520px, calc(100% - 24px));
-  --height: min(88%, 760px);
-  --border-radius: var(--radius-panel, 20px);
-}
-
-.transfer-modal ion-toolbar {
-  --background: var(--surface-primary, #fff);
-  --color: var(--text-primary, #252525);
-}
-
-.transfer-modal-content {
-  --background: var(--app-background, #faf9f6);
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --padding-top: 16px;
-  --padding-bottom: 24px;
-}
-
-.transfer-form {
-  display: grid;
-  gap: 14px;
-}
-
-.transfer-lot-summary {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 12px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-primary, #fff);
-}
-
-.transfer-lot-summary > ion-icon {
-  color: var(--poliland-gold-text, #966a12);
-  font-size: 22px;
-}
-
-.transfer-lot-summary > span {
-  display: grid;
-  gap: 3px;
-}
-
-.transfer-lot-summary strong {
-  color: var(--text-primary, #252525);
-  font-size: 13px;
-}
-
-.transfer-lot-summary small {
-  color: var(--text-secondary, #717178);
-  font-size: 11px;
-}
-
-.transfer-field {
-  display: grid;
-  min-width: 0;
-  gap: 7px;
-  color: var(--text-primary, #252525);
-  font-size: 13px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.transfer-field em {
-  color: var(--status-danger, #d94b45);
-  font-style: normal;
-}
-
-.transfer-field > span:first-child small {
-  color: var(--text-secondary, #717178);
-  font-size: 11px;
-  font-weight: var(--font-weight-regular, 400);
-}
-
-.transfer-input-shell {
-  display: flex;
-  min-width: 0;
-  min-height: 48px;
-  align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 4px rgb(37 37 37 / 5%);
-}
-
-.transfer-input-shell:focus-within {
-  border-color: var(--poliland-gold, #cba044);
-  outline: 3px solid rgb(203 160 68 / 16%);
-}
-
-.transfer-input-shell > ion-icon {
-  flex: 0 0 auto;
-  color: var(--poliland-gold-text-soft, #805708);
-  font-size: 20px;
-}
-
-.transfer-input-shell input {
-  width: 100%;
-  min-width: 0;
-  min-height: 44px;
-  border: 0;
-  outline: 0;
-  color: var(--text-primary, #252525);
-  background: transparent;
-  font: inherit;
-  font-size: 14px;
-}
-
-.transfer-input-shell input::placeholder {
-  color: var(--text-secondary, #8b8b8b);
-  opacity: 0.8;
-}
-
-.currency-prefix {
-  color: var(--poliland-gold-text-soft, #805708);
-  font-size: 14px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.transfer-file-picker {
-  position: relative;
-  display: flex;
-  min-height: 48px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 12px;
-  overflow: hidden;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--surface-primary, #fff);
-  font-size: 13px;
-  font-weight: var(--font-weight-medium, 500);
-  cursor: pointer;
-}
-
-.transfer-file-picker ion-icon {
-  font-size: 19px;
-}
-
-.transfer-file-picker input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.transfer-file-picker:focus-within {
-  outline: 3px solid rgb(203 160 68 / 24%);
-  outline-offset: 2px;
-}
-
-.transfer-hint,
-.transfer-file-name {
-  color: var(--text-secondary, #717178);
-  font-size: 11px;
-  font-weight: var(--font-weight-regular, 400);
-}
-
-.transfer-file-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.transfer-feedback {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 0;
-  padding: 11px 12px;
-  border-radius: var(--radius-control, 12px);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.transfer-feedback-error {
-  border: 1px solid #ffd1d1;
-  color: var(--status-danger, #d94b45);
-  background: #fff1f1;
-}
-
-.transfer-feedback-notice {
-  border: 1px solid var(--poliland-gold-soft, #f4d69a);
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--surface-muted, #fbf8f2);
-}
-
-.transfer-feedback ion-icon {
-  flex: 0 0 auto;
-  font-size: 17px;
-}
-
-.transfer-submit-button {
-  min-height: 50px;
-  border: 0;
-  border-radius: var(--radius-control, 12px);
-  color: #fff;
-  background: var(--poliland-gold, #cba044);
-  font: inherit;
-  font-size: 14px;
-  font-weight: var(--font-weight-semibold, 600);
-  cursor: pointer;
-}
-
-.transfer-disclaimer {
-  margin: -4px 0 0;
-  color: var(--text-secondary, #717178);
-  font-size: 11px;
-  line-height: 1.45;
-  text-align: center;
-}
-
-.transfer-entry-button:focus-visible,
-.transfer-submit-button:focus-visible {
-  outline: 3px solid var(--poliland-green, #355a2c);
-  outline-offset: 3px;
 }
 
 .payment-page button:focus-visible {
