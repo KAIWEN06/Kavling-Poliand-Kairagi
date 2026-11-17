@@ -442,7 +442,7 @@ onMounted(() => {
               </template>
               <button type="button" :disabled="currentPage >= pageCount" aria-label="Halaman berikutnya" @click="changePage(currentPage + 1)">›</button>
             </div>
-            <p class="pagination-summary">Halaman {{ currentPage }} dari {{ pageCount }}</p>
+            <p class="pagination-summary">Menampilkan {{ firstVisibleLot }}–{{ lastVisibleLot }} dari {{ filteredLots.length }} kavling</p>
           </nav>
         </section>
 
