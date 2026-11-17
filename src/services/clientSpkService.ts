@@ -52,6 +52,7 @@ export interface CreateClientSpkInput {
   buyer: {
     fullName: string
     phone: string
+    whatsappPhone: string
     email: string
     address: string
   }
@@ -198,6 +199,7 @@ export async function createClientSpk(input: CreateClientSpkInput): Promise<numb
     {
       p_customer_full_name: input.buyer.fullName,
       p_customer_phone: input.buyer.phone,
+      p_customer_whatsapp_phone: input.buyer.whatsappPhone || null,
       p_customer_email: input.buyer.email || null,
       p_customer_address: input.buyer.address,
       p_lot_id: input.lot.id,

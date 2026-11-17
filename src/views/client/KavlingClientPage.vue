@@ -32,12 +32,19 @@ import {
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import SiteplanPreview from '@/components/home/SiteplanPreview.vue'
+import SiteplanMap from '@/components/siteplan/SiteplanMap.vue'
+import DetailPanel from '@/components/siteplan/DetailPanel.vue'
+import siteplanBackground from '@/assets/siteplan/Siteplan.png'
+import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
+import { useSiteplan } from '@/composables/useSiteplant'
 import { lotService, type LotRecord } from '@/services/lotService'
+import type { SiteplanLot } from '@/services/siteplanService'
 
 type LotStatus = 'available' | 'booked' | 'sold' | 'unavailable'
 type StatusFilter = { label: string; value: LotStatus | 'all'; count: number }
 
 const ionRouter = useIonRouter()
+const { lots: siteplanLots, reload: reloadSiteplan } = useSiteplan()
 const lots = ref<LotRecord[]>([])
 const selectedLot = ref<LotRecord | null>(null)
 const searchQuery = ref('')
@@ -59,6 +66,8 @@ const installments = ref<
   }>
 >([])
 const showPurchaseModal = ref(false)
+const showBuyerSiteplan = ref(false)
+const selectedSiteplanLot = ref<SiteplanLot | null>(null)
 
 const statusDetails: Record<LotStatus, { label: string; className: string }> = {
   available: { label: 'Tersedia', className: 'status-available' },
@@ -268,6 +277,24 @@ function selectLot(lot: LotRecord) {
   selectedLot.value = lot
 }
 
+function closeBuyerSiteplan() {
+  showBuyerSiteplan.value = false
+  selectedSiteplanLot.value = null
+}
+
+function selectSiteplanLot(lot: SiteplanLot | null) {
+  selectedSiteplanLot.value = lot
+}
+
+async function openBuyerSiteplan() {
+  showBuyerSiteplan.value = true
+  try {
+    await reloadSiteplan()
+  } catch (error) {
+    console.error('[Kavling Client] Gagal memperbarui data siteplan:', error)
+  }
+}
+
 function closeLotDetails() {
   selectedLot.value = null
 }
@@ -329,7 +356,7 @@ onMounted(() => {
             <ion-icon :icon="mapOutline" aria-hidden="true" />
             <h1 id="siteplan-title">Siteplan PoliLand</h1>
           </div>
-          <SiteplanPreview :lots="lots" @go-to-siteplan="ionRouter.push('/siteplan')" />
+          <SiteplanPreview :lots="siteplanLots" @go-to-siteplan="openBuyerSiteplan" />
         </section>
 
         <label class="search-field">
@@ -557,6 +584,42 @@ onMounted(() => {
       </main>
     </ion-content>
 
+    <ion-modal
+      :is-open="showBuyerSiteplan"
+      class="buyer-siteplan-modal"
+      @did-dismiss="closeBuyerSiteplan"
+    >
+      <ion-header>
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-button aria-label="Kembali ke daftar kavling" @click="closeBuyerSiteplan">
+              <ion-icon :icon="arrowBackOutline" />
+            </ion-button>
+          </ion-buttons>
+          <ion-title>Siteplan PoliLand</ion-title>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="buyer-siteplan-content">
+        <div class="buyer-siteplan-map">
+          <SiteplanMap
+            :lots="siteplanLots"
+            :background="siteplanBackground"
+            :svg-raw="siteplanSvg"
+            :selected-lot="selectedSiteplanLot ?? undefined"
+            :rotation="0"
+            :scale="1.25"
+            @select="selectSiteplanLot"
+          />
+        </div>
+      </ion-content>
+      <DetailPanel
+        v-if="selectedSiteplanLot"
+        :lot="selectedSiteplanLot"
+        :client-mode="true"
+        @close="selectedSiteplanLot = null"
+      />
+    </ion-modal>
+
     <div v-if="selectedLot" class="detail-action-bar">
       <button
         type="button"
@@ -675,6 +738,31 @@ onMounted(() => {
   --background: var(--app-background, #faf9f6);
   color: var(--text-primary, #252525);
   font-family: var(--font-primary, var(--ion-font-family, sans-serif));
+}
+
+.buyer-siteplan-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+  --border-width: 0;
+}
+
+.buyer-siteplan-content {
+  --background: #c5d2a5;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.buyer-siteplan-map {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.buyer-siteplan-map :deep(.siteplan-map) {
+  --tabbar-height: 0px;
 }
 
 .lots-shell {

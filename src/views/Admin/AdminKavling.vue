@@ -361,7 +361,6 @@ import {
   closeOutline,
   optionsOutline,
   mapOutline,
-  expandOutline,
   swapVerticalOutline,
   chevronDownOutline,
   chevronBackOutline,
@@ -761,17 +760,7 @@ async function focusSearch() {
 }
 
 function blurInput(event: KeyboardEvent) {
-  ;(event.target as HTMLInputElement | null)?.blur()
-}
-
-function resetFilters() {
-  statusFilter.value = 'all'
-  searchType.value = 'text'
-  priceMode.value = 'nearest'
-  query.value = ''
-  minPriceText.value = ''
-  maxPriceText.value = ''
-  panelOpen.value = false
+  (event.target as HTMLInputElement | null)?.blur()
 }
 
 /* ---------- derived ---------- */

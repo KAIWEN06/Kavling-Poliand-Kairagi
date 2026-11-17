@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-  IonInput, IonButton, IonText, IonSpinner, IonIcon,
+  IonButton, IonText, IonSpinner, IonIcon,
 } from '@ionic/vue'
 import {
   arrowBackOutline, personOutline, callOutline, mailOutline, lockClosedOutline,
-  eyeOutline, eyeOffOutline, personAddOutline, chevronForwardOutline,
+  chevronForwardOutline,
 } from 'ionicons/icons'
 import MascotCanvas from '@/components/auth/MascotCanvas.vue'
 import AppInput from '@/components/ui/AppInput.vue'
-import AppButton from '@/components/ui/AppButton.vue'
 import { supabase } from '@/services/config/supabase'
 
 interface MascotHandle {
@@ -48,16 +47,6 @@ async function onConfirmPasswordVisibilityChange(visible: boolean) {
   await mascotRef.value?.setPasswordVisible(visible)
 }
 
-async function togglePassword(which: 'password' | 'confirm') {
-  if (which === 'password') {
-    showPassword.value = !showPassword.value
-    await mascotRef.value?.setPasswordVisible(showPassword.value)
-  } else {
-    showConfirmPassword.value = !showConfirmPassword.value
-    await mascotRef.value?.setPasswordVisible(showConfirmPassword.value)
-  }
-}
-
 async function submitRegistration() {
   if (loading.value || googleLoading.value) return
   errorMessage.value = ''
@@ -90,6 +79,7 @@ async function submitRegistration() {
         data: {
           full_name: fullName.value.trim(),
           phone: phone.value.trim(),
+          role: 'client',
         },
       },
     })
@@ -251,7 +241,7 @@ async function registerWithGoogle() {
 
                 <ion-spinner v-if="loading" name="crescent" />
 
-                <span v-else>Masuk</span>
+                <span v-else>Buat Akun</span>
 
               </ion-button>
             </form>

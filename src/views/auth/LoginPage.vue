@@ -33,10 +33,11 @@ import {
 } from '@ionic/vue'
 
 import { authService } from '@/services/auth/authService'
+import { supabase } from '@/services/config/supabase'
 
 import AppInput from '@/components/ui/AppInput.vue'
 
-import { logoGoogle, arrowBackOutline, personAddOutline, mailOutline, lockClosedOutline } from 'ionicons/icons'
+import { arrowBackOutline, personAddOutline, mailOutline, lockClosedOutline } from 'ionicons/icons'
 
 import AppButton from '@/components/ui/AppButton.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
@@ -81,6 +82,11 @@ const REFRESH_DURATION = 1800
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 const errorMessage = ref('')
+const resendLoading = ref(false)
+const resendMessage = ref('')
+const isEmailUnconfirmed = computed(() =>
+  errorMessage.value.toLocaleLowerCase().includes('email not confirmed'),
+)
 
 
 
@@ -168,6 +174,7 @@ async function submitLogin() {
 
 
   errorMessage.value = ''
+  resendMessage.value = ''
 
   loading.value = true
 
@@ -253,6 +260,32 @@ async function submitLogin() {
 
 }
 
+async function resendSignupConfirmation() {
+  const address = email.value.trim()
+  if (!address || resendLoading.value) return
+
+  resendLoading.value = true
+  resendMessage.value = ''
+
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: address,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    })
+    if (error) throw error
+
+    resendMessage.value = 'Permintaan kirim ulang berhasil. Periksa email dan folder spam.'
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    resendMessage.value = message.toLocaleLowerCase().includes('rate limit')
+      ? 'Batas kirim email tercapai. Tunggu sebelum mencoba lagi.'
+      : message || 'Email konfirmasi belum dapat dikirim. Periksa pengaturan SMTP Supabase.'
+  } finally {
+    resendLoading.value = false
+  }
+}
+
 
 
 async function loginWithGoogle() {
@@ -327,6 +360,18 @@ async function loginWithGoogle() {
             <ion-text v-if="errorMessage" color="danger">
               <p class="message" role="alert">{{ errorMessage }}</p>
             </ion-text>
+            <div v-if="isEmailUnconfirmed" class="confirmation-resend">
+              <button
+                type="button"
+                :disabled="resendLoading || !email.trim()"
+                @click="resendSignupConfirmation"
+              >
+                {{ resendLoading ? 'Mengirim...' : 'Kirim ulang email konfirmasi' }}
+              </button>
+              <ion-text v-if="resendMessage" :color="resendMessage.startsWith('Permintaan') ? 'success' : 'danger'">
+                <p class="message" role="status">{{ resendMessage }}</p>
+              </ion-text>
+            </div>
 
             <form class="auth-form" @submit.prevent="submitLogin">
                 <AppInput
@@ -663,6 +708,25 @@ ion-card-title {
 }
 ion-card-content { padding: 8px 20px 20px; }
 .message { margin: 0 0 8px; font-size: 12px; line-height: 1.35; }
+.confirmation-resend {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.confirmation-resend button {
+  padding: 0;
+  border: 0;
+  color: #805708;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.confirmation-resend button:disabled { opacity: .55; cursor: default; }
+.confirmation-resend .message { margin: 0; }
 
 .auth-form {
   display: grid;

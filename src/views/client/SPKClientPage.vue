@@ -24,6 +24,7 @@ import { useRoute } from 'vue-router'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import { authService } from '@/services/auth/authService'
 import {
   createClientSpk,
   getClientSpkErrorMessage,
@@ -51,6 +52,7 @@ const submissionComplete = ref(false)
 const form = reactive({
   fullName: '',
   phone: '',
+  whatsappPhone: '',
   email: '',
   address: '',
 })
@@ -183,6 +185,28 @@ async function loadLot() {
   }
 }
 
+async function loadBuyerProfile() {
+  try {
+    const user = await authService.getCurrentUser()
+    if (!user) return
+
+    const metadata = user.user_metadata ?? {}
+    const firstText = (...values: unknown[]) =>
+      values.find((value): value is string => typeof value === 'string' && value.trim().length > 0)?.trim() ?? ''
+
+    // Registration stores name and phone in Supabase Auth user metadata.
+    // Fill only empty controls so a user's edits are never overwritten.
+    form.fullName ||= firstText(metadata.full_name, metadata.name)
+    form.phone ||= firstText(metadata.phone, metadata.whatsapp_phone, metadata.phone_number, user.phone)
+    form.whatsappPhone ||= firstText(metadata.whatsapp_phone, metadata.whatsapp)
+    form.email ||= firstText(user.email)
+    form.address ||= firstText(metadata.address)
+  } catch (error) {
+    // Profile prefill is optional; missing metadata should leave fields editable and blank.
+    console.warn('[SPK Client] Data profil pembeli tidak dapat dimuat untuk pengisian otomatis.', error)
+  }
+}
+
 function selectPaymentScheme(value: 'Cash' | 'Installment') {
   paymentScheme.value = value
   if (value === 'Cash') selectedPlanId.value = null
@@ -252,6 +276,7 @@ async function saveSpk() {
       buyer: {
         fullName: form.fullName,
         phone: form.phone,
+        whatsappPhone: form.whatsappPhone,
         email: form.email,
         address: form.address,
       },
@@ -278,6 +303,7 @@ async function saveSpk() {
 
 onMounted(() => {
   void loadLot()
+  void loadBuyerProfile()
 })
 </script>
 
@@ -360,6 +386,21 @@ onMounted(() => {
                     inputmode="tel"
                     autocomplete="tel"
                     placeholder="Contoh: 0823 4735 8236"
+                  />
+                </div>
+              </div>
+
+              <div class="spk-field">
+                <label for="spk-whatsapp">Nomor WhatsApp <small>(Opsional)</small></label>
+                <div class="spk-input-wrap">
+                  <ion-icon :icon="callOutline" aria-hidden="true" />
+                  <input
+                    id="spk-whatsapp"
+                    v-model.trim="form.whatsappPhone"
+                    type="tel"
+                    inputmode="tel"
+                    autocomplete="tel-national"
+                    placeholder="Contoh: 0812 3456 7890"
                   />
                 </div>
               </div>
@@ -557,21 +598,24 @@ onMounted(() => {
             <ion-icon :icon="informationCircleOutline" aria-hidden="true" />
             {{ saveError }}
           </p>
+
+          <div
+            v-if="lot && lotAvailable && !lotLoading && !lotError && !submissionComplete"
+            class="spk-action-bar"
+          >
+            <button
+              type="button"
+              class="spk-save-button"
+              :disabled="saving"
+              @click="saveSpk"
+            >
+              <ion-icon :icon="documentTextOutline" aria-hidden="true" />
+              {{ saving ? 'Menyimpan SPK...' : 'Simpan SPK' }}
+            </button>
+          </div>
         </template>
       </main>
     </ion-content>
-
-    <div v-if="lot && lotAvailable && !lotLoading && !lotError && !submissionComplete" class="spk-action-bar">
-      <button
-        type="button"
-        class="spk-save-button"
-        :disabled="saving"
-        @click="saveSpk"
-      >
-        <ion-icon :icon="documentTextOutline" aria-hidden="true" />
-        {{ saving ? 'Menyimpan SPK...' : 'Simpan SPK' }}
-      </button>
-    </div>
 
     <MobileTabBar variant="client" />
   </ion-page>
@@ -590,7 +634,7 @@ onMounted(() => {
   width: min(100%, 760px);
   gap: 16px;
   margin: 0 auto;
-  padding: 18px 16px calc(180px + env(safe-area-inset-bottom, 0px));
+  padding: 18px 16px calc(106px + env(safe-area-inset-bottom, 0px));
 }
 
 .spk-page-heading {
@@ -1084,15 +1128,8 @@ onMounted(() => {
 }
 
 .spk-action-bar {
-  position: fixed;
-  z-index: 10;
-  right: 0;
-  bottom: calc(82px + env(safe-area-inset-bottom, 0px));
-  left: 0;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-default, #eae7e0);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 -3px 14px rgb(37 37 37 / 5%);
+  width: 100%;
+  margin-top: 2px;
 }
 
 .spk-save-button {
@@ -1132,7 +1169,7 @@ onMounted(() => {
 @media (max-width: 560px) {
   .spk-shell {
     gap: 14px;
-    padding: 14px 12px calc(170px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 12px calc(106px + env(safe-area-inset-bottom, 0px));
   }
 
   .spk-card-body {

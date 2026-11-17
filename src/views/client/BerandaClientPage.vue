@@ -1,6 +1,13 @@
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { IonButton, IonContent, IonIcon, IonPage } from '@ionic/vue'
+import {
+  IonButton,
+  IonContent,
+  IonIcon,
+  IonPage,
+  onIonViewWillEnter,
+} from '@ionic/vue'
 import {
   calendarOutline,
   cardOutline,
@@ -16,10 +23,77 @@ import {
 } from 'ionicons/icons'
 
 import { authService } from '@/services/auth/authService'
+import {
+  getClientSpks,
+  type ClientSpkDocumentKey,
+  type ClientSpkRecord,
+} from '@/services/clientSpkService'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 
 const router = useRouter()
+const clientName = ref('Pembeli')
+const clientSpks = ref<ClientSpkRecord[]>([])
+const documentsLoaded = ref(false)
+
+const documentFields: Array<{ key: ClientSpkDocumentKey; label: string }> = [
+  { key: 'ktp', label: 'KTP' },
+  { key: 'kk', label: 'KK' },
+  { key: 'npwp', label: 'NPWP' },
+  { key: 'paymentProof', label: 'Bukti Pembayaran' },
+]
+
+const uploadedDocumentLabels = computed(() => {
+  const uploadedKeys = new Set<ClientSpkDocumentKey>()
+
+  for (const spk of clientSpks.value) {
+    for (const { key } of documentFields) {
+      if (spk.documents[key]) uploadedKeys.add(key)
+    }
+  }
+
+  return documentFields
+    .filter(({ key }) => uploadedKeys.has(key))
+    .map(({ label }) => label)
+})
+
+const uploadedDocumentCount = computed(() => uploadedDocumentLabels.value.length)
+
+async function loadClientDocuments() {
+  try {
+    clientSpks.value = await getClientSpks()
+  } catch (error) {
+    console.error('[Beranda Client] Gagal memuat dokumen dari Supabase:', error)
+    clientSpks.value = []
+  } finally {
+    documentsLoaded.value = true
+  }
+}
+
+async function loadClientName() {
+  try {
+    const user = await authService.getCurrentUser()
+    const metadata = user?.user_metadata ?? {}
+    const registeredName = metadata.full_name ?? metadata.name
+    const emailName = user?.email?.split('@')[0]
+
+    clientName.value =
+      typeof registeredName === 'string' && registeredName.trim()
+        ? registeredName.trim()
+        : emailName || 'Pembeli'
+  } catch (error) {
+    console.error('[Beranda Client] Gagal memuat nama akun:', error)
+    clientName.value = 'Pembeli'
+  }
+}
+
+onMounted(() => {
+  void loadClientName()
+})
+
+onIonViewWillEnter(() => {
+  void loadClientDocuments()
+})
 
 async function logout() {
   await authService.logout()
@@ -46,7 +120,7 @@ function goTo(path: string) {
           <div class="welcome-heading">
             <div class="welcome-copy">
               <p class="welcome-eyebrow">SELAMAT DATANG,</p>
-              <h1 id="welcome-title">Kevin Sondakh</h1>
+              <h1 id="welcome-title">{{ clientName }}</h1>
             </div>
             <ion-button
               class="logout-icon-button"
@@ -229,12 +303,15 @@ function goTo(path: string) {
 
             <div class="quick-card-content">
               <h2>Dokumen Saya</h2>
-              <p class="document-description">
-                KTP, KK, NPWP, SPK, Bukti Pembayaran
+              <p v-if="uploadedDocumentCount > 0" class="document-description">
+                {{ uploadedDocumentLabels.join(', ') }}
               </p>
-              <span class="document-status">
+              <span
+                v-if="documentsLoaded && uploadedDocumentCount > 0"
+                class="document-status"
+              >
                 <ion-icon :icon="checkmarkCircle" />
-                <span>3 dari 4 dokumen diunggah</span>
+                <span>{{ uploadedDocumentCount }} jenis dokumen diunggah</span>
               </span>
             </div>
 

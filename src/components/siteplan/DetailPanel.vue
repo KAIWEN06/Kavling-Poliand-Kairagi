@@ -296,9 +296,10 @@
             class="buy-button"
             type="button"
             expand="block"
+            :disabled="props.clientMode && !clientLotAvailable"
             @click="openPurchaseModal"
           >
-            Beli
+            {{ props.clientMode && !clientLotAvailable ? 'Tidak Tersedia' : props.clientMode ? 'Beli Kavling' : 'Beli' }}
           </AppButton>
         </div>
 
@@ -417,8 +418,9 @@
         </p>
 
         <p class="purchase-note">
-          Silakan masuk atau daftar akun untuk melanjutkan
-          proses pembelian.
+          {{ props.clientMode
+            ? 'Lanjutkan ke formulir pembelian untuk mengajukan pemesanan kavling ini.'
+            : 'Silakan masuk atau daftar akun untuk melanjutkan proses pembelian.' }}
         </p>
       </div>
 
@@ -435,9 +437,9 @@
         <AppButton
           expand="block"
           class="continue-purchase-button"
-          @click="goToLogin"
+          @click="continuePurchase"
         >
-          Lanjutkan ke Login
+          {{ props.clientMode ? 'Lanjutkan ke Formulir SPK' : 'Lanjutkan ke Login' }}
         </AppButton>
       </div>
     </div>
@@ -468,7 +470,7 @@ import {
   IonDatetime,
 } from '@ionic/vue'
 
-import { cartOutline, closeOutline, compassOutline } from 'ionicons/icons'
+import { closeOutline, compassOutline } from 'ionicons/icons'
 
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.png'
@@ -479,6 +481,7 @@ import {
   formatCurrency,
   formatDate,
   getStatusLabel,
+  normalizeLotStatus,
 } from '../../utils/siteplan'
 
 /* ===================================================== */
@@ -554,6 +557,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  clientMode: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 /* ===================================================== */
@@ -595,22 +602,15 @@ const installmentBasePrice = computed(() => {
   )
 })
 
+const clientLotAvailable = computed(() =>
+  normalizeLotStatus(props.lot?.status) === 'available',
+)
+
 const remainingAfterDp = computed(() => {
   return Math.max(
     0,
     installmentBasePrice.value - Number(downPayment.value || 0)
   )
-})
-
-const discountPercent = computed(() => {
-  const normalPrice = Number(props.lot?.cash_price || 0)
-  const promoPrice = Number(props.lot?.promo_price || 0)
-
-  if (!normalPrice || !promoPrice || promoPrice >= normalPrice) {
-    return 0
-  }
-
-  return Math.round((1 - promoPrice / normalPrice) * 100)
 })
 
 /* ===================================================== */
@@ -858,6 +858,20 @@ function closePurchaseModal() {
 function goToLogin() {
   showPurchaseModal.value = false
   router.push('/login')
+}
+
+function continuePurchase() {
+  if (!props.clientMode) {
+    goToLogin()
+    return
+  }
+
+  const lotId = props.lot?.id
+  if (lotId === null || lotId === undefined) return
+
+  showPurchaseModal.value = false
+  close()
+  void router.push(`/client/spk?lot_id=${encodeURIComponent(String(lotId))}`)
 }
 
 /* ===================================================== */

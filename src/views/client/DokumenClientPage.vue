@@ -219,9 +219,6 @@ onIonViewWillEnter(loadSpkRecords)
               <h2 :id="`spk-title-${record.id}`">
                 Surat Pembelian Kavling ({{ record.spkNumber }})
               </h2>
-            <p>
-              SPK dan lampiran disimpan di Supabase.
-            </p>
             </div>
 
           <button
@@ -327,7 +324,7 @@ onIonViewWillEnter(loadSpkRecords)
               </span>
               <h2 :id="`files-title-${record.id}`">Lampiran SPK</h2>
             </div>
-            <span class="file-count">Nama berkas</span>
+            <span class="file-count">Berkas</span>
           </div>
 
           <div class="document-list">
@@ -353,14 +350,11 @@ onIonViewWillEnter(loadSpkRecords)
             </article>
           </div>
           <p class="attachment-note">
-            Berkas asli tersimpan secara privat di Supabase.
+            Berkas anda tersimpan secara private.
           </p>
         </section>
         </article>
 
-        <aside class="supabase-storage-note" role="note">
-          Data SPK dan lampiran tersimpan di database serta penyimpanan privat Supabase.
-        </aside>
       </template>
 
       <aside class="support-card">
