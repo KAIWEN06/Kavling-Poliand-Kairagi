@@ -12,7 +12,7 @@
       >
         <!-- Background -->
         <img
-          :src="background"
+          :src="background || fallbackBackground"
           alt="Minimap"
           class="minimap-background"
           draggable="false"
@@ -42,7 +42,7 @@ import {
   watch,
 } from 'vue'
 
-import background from '../../assets/siteplan/background.webp'
+import fallbackBackground from '../../assets/siteplan/background.webp'
 import svgRaw from '../../assets/siteplan/LOTS_WITH_ID.svg?raw'
 
 import {
@@ -51,6 +51,10 @@ import {
 } from '../../utils/siteplan'
 
 const props = defineProps({
+  background: {
+    type: String,
+    default: '',
+  },
   lots: {
     type: Array,
     default: () => [],

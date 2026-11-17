@@ -17,7 +17,7 @@
             :background="backgroundImage"
             :svg-raw="svgRaw"
             :rotation="currentRotation"
-            :scale="1"
+            :scale="1.25"
             @select="handleLotSelection"
             @hover="hoverLot"
             @leave="clearHover"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   IonButton,
   IonButtons,
@@ -21,23 +21,30 @@ import {
   documentTextOutline,
   homeOutline,
   locationOutline,
+  mapOutline,
+  personOutline,
   resizeOutline,
   searchOutline,
+  swapVerticalOutline,
   walletOutline,
 } from 'ionicons/icons'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import SiteplanPreview from '@/components/home/SiteplanPreview.vue'
 import { lotService, type LotRecord } from '@/services/lotService'
 
 type LotStatus = 'available' | 'booked' | 'sold' | 'unavailable'
-type BlockFilter = { label: string; value: string }
+type StatusFilter = { label: string; value: LotStatus | 'all'; count: number }
 
 const ionRouter = useIonRouter()
 const lots = ref<LotRecord[]>([])
 const selectedLot = ref<LotRecord | null>(null)
 const searchQuery = ref('')
-const selectedBlock = ref('all')
+const selectedStatus = ref<LotStatus | 'all'>('all')
+const sortOrder = ref<'lot' | 'price'>('lot')
+const currentPage = ref(1)
+const pageSize = ref(10)
 const loading = ref(true)
 const errorMessage = ref('')
 const showInstallmentModal = ref(false)
@@ -60,35 +67,50 @@ const statusDetails: Record<LotStatus, { label: string; className: string }> = {
   unavailable: { label: 'Tidak tersedia', className: 'status-unavailable' },
 }
 
-const blockFilters = computed<BlockFilter[]>(() => {
-  const blocks = new Map<string, string>()
-
-  for (const lot of lots.value) {
-    const label = getBlockLabel(lot)
-    blocks.set(label.toLocaleLowerCase('id-ID'), label)
+const statusFilters = computed<StatusFilter[]>(() => {
+  const statuses: Array<LotStatus | 'all'> = ['all', 'available', 'booked', 'sold', 'unavailable']
+  const labels: Record<LotStatus | 'all', string> = {
+    all: 'Semua', available: 'Tersedia', booked: 'Dipesan', sold: 'Terjual', unavailable: 'Lainnya',
   }
 
-  return [
-    { label: 'Semua Blok', value: 'all' },
-    ...[...blocks.entries()]
-      .sort((left, right) => left[1].localeCompare(right[1], 'id-ID', { numeric: true }))
-      .map(([value, label]) => ({ label, value })),
-  ]
+  return statuses
+    .filter((status) => status === 'all' || status !== 'unavailable' || hasUnavailableLots.value)
+    .map((status) => ({
+      label: labels[status],
+      value: status,
+      count: status === 'all'
+        ? lots.value.length
+        : lots.value.filter((lot) => getLotStatus(lot.status) === status).length,
+    }))
 })
 
-const visibleLots = computed(() => {
+const filteredLots = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase('id-ID')
 
-  return lots.value.filter((lot) => {
+  const result = lots.value.filter((lot) => {
     const blockLabel = getBlockLabel(lot)
-    const matchesBlock =
-      selectedBlock.value === 'all' ||
-      blockLabel.toLocaleLowerCase('id-ID') === selectedBlock.value
-    const searchableText = `${lot.lot_number} ${blockLabel}`
-      .toLocaleLowerCase('id-ID')
+    const customerName = getCustomerName(lot)
+    const searchableText = `${lot.lot_number} ${blockLabel} ${customerName}`.toLocaleLowerCase('id-ID')
+    const matchesStatus = selectedStatus.value === 'all' || getLotStatus(lot.status) === selectedStatus.value
 
-    return matchesBlock && (!query || searchableText.includes(query))
+    return matchesStatus && (!query || searchableText.includes(query))
   })
+
+  return result.sort((left, right) => {
+    if (sortOrder.value === 'price') return getLotPrice(left) - getLotPrice(right)
+    return left.lot_number.localeCompare(right.lot_number, 'id-ID', { numeric: true })
+  })
+})
+
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredLots.value.length / pageSize.value)))
+const paginatedLots = computed(() =>
+  filteredLots.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value),
+)
+const firstVisibleLot = computed(() => filteredLots.value.length ? (currentPage.value - 1) * pageSize.value + 1 : 0)
+const lastVisibleLot = computed(() => Math.min(currentPage.value * pageSize.value, filteredLots.value.length))
+
+watch([searchQuery, selectedStatus, sortOrder, pageSize, filteredLots], () => {
+  currentPage.value = 1
 })
 
 const hasUnavailableLots = computed(() =>
@@ -193,6 +215,41 @@ function getStatusLabel(lot: LotRecord) {
   return statusDetails[getLotStatus(lot.status)].label
 }
 
+function getLotPrice(lot: LotRecord) {
+  const promoPrice = Number(lot.promo_price)
+  const cashPrice = Number(lot.cash_price)
+  const price = promoPrice > 0 ? promoPrice : cashPrice
+  return Number.isFinite(price) && price > 0 ? price : Number.MAX_SAFE_INTEGER
+}
+
+function getCustomerName(lot: LotRecord) {
+  const customer = Array.isArray(lot.customer) ? lot.customer[0] : lot.customer
+  const fullName = customer?.full_name
+  return typeof fullName === 'string' ? fullName.trim() : ''
+}
+
+function formatShortDate(value: string | null | undefined) {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  }).format(date)
+}
+
+function changePage(page: number) {
+  currentPage.value = Math.min(Math.max(1, page), pageCount.value)
+}
+
+const paginationItems = computed<Array<number | 'ellipsis'>>(() => {
+  const total = pageCount.value
+  const current = currentPage.value
+  if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
+
+  if (current <= 3) return [1, 2, 3, 'ellipsis', total]
+  if (current >= total - 2) return [1, 'ellipsis', total - 2, total - 1, total]
+  return [1, 'ellipsis', current, 'ellipsis', total]
+})
+
 function formatCurrency(value: number | string | null | undefined) {
   const amount = Number(value)
 
@@ -267,48 +324,53 @@ onMounted(() => {
       :fullscreen="true"
     >
       <main v-if="!selectedLot" class="lots-shell">
+        <section class="siteplan-section" aria-labelledby="siteplan-title">
+          <div class="siteplan-section-title">
+            <ion-icon :icon="mapOutline" aria-hidden="true" />
+            <h1 id="siteplan-title">Siteplan PoliLand</h1>
+          </div>
+          <SiteplanPreview :lots="lots" @go-to-siteplan="ionRouter.push('/siteplan')" />
+        </section>
+
         <label class="search-field">
           <ion-icon :icon="searchOutline" aria-hidden="true" />
           <input
             v-model="searchQuery"
             type="search"
-            placeholder="Cari nomor kavling atau blok..."
-            aria-label="Cari nomor kavling atau blok"
+            placeholder="Cari nomor kavling atau nama pelanggan"
+            aria-label="Cari nomor kavling atau nama pelanggan"
             autocomplete="off"
           />
+          <span class="search-sort-icon" aria-hidden="true">
+            <ion-icon :icon="swapVerticalOutline" />
+          </span>
         </label>
 
-        <nav class="block-filters" aria-label="Filter blok">
+        <nav class="status-filters" aria-label="Filter status kavling">
           <button
-            v-for="filter in blockFilters"
+            v-for="filter in statusFilters"
             :key="filter.value"
             type="button"
-            :class="['block-filter', { active: selectedBlock === filter.value }]"
-            :aria-pressed="selectedBlock === filter.value"
-            @click="selectedBlock = filter.value"
+            :class="['status-filter', { active: selectedStatus === filter.value }]"
+            :aria-pressed="selectedStatus === filter.value"
+            @click="selectedStatus = filter.value"
           >
-            {{ filter.label }}
+            <i v-if="filter.value !== 'all'" :class="`status-dot status-dot-${filter.value}`" aria-hidden="true"></i>
+            {{ filter.label }} ({{ filter.count }})
           </button>
         </nav>
 
-        <section class="status-legend" aria-label="Keterangan status kavling">
-          <span class="legend-item">
-            <i class="status-dot status-dot-available" aria-hidden="true"></i>
-            Tersedia
-          </span>
-          <span class="legend-item">
-            <i class="status-dot status-dot-booked" aria-hidden="true"></i>
-            Dipesan
-          </span>
-          <span class="legend-item">
-            <i class="status-dot status-dot-sold" aria-hidden="true"></i>
-            Terjual
-          </span>
-          <span v-if="hasUnavailableLots" class="legend-item">
-            <i class="status-dot status-dot-unavailable" aria-hidden="true"></i>
-            Lainnya
-          </span>
-        </section>
+        <div class="lot-list-heading">
+          <h2>Daftar Kavling</h2>
+          <label class="sort-control">
+            <span class="visually-hidden">Urutkan kavling</span>
+            <ion-icon :icon="swapVerticalOutline" aria-hidden="true" />
+            <select v-model="sortOrder">
+              <option value="lot">Nomor kavling</option>
+              <option value="price">Harga</option>
+            </select>
+          </label>
+        </div>
 
         <div v-if="loading" class="message-state" role="status">
           Memuat data kavling...
@@ -322,65 +384,71 @@ onMounted(() => {
           </button>
         </section>
 
-        <section v-else-if="visibleLots.length" class="lot-grid" aria-label="Daftar kavling">
-          <article v-for="lot in visibleLots" :key="lot.id" class="lot-card">
-            <button
-              type="button"
-              class="lot-card-trigger"
-              :aria-label="`Lihat detail ${getBlockLabel(lot)} nomor ${lot.lot_number}`"
-              @click="selectLot(lot)"
-            >
-              <div class="lot-image">
-                <img
-                  v-if="lot.panorama_url"
-                  :src="lot.panorama_url"
-                  :alt="`Panorama kavling ${lot.lot_number}`"
-                  loading="lazy"
-                />
-                <span class="lot-number">{{ lot.lot_number }}</span>
-                <span
-                  :class="[
-                    'lot-status',
-                    statusDetails[getLotStatus(lot.status)].className,
-                  ]"
-                >
-                  <i
-                    class="status-dot"
-                    :class="`status-dot-${getLotStatus(lot.status)}`"
-                    aria-hidden="true"
-                  ></i>
-                  {{ statusDetails[getLotStatus(lot.status)].label }}
-                </span>
+        <section v-else-if="filteredLots.length" class="lot-list" aria-label="Daftar kavling">
+          <article v-for="lot in paginatedLots" :key="lot.id" class="lot-card">
+            <div class="lot-card-heading">
+              <div class="lot-card-title">
+                <h3>{{ lot.lot_number }}</h3>
+                <p>{{ getBlockLabel(lot) }} · {{ getAreaLabel(lot) }}<template v-if="lot.dimension"> · {{ lot.dimension }}</template></p>
               </div>
+              <span :class="['lot-status', statusDetails[getLotStatus(lot.status)].className]">
+                <ion-icon :icon="getLotStatus(lot.status) === 'available' ? checkmarkCircleOutline : getLotStatus(lot.status) === 'booked' ? homeOutline : closeOutline" aria-hidden="true" />
+                {{ getStatusLabel(lot) }}
+              </span>
+            </div>
 
-              <div class="lot-information">
-                <h2>{{ getBlockLabel(lot) }} – No. {{ lot.lot_number }}</h2>
-                <p class="lot-detail">
-                  <ion-icon :icon="resizeOutline" aria-hidden="true" />
-                  <span>{{ getAreaLabel(lot) }}</span>
-                </p>
-                <p class="lot-detail lot-location">
-                  <ion-icon :icon="locationOutline" aria-hidden="true" />
-                  <span>Kairagi, Manado</span>
-                </p>
-              </div>
-            </button>
-
-            <button
-              v-if="lot.panorama_url"
-              type="button"
-              class="panorama-button"
-              :aria-label="`Lihat panorama kavling ${lot.lot_number}`"
-              @click.stop="openPanorama(lot)"
-            >
-              360°
-            </button>
+            <div class="lot-card-divider"></div>
+            <div class="lot-price-block">
+              <span>Harga</span>
+              <strong :class="{ 'price-unavailable': getLotPrice(lot) === Number.MAX_SAFE_INTEGER }">{{ formatCurrency(getLotPrice(lot) === Number.MAX_SAFE_INTEGER ? null : getLotPrice(lot)) }}</strong>
+            </div>
+            <p v-if="getLotStatus(lot.status) === 'booked' || getLotStatus(lot.status) === 'sold'" class="lot-customer">
+              <ion-icon :icon="personOutline" aria-hidden="true" />
+              <span>
+                {{ getLotStatus(lot.status) === 'booked' ? 'Pemesanan' : 'Pembeli' }}: {{ getCustomerName(lot) || 'Informasi pelanggan tidak tersedia' }}
+                <template v-if="formatShortDate(lot.booking_date || lot.sold_date)"> · {{ formatShortDate(lot.booking_date || lot.sold_date) }}</template>
+                <template v-if="lot.payment_type"> · {{ lot.payment_type === 'Installment' ? 'Cicilan' : lot.payment_type }}</template>
+              </span>
+            </p>
+            <div class="lot-card-actions">
+              <button
+                v-if="lot.panorama_url"
+                type="button"
+                class="lot-quick-action"
+                :aria-label="`Lihat panorama ${lot.lot_number}`"
+                @click="openPanorama(lot)"
+              >
+                360°
+              </button>
+              <button type="button" class="lot-detail-button" @click="selectLot(lot)">
+                Detail <ion-icon :icon="chevronForward" aria-hidden="true" />
+              </button>
+            </div>
           </article>
+
+          <nav class="pagination" aria-label="Pagination daftar kavling">
+            <div class="pagination-buttons">
+              <button type="button" :disabled="currentPage <= 1" aria-label="Halaman sebelumnya" @click="changePage(currentPage - 1)">‹</button>
+              <template v-for="(item, index) in paginationItems" :key="`${item}-${index}`">
+                <span v-if="item === 'ellipsis'" class="pagination-ellipsis" aria-hidden="true">…</span>
+                <button
+                  v-else
+                  type="button"
+                  :class="['pagination-page', { active: currentPage === item }]"
+                  :aria-label="`Halaman ${item}`"
+                  :aria-current="currentPage === item ? 'page' : undefined"
+                  @click="changePage(item)"
+                >{{ item }}</button>
+              </template>
+              <button type="button" :disabled="currentPage >= pageCount" aria-label="Halaman berikutnya" @click="changePage(currentPage + 1)">›</button>
+            </div>
+            <p class="pagination-summary">Halaman {{ currentPage }} dari {{ pageCount }}</p>
+          </nav>
         </section>
 
         <section v-else class="message-state empty-state">
           <strong>Kavling tidak ditemukan</strong>
-          <p>Ubah kata pencarian atau pilih blok lainnya.</p>
+          <p>Ubah kata pencarian atau filter status.</p>
         </section>
       </main>
 
@@ -614,7 +682,8 @@ onMounted(() => {
   width: min(100%, 1120px);
   gap: 16px;
   margin: 0 auto;
-  padding: 14px 16px 32px;
+  /* Keep the final list controls clear of the fixed MobileTabBar and iOS home area. */
+  padding: 14px 16px calc(112px + env(safe-area-inset-bottom, 0px));
 }
 
 .lot-detail-shell {
@@ -658,6 +727,85 @@ onMounted(() => {
 .search-field input::placeholder {
   color: var(--text-secondary, #717178);
   opacity: 0.8;
+}
+
+.search-sort-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--text-primary, #252525);
+  background: #f4f2ed;
+}
+
+.search-sort-icon ion-icon { font-size: 20px; }
+
+.status-filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 16px 3px;
+  scrollbar-width: none;
+}
+
+.status-filters::-webkit-scrollbar { display: none; }
+
+.status-filter {
+  display: inline-flex;
+  min-height: 42px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 999px;
+  color: var(--text-primary, #252525);
+  background: var(--surface-primary, #fff);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-filter.active {
+  border-color: var(--poliland-green, #355a2c);
+  color: #fff;
+  background: var(--poliland-green, #355a2c);
+}
+
+.lot-list-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.lot-list-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--poliland-green, #355a2c);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sort-control select {
+  max-width: 130px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
 }
 
 .search-field:focus-within {
@@ -766,6 +914,183 @@ onMounted(() => {
   border-radius: var(--radius-card, 16px);
   background: var(--surface-primary, #fff);
   box-shadow: 0 3px 12px rgb(37 37 37 / 5%);
+}
+
+.lot-list {
+  display: grid;
+  gap: 12px;
+}
+
+.lot-card {
+  padding: 16px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgb(37 37 37 / 3%);
+}
+
+.lot-card-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lot-card-title { min-width: 0; }
+
+.lot-card-title h3 {
+  margin: 0;
+  color: var(--text-primary, #252525);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.lot-card-title p {
+  margin: 3px 0 0;
+  color: var(--text-secondary, #85858c);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.lot-card .lot-status {
+  position: static;
+  max-width: 48%;
+  min-height: 32px;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+.lot-card .lot-status ion-icon { font-size: 15px; }
+
+.lot-card-divider {
+  height: 1px;
+  margin: 14px 0 12px;
+  background: var(--border-default, #eae7e0);
+}
+
+.lot-price-block { display: grid; gap: 4px; }
+
+.lot-price-block > span {
+  color: var(--text-secondary, #85858c);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.lot-price-block strong {
+  color: var(--text-primary, #252525);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.lot-price-block .price-unavailable { color: var(--text-secondary, #85858c); }
+
+.lot-customer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  color: var(--text-secondary, #85858c);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.lot-customer ion-icon { flex: 0 0 auto; font-size: 16px; }
+
+.lot-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.lot-detail-button, .lot-quick-action {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 14px;
+  color: var(--text-primary, #252525);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.lot-detail-button { flex: 1; background: #f4f2ed; }
+.lot-detail-button ion-icon { font-size: 19px; }
+.lot-quick-action { width: 48px; flex: 0 0 auto; background: #fff; }
+
+.pagination {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-default, #eae7e0);
+}
+
+.pagination-buttons {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 1.2vw, 8px);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 22px;
+  background: #f4f2ed;
+}
+
+.pagination-buttons button {
+  display: inline-grid;
+  width: clamp(38px, 12vw, 48px);
+  height: clamp(38px, 12vw, 48px);
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 13px;
+  color: var(--text-primary, #252525);
+  background: var(--surface-primary, #fff);
+  font: inherit;
+  font-size: clamp(16px, 4.5vw, 18px);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pagination-buttons button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pagination-buttons .pagination-page.active {
+  border-color: var(--poliland-green, #355a2c);
+  color: #fff;
+  background: var(--poliland-green, #355a2c);
+}
+
+.pagination-ellipsis {
+  min-width: 28px;
+  color: var(--text-primary, #252525);
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pagination-summary {
+  margin: 0;
+  color: var(--text-secondary, #85858c);
+  text-align: center;
+  font-size: 14px;
 }
 
 .lot-card-trigger {
@@ -1464,7 +1789,7 @@ onMounted(() => {
 @media (min-width: 640px) {
   .lots-shell {
     gap: 18px;
-    padding: 20px 24px 36px;
+    padding: 20px 24px calc(112px + env(safe-area-inset-bottom, 0px));
   }
 
   .block-filters {

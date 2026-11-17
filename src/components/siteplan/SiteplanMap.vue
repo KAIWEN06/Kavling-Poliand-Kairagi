@@ -96,6 +96,7 @@
       <div class="control-minimap">
         <MiniMap
           :lots="lots"
+          :background="background"
           :selected-lot="selectedLot"
           :rotation="currentRotation"
           :scale="currentScale"

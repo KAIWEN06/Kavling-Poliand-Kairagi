@@ -8,7 +8,7 @@ import {
   checkmarkCircle,
   chevronForward,
   documentTextOutline,
-  linkOutline,
+  gridOutline,
   listOutline,
   logOutOutline,
   mapOutline,
@@ -65,7 +65,7 @@ function goTo(path: string) {
             class="gold-button welcome-button"
             @click="goTo('/client/kavling')"
           >
-            <ion-icon slot="start" :icon="mapOutline" />
+            <ion-icon slot="start" :icon="gridOutline" />
             Lihat Kavling
             <ion-icon slot="end" :icon="chevronForward" />
           </ion-button>
@@ -135,7 +135,7 @@ function goTo(path: string) {
           <div class="section-heading progress-heading">
             <div class="heading-title">
               <span class="heading-icon gold-icon">
-                <ion-icon :icon="linkOutline" />
+                <ion-icon :icon="cardOutline" />
               </span>
               <div>
                 <h2 id="progress-title">Progress Pembayaran</h2>
@@ -365,6 +365,26 @@ function goTo(path: string) {
   margin: 0;
   font-weight: var(--font-weight-semibold, 600);
   text-transform: none;
+}
+
+.dashboard ion-icon {
+  display: block;
+  flex: 0 0 auto;
+  line-height: 1;
+  transform: none;
+}
+
+.gold-button::part(native) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gold-button ion-icon[slot='start'],
+.gold-button ion-icon[slot='end'] {
+  margin: 0;
+  font-size: 19px;
 }
 
 .welcome-button {
