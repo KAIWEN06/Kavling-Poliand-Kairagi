@@ -5,6 +5,7 @@ export type FinancePaymentStatus = 'Pending' | 'Confirmed' | 'Rejected' | 'Needs
 export interface FinancePaymentRecord {
   id: number
   transaction_id: number | null
+  spk_request_id: number | null
   lot_id: number | null
   customer_id: number | null
   amount: number | null
@@ -57,6 +58,23 @@ export interface FinanceCustomerRecord {
   lots?: FinanceLotRecord[]
   marketing?: { full_name: string | null } | null
   marketing_profile?: { full_name: string | null } | null
+}
+
+export interface FinanceAdminPaymentRecord {
+  payment: FinancePaymentRecord
+  customer: {
+    id: number
+    full_name: string
+    phone: string | null
+    whatsapp_phone: string | null
+    created_at: string
+  } | null
+  lot: FinanceLotRecord | null
+  spk: {
+    id: number
+    spk_number: string
+    status: string
+  } | null
 }
 
 export interface FinanceBalance {

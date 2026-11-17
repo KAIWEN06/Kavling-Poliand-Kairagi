@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  "appId": "com.poliland.app",
+  "appId": "com.poliland.kairagi",
   "appName": "PoliLand",
   "webDir": "dist",
   "plugins": {

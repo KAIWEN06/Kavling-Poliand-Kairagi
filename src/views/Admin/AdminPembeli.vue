@@ -47,7 +47,7 @@
               <div :class="['buyer-avatar', customer.tone]">{{ initials(customer.full_name) }}</div>
               <div class="buyer-details">
                 <h3>{{ customer.full_name }}</h3>
-                <p>{{ customer.phone || 'Nomor belum tercatat' }}</p>
+                <p>Telepon: {{ customer.phone || '—' }}</p><p>WhatsApp: {{ customer.whatsapp_phone || '—' }}</p>
                 <small>{{ customer.statusLabel }} · {{ formatDate(customer.created_at) }}</small>
                 <small v-if="customer.source" class="buyer-source">
                   <ion-icon :icon="personOutline" aria-hidden="true" /> {{ customer.source }}
@@ -149,7 +149,7 @@
       title="Tambah pembeli"
       variant="bottom-sheet"
       :loading="addSaving"
-      :confirm-disabled="!addForm.full_name.trim() || !addForm.phone.trim()"
+      :confirm-disabled="!addForm.full_name.trim() || (!addForm.phone.trim() && !addForm.whatsapp_phone.trim())"
       confirm-text="Simpan pembeli"
       cancel-text="Batal"
       :max-height="'92dvh'"
@@ -171,14 +171,18 @@
 
           <div class="add-field-grid">
             <label class="add-field">
-              <span>Nomor telepon <b>*</b></span>
-              <input v-model.trim="addForm.phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx" required />
+              <span>Nomor telepon biasa</span>
+              <input v-model.trim="addForm.phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Nomor telepon utama" />
             </label>
             <label class="add-field">
-              <span>NIK</span>
-              <input v-model.trim="addForm.nik" type="text" inputmode="numeric" maxlength="16" placeholder="16 digit NIK" />
+              <span>Nomor WhatsApp</span>
+              <input v-model.trim="addForm.whatsapp_phone" type="tel" inputmode="tel" placeholder="Nomor WhatsApp" />
             </label>
           </div>
+          <label class="add-field">
+            <span>NIK</span>
+            <input v-model.trim="addForm.nik" type="text" inputmode="numeric" maxlength="16" placeholder="16 digit NIK" />
+          </label>
 
           <label class="add-field">
             <span>Email</span>
@@ -308,6 +312,7 @@ type Customer = {
   id: number
   full_name: string
   phone: string | null
+  whatsapp_phone: string | null
   email: string | null
   address: string | null
   notes: string | null
@@ -426,6 +431,7 @@ async function loadCustomers() {
       id: row.id,
       full_name: row.full_name,
       phone: row.phone ?? null,
+      whatsapp_phone: row.whatsapp_phone ?? null,
       email: row.email ?? null,
       address: row.address ?? null,
       notes: row.notes ?? null,
@@ -531,6 +537,7 @@ const marketingError = ref('')
 const addForm = reactive({
   full_name: '',
   phone: '',
+  whatsapp_phone: '',
   email: '',
   nik: '',
   address: '',
@@ -562,6 +569,7 @@ function resetAddForm() {
   Object.assign(addForm, {
     full_name: '',
     phone: '',
+    whatsapp_phone: '',
     email: '',
     nik: '',
     address: '',
@@ -625,11 +633,12 @@ async function saveNewCustomer() {
 
   const fullName = addForm.full_name.trim()
   const phone = addForm.phone.trim()
+  const whatsappPhone = addForm.whatsapp_phone.trim()
   const email = addForm.email.trim()
   const nik = addForm.nik.trim()
 
-  if (!fullName || !phone) {
-    addError.value = 'Nama lengkap dan nomor telepon wajib diisi.'
+  if (!fullName || (!phone && !whatsappPhone)) {
+    addError.value = 'Nama lengkap dan minimal salah satu nomor telepon atau WhatsApp wajib diisi.'
     return
   }
 
@@ -655,14 +664,15 @@ async function saveNewCustomer() {
 
   try {
     await customerService.createCustomer({
-      customer: {
+      customer: ({
         full_name: fullName,
-        phone: phone,
+        phone: phone || null,
+        whatsapp_phone: whatsappPhone || null,
         email: email || null,
         nik: nik || null,
         address: addForm.address.trim() || null,
         marketing_id: addForm.marketing_id || null,
-      },
+      } as any),
       interests: selectedIds.map((lotId) => ({
         lot_id: lotId,
         payment_type: addForm.payment_type,

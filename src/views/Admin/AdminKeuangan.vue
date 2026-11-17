@@ -71,6 +71,7 @@
                 </div>
                 <div class="proof-info-grid">
                   <div><span>Klien / Pembeli</span><strong>{{ selectedProofPayment.customer?.full_name || 'Tidak tersedia' }}</strong><small>{{ selectedProofPayment.customer?.whatsapp_phone || selectedProofPayment.customer?.phone || 'Kontak belum tersedia' }}</small></div>
+                  <div><span>Nomor SPK</span><strong>{{ selectedProofPayment.spk?.spk_number || 'Belum terkait SPK' }}</strong><small>{{ selectedProofPayment.spk ? `Status SPK: ${selectedProofPayment.spk.status}` : 'Pembayaran transaksi' }}</small></div>
                   <div><span>Kavling Terdaftar</span><strong>{{ selectedProofPayment.lot?.lot_number || 'Tidak tersedia' }}</strong><small>{{ selectedProofPayment.lot?.blocks?.name || 'Blok belum tersedia' }} · {{ selectedProofPayment.lot?.area ?? '-' }} m²</small></div>
                   <div><span>Metode & Bank</span><strong>{{ selectedProofPayment.payment.payment_method || 'Tidak tersedia' }}</strong><small>Ref: {{ selectedProofPayment.payment.reference_number || 'Tidak dicantumkan' }}</small></div>
                   <div><span>Waktu Transaksi</span><strong>{{ formatShortDate(selectedProofPayment.payment.payment_date || selectedProofPayment.payment.created_at) }}</strong><small>{{ formatTime(selectedProofPayment.payment.created_at) }} WITA</small></div>
@@ -729,7 +730,7 @@
           <div v-else-if="errorMessage" class="finance-state" role="alert"><ion-icon :icon="alertCircleOutline" aria-hidden="true" /><strong>Data keuangan gagal dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="loadTransactions">Coba lagi</AppButton></div>
           <template v-else>
             <section v-if="filteredTransactions.length" class="transaction-list" aria-label="Daftar transaksi pembayaran">
-              <article v-for="transaction in pagedTransactions" :key="transaction.id" class="transaction-card">
+              <article v-for="transaction in pagedTransactions" :key="transaction.id" class="transaction-card" :class="{ 'transaction-card--target': isTargetTransaction(transaction) }">
                 <div class="transaction-head">
                   <div class="customer-mark" :class="`customer-mark--${transaction.status}`">{{ initials(transaction.customerName) }}</div>
                   <div class="transaction-customer"><h2>{{ transaction.customerName }}</h2><p>{{ transaction.lotCode }} · {{ transaction.paymentType }}</p></div>
@@ -910,12 +911,12 @@ import { paymentPlanService, type PaymentPlanRecord } from '@/services/Finance/p
 import { paymentService, type InstallmentScheduleRecord, type PaymentDetail } from '@/services/Finance/paymentService'
 import AppModal from '@/components/ui/AppModal.vue'
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
-import type { FinanceCustomerRecord, FinancePaymentRecord, FinanceTransactionRecord } from '@/types/finance'
+import type { FinanceAdminPaymentRecord, FinanceCustomerRecord, FinancePaymentRecord, FinanceTransactionRecord } from '@/types/finance'
 import FinanceAmountBreakdown from '@/components/Admin/finance/FinanceAmountBreakdown.vue'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
 type FinanceStatus = 'pending' | 'verified' | 'overdue'
-type FinanceTransaction = { id: string; customerName: string; lotCode: string; paymentType: string; amount: number; method: string; date: string; status: FinanceStatus; reviewStatus: string }
+type FinanceTransaction = { id: string; customerName: string; lotCode: string; paymentType: string; amount: number; method: string; date: string; status: FinanceStatus; reviewStatus: string; spkNumber: string; spkRequestId: string }
 
 type InstructionStepDraft = { key: string; text: string }
 type PaymentInstructionDraft = {
@@ -1019,6 +1020,8 @@ const loading = ref(true)
 const errorMessage = ref('')
 const actionMessage = ref('')
 const route = useRoute()
+const targetPaymentId = ref('')
+const targetSpkRequestId = ref('')
 const PAGE_SIZE = 10
 const currentPage = ref(1)
 const activeView = ref<'verification' | 'instructions' | 'reports' | 'plans'>('verification')
@@ -1039,9 +1042,10 @@ type ReportPayment = {
   categoryLabel: string
   status: string
   statusLabel: string
-  statusTone: 'confirmed' | 'pending' | 'rejected'
+  statusTone: 'confirmed' | 'pending' | 'rejected' | 'reupload'
   note: string
   proofPath: string | null
+  spkRequestId: string
 }
 type ReportLot = {
   key: string
@@ -1089,6 +1093,7 @@ const activeReportTab = ref<ReportTab>('summary')
 const reportMonth = ref(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
 const reportQuery = ref('')
 const rawCustomers = ref<FinanceCustomerRecord[]>([])
+const directPaymentRecords = ref<FinanceAdminPaymentRecord[]>([])
 const selectedReportLot = ref<ReportLot | null>(null)
 type PaymentPage = 'none' | 'proof' | 'add'
 const paymentPage = ref<PaymentPage>('none')
@@ -1146,7 +1151,7 @@ const reportTabs = [
 
 function normalizeReportPayment(payment: FinancePaymentRecord, customer: FinanceCustomerRecord, lot: FinanceTransactionRecord['lots'], transaction: FinanceTransactionRecord | undefined): ReportPayment {
   const status = String(payment.status || 'Pending')
-  const statusTone = status === 'Confirmed' ? 'confirmed' : status === 'Rejected' ? 'rejected' : 'pending'
+  const statusTone = status === 'Confirmed' ? 'confirmed' : status === 'Rejected' ? 'rejected' : status === 'Needs Reupload' ? 'reupload' : 'pending'
   const category = String(payment.payment_category || 'Unclassified')
   const categoryLabels: Record<string, string> = {
     Booking: 'Booking Fee',
@@ -1176,20 +1181,26 @@ function normalizeReportPayment(payment: FinancePaymentRecord, customer: Finance
     statusTone,
     note: payment.note || '',
     proofPath: payment.proof_path || null,
+    spkRequestId: String(payment.spk_request_id ?? ''),
   }
 }
 
 const allReportPayments = computed<ReportPayment[]>(() => {
-  return rawCustomers.value.flatMap((customer) => {
-    const payments = Array.isArray(customer.payments) ? customer.payments : []
-    return payments.map((payment) => {
-      const transaction = (customer.lot_transactions || []).find((item) =>
-        String(item.id) === String(payment.transaction_id) ||
-        (String(item.lot_id) === String(payment.lot_id) && String(item.customer_id) === String(customer.id))
-      )
-      const lot = transaction?.lots || (customer.lots || []).find((item) => String(item.id) === String(payment.lot_id))
-      return normalizeReportPayment(payment, customer, lot, transaction)
-    })
+  return directPaymentRecords.value.map(({ payment, customer, lot }) => {
+    const fallbackCustomer = rawCustomers.value.find((item) => String(item.id) === String(payment.customer_id))
+    const reportCustomer = (customer || fallbackCustomer || {
+      id: payment.customer_id ?? 0,
+      full_name: 'Customer tidak tersedia',
+      phone: null,
+      whatsapp_phone: null,
+      created_at: payment.created_at,
+      payments: [],
+      lot_transactions: [],
+    }) as FinanceCustomerRecord
+    const transaction = payment.transaction_id
+      ? (reportCustomer.lot_transactions || []).find((item) => String(item.id) === String(payment.transaction_id))
+      : undefined
+    return normalizeReportPayment(payment, reportCustomer, lot || transaction?.lots || null, transaction)
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 })
 
@@ -1203,7 +1214,8 @@ const reportLots = computed<ReportLot[]>(() => {
         const lotPayments = allReportPayments.value.filter((payment) =>
           payment.status === 'Confirmed' &&
           ((payment.transactionId && payment.transactionId === String(transaction.id)) ||
-            (!payment.transactionId && payment.lotId === String(transaction.lot_id) && payment.customerId === String(customer.id)))
+            (!payment.transactionId && !payment.spkRequestId &&
+              payment.lotId === String(transaction.lot_id) && payment.customerId === String(customer.id)))
         )
         const balance = calculateFinanceBalance(transaction, lotPayments)
         const finalPrice = balance.obligation
@@ -1213,7 +1225,9 @@ const reportLots = computed<ReportLot[]>(() => {
         const statusTone = remaining <= 0 && finalPrice > 0 ? 'paid' : 'ongoing'
         const lotId = String(transaction.lot_id)
         const transactionPayments = allReportPayments.value
-          .filter((payment) => payment.transactionId === String(transaction.id) || (!payment.transactionId && payment.lotId === lotId && payment.customerId === String(customer.id)))
+          .filter((payment) => payment.transactionId === String(transaction.id) ||
+            (!payment.transactionId && !payment.spkRequestId &&
+              payment.lotId === lotId && payment.customerId === String(customer.id)))
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         return {
           key: `${customer.id}-${transaction.id}`,
@@ -1341,9 +1355,19 @@ watch(activeView, (view: typeof activeView.value) => {
 })
 
 const statusCounts = computed(() => ({ pending: transactions.value.filter((item) => item.status === 'pending').length, verified: transactions.value.filter((item) => item.status === 'verified').length, overdue: transactions.value.filter((item) => item.status === 'overdue').length }))
+function isTargetTransaction(item: FinanceTransaction) {
+  return Boolean(
+    (targetPaymentId.value && item.id === targetPaymentId.value) ||
+    (targetSpkRequestId.value && item.spkRequestId === targetSpkRequestId.value),
+  )
+}
 const filteredTransactions = computed(() => {
   const term = query.value.trim().toLowerCase()
-  return transactions.value.filter((item) => item.status === activeFilter.value && (!term || `${item.customerName} ${item.lotCode} ${item.method}`.toLowerCase().includes(term)))
+  return transactions.value.filter((item) => {
+    const isTarget = isTargetTransaction(item)
+    const matchesStatus = item.status === activeFilter.value || isTarget
+    return matchesStatus && (!term || `${item.customerName} ${item.lotCode} ${item.method} ${item.spkNumber} ${item.spkRequestId}`.toLowerCase().includes(term))
+  })
 })
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredTransactions.value.length / PAGE_SIZE)))
 const pagedTransactions = computed(() => filteredTransactions.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE))
@@ -1928,27 +1952,56 @@ async function loadTransactions() {
   errorMessage.value = ''
   try {
     const customers = await customerService.getAdminCustomers()
+    const directPayments = await customerService.getAdminPaymentVerificationRecords()
     rawCustomers.value = customers ?? []
-    transactions.value = customers.flatMap((customer) => (customer.payments ?? []).map((payment) => {
-      const related = (customer.lot_transactions ?? []).find((item) =>
-        String(item.id) === String(payment.transaction_id) ||
-        String(item.lot_id) === String(payment.lot_id)
-      )
-      const date = payment.payment_date || payment.created_at || customer.created_at || new Date().toISOString()
+    directPaymentRecords.value = directPayments
+    transactions.value = directPayments.map(({ payment, customer, lot, spk }) => {
+      const date = payment.payment_date || payment.created_at || customer?.created_at || new Date().toISOString()
       const status: FinanceStatus = payment.status === 'Confirmed' ? 'verified' : payment.status === 'Rejected' ? 'overdue' : 'pending'
-      return { id: String(payment.id), customerName: customer.full_name || 'Pembeli', lotCode: related?.lots?.lot_number || `Lot #${payment.lot_id ?? related?.lot_id ?? '-'}`, paymentType: payment.payment_category || (related?.payment_type === 'Installment' ? 'Cicilan' : 'Pembayaran'), amount: Number(payment.amount || 0), method: payment.payment_method || 'Metode belum tercatat', date, status, reviewStatus: String(payment.status || 'Pending') } as FinanceTransaction
-    }))
+      const lotCode = lot?.lot_number || `Lot #${payment.lot_id ?? '-'}`
+      const paymentType = payment.spk_request_id && !payment.transaction_id
+        ? `Booking Fee SPK${spk?.spk_number ? ` · ${spk.spk_number}` : ''}`
+        : payment.payment_category || 'Pembayaran'
+      return {
+        id: String(payment.id),
+        customerName: customer?.full_name || 'Customer tidak tersedia',
+        lotCode,
+        paymentType,
+        amount: Number(payment.amount || 0),
+        method: payment.payment_method || 'Metode belum tercatat',
+        date,
+        status,
+        reviewStatus: String(payment.status || 'Pending'),
+        spkNumber: spk?.spk_number || '',
+        spkRequestId: String(payment.spk_request_id ?? spk?.id ?? ''),
+      } as FinanceTransaction
+    })
   } catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.' } finally { loading.value = false }
 }
 
-onMounted(() => {
+onMounted(async () => {
   const requestedStatus = route.query.status
   const requestedTab = route.query.tab
+  const requestedPaymentId = Array.isArray(route.query.paymentId) ? route.query.paymentId[0] : route.query.paymentId
+  const requestedSpkRequestId = Array.isArray(route.query.spkRequestId) ? route.query.spkRequestId[0] : route.query.spkRequestId
+  targetPaymentId.value = typeof requestedPaymentId === 'string' ? requestedPaymentId : ''
+  targetSpkRequestId.value = typeof requestedSpkRequestId === 'string' ? requestedSpkRequestId : ''
   if (requestedTab === 'plans') activeView.value = 'plans'
+  if (requestedTab === 'verification') activeView.value = 'verification'
   if (requestedStatus === 'pending' || requestedStatus === 'verified' || requestedStatus === 'overdue') {
     activeFilter.value = requestedStatus
   }
-  void loadTransactions()
+  await loadTransactions()
+  const paymentId = Number(targetPaymentId.value)
+  if (Number.isInteger(paymentId) && paymentId > 0) {
+    await openPaymentProof(paymentId)
+  } else if (targetSpkRequestId.value) {
+    const targetPayment = directPaymentRecords.value.find(({ payment }) => String(payment.spk_request_id ?? '') === targetSpkRequestId.value)
+    if (targetPayment) {
+      targetPaymentId.value = String(targetPayment.payment.id)
+      await openPaymentProof(targetPayment.payment.id)
+    }
+  }
   void loadPaymentInstruction()
   void loadBankAccounts()
   void loadPaymentPlans()
@@ -1958,6 +2011,7 @@ onMounted(() => {
 <style scoped>
 .admin-finance-page { color: var(--text-primary); font-family: var(--font-primary); }
 .finance-shell { max-width: 1120px; margin: 0 auto; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); }
+.transaction-card--target { border-color: var(--poliland-gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--poliland-gold) 22%, transparent); }
 
 .report-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 24px 0 18px; }
 .report-eyebrow { margin: 0 0 6px; color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-bold); letter-spacing: .08em; }

@@ -1,4 +1,5 @@
 import { supabase } from '@/services/config/supabase'
+import type { FinanceAdminPaymentRecord, FinanceLotRecord, FinancePaymentRecord } from '@/types/finance'
 import type { FinanceCustomerRecord } from '@/types/finance'
 
 export interface Customer {
@@ -86,6 +87,99 @@ async function getCustomerUsage(customerId: number): Promise<CustomerUsage[]> {
 }
 
 export const customerService = {
+  async getAdminPaymentVerificationRecords(): Promise<FinanceAdminPaymentRecord[]> {
+    const { data, error } = await supabase
+      .from('payments')
+      .select(`
+        id,
+        transaction_id,
+        spk_request_id,
+        lot_id,
+        customer_id,
+        amount,
+        payment_date,
+        payment_method,
+        payment_category,
+        status,
+        note,
+        proof_path,
+        reference_number,
+        review_note,
+        verified_at,
+        verified_by,
+        created_at
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    const customerIds = [...new Set((data ?? []).map((row: any) => Number(row.customer_id)).filter((id) => Number.isFinite(id) && id > 0))]
+    const lotIds = [...new Set((data ?? []).map((row: any) => Number(row.lot_id)).filter((id) => Number.isFinite(id) && id > 0))]
+    const spkIds = [...new Set((data ?? []).map((row: any) => Number(row.spk_request_id)).filter((id) => Number.isFinite(id) && id > 0))]
+    const [customersResult, lotsResult, spkResult] = await Promise.all([
+      customerIds.length
+        ? supabase.from('customers').select('id, full_name, phone, whatsapp_phone, created_at').in('id', customerIds)
+        : Promise.resolve({ data: [], error: null } as any),
+      lotIds.length
+        ? supabase.from('lots').select('id, lot_number, area, blocks(name)').in('id', lotIds)
+        : Promise.resolve({ data: [], error: null } as any),
+      spkIds.length
+        ? supabase.from('spk_requests').select('id, spk_number, status').in('id', spkIds)
+        : Promise.resolve({ data: [], error: null } as any),
+    ])
+    for (const result of [customersResult, lotsResult, spkResult]) {
+      if (result.error) throw result.error
+    }
+
+    const customerMap = new Map<number, any>((customersResult.data || []).map((row: any) => [Number(row.id), row]))
+    const lotMap = new Map<number, any>((lotsResult.data || []).map((row: any) => [Number(row.id), row]))
+    const spkMap = new Map<number, any>((spkResult.data || []).map((row: any) => [Number(row.id), row]))
+
+    return (data ?? []).map((row: any) => {
+      const customer = customerMap.get(Number(row.customer_id))
+      const lot = lotMap.get(Number(row.lot_id))
+      const block = Array.isArray(lot?.blocks) ? lot.blocks[0] : lot?.blocks
+      const spk = spkMap.get(Number(row.spk_request_id))
+      const payment = {
+        ...row,
+        id: Number(row.id),
+        transaction_id: row.transaction_id == null ? null : Number(row.transaction_id),
+        spk_request_id: row.spk_request_id == null ? null : Number(row.spk_request_id),
+        lot_id: row.lot_id == null ? null : Number(row.lot_id),
+        customer_id: row.customer_id == null ? null : Number(row.customer_id),
+        amount: row.amount == null ? null : Number(row.amount),
+      } as FinancePaymentRecord
+
+      return {
+        payment,
+        customer: customer
+          ? {
+              id: Number(customer.id),
+              full_name: customer.full_name || '',
+              phone: customer.phone ?? null,
+              whatsapp_phone: customer.whatsapp_phone ?? null,
+              created_at: customer.created_at,
+            }
+          : null,
+        lot: lot
+          ? {
+              id: Number(lot.id),
+              lot_number: lot.lot_number,
+              area: lot.area == null ? null : Number(lot.area),
+              blocks: block ? { name: block.name } : null,
+            } as FinanceLotRecord
+          : null,
+        spk: spk
+          ? {
+              id: Number(spk.id),
+              spk_number: spk.spk_number,
+              status: spk.status,
+            }
+          : null,
+      }
+    })
+  },
+
   async getAdminCustomers(): Promise<FinanceCustomerRecord[]> {
     const { data, error } = await supabase
       .from('customers')
@@ -103,6 +197,7 @@ export const customerService = {
         payments (
           id,
           transaction_id,
+          spk_request_id,
           lot_id,
           customer_id,
           amount,
@@ -111,7 +206,13 @@ export const customerService = {
           payment_category,
           status,
           note,
-          created_at
+          proof_path,
+          reference_number,
+          review_note,
+          verified_at,
+          verified_by,
+          created_at,
+          lots (lot_number)
         ),
         customer_notes (id, note, created_at),
         customer_interests (
@@ -314,6 +415,7 @@ export const customerService = {
         address: payload.customer.address ?? null,
         notes: payload.customer.notes ?? null,
         marketing_id: marketingId,
+        registration_source: profile.role === 'marketing' || marketingId ? 'Marketing' : 'Admin',
       })
       .select()
       .single()

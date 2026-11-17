@@ -27,6 +27,7 @@ import AdminPembeliDetailPage from '@/views/Admin/AdminPembeliDetail.vue'
 import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
 import AdminLainnyaPage from '@/views/Admin/AdminLainnya.vue'
 import SPKAdminPage from '@/views/Admin/SPKAdminPage.vue'
+import TinjauSPKPage from '@/views/Admin/TinjauSPKPage.vue'
 import BerandaMarketingPage from '@/views/marketing/BerandaMarketingPage.vue'
 import KavlingMarketingPage from '@/views/marketing/KavlingMarketingPage.vue'
 import CalonPembeliMarketingPage from '@/views/marketing/CalonPembeliMarketingPage.vue'
@@ -142,6 +143,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/admin/spk',
     name: 'AdminSPK',
     component: SPKAdminPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/spk/:spkId/tinjau',
+    name: 'AdminTinjauSPK',
+    component: TinjauSPKPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {

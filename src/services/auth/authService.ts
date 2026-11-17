@@ -1,4 +1,7 @@
+
 import { supabase } from '@/services/config/supabase'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import type { ID } from '@/types/common'
 
 export type UserRole = 'owner' | 'admin' | 'marketing' | 'client'
@@ -9,6 +12,9 @@ const ROLE_HOME: Record<UserRole, string> = {
   marketing: '/beranda-marketing',
   client: '/beranda-client',
 }
+
+// Harus sama dengan scheme dan host yang didaftarkan di AndroidManifest.xml.
+export const AUTH_CALLBACK_URL = 'com.poliland.kairagi://auth/callback'
 
 function normalizeRole(value: unknown): UserRole | null {
   if (typeof value !== 'string') return null
@@ -29,7 +35,7 @@ function normalizeRole(value: unknown): UserRole | null {
 
 export const authService = {
   /**
-   * Mendapatkan user yang sedang login
+   * Mendapatkan user yang sedang login.
    */
   async getCurrentUser() {
     const { data, error } = await supabase.auth.getUser()
@@ -40,7 +46,7 @@ export const authService = {
   },
 
   /**
-   * Mendapatkan session user
+   * Mendapatkan session user.
    */
   async getSession() {
     const { data, error } = await supabase.auth.getSession()
@@ -51,7 +57,7 @@ export const authService = {
   },
 
   /**
-   * Login menggunakan email dan password
+   * Login menggunakan email dan password.
    */
   async login(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -65,33 +71,61 @@ export const authService = {
   },
 
   /**
-   * Login menggunakan Google
+   * Login / registrasi menggunakan Google.
+   *
+   * Pengguna baru akan dibuat oleh Supabase Auth.
+   * Pengguna lama akan masuk ke akun yang sudah terdaftar
+   * menggunakan identitas Google yang sama.
    */
   async signInWithGoogle() {
-    const redirectTo = `${window.location.origin}/auth/callback`
+    const isNative = Capacitor.isNativePlatform()
+
+    const redirectTo = isNative
+      ? AUTH_CALLBACK_URL
+      : `${window.location.origin}/auth/callback`
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
+        scopes: 'openid email profile',
+
+        // Pada native, URL OAuth dibuka menggunakan Capacitor Browser.
+        // Pada web, Supabase melakukan redirect browser secara otomatis.
+        skipBrowserRedirect: isNative,
       },
     })
 
     if (error) throw error
 
+    if (isNative) {
+      if (!data.url) {
+        throw new Error('URL autentikasi Google tidak tersedia.')
+      }
+
+      await Browser.open({
+        url: data.url,
+        presentationStyle: 'popover',
+      })
+    }
+
     return data
   },
 
   /**
-   * Mengirim email reset password
+   * Mengirim email reset password.
    */
   async sendPasswordReset(email: string) {
-    const redirectTo = `${window.location.origin}/reset-password`
+    const isNative = Capacitor.isNativePlatform()
 
-    const { data, error } =
-      await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo,
-      })
+    const redirectTo = isNative
+      ? AUTH_CALLBACK_URL
+      : `${window.location.origin}/reset-password`
+
+    const { data, error } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      { redirectTo },
+    )
 
     if (error) throw error
 
@@ -99,7 +133,7 @@ export const authService = {
   },
 
   /**
-   * Mengubah password user
+   * Mengubah password user.
    */
   async updatePassword(password: string) {
     const { data, error } = await supabase.auth.updateUser({
@@ -112,7 +146,7 @@ export const authService = {
   },
 
   /**
-   * Logout
+   * Logout.
    */
   async logout() {
     const { error } = await supabase.auth.signOut()
@@ -121,7 +155,7 @@ export const authService = {
   },
 
   /**
-   * Mendapatkan role user dari tabel public.profiles
+   * Mendapatkan role user dari tabel public.profiles.
    */
   async getUserRole(userId: ID): Promise<UserRole | null> {
     const { data, error } = await supabase
@@ -136,20 +170,15 @@ export const authService = {
   },
 
   /**
-   * Mendapatkan halaman berdasarkan role
+   * Mendapatkan halaman berdasarkan role.
    */
   getRoleHomePath(
-    role: UserRole | null | string
+    role: UserRole | null | string,
   ): string | null {
-    if (
-      role === 'owner' ||
-      role === 'admin' ||
-      role === 'marketing' ||
-      role === 'client'
-    ) {
-      return ROLE_HOME[role]
-    }
+    const normalizedRole = normalizeRole(role)
 
-    return null
+    if (!normalizedRole) return null
+
+    return ROLE_HOME[normalizedRole]
   },
 }
