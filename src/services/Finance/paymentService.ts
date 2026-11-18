@@ -277,37 +277,29 @@ export const paymentService = {
       throw new Error('Path bukti pembayaran tidak tersedia.')
     }
 
-    // Bucket eksplisit menjadi sumber utama. Jangan menganggap semua
-    // pembayaran SPK berasal dari bucket Client: alur Admin memakai
-    // payment-proofs, sedangkan alur Client memakai bucket privat SPK.
-    let bucket = storageBucket || PROOF_BUCKET
+    // Bukti SPK dari Admin disimpan di payment-proofs, sedangkan bukti
+    // SPK dari Client disimpan di spk-client-private-documents. Karena satu
+    // payment dapat memiliki spk_request_id pada kedua alur, ID SPK tidak
+    // cukup untuk menentukan bucket dengan pasti.
+    const candidates = storageBucket
+      ? [storageBucket]
+      : spkRequestId
+        ? [PROOF_BUCKET, CLIENT_SPK_PROOF_BUCKET]
+        : [PROOF_BUCKET, CLIENT_SPK_PROOF_BUCKET]
 
-    if (!storageBucket && spkRequestId) {
-      // Kompatibilitas pemanggil lama: SPK Client memakai bucket privat.
-      bucket = CLIENT_SPK_PROOF_BUCKET
-    } else if (!storageBucket) {
-      // Kompatibilitas untuk pemanggil lama:
-      // cari relasi pembayaran berdasarkan proof_path.
-      const { data: payment, error: paymentError } = await supabase
-        .from(PAYMENTS)
-        .select('spk_request_id')
-        .eq('proof_path', path)
-        .maybeSingle()
+    let lastError: unknown = null
 
-      if (paymentError) throw paymentError
+    for (const bucket of candidates) {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 300)
 
-      if (payment?.spk_request_id) {
-        bucket = CLIENT_SPK_PROOF_BUCKET
-      }
+      if (!error && data?.signedUrl) return data.signedUrl
+      lastError = error
     }
 
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(path, 300)
-
-    if (error) throw error
-
-    return data.signedUrl
+    if (lastError instanceof Error) throw lastError
+    throw new Error('Tautan bukti pembayaran tidak tersedia pada bucket penyimpanan.')
   },
 
   // =========================================================

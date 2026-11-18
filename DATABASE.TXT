@@ -5,7 +5,7 @@ CREATE TABLE public.profiles (
   id uuid NOT NULL,
   full_name text,
   avatar_url text,
-  role text DEFAULT 'admin'::text CHECK (role = ANY (ARRAY['owner'::text, 'admin'::text, 'marketing'::text, 'client'::text])),
+  role text DEFAULT 'client'::text CHECK (role = ANY (ARRAY['owner'::text, 'admin'::text, 'marketing'::text, 'client'::text])),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
@@ -50,7 +50,6 @@ CREATE TABLE public.customers (
   full_name text NOT NULL,
   phone text,
   email text,
-  nik text,
   address text,
   notes text,
   created_at timestamp with time zone DEFAULT now(),
@@ -58,8 +57,10 @@ CREATE TABLE public.customers (
   marketing_id uuid,
   whatsapp_phone text,
   registration_source text NOT NULL DEFAULT 'Client'::text CHECK (registration_source = ANY (ARRAY['Admin'::text, 'Marketing'::text, 'Client'::text])),
+  user_id uuid UNIQUE,
   CONSTRAINT customers_pkey PRIMARY KEY (id),
-  CONSTRAINT customers_marketing_id_fkey FOREIGN KEY (marketing_id) REFERENCES public.profiles(id)
+  CONSTRAINT customers_marketing_id_fkey FOREIGN KEY (marketing_id) REFERENCES public.profiles(id),
+  CONSTRAINT customers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.lots (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -379,6 +380,10 @@ CREATE TABLE public.spk_requests (
   down_payment_snapshot numeric NOT NULL DEFAULT 0,
   total_payment_snapshot numeric,
   booking_fee_snapshot bigint NOT NULL DEFAULT 1000000 CHECK (booking_fee_snapshot > 0),
+  notary_status text NOT NULL DEFAULT 'Diproses'::text CHECK (notary_status = ANY (ARRAY['Diproses'::text, 'Proses Notaris'::text, 'Penandatanganan Notaris'::text, 'Selesai'::text])),
+  notary_note text,
+  rejection_category text CHECK (rejection_category IS NULL OR (rejection_category = ANY (ARRAY['Administrative Error'::text, 'Buyer Cancellation'::text, 'Other'::text]))),
+  down_payment_amount numeric NOT NULL DEFAULT 0,
   CONSTRAINT spk_requests_pkey PRIMARY KEY (id),
   CONSTRAINT spk_requests_marketing_id_fkey FOREIGN KEY (marketing_id) REFERENCES public.profiles(id),
   CONSTRAINT spk_requests_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
@@ -448,4 +453,45 @@ CREATE TABLE public.marketing_profiles (
   whatsapp_phone text,
   CONSTRAINT marketing_profiles_pkey PRIMARY KEY (user_id),
   CONSTRAINT marketing_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.spk_review_activity (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  spk_request_id bigint NOT NULL,
+  old_status text,
+  new_status text NOT NULL,
+  note text,
+  changed_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT spk_review_activity_pkey PRIMARY KEY (id),
+  CONSTRAINT spk_review_activity_spk_request_id_fkey FOREIGN KEY (spk_request_id) REFERENCES public.spk_requests(id),
+  CONSTRAINT spk_review_activity_changed_by_fkey FOREIGN KEY (changed_by) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.spk_booking_fee_reuse (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  payment_id bigint NOT NULL UNIQUE,
+  source_spk_request_id bigint NOT NULL,
+  current_spk_request_id bigint,
+  reuse_status text NOT NULL DEFAULT 'Available'::text CHECK (reuse_status = ANY (ARRAY['Available'::text, 'Linked'::text])),
+  available_reason text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT spk_booking_fee_reuse_pkey PRIMARY KEY (id),
+  CONSTRAINT spk_booking_fee_reuse_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id),
+  CONSTRAINT spk_booking_fee_reuse_source_spk_request_id_fkey FOREIGN KEY (source_spk_request_id) REFERENCES public.spk_requests(id),
+  CONSTRAINT spk_booking_fee_reuse_current_spk_request_id_fkey FOREIGN KEY (current_spk_request_id) REFERENCES public.spk_requests(id)
+);
+CREATE TABLE public.spk_booking_fee_reuse_history (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  payment_id bigint NOT NULL,
+  from_spk_request_id bigint,
+  to_spk_request_id bigint,
+  action text NOT NULL CHECK (action = ANY (ARRAY['Made Available'::text, 'Reused'::text, 'Revoked'::text])),
+  reason text NOT NULL,
+  actor_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT spk_booking_fee_reuse_history_pkey PRIMARY KEY (id),
+  CONSTRAINT spk_booking_fee_reuse_history_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id),
+  CONSTRAINT spk_booking_fee_reuse_history_from_spk_request_id_fkey FOREIGN KEY (from_spk_request_id) REFERENCES public.spk_requests(id),
+  CONSTRAINT spk_booking_fee_reuse_history_to_spk_request_id_fkey FOREIGN KEY (to_spk_request_id) REFERENCES public.spk_requests(id),
+  CONSTRAINT spk_booking_fee_reuse_history_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id)
 );

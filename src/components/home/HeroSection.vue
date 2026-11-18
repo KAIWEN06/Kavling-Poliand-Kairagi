@@ -1,11 +1,11 @@
 <template>
   <section class="hero-section">
-    <img src="@/assets/images/hero4.jpg" alt="PoliLand Kairagi" class="hero-image" />
+    <img :src="hero.image_url || heroFallback" alt="PoliLand Kairagi" class="hero-image" />
     <div class="hero-overlay"></div>
 
     <div class="hero-content">
-      <h1>Investasi Tanah<br />Masa Depan Anda</h1>
-      <p>Miliki kavling strategis di kawasan berkembang dengan legalitas jelas, akses jalan yang baik, dan prospek investasi jangka panjang.</p>
+      <h1>{{ hero.title || 'Investasi Tanah Masa Depan Anda' }}</h1>
+      <p>{{ hero.description || 'Miliki kavling strategis di kawasan berkembang dengan legalitas jelas, akses jalan yang baik, dan prospek investasi jangka panjang.' }}</p>
 
       <div class="hero-actions">
         <ion-button class="primary-button" @click="$emit('goToSiteplan')">
@@ -20,7 +20,7 @@
 
         <!-- DATA SELESAI -->
         <ion-button v-else class="outline-button" fill="outline" :disabled="!whatsappNumber" @click="contactWhatsapp">
-          Hubungi Kami
+          {{ hero.cta_text || 'Hubungi Kami' }}
         </ion-button>
       </div>
     </div>
@@ -33,11 +33,14 @@ import { IonButton, IonIcon } from '@ionic/vue'
 import { arrowForwardOutline } from 'ionicons/icons'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { contactService } from '@/services/contactService'
+import { cmsService, type CmsHero } from '@/services/cmsService'
+import heroFallback from '@/assets/images/hero4.jpg'
 
 defineEmits(['goToSiteplan'])
 
 const loading = ref(true)
 const whatsappNumber = ref('')
+const hero = ref<CmsHero>({ title: '', subtitle: '', description: '', cta_text: 'Hubungi Kami', cta_url: '/contact', is_active: true })
 
 const cleanWhatsapp = () => whatsappNumber.value.replace(/\D/g, '')
 
@@ -53,7 +56,8 @@ const contactWhatsapp = () => {
 const loadHeroData = async () => {
   try {
     loading.value = true
-    const contacts = await contactService.getContacts()
+    const [savedHero, contacts] = await Promise.all([cmsService.getHero(), contactService.getContacts()])
+    if (savedHero) hero.value = savedHero
     const whatsapp = contacts?.find(item => item.key === 'whatsapp')
     whatsappNumber.value = whatsapp?.value || ''
   } catch (error) {

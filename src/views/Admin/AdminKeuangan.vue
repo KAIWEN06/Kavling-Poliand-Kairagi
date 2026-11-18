@@ -91,7 +91,7 @@
               <section class="proof-file-card">
                 <h2><ion-icon :icon="imageOutline" /> Bukti Transfer Fisik</h2>
                 <button v-if="proofSignedUrl" type="button" class="proof-preview" @click="proofZoomOpen = true">
-                  <img v-if="isImageProof(selectedProofPayment.payment.proof_path)" :src="proofSignedUrl" alt="Bukti transfer pembayaran" />
+                  <img v-if="isImageProof(proofFilePath)" :src="proofSignedUrl" alt="Bukti transfer pembayaran" />
                   <span v-else class="proof-pdf-preview"><ion-icon :icon="documentTextOutline" /> Dokumen PDF</span>
                   <small><ion-icon :icon="searchOutline" /> Ketuk untuk memperbesar tampilan</small>
                 </button>
@@ -99,7 +99,7 @@
                 <a v-if="proofSignedUrl" class="proof-download" :href="proofSignedUrl" target="_blank" rel="noopener noreferrer" :download="`bukti-${paymentReference(selectedProofPayment.payment)}`"><ion-icon :icon="downloadOutline" /> Unduh File</a>
               </section>
               <div v-if="selectedProofPayment.payment.status === 'Pending'" class="proof-review-actions">
-                <button type="button" class="proof-verify-button" :disabled="reviewSaving || !selectedProofPayment.payment.proof_path" @click="reviewPayment('Confirmed')">
+                <button type="button" class="proof-verify-button" :disabled="reviewSaving || !proofSignedUrl" @click="reviewPayment('Confirmed')">
                   <ion-spinner v-if="reviewSaving && reviewTargetStatus === 'Confirmed'" name="crescent" /><ion-icon v-else :icon="shieldCheckmarkOutline" /> Verifikasi
                 </button>
                 <div class="proof-review-secondary">
@@ -757,7 +757,7 @@
         </template>
         <AppModal v-model="proofZoomOpen" title="Bukti Transfer" variant="fullscreen" :show-footer="false">
           <div class="proof-zoom-content">
-            <img v-if="proofSignedUrl && selectedProofPayment && isImageProof(selectedProofPayment.payment.proof_path)" :src="proofSignedUrl" alt="Bukti transfer diperbesar" />
+            <img v-if="proofSignedUrl && selectedProofPayment && isImageProof(proofFilePath)" :src="proofSignedUrl" alt="Bukti transfer diperbesar" />
             <iframe v-else-if="proofSignedUrl" :src="proofSignedUrl" title="Dokumen bukti pembayaran" />
           </div>
         </AppModal>
@@ -909,6 +909,7 @@ import { paymentInstructionService } from '@/services/Finance/paymentInstruction
 import { bankAccountService, type BankAccountRecord } from '@/services/Finance/bankAccountService'
 import { paymentPlanService, type PaymentPlanRecord } from '@/services/Finance/paymentPlanService'
 import { paymentService, type InstallmentScheduleRecord, type PaymentDetail } from '@/services/Finance/paymentService'
+import { supabase } from '@/services/config/supabase'
 import AppModal from '@/components/ui/AppModal.vue'
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import type { FinanceAdminPaymentRecord, FinanceCustomerRecord, FinancePaymentRecord, FinanceTransactionRecord } from '@/types/finance'
@@ -1099,6 +1100,7 @@ type PaymentPage = 'none' | 'proof' | 'add'
 const paymentPage = ref<PaymentPage>('none')
 const selectedProofPayment = ref<PaymentDetail | null>(null)
 const proofSignedUrl = ref('')
+const proofFilePath = ref('')
 const proofLoading = ref(false)
 const proofError = ref('')
 const proofZoomOpen = ref(false)
@@ -1446,7 +1448,7 @@ function formatMonthYear(value: string) {
   return new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(new Date(`${value}T00:00:00`))
 }
 function isImageProof(path: string | null | undefined) {
-  return Boolean(path && /\\.(jpe?g|png|webp)$/i.test(path))
+  return Boolean(path && /\.(jpe?g|png|webp)$/i.test(path))
 }
 function whatsappUrl(phone: string) {
   const digits = phone.replace(/\\D/g, '').replace(/^0/, '62')
@@ -1461,6 +1463,7 @@ function closePaymentPage() {
   proofZoomOpen.value = false
   reviewDialogOpen.value = false
   proofSignedUrl.value = ''
+  proofFilePath.value = ''
   selectedProofPayment.value = null
   paymentCreateError.value = ''
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1471,6 +1474,7 @@ async function openPaymentProof(paymentId: number) {
   proofError.value = ''
   selectedProofPayment.value = null
   proofSignedUrl.value = ''
+  proofFilePath.value = ''
   window.scrollTo({ top: 0, behavior: 'smooth' })
   await loadSelectedPaymentProof(paymentId)
 }
@@ -1482,8 +1486,31 @@ async function loadSelectedPaymentProof(paymentId?: number) {
   try {
     const detail = await paymentService.getPaymentDetail(id)
     selectedProofPayment.value = detail
-    proofSignedUrl.value = detail.payment.proof_path
-      ? await paymentService.getProofUrl(detail.payment.proof_path)
+
+    // Prioritaskan path yang tersimpan langsung pada payments.
+    let proofPath = detail.payment.proof_path?.trim() || ''
+
+    // Fallback untuk SPK Client: bukti pembayaran tersimpan sebagai
+    // metadata dokumen pada spk_request_documents.
+    if (!proofPath && detail.payment.spk_request_id) {
+      const { data: proofDocument, error: documentError } = await supabase
+        .from('spk_request_documents')
+        .select('file_path')
+        .eq('spk_request_id', detail.payment.spk_request_id)
+        .eq('document_type', 'Payment Proof')
+        .maybeSingle()
+
+      if (documentError) throw documentError
+      proofPath = proofDocument?.file_path?.trim() || ''
+    }
+
+    proofFilePath.value = proofPath
+    proofSignedUrl.value = proofPath
+      ? await paymentService.getProofUrl(
+          proofPath,
+          detail.payment.spk_request_id,
+          detail.payment.spk_request_id ? 'spk-client-private-documents' : undefined,
+        )
       : ''
   } catch (error) {
     proofError.value = error instanceof Error ? error.message : 'Gagal mengambil data bukti pembayaran.'
