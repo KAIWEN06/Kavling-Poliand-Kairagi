@@ -375,12 +375,9 @@ export const lotService = {
       throw new Error("Pembayaran Cash Purchase hanya berlaku untuk transaksi tunai.");
     }
 
-    // Booking fee wajib Rp1.000.000 untuk semua transaksi dan harus
-    // lunas + Confirmed sebelum pembayaran pembelian (Cash/DP/Cicilan).
+    // Booking fee remains available for legacy booking transactions, but
+    // client SPK submissions now record the full cash amount or selected DP.
     const existingPayments = await this.getLotPayments(transactionId);
-    const confirmedBookingPaid = existingPayments
-      .filter((payment) => payment.payment_category === "Booking" && payment.status === "Confirmed")
-      .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
     const activeBookingReserved = existingPayments
       .filter((payment) => payment.payment_category === "Booking" && payment.status !== "Rejected")
       .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
@@ -392,13 +389,6 @@ export const lotService = {
           `Nominal booking melebihi sisa biaya booking. Sisa: Rp ${bookingRemaining.toLocaleString("id-ID")}.`,
         );
       }
-    }
-
-    if (["Cash Purchase", "Down Payment", "Installment"].includes(paymentCategory)
-        && confirmedBookingPaid < BOOKING_FEE_FIXED) {
-      throw new Error(
-        `Booking fee wajib lunas dan dikonfirmasi admin terlebih dahulu. Kekurangan: Rp ${(BOOKING_FEE_FIXED - confirmedBookingPaid).toLocaleString("id-ID")}.`,
-      );
     }
 
     if (paymentCategory === "Installment") {

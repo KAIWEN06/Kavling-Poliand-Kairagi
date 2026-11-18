@@ -567,7 +567,10 @@ const props = defineProps({
 /* EMITS */
 /* ===================================================== */
 
-const emit = defineEmits(['close'])
+const emit = defineEmits<{
+  close: []
+  purchase: [lotId: number]
+}>()
 
 /* ===================================================== */
 /* ROUTER */
@@ -866,12 +869,11 @@ function continuePurchase() {
     return
   }
 
-  const lotId = props.lot?.id
-  if (lotId === null || lotId === undefined) return
+  const lotId = Number(props.lot?.id)
+  if (!Number.isSafeInteger(lotId) || lotId <= 0) return
 
   showPurchaseModal.value = false
-  close()
-  void router.push(`/client/spk?lot_id=${encodeURIComponent(String(lotId))}`)
+  emit('purchase', lotId)
 }
 
 /* ===================================================== */

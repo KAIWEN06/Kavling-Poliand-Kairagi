@@ -68,6 +68,7 @@ const installments = ref<
 const showPurchaseModal = ref(false)
 const showBuyerSiteplan = ref(false)
 const selectedSiteplanLot = ref<SiteplanLot | null>(null)
+const pendingSiteplanSpkLotId = ref<number | null>(null)
 
 const statusDetails: Record<LotStatus, { label: string; className: string }> = {
   available: { label: 'Tersedia', className: 'status-available' },
@@ -280,6 +281,21 @@ function selectLot(lot: LotRecord) {
 function closeBuyerSiteplan() {
   showBuyerSiteplan.value = false
   selectedSiteplanLot.value = null
+}
+
+function requestSpkFromSiteplan(lotId: number) {
+  pendingSiteplanSpkLotId.value = lotId
+  showBuyerSiteplan.value = false
+}
+
+function onBuyerSiteplanDismissed() {
+  selectedSiteplanLot.value = null
+
+  const lotId = pendingSiteplanSpkLotId.value
+  pendingSiteplanSpkLotId.value = null
+  if (lotId === null) return
+
+  void ionRouter.push(`/client/spk?lot_id=${encodeURIComponent(String(lotId))}`)
 }
 
 function selectSiteplanLot(lot: SiteplanLot | null) {
@@ -587,7 +603,7 @@ onMounted(() => {
     <ion-modal
       :is-open="showBuyerSiteplan"
       class="buyer-siteplan-modal"
-      @did-dismiss="closeBuyerSiteplan"
+      @did-dismiss="onBuyerSiteplanDismissed"
     >
       <ion-header>
         <ion-toolbar>
@@ -617,6 +633,7 @@ onMounted(() => {
         :lot="selectedSiteplanLot"
         :client-mode="true"
         @close="selectedSiteplanLot = null"
+        @purchase="requestSpkFromSiteplan"
       />
     </ion-modal>
 

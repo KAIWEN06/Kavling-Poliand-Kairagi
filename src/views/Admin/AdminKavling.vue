@@ -881,8 +881,6 @@ const pagedLots = computed(() => {
   const start = (currentPage.value - 1) * PAGE_SIZE
   return filtered.value.slice(start, start + PAGE_SIZE)
 })
-const pageStart = computed(() => (filtered.value.length === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1))
-const pageEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, filtered.value.length))
 const visiblePages = computed<(number | null)[]>(() => {
   const total = totalPages.value
   const current = currentPage.value

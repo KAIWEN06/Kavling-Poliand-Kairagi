@@ -383,8 +383,8 @@ import {
   IonPage, IonContent, IonIcon, IonSpinner, IonToast, onIonViewWillEnter,
 } from '@ionic/vue'
 import {
-  alertCircleOutline, arrowBackOutline, imageOutline, expandOutline, syncOutline, createOutline,
-  trashOutline, addOutline, settingsOutline, imagesOutline,
+  alertCircleOutline, arrowBackOutline, expandOutline, syncOutline, createOutline,
+  trashOutline, addOutline, settingsOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'

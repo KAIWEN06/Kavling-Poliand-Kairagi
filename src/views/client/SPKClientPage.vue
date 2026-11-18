@@ -11,6 +11,7 @@ import {
   cashOutline,
   callOutline,
   cloudUploadOutline,
+  copyOutline,
   documentTextOutline,
   informationCircleOutline,
   locationOutline,
@@ -19,6 +20,7 @@ import {
   peopleOutline,
   personOutline,
   walletOutline,
+  checkmarkOutline,
 } from 'ionicons/icons'
 import { useRoute } from 'vue-router'
 
@@ -42,8 +44,13 @@ const paymentPlans = ref<Awaited<ReturnType<typeof lotService.getLotInstallments
 const paymentPlansLoading = ref(false)
 const paymentPlansError = ref('')
 const paymentScheme = ref<'Cash' | 'Installment' | ''>('')
-const paymentMethod = ref('')
+const paymentMethod = ref<'Transfer Bank'>('Transfer Bank')
 const selectedPlanId = ref<number | null>(null)
+const downPaymentInput = ref('')
+const downPaymentManual = ref(false)
+const downPaymentPreset = ref<number | null>(null)
+const customDpPercent = ref(30)
+const accountCopied = ref(false)
 const documentError = ref('')
 const saveError = ref('')
 const saving = ref(false)
@@ -81,16 +88,61 @@ const documentFields: Array<{
   },
 ]
 
-const selectedPlan = computed(() =>
-  paymentPlans.value.find((plan) => plan.id === selectedPlanId.value) ?? null,
+const availablePaymentPlans = computed(() =>
+  paymentPlans.value
+    .filter((plan) => plan.months > 0 && plan.months <= 24)
+    .sort((left, right) => left.months - right.months),
 )
+
+const selectedPlan = computed(() =>
+  availablePaymentPlans.value.find((plan) => plan.id === selectedPlanId.value) ?? null,
+)
+
+const downPaymentAmount = computed(() => {
+  const value = Number(downPaymentInput.value.replace(/\D/g, ''))
+  return Number.isSafeInteger(value) ? value : 0
+})
+
+const installmentEstimate = computed(() => {
+  const price = lotPrice.value
+  const plan = selectedPlan.value
+  const downPayment = downPaymentAmount.value
+  if (!price || !plan || downPayment <= 0 || downPayment >= price) return null
+
+  const principal = price - downPayment
+  const marginPercent = Math.max(0, Number(plan.margin_percent) || 0)
+  const installmentTotal = Math.round(principal * (1 + marginPercent / 100))
+  const monthlyPayment = Math.floor(installmentTotal / plan.months)
+
+  return {
+    principal,
+    marginPercent,
+    installmentTotal,
+    monthlyPayment,
+    lastPayment: installmentTotal - monthlyPayment * (plan.months - 1),
+  }
+})
+
+const transferAmount = computed(() => {
+  if (paymentScheme.value === 'Cash') return lotPrice.value
+  if (paymentScheme.value === 'Installment') return downPaymentAmount.value
+  return null
+})
+
+const showTransferAccount = computed(() => {
+  if (paymentScheme.value === 'Cash') return lotPrice.value !== null
+  return paymentScheme.value === 'Installment'
+    && installmentEstimate.value !== null
+    && downPaymentAmount.value > 0
+})
 
 const lotPrice = computed(() => {
   if (!lot.value) return null
 
   const promoPrice = Number(lot.value.promo_price)
   const cashPrice = Number(lot.value.cash_price)
-  const price = promoPrice > 0 ? promoPrice : cashPrice
+  const hasPromo = promoPrice > 0 && (cashPrice <= 0 || promoPrice < cashPrice)
+  const price = hasPromo ? promoPrice : cashPrice
 
   return Number.isFinite(price) && price > 0 ? price : null
 })
@@ -212,10 +264,52 @@ function selectPaymentScheme(value: 'Cash' | 'Installment') {
   if (value === 'Cash') selectedPlanId.value = null
 }
 
-function handlePaymentSchemeChange(event: Event) {
-  const target = event.target
-  if (!(target instanceof HTMLSelectElement)) return
-  selectPaymentScheme(target.value as 'Cash' | 'Installment')
+function setDownPaymentPreset(percent: 10 | 20 | 30) {
+  const price = lotPrice.value
+  if (!price) return
+
+  if (percent === 30 && downPaymentManual.value) {
+    downPaymentPreset.value = 30
+    return
+  }
+
+  downPaymentManual.value = false
+  downPaymentPreset.value = percent
+  if (percent === 30) customDpPercent.value = 30
+  downPaymentInput.value = String(Math.round(price * percent / 100))
+}
+
+function handleDownPaymentInput(event: Event) {
+  const input = event.target
+  if (!(input instanceof HTMLInputElement)) return
+
+  const digitsOnly = input.value.replace(/\D/g, '')
+  downPaymentInput.value = digitsOnly
+  input.value = digitsOnly
+  downPaymentManual.value = true
+  downPaymentPreset.value = 30
+
+  const price = lotPrice.value
+  const amount = Number(digitsOnly)
+  if (price && Number.isSafeInteger(amount) && amount > 0) {
+    customDpPercent.value = Math.round(amount / price * 100)
+  } else {
+    customDpPercent.value = 30
+  }
+}
+
+async function copyBankAccount() {
+  const accountNumber = '021-8899-234'
+  try {
+    await navigator.clipboard.writeText(accountNumber)
+    accountCopied.value = true
+    window.setTimeout(() => {
+      accountCopied.value = false
+    }, 1800)
+  } catch (error) {
+    console.error('[SPK Client] Gagal menyalin nomor rekening:', error)
+    saveError.value = 'Nomor rekening belum dapat disalin. Silakan salin secara manual.'
+  }
 }
 
 function goToLots() {
@@ -256,14 +350,20 @@ async function saveSpk() {
     return
   }
 
-  if (method !== 'Transfer Bank' && method !== 'Tunai') {
-    saveError.value = 'Pilih metode pembayaran yang valid.'
+  if (lotPrice.value === null) {
+    saveError.value = 'Harga kavling belum tersedia untuk menghitung pembayaran.'
     return
   }
 
-  if (scheme === 'Installment' && !selectedPlan.value) {
-    saveError.value = 'Pilih rencana tenor cicilan sebelum menyimpan SPK.'
-    return
+  if (scheme === 'Installment') {
+    if (downPaymentAmount.value <= 0 || downPaymentAmount.value >= lotPrice.value) {
+      saveError.value = 'DP harus lebih dari Rp 0 dan lebih kecil dari harga kavling.'
+      return
+    }
+    if (!selectedPlan.value || !installmentEstimate.value) {
+      saveError.value = 'Pilih tenor cicilan yang tersedia sebelum menyimpan SPK.'
+      return
+    }
   }
 
   saving.value = true
@@ -285,7 +385,8 @@ async function saveSpk() {
         method,
         planId: selectedPlan.value?.plan_id ?? null,
         tenorMonths: selectedPlan.value?.months ?? null,
-        monthlyPayment: selectedPlan.value?.monthly_payment ?? null,
+        monthlyPayment: installmentEstimate.value?.monthlyPayment ?? null,
+        downPaymentAmount: scheme === 'Installment' ? downPaymentAmount.value : 0,
       },
       documents,
     })
@@ -314,6 +415,7 @@ onMounted(() => {
       title="PoliLand Kairagi"
       :show-back="true"
       back-route="/client/kavling"
+      back-label="Kembali ke Kavling"
     />
 
     <ion-content class="client-spk-content" :fullscreen="true">
@@ -475,68 +577,192 @@ onMounted(() => {
                 <span class="spk-lot-status">Tersedia</span>
               </div>
 
-              <div class="spk-field">
-                <label for="spk-scheme">Skema Pembayaran <span>*</span></label>
-                <div class="spk-input-wrap spk-select-wrap">
-                  <ion-icon :icon="cardOutline" aria-hidden="true" />
-                  <select
-                    id="spk-scheme"
-                    :value="paymentScheme"
-                    @change="handlePaymentSchemeChange"
-                  >
-                    <option disabled value="">Pilih skema pembayaran</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Installment">Cicilan</option>
-                  </select>
+            </div>
+          </section>
+
+          <section class="spk-card" aria-labelledby="payment-confirmation-title">
+            <div class="spk-card-heading spk-payment-heading">
+              <span class="spk-heading-icon">
+                <ion-icon :icon="walletOutline" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="payment-confirmation-title">Konfirmasi Pembayaran</h2>
+                <p>Pilih pembayaran penuh atau cicilan untuk kavling ini.</p>
+              </div>
+            </div>
+
+            <div class="spk-card-body spk-payment-body">
+              <div class="spk-scheme-options" role="group" aria-label="Pilih cara pembayaran">
+                <button
+                  type="button"
+                  :class="{ selected: paymentScheme === 'Cash' }"
+                  :aria-pressed="paymentScheme === 'Cash'"
+                  @click="selectPaymentScheme('Cash')"
+                >
+                  <span class="scheme-radio" aria-hidden="true"></span>
+                  Bayar Penuh
+                </button>
+                <button
+                  type="button"
+                  :class="{ selected: paymentScheme === 'Installment' }"
+                  :aria-pressed="paymentScheme === 'Installment'"
+                  @click="selectPaymentScheme('Installment')"
+                >
+                  <span class="scheme-radio" aria-hidden="true"></span>
+                  Cicilan
+                </button>
+              </div>
+
+              <p class="spk-payment-note">
+                Perhitungan dilakukan untuk kavling {{ lot?.lot_number || 'ini' }}.
+              </p>
+
+              <div v-if="paymentScheme === 'Cash'" class="spk-payment-lot-card">
+                <div class="spk-payment-lot-title">
+                  <strong>{{ lot?.lot_number }} · {{ formatCurrency(lotPrice) }}</strong>
+                  <span>Pembayaran penuh</span>
+                </div>
+                <div class="spk-payment-summary-line">
+                  <span>Total harga kavling</span>
+                  <strong>{{ formatCurrency(lotPrice) }}</strong>
                 </div>
               </div>
 
-              <div class="spk-field">
-                <label for="spk-method">Metode Pembayaran <span>*</span></label>
-                <div class="spk-input-wrap spk-select-wrap">
-                  <ion-icon :icon="walletOutline" aria-hidden="true" />
-                  <select id="spk-method" v-model="paymentMethod">
-                    <option disabled value="">Pilih metode pembayaran</option>
-                    <option value="Transfer Bank">Transfer Bank</option>
-                    <option value="Tunai">Tunai</option>
-                  </select>
+              <div v-if="paymentScheme === 'Installment'" class="spk-payment-lot-card">
+                <div class="spk-payment-lot-title">
+                  <strong>{{ lot?.lot_number }} · {{ formatCurrency(lotPrice) }}</strong>
+                  <span>Cicilan</span>
                 </div>
-              </div>
 
-              <div v-if="paymentScheme === 'Installment'" class="spk-field">
-                <label>Rencana Tenor <span>*</span></label>
-                <div v-if="paymentPlansLoading" class="spk-plan-message" role="status">
-                  Memuat pilihan tenor...
+                <label class="spk-dp-label" for="spk-down-payment">DP kavling ini</label>
+                <div class="spk-dp-input-wrap">
+                  <span>Rp</span>
+                  <input
+                    id="spk-down-payment"
+                    :value="downPaymentInput"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    placeholder="Masukkan nominal DP"
+                    aria-describedby="spk-dp-help"
+                    @input="handleDownPaymentInput"
+                  />
                 </div>
-                <div v-else-if="paymentPlansError" class="spk-plan-message spk-error-text" role="alert">
-                  {{ paymentPlansError }}
-                  <button type="button" @click="loadPaymentPlans(lot.id)">
-                    Coba lagi
-                  </button>
-                </div>
-                <div v-else-if="paymentPlans.length" class="spk-tenor-options">
+                <small id="spk-dp-help" class="spk-dp-help">
+                  Anda dapat memilih persentase atau memasukkan nominal sendiri.
+                </small>
+
+                <div class="spk-dp-presets" role="group" aria-label="Persentase DP">
                   <button
-                    v-for="plan in paymentPlans"
-                    :key="plan.id"
                     type="button"
-                    :class="{ selected: selectedPlanId === plan.id }"
-                    :aria-pressed="selectedPlanId === plan.id"
-                    @click="selectedPlanId = plan.id"
-                  >
-                    <span class="tenor-radio" aria-hidden="true"></span>
-                    <span>
-                      <strong>{{ plan.months }} Bulan</strong>
-                      <small>{{ getTenorLabel(plan.months) }}</small>
-                    </span>
-                  </button>
+                    :class="{ selected: downPaymentPreset === 10 && !downPaymentManual }"
+                    :aria-pressed="downPaymentPreset === 10 && !downPaymentManual"
+                    @click="setDownPaymentPreset(10)"
+                  >10%</button>
+                  <button
+                    type="button"
+                    :class="{ selected: downPaymentPreset === 20 && !downPaymentManual }"
+                    :aria-pressed="downPaymentPreset === 20 && !downPaymentManual"
+                    @click="setDownPaymentPreset(20)"
+                  >20%</button>
+                  <button
+                    type="button"
+                    :class="{ selected: downPaymentPreset === 30 }"
+                    :aria-pressed="downPaymentPreset === 30"
+                    @click="setDownPaymentPreset(30)"
+                  >{{ downPaymentManual && downPaymentAmount > 0 ? customDpPercent : 30 }}%</button>
                 </div>
-                <p v-else class="spk-plan-message">
-                  Skema cicilan belum tersedia untuk kavling ini.
+
+                <p
+                  v-if="lotPrice !== null && downPaymentAmount >= lotPrice && downPaymentAmount > 0"
+                  class="spk-inline-error spk-dp-error"
+                  role="alert"
+                >
+                  DP harus lebih kecil dari harga kavling agar masih ada sisa cicilan.
                 </p>
-                <p v-if="selectedPlan?.monthly_payment" class="spk-monthly-estimate">
-                  Estimasi cicilan {{ formatCurrency(selectedPlan.monthly_payment) }} / bulan.
-                </p>
+
+                <div
+                  v-if="lotPrice !== null && downPaymentAmount > 0 && downPaymentAmount < lotPrice"
+                  class="spk-tenor-field"
+                >
+                  <label>Tenor cicilan <span>*</span></label>
+                  <div v-if="paymentPlansLoading" class="spk-plan-message" role="status">
+                    Memuat pilihan tenor...
+                  </div>
+                  <div v-else-if="paymentPlansError" class="spk-plan-message spk-error-text" role="alert">
+                    {{ paymentPlansError }}
+                    <button type="button" @click="lot && loadPaymentPlans(lot.id)">
+                      Coba lagi
+                    </button>
+                  </div>
+                  <div v-else-if="availablePaymentPlans.length" class="spk-tenor-options">
+                    <button
+                      v-for="plan in availablePaymentPlans"
+                      :key="plan.id"
+                      type="button"
+                      :class="{ selected: selectedPlanId === plan.id }"
+                      :aria-pressed="selectedPlanId === plan.id"
+                      @click="selectedPlanId = plan.id"
+                    >
+                      <span class="tenor-radio" aria-hidden="true"></span>
+                      <span>
+                        <strong>{{ plan.months }} Bulan</strong>
+                        <small>{{ getTenorLabel(plan.months) }}</small>
+                      </span>
+                    </button>
+                  </div>
+                  <p v-else class="spk-plan-message">
+                    Skema cicilan hingga 2 tahun belum tersedia untuk kavling ini.
+                  </p>
+                </div>
+
+                <div v-if="installmentEstimate && selectedPlan" class="spk-installment-estimate">
+                  <span>Sisa harga setelah DP</span>
+                  <strong>{{ formatCurrency(installmentEstimate.principal) }}</strong>
+                  <span>Estimasi cicilan {{ selectedPlan.months }} bulan</span>
+                  <strong>{{ formatCurrency(installmentEstimate.monthlyPayment) }} / bulan</strong>
+                  <small>Angsuran terakhir {{ formatCurrency(installmentEstimate.lastPayment) }}</small>
+                </div>
               </div>
+
+              <section v-if="showTransferAccount" class="spk-transfer-card" aria-labelledby="transfer-account-title">
+                <div class="spk-transfer-heading">
+                  <h3 id="transfer-account-title">Rekening Tujuan Transfer</h3>
+                  <span>Resmi Pengembang</span>
+                </div>
+
+                <div class="spk-bank-card">
+                  <div class="spk-bank-name-row">
+                    <span class="spk-bank-mark">BCA</span>
+                    <div>
+                      <strong>Bank BCA (Rekening Utama)</strong>
+                      <span>a/n PT PoliLand Kairagi</span>
+                    </div>
+                  </div>
+                  <div class="spk-account-number-row">
+                    <strong>021-8899-234</strong>
+                    <button type="button" @click="copyBankAccount">
+                      <ion-icon :icon="accountCopied ? checkmarkOutline : copyOutline" aria-hidden="true" />
+                      {{ accountCopied ? 'Tersalin' : 'Salin' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="spk-transfer-breakdown">
+                  <div v-if="paymentScheme === 'Installment' && installmentEstimate && selectedPlan">
+                    <span>Estimasi cicilan ({{ selectedPlan.months }} × {{ formatCurrency(installmentEstimate.monthlyPayment) }})</span>
+                    <strong>{{ formatCurrency(installmentEstimate.installmentTotal) }}</strong>
+                  </div>
+                  <div>
+                    <span>{{ paymentScheme === 'Cash' ? 'Pembayaran penuh' : 'DP yang harus dibayar' }}</span>
+                    <strong>{{ formatCurrency(transferAmount) }}</strong>
+                  </div>
+                  <div class="spk-transfer-total">
+                    <span>Total Wajib Ditransfer</span>
+                    <strong>{{ formatCurrency(transferAmount) }}</strong>
+                  </div>
+                </div>
+              </section>
             </div>
           </section>
 
@@ -887,6 +1113,356 @@ onMounted(() => {
   transform: translateY(-2px) rotate(45deg);
 }
 
+.spk-payment-body {
+  gap: 16px;
+}
+
+.spk-scheme-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.spk-scheme-options button {
+  display: flex;
+  min-width: 0;
+  min-height: 54px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-control, 12px);
+  color: var(--text-primary, #252525);
+  background: var(--surface-primary, #fff);
+  font: inherit;
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+}
+
+.spk-scheme-options button.selected {
+  border-color: var(--poliland-green, #355a2c);
+  background: var(--status-success-bg, #eaf7ef);
+}
+
+.scheme-radio {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid #a0a0a0;
+  border-radius: 50%;
+}
+
+.spk-scheme-options button.selected .scheme-radio {
+  border: 5px solid var(--poliland-green, #355a2c);
+}
+
+.spk-payment-note {
+  margin: -4px 0 0;
+  color: var(--text-secondary, #717178);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.spk-payment-lot-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-control, 12px);
+  background: #fbfaf7;
+}
+
+.spk-payment-lot-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-default, #eae7e0);
+}
+
+.spk-payment-lot-title strong {
+  color: var(--poliland-green, #355a2c);
+  font-size: 14px;
+}
+
+.spk-payment-lot-title span {
+  color: var(--text-secondary, #717178);
+  font-size: 12px;
+  text-align: right;
+}
+
+.spk-payment-summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary, #717178);
+  font-size: 13px;
+}
+
+.spk-payment-summary-line strong {
+  color: var(--text-primary, #252525);
+  text-align: right;
+}
+
+.spk-dp-label,
+.spk-tenor-field > label {
+  color: var(--text-primary, #252525);
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.spk-dp-input-wrap {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-control, 12px);
+  background: #fff;
+}
+
+.spk-dp-input-wrap:focus-within {
+  border-color: var(--poliland-green, #355a2c);
+  outline: 2px solid rgb(53 90 44 / 15%);
+}
+
+.spk-dp-input-wrap > span {
+  color: var(--text-secondary, #717178);
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.spk-dp-input-wrap input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text-primary, #252525);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+}
+
+.spk-dp-input-wrap input::placeholder {
+  color: var(--text-secondary, #8b8b8b);
+}
+
+.spk-dp-help {
+  margin-top: -8px;
+  color: var(--text-secondary, #717178);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.spk-dp-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.spk-dp-presets button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 11px;
+  color: var(--poliland-green, #355a2c);
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold, 700);
+  cursor: pointer;
+}
+
+.spk-dp-presets button.selected {
+  border-color: var(--poliland-green, #355a2c);
+  color: #fff;
+  background: var(--poliland-green, #355a2c);
+}
+
+.spk-dp-error {
+  margin: -4px 0 0;
+}
+
+.spk-tenor-field {
+  display: grid;
+  gap: 9px;
+}
+
+.spk-installment-estimate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 12px;
+  padding: 12px;
+  border-radius: 10px;
+  color: var(--text-secondary, #717178);
+  background: #f3f5ef;
+  font-size: 12px;
+}
+
+.spk-installment-estimate strong {
+  color: var(--text-primary, #252525);
+  text-align: right;
+}
+
+.spk-installment-estimate small {
+  grid-column: 1 / -1;
+  color: var(--text-secondary, #717178);
+  font-size: 11px;
+}
+
+.spk-transfer-card {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-panel, 18px);
+  background: #fff;
+}
+
+.spk-transfer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.spk-transfer-heading h3 {
+  margin: 0;
+  color: var(--text-primary, #30332e);
+  font-size: 17px;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.spk-transfer-heading > span {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #fff;
+  background: #c9a753;
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.spk-bank-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #f0ede5;
+}
+
+.spk-bank-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.spk-bank-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: #c6a45d;
+  background: #fff;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold, 700);
+}
+
+.spk-bank-name-row > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.spk-bank-name-row strong {
+  color: #30332e;
+  font-size: 13px;
+}
+
+.spk-bank-name-row div > span {
+  color: #656760;
+  font-size: 12px;
+}
+
+.spk-account-number-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.spk-account-number-row > strong {
+  color: #30332e;
+  font-size: clamp(15px, 4.4vw, 19px);
+  letter-spacing: 0.04em;
+}
+
+.spk-account-number-row button {
+  display: inline-flex;
+  min-height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  color: #5e584f;
+  background: #f0e8dc;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+}
+
+.spk-account-number-row button ion-icon {
+  font-size: 16px;
+}
+
+.spk-transfer-breakdown {
+  display: grid;
+  gap: 12px;
+  color: #5d605b;
+  font-size: 12px;
+}
+
+.spk-transfer-breakdown > div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.spk-transfer-breakdown strong {
+  color: #30332e;
+  text-align: right;
+}
+
+.spk-transfer-total {
+  align-items: center !important;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-default, #eae7e0);
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.spk-transfer-total strong {
+  color: #c6a45d;
+  font-size: 20px;
+  font-weight: var(--font-weight-bold, 700);
+}
+
 .spk-tenor-options {
   display: flex;
   flex-wrap: wrap;
@@ -1174,6 +1750,33 @@ onMounted(() => {
 
   .spk-card-body {
     padding: 14px;
+  }
+
+  .spk-payment-lot-card,
+  .spk-transfer-card {
+    padding: 13px;
+  }
+
+  .spk-bank-card {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .spk-transfer-heading h3 {
+    font-size: 15px;
+  }
+
+  .spk-account-number-row {
+    padding: 10px;
+  }
+
+  .spk-account-number-row button {
+    gap: 4px;
+    padding: 0 9px;
+  }
+
+  .spk-transfer-total strong {
+    font-size: 17px;
   }
 
   .spk-document-grid {

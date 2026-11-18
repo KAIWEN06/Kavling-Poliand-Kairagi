@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import {
-  IonAlert,
   IonContent,
   IonIcon,
+  IonModal,
   IonPage,
   onIonViewWillEnter,
   useIonRouter,
 } from '@ionic/vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   callOutline,
   documentTextOutline,
@@ -28,6 +29,8 @@ import {
 } from '@/services/clientSpkService'
 
 const ionRouter = useIonRouter()
+const route = useRoute()
+const router = useRouter()
 const spkRecords = ref<ClientSpkRecord[]>([])
 const storageError = ref('')
 const operationError = ref('')
@@ -35,23 +38,14 @@ const loading = ref(true)
 const deletingSpkId = ref<number | null>(null)
 const deleteTarget = ref<ClientSpkRecord | null>(null)
 const showDeleteAlert = ref(false)
+const rejectionReasonTarget = ref<ClientSpkRecord | null>(null)
+const showRejectionReason = ref(false)
 
 const documentFields: Array<{ key: ClientSpkDocumentKey; label: string }> = [
   { key: 'ktp', label: 'KTP' },
   { key: 'kk', label: 'Kartu Keluarga (KK)' },
   { key: 'npwp', label: 'NPWP' },
   { key: 'paymentProof', label: 'Bukti Pembayaran' },
-]
-
-const deleteAlertButtons = [
-  { text: 'Batal', role: 'cancel' },
-  {
-    text: 'Ya, hapus SPK',
-    role: 'destructive',
-    handler: () => {
-      if (deleteTarget.value) void deleteSpk(deleteTarget.value.id)
-    },
-  },
 ]
 
 async function loadSpkRecords() {
@@ -69,6 +63,9 @@ async function loadSpkRecords() {
   } finally {
     loading.value = false
   }
+
+  await nextTick()
+  openRejectedSpkFromNotification()
 }
 
 function formatCurrency(value: number | null) {
@@ -136,6 +133,36 @@ function closeDeleteAlert() {
   deleteTarget.value = null
 }
 
+function openRejectionReason(record: ClientSpkRecord) {
+  rejectionReasonTarget.value = record
+  showRejectionReason.value = true
+}
+
+function openRejectedSpkFromNotification() {
+  const queryValue = route.query.spk_id
+  const requestedId = Number(Array.isArray(queryValue) ? queryValue[0] : queryValue)
+  if (!Number.isInteger(requestedId) || requestedId <= 0) return
+
+  const record = spkRecords.value.find((item) => item.id === requestedId)
+  if (record?.status === 'Rejected' && record.rejectionReason) {
+    document.getElementById(`spk-entry-${requestedId}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+    openRejectionReason(record)
+  }
+
+  void router.replace({
+    path: route.path,
+    query: { ...route.query, spk_id: undefined },
+  })
+}
+
+function closeRejectionReason() {
+  showRejectionReason.value = false
+  rejectionReasonTarget.value = null
+}
+
 async function deleteSpk(id: number) {
   deletingSpkId.value = id
   operationError.value = ''
@@ -151,6 +178,14 @@ async function deleteSpk(id: number) {
   } finally {
     deletingSpkId.value = null
   }
+}
+
+async function confirmDeleteSpk() {
+  const targetId = deleteTarget.value?.id
+  if (targetId === undefined || deletingSpkId.value !== null) return
+
+  await deleteSpk(targetId)
+  closeDeleteAlert()
 }
 
 onIonViewWillEnter(loadSpkRecords)
@@ -179,7 +214,7 @@ onIonViewWillEnter(loadSpkRecords)
       </p>
 
       <div v-if="loading" class="spk-loading" role="status">
-        Memuat data SPK dari Supabase...
+        Memuat data SPK...
       </div>
 
       <section v-else-if="storageError" class="storage-error" role="alert">
@@ -204,6 +239,7 @@ onIonViewWillEnter(loadSpkRecords)
         <article
           v-for="record in spkRecords"
           :key="record.id"
+          :id="`spk-entry-${record.id}`"
           class="spk-entry"
         >
         <section class="approval-card" :aria-labelledby="`spk-title-${record.id}`">
@@ -219,6 +255,14 @@ onIonViewWillEnter(loadSpkRecords)
               <h2 :id="`spk-title-${record.id}`">
                 Surat Pembelian Kavling ({{ record.spkNumber }})
               </h2>
+              <button
+                v-if="record.status === 'Rejected' && record.rejectionReason"
+                type="button"
+                class="rejection-reason-button"
+                @click="openRejectionReason(record)"
+              >
+                Lihat alasan penolakan
+              </button>
             </div>
 
           <button
@@ -304,6 +348,11 @@ onIonViewWillEnter(loadSpkRecords)
                 <strong>
                   {{ record.payment.scheme === 'Cash' ? 'Cash' : 'Cicilan' }}
                 </strong>
+                <span
+                  v-if="record.payment.scheme === 'Installment' && record.payment.downPaymentAmount"
+                >
+                  DP awal {{ formatCurrency(record.payment.downPaymentAmount) }}
+                </span>
                 <span v-if="record.payment.method">{{ record.payment.method }}</span>
                 <span v-if="record.payment.tenorMonths">
                   {{ record.payment.tenorMonths }} bulan
@@ -369,16 +418,71 @@ onIonViewWillEnter(loadSpkRecords)
       </aside>
       </main>
 
-      <ion-alert
-      :is-open="showDeleteAlert"
-      header="Hapus SPK?"
-      :message="deleteTarget
-        ? `SPK ${deleteTarget.spkNumber} beserta data dan lampirannya akan dihapus permanen dari Supabase. Tindakan ini tidak dapat dibatalkan.`
-        : 'Data SPK dan lampirannya akan dihapus permanen dari Supabase. Tindakan ini tidak dapat dibatalkan.'"
-      :buttons="deleteAlertButtons"
-      @did-dismiss="closeDeleteAlert"
-      />
     </ion-content>
+
+    <ion-modal
+      :is-open="showDeleteAlert"
+      class="spk-delete-modal"
+      :backdrop-dismiss="deletingSpkId !== deleteTarget?.id"
+      @did-dismiss="closeDeleteAlert"
+    >
+      <section
+        class="spk-delete-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="spk-delete-title"
+        aria-describedby="spk-delete-description"
+      >
+        <span class="spk-delete-icon" aria-hidden="true">
+          <ion-icon :icon="trashOutline" />
+        </span>
+        <h2 id="spk-delete-title">Hapus SPK?</h2>
+        <p id="spk-delete-description">
+          SPK {{ deleteTarget?.spkNumber }} beserta data dan lampirannya akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+        </p>
+        <div class="spk-delete-actions">
+          <button
+            type="button"
+            class="spk-delete-cancel"
+            :disabled="deletingSpkId === deleteTarget?.id"
+            @click="closeDeleteAlert"
+          >
+            Tidak
+          </button>
+          <button
+            type="button"
+            class="spk-delete-confirm"
+            :disabled="deletingSpkId === deleteTarget?.id"
+            @click="confirmDeleteSpk"
+          >
+            {{ deletingSpkId === deleteTarget?.id ? 'Menghapus...' : 'Ya' }}
+          </button>
+        </div>
+      </section>
+    </ion-modal>
+
+    <ion-modal
+      :is-open="showRejectionReason"
+      class="spk-reason-modal"
+      @did-dismiss="closeRejectionReason"
+    >
+      <section
+        class="spk-reason-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="spk-reason-title"
+      >
+        <span class="spk-reason-icon" aria-hidden="true">
+          <ion-icon :icon="documentTextOutline" />
+        </span>
+        <h2 id="spk-reason-title">Alasan Penolakan SPK</h2>
+        <p class="spk-reason-number">{{ rejectionReasonTarget?.spkNumber }}</p>
+        <p class="spk-reason-text">{{ rejectionReasonTarget?.rejectionReason }}</p>
+        <button type="button" class="spk-reason-close" @click="closeRejectionReason">
+          Mengerti
+        </button>
+      </section>
+    </ion-modal>
 
     <mobile-tab-bar variant="client" />
   </ion-page>
@@ -543,6 +647,22 @@ onIonViewWillEnter(loadSpkRecords)
   padding: 0 10px;
   border: 1px solid #f1c8c6;
   border-radius: var(--radius-control, 12px);
+  color: var(--status-danger, #d94b45);
+  background: #fff8f7;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+}
+
+.rejection-reason-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  margin-top: 6px;
+  padding: 0 12px;
+  border: 1px solid #f1c8c6;
+  border-radius: 11px;
   color: var(--status-danger, #d94b45);
   background: #fff8f7;
   font: inherit;
@@ -892,10 +1012,233 @@ onIonViewWillEnter(loadSpkRecords)
   outline-color: var(--status-danger, #d94b45);
 }
 
+:global(ion-modal.spk-delete-modal) {
+  --width: min(92vw, 480px);
+  --height: auto;
+  --max-height: calc(100% - 32px);
+  --border-radius: 24px;
+  --box-shadow: 0 12px 34px rgb(0 0 0 / 22%);
+  --backdrop-opacity: 0.5;
+}
+
+:global(ion-modal.spk-delete-modal::part(backdrop)) {
+  backdrop-filter: blur(3px);
+}
+
+:global(ion-modal.spk-delete-modal::part(content)) {
+  overflow: hidden;
+  border-radius: 24px;
+  background: #fff;
+}
+
+:global(ion-modal.spk-reason-modal) {
+  --width: min(92vw, 440px);
+  --height: auto;
+  --max-height: calc(100% - 32px);
+  --border-radius: 22px;
+  --box-shadow: 0 12px 34px rgb(0 0 0 / 22%);
+  --backdrop-opacity: 0.5;
+}
+
+:global(ion-modal.spk-reason-modal::part(backdrop)) {
+  backdrop-filter: blur(3px);
+}
+
+:global(ion-modal.spk-reason-modal::part(content)) {
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.spk-reason-dialog {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 26px 22px 22px;
+  text-align: center;
+}
+
+.spk-reason-icon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--poliland-gold-text-soft, #805708);
+  background: var(--poliland-gold-soft, #f4d69a);
+}
+
+.spk-reason-icon ion-icon {
+  font-size: 28px;
+}
+
+.spk-reason-dialog h2 {
+  margin: 2px 0 0;
+  color: var(--text-primary, #252525);
+  font-size: 19px;
+  font-weight: var(--font-weight-bold, 700);
+}
+
+.spk-reason-number {
+  margin: 0;
+  color: var(--text-secondary, #717178);
+  font-size: 13px;
+}
+
+.spk-reason-text {
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 14px;
+  border-radius: 14px;
+  color: var(--text-primary, #252525);
+  background: var(--surface-muted, #f5f3ee);
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.spk-reason-close {
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: 13px;
+  color: #fff;
+  background: var(--poliland-green, #355a2c);
+  font: inherit;
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+}
+
+.spk-delete-dialog {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 30px 24px 26px;
+  background: #fff;
+  text-align: center;
+}
+
+.spk-delete-icon {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  color: #f04424;
+  background: #fff0ee;
+}
+
+.spk-delete-icon ion-icon {
+  font-size: 42px;
+}
+
+.spk-delete-dialog h2 {
+  margin: 0;
+  color: #171717;
+  font-size: 21px;
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 1.3;
+}
+
+.spk-delete-dialog p {
+  max-width: 390px;
+  margin: 0 0 8px;
+  color: #85858a;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.spk-delete-actions {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.spk-delete-actions button {
+  min-width: 0;
+  min-height: 62px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.spk-delete-cancel {
+  border: 1px solid #d6d6d6;
+  color: #171717;
+  background: #fff;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 16%);
+}
+
+.spk-delete-confirm {
+  border: 1px solid #f04424;
+  color: #fff;
+  background: #f04424;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 16%);
+}
+
+.spk-delete-actions button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.spk-delete-actions button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.spk-delete-actions button:focus-visible {
+  outline: 3px solid rgb(53 90 44 / 30%);
+  outline-offset: 3px;
+}
+
 @media (max-width: 420px) {
   .documents-shell {
     gap: 12px;
     padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .spk-delete-dialog {
+    gap: 10px;
+    padding: 24px 18px 20px;
+  }
+
+  .spk-delete-icon {
+    width: 82px;
+    height: 82px;
+  }
+
+  .spk-delete-icon ion-icon {
+    font-size: 36px;
+  }
+
+  .spk-delete-dialog h2 {
+    font-size: 19px;
+  }
+
+  .spk-delete-dialog p {
+    font-size: 14px;
+  }
+
+  .spk-delete-actions {
+    gap: 10px;
+  }
+
+  .spk-delete-actions button {
+    min-height: 56px;
+    font-size: 15px;
   }
 
   .approval-card,

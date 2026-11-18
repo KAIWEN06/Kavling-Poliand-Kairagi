@@ -24,6 +24,7 @@ export interface ClientSpkRecord {
   spkNumber: string
   createdAt: string
   status: ClientSpkStatus
+  rejectionReason: string | null
   lot: {
     id: number
     name: string
@@ -40,6 +41,7 @@ export interface ClientSpkRecord {
   payment: {
     scheme: 'Cash' | 'Installment'
     method: string | null
+    downPaymentAmount: number | null
     tenorMonths: number | null
     monthlyPayment: number | null
   }
@@ -60,10 +62,11 @@ export interface CreateClientSpkInput {
   }
   payment: {
     scheme: 'Cash' | 'Installment'
-    method: 'Transfer Bank' | 'Tunai'
+    method: 'Transfer Bank'
     planId: number | null
     tenorMonths: number | null
     monthlyPayment: number | null
+    downPaymentAmount: number
   }
   documents: Record<ClientSpkDocumentKey, File | null>
 }
@@ -73,6 +76,8 @@ interface SpkRequestRow {
   spk_number: string
   submitted_at: string
   status: ClientSpkStatus
+  rejection_reason: string | null
+  admin_note: string | null
   lot_id: number
   lot_price_snapshot: number | string
   customer_full_name: string
@@ -80,6 +85,7 @@ interface SpkRequestRow {
   customer_email: string | null
   customer_address: string
   payment_method: 'Cash' | 'Installment'
+  down_payment_amount: number | string | null
   months: number | null
   monthly_payment: number | string | null
   notes: string | null
@@ -174,13 +180,21 @@ function validateInput(input: CreateClientSpkInput) {
     throw new Error('Skema pembayaran tidak valid.')
   }
 
-  if (!['Transfer Bank', 'Tunai'].includes(input.payment.method)) {
+  if (input.payment.method !== 'Transfer Bank') {
     throw new Error('Metode pembayaran tidak valid.')
   }
 
   if (input.payment.scheme === 'Installment') {
     if (!input.payment.planId || input.payment.planId <= 0) {
       throw new Error('Pilih rencana tenor cicilan sebelum menyimpan SPK.')
+    }
+
+    if (
+      !Number.isSafeInteger(input.payment.downPaymentAmount)
+      || input.payment.downPaymentAmount <= 0
+      || (input.lot.price !== null && input.payment.downPaymentAmount >= input.lot.price)
+    ) {
+      throw new Error('Nominal DP harus lebih dari Rp 0 dan lebih kecil dari harga kavling.')
     }
 
     if (
@@ -255,7 +269,7 @@ async function removeUploadedFiles(paths: string[]) {
  * 2. Membuat SPK melalui RPC.
  * 3. Upload dokumen ke Storage.
  * 4. Menyimpan metadata dokumen.
- * 5. Membuat pembayaran Booking Fee melalui RPC.
+ * 5. Membuat pembayaran awal sesuai skema SPK melalui RPC.
  *
  * Harga, tenor, dan nominal cicilan dihitung/diambil dari database.
  */
@@ -291,10 +305,13 @@ export async function createClientSpk(
           ? input.payment.planId
           : null,
 
-      // Database mengambil tenor dan nominal cicilan
-      // dari payment_plans dan lot_installments.
-      p_months: null,
-      p_monthly_payment: null,
+      p_down_payment_amount:
+        input.payment.scheme === 'Installment'
+          ? input.payment.downPaymentAmount
+          : 0,
+
+      p_months: input.payment.tenorMonths,
+      p_monthly_payment: input.payment.monthlyPayment,
 
       p_notes: `${PAYMENT_METHOD_NOTE_PREFIX}${input.payment.method}`,
     },
@@ -363,22 +380,21 @@ export async function createClientSpk(
     if (documentsError) throw documentsError
 
     // -------------------------------------------------------
-    // 4. BUAT PEMBAYARAN BOOKING FEE
+    // 4. CATAT PEMBAYARAN AWAL: HARGA PENUH ATAU DP
     // -------------------------------------------------------
 
     // RPC mengambil:
     // - Customer ID dari SPK
     // - Lot ID dari SPK
-    // - Nominal dari booking_fee_snapshot
+    // - Nominal harga penuh atau DP dari data SPK
     // - Bukti dari spk_request_documents
     //
     // Client tidak melakukan INSERT langsung ke payments.
 
     const { error: paymentError } = await supabase.rpc(
-      'create_client_spk_booking_payment',
+      'create_client_spk_initial_payment',
       {
         p_request_id: requestId,
-        p_payment_method: input.payment.method,
       },
     )
 
@@ -441,6 +457,8 @@ function toClientRecord(
     spkNumber: row.spk_number,
     createdAt: row.submitted_at,
     status: row.status,
+    rejectionReason:
+      row.rejection_reason?.trim() || row.admin_note?.trim() || null,
 
     lot: {
       id: row.lot_id,
@@ -463,6 +481,11 @@ function toClientRecord(
       method: row.notes?.startsWith(PAYMENT_METHOD_NOTE_PREFIX)
         ? row.notes.slice(PAYMENT_METHOD_NOTE_PREFIX.length)
         : null,
+
+      downPaymentAmount:
+        row.down_payment_amount === null
+          ? null
+          : Number(row.down_payment_amount),
 
       tenorMonths: row.months,
 
@@ -489,6 +512,8 @@ export async function getClientSpks(): Promise<ClientSpkRecord[]> {
       spk_number,
       submitted_at,
       status,
+      rejection_reason,
+      admin_note,
       lot_id,
       lot_price_snapshot,
       customer_full_name,
@@ -496,6 +521,7 @@ export async function getClientSpks(): Promise<ClientSpkRecord[]> {
       customer_email,
       customer_address,
       payment_method,
+      down_payment_amount,
       months,
       monthly_payment,
       notes,
@@ -564,7 +590,7 @@ export async function getClientSpks(): Promise<ClientSpkRecord[]> {
 /**
  * Menghapus pengajuan SPK Client.
  *
- * SPK yang sudah memiliki pembayaran Booking Fee tidak dapat
+ * SPK yang sudah memiliki pembayaran terkait tidak dapat
  * dihapus melalui fungsi ini.
  */
 export async function deleteClientSpk(id: number): Promise<void> {
@@ -597,21 +623,20 @@ export async function deleteClientSpk(id: number): Promise<void> {
   }
 
   // ---------------------------------------------------------
-  // 1. CEK PEMBAYARAN BOOKING
+  // 1. CEK SEMUA PEMBAYARAN YANG TERKAIT
   // ---------------------------------------------------------
 
-  const { data: payment, error: paymentError } = await supabase
+  const { data: payments, error: paymentError } = await supabase
     .from('payments')
-    .select('id, status')
+    .select('id')
     .eq('spk_request_id', id)
-    .eq('payment_category', 'Booking')
-    .maybeSingle()
+    .limit(1)
 
   if (paymentError) throw paymentError
 
-  if (payment) {
+  if (payments?.length) {
     throw new Error(
-      'SPK sudah memiliki pembayaran Booking Fee. Hubungi Admin untuk proses pembatalan.',
+      'SPK ini masih memiliki catatan pembayaran. Untuk menjaga riwayat pembayaran, SPK tidak dapat dihapus. Hubungi Admin untuk bantuan.',
     )
   }
 
@@ -642,7 +667,25 @@ export async function deleteClientSpk(id: number): Promise<void> {
     .eq('submitted_by', user.id)
     .eq('submission_source', 'Client')
 
-  if (deleteError) throw deleteError
+  if (deleteError) {
+    const databaseError = deleteError as {
+      code?: string
+      message?: string
+      details?: string
+    }
+    const paymentForeignKeyError =
+      databaseError.code === '23503' ||
+      databaseError.message?.includes('payments_spk_request_id_fkey') ||
+      databaseError.details?.includes('payments_spk_request_id_fkey')
+
+    if (paymentForeignKeyError) {
+      throw new Error(
+        'SPK ini masih memiliki catatan pembayaran. Untuk menjaga riwayat pembayaran, SPK tidak dapat dihapus. Hubungi Admin untuk bantuan.',
+      )
+    }
+
+    throw deleteError
+  }
 
   // ---------------------------------------------------------
   // 4. HAPUS FILE STORAGE SETELAH DATABASE BERHASIL
