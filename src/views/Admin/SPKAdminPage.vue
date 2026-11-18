@@ -163,7 +163,15 @@
     <AppModal v-model="rejectOpen" title="Tolak pengajuan SPK" variant="dialog"
       :loading="saving" :confirm-disabled="!rejectionReason.trim()" confirm-text="Tolak SPK" confirm-variant="danger"
       cancel-text="Batal" @confirm="confirmReject">
-      <div class="spk-reject-form"><p>Berikan alasan yang jelas agar Marketing mengetahui bagian yang perlu diperbaiki.</p>
+      <div class="spk-reject-form"><p>Pilih kategori yang sesuai. Booking Fee hanya dapat digunakan ulang jika penolakan terjadi karena kesalahan administratif.</p>
+        <label>Kategori penolakan <b>*</b>
+          <select v-model="rejectionCategory">
+            <option value="Administrative Error">Kesalahan administratif / salah kavling</option>
+            <option value="Buyer Cancellation">Pembatalan oleh pembeli</option>
+            <option value="Other">Alasan lainnya</option>
+          </select>
+        </label>
+        <p v-if="rejectionCategory === 'Administrative Error'" class="spk-reuse-warning">Jika Booking Fee sudah dikonfirmasi Finance, pembayaran akan tersedia untuk digunakan pada pengajuan SPK pengganti.</p>
         <label>Alasan penolakan <b>*</b><textarea v-model="rejectionReason" rows="4" maxlength="1000" placeholder="Tuliskan alasan penolakan..." /></label>
         <small>{{ rejectionReason.length }}/1000 karakter</small>
       </div>
@@ -386,6 +394,7 @@ const rejectOpen = ref(false)
 const selectedRequest = ref<AdminSPKRequest | null>(null)
 const actionRequest = ref<AdminSPKRequest | null>(null)
 const rejectionReason = ref('')
+const rejectionCategory = ref<'Administrative Error' | 'Buyer Cancellation' | 'Other'>('Other')
 const openingDocumentId = ref<number | null>(null)
 const documentPreviewOpen = ref(false)
 const previewDocument = ref<SPKDocument | null>(null)
@@ -613,6 +622,7 @@ function openApprove(row: AdminSPKRequest) {
 function openReject(row: AdminSPKRequest) {
   actionRequest.value = row
   rejectionReason.value = ''
+  rejectionCategory.value = 'Other'
   rejectOpen.value = true
 }
 async function openDocument(doc: SPKDocument) {
@@ -679,7 +689,7 @@ async function confirmReject() {
   if (!actionRequest.value || !rejectionReason.value.trim()) return
   saving.value = true
   try {
-    await rejectSPKRequest(actionRequest.value.id, rejectionReason.value)
+    await rejectSPKRequest(actionRequest.value.id, rejectionReason.value, rejectionCategory.value)
     rejectOpen.value = false
     detailOpen.value = false
     await loadRequests()
@@ -1007,6 +1017,8 @@ onMounted(loadRequests)
 .spk-detail-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; padding-top:6px; }
 .spk-confirm-copy,.spk-reject-form { color:#626d62; font-size:12px; line-height:1.6; }
 .spk-confirm-copy p { margin:0 0 9px; }
+.spk-reject-form select { width:100%; border:1px solid #dfe5dc; border-radius:10px; padding:11px; color:#263329; background:#fff; font:inherit; }
+.spk-reuse-warning { border-radius:9px; padding:9px; background:#edf5e9; color:#355a2c; }
 .spk-reject-form label { display:grid; gap:7px; margin-top:13px; color:#354135; font-weight:700; }
 .spk-reject-form label b { color:#b13d36; }
 .spk-reject-form textarea { width:100%; resize:vertical; border:1px solid #dfe5dc; border-radius:10px; padding:11px; color:#263329; background:#fff; font:inherit; font-weight:400; outline-color:#78936d; }

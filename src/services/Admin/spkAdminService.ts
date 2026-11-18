@@ -619,12 +619,19 @@ export async function approveSPKRequest(requestId: number): Promise<void> {
   throwIfError(error)
 }
 
-export async function rejectSPKRequest(requestId: number, reason: string): Promise<void> {
+export type SPKRejectionCategory = 'Administrative Error' | 'Buyer Cancellation' | 'Other'
+
+export async function rejectSPKRequest(
+  requestId: number,
+  reason: string,
+  category: SPKRejectionCategory = 'Other',
+): Promise<void> {
   const trimmedReason = reason.trim()
   if (!trimmedReason) throw new Error('Alasan penolakan wajib diisi.')
-  const { error } = await supabase.rpc('admin_reject_spk_request', {
+  const { error } = await supabase.rpc('admin_reject_spk_request_with_category', {
     p_request_id: requestId,
     p_rejection_reason: trimmedReason,
+    p_rejection_category: category,
   })
   throwIfError(error)
 }

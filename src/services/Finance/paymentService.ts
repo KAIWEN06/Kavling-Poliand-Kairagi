@@ -271,16 +271,21 @@ export const paymentService = {
   async getProofUrl(
     path: string,
     spkRequestId?: number | null,
+    storageBucket?: string,
   ): Promise<string> {
     if (!path?.trim()) {
       throw new Error('Path bukti pembayaran tidak tersedia.')
     }
 
-    let bucket = PROOF_BUCKET
+    // Bucket eksplisit menjadi sumber utama. Jangan menganggap semua
+    // pembayaran SPK berasal dari bucket Client: alur Admin memakai
+    // payment-proofs, sedangkan alur Client memakai bucket privat SPK.
+    let bucket = storageBucket || PROOF_BUCKET
 
-    if (spkRequestId) {
+    if (!storageBucket && spkRequestId) {
+      // Kompatibilitas pemanggil lama: SPK Client memakai bucket privat.
       bucket = CLIENT_SPK_PROOF_BUCKET
-    } else {
+    } else if (!storageBucket) {
       // Kompatibilitas untuk pemanggil lama:
       // cari relasi pembayaran berdasarkan proof_path.
       const { data: payment, error: paymentError } = await supabase
