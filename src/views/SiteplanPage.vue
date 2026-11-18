@@ -3,6 +3,7 @@
     <ion-content class="siteplan-content">
       <div
         class="siteplan-page"
+        :class="{ 'siteplan-page--admin': variant === 'admin' }"
         @touchstart.stop
         @touchmove.stop
         @touchend.stop
@@ -29,6 +30,7 @@
         <DetailPanel
           v-if="selectedLot"
           :lot="selectedLot"
+          :variant="variant"
           @close="selectedLot = null"
         />
 
@@ -56,6 +58,7 @@ import {
   onMounted,
   ref
 } from 'vue'
+import { useRoute } from 'vue-router'
 
 import {
   IonContent,
@@ -99,6 +102,10 @@ import backgroundImage
 
 import svgRaw
   from '../assets/siteplan/LOTS_WITH_ID.svg?raw'
+const props = defineProps<{ variant?: 'public' | 'admin' }>()
+const route = useRoute()
+const variant = props.variant
+  ?? (route.meta.role === 'admin' || route.path.startsWith('/admin/') ? 'admin' : 'public')
 
 
 /* =========================================================

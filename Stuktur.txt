@@ -1,4 +1,12 @@
 poliland-mobile/
+├─ .cline/
+│  └─ skills/
+│     └─ poliland-project-architecture/
+│        └─ SKILL.md
+├─ .github/
+│  └─ instructions/
+│     ├─ anti-ai-slop.instructions.md
+│     └─ vue-ionic-skill-compatibility.instructions.md
 ├─ .vscode/
 │  └─ extensions.json
 ├─ android/
@@ -3722,9 +3730,14 @@ poliland-mobile/
 │  ├─ local.properties
 │  ├─ settings.gradle
 │  └─ variables.gradle
+├─ anti-slop/
+│  ├─ audit-001-2026-11-07.md
+│  └─ audit-002-2026-11-08.md
 ├─ dist/
 │  ├─ assets/
 │  │  ├─ background-e-_69WVj.webp
+│  │  ├─ Cheerful House Mascot Desk Scene-DjvZSRZl.png
+│  │  ├─ Chibi_House_Mascot_Exploring-DGXi4iec.png
 │  │  ├─ Confused_Mascot_and_Missing Panorama-AzWy7Q60.png
 │  │  ├─ hero-uWzP5N7y.jpg
 │  │  ├─ hero2-D2gUeXVJ.jpg
@@ -3732,22 +3745,62 @@ poliland-mobile/
 │  │  ├─ hero4-BYa2-KG7.jpg
 │  │  ├─ hero5-BoNPapQb.jpg
 │  │  ├─ icons-DA6cNLpS.png
-│  │  ├─ index-BOA0f4UI.css
-│  │  ├─ index-JHKwtYZC.js
+│  │  ├─ index-By-mvICp.css
+│  │  ├─ index-D2ErQVyK.js
 │  │  ├─ LOTS_WITH_ID-Df835BtP.svg
+│  │  ├─ Mascot Examining Transaction History-w-B6sdX7.png
 │  │  ├─ Mascot_No_Data_Scene-14nnpkH_.png
+│  │  ├─ MascotInvestigatingSearch Filters-C7IZoJ-v.png
+│  │  ├─ MascotwithEmptyReceiptandCoins-BboL_iN3.png
+│  │  ├─ MascotWritingaNewNote-Cac-OQk7.png
 │  │  ├─ NotFound-CvqaP6lT.webp
 │  │  ├─ p-CcOl6jEv-fTR6QqsK.js
-│  │  ├─ p-CpcdCRug-BVv5G_Px.js
+│  │  ├─ p-CpcdCRug-CM8VGXJO.js
 │  │  ├─ p-CthoZqG1-BBfXIPpb.js
-│  │  ├─ p-DcrAT6v8-CuAfQzaP.js
+│  │  ├─ p-DcrAT6v8-DItxhfyG.js
 │  │  ├─ p-DEvF_E6y-Dii5CmNW.js
-│  │  ├─ p-S-gGoI4A-CqiikkwI.js
+│  │  ├─ p-S-gGoI4A-BrTbim0B.js
 │  │  ├─ p-ZjP4CjeZ-DJ1DGIsW.js
+│  │  ├─ Panicked Mascot and Trash Can Mishap-CJy7Zbtt.png
 │  │  ├─ perbaikan-nks_goA9.mp4
+│  │  ├─ plus-jakarta-sans-latin-400-normal-BDKaGhyp.woff
+│  │  ├─ plus-jakarta-sans-latin-400-normal-Dhut76fR.woff2
+│  │  ├─ plus-jakarta-sans-latin-500-normal-Bf-nb4oT.woff2
+│  │  ├─ plus-jakarta-sans-latin-500-normal-DYtqi0QS.woff
+│  │  ├─ plus-jakarta-sans-latin-600-normal-BR_Ojra4.woff
+│  │  ├─ plus-jakarta-sans-latin-600-normal-DLTa1BUW.woff2
+│  │  ├─ plus-jakarta-sans-latin-700-normal-CfpNZvy6.woff2
+│  │  ├─ plus-jakarta-sans-latin-700-normal-DqEcQeE5.woff
+│  │  ├─ plus-jakarta-sans-latin-800-normal-BRNHt2w0.woff
+│  │  ├─ plus-jakarta-sans-latin-800-normal-CusIZhrK.woff2
+│  │  ├─ plus-jakarta-sans-latin-ext-400-normal-2ppkqaOR.woff
+│  │  ├─ plus-jakarta-sans-latin-ext-400-normal-D127hM_v.woff2
+│  │  ├─ plus-jakarta-sans-latin-ext-500-normal-9VZagAe1.woff2
+│  │  ├─ plus-jakarta-sans-latin-ext-500-normal-CqEEAICU.woff
+│  │  ├─ plus-jakarta-sans-latin-ext-600-normal-B0WRRYJ1.woff
+│  │  ├─ plus-jakarta-sans-latin-ext-600-normal-DQgPU_Cg.woff2
+│  │  ├─ plus-jakarta-sans-latin-ext-700-normal-8-d-IyIQ.woff
+│  │  ├─ plus-jakarta-sans-latin-ext-700-normal-BajbvANd.woff2
+│  │  ├─ plus-jakarta-sans-latin-ext-800-normal-B6BjB2Ju.woff2
+│  │  ├─ plus-jakarta-sans-latin-ext-800-normal-BPkb-LBK.woff
+│  │  ├─ plus-jakarta-sans-vietnamese-400-normal-B8TCSmUq.woff
+│  │  ├─ plus-jakarta-sans-vietnamese-400-normal-Cg2kxhWu.woff2
+│  │  ├─ plus-jakarta-sans-vietnamese-500-normal-CvE5C8T-.woff
+│  │  ├─ plus-jakarta-sans-vietnamese-500-normal-DiU8zqi-.woff2
+│  │  ├─ plus-jakarta-sans-vietnamese-600-normal-5YsyKbU1.woff
+│  │  ├─ plus-jakarta-sans-vietnamese-600-normal-Y4VTTRme.woff2
+│  │  ├─ plus-jakarta-sans-vietnamese-700-normal-BCh_uG_5.woff
+│  │  ├─ plus-jakarta-sans-vietnamese-700-normal-CV6qDkkj.woff2
+│  │  ├─ plus-jakarta-sans-vietnamese-800-normal-BkoGl_sr.woff
+│  │  ├─ plus-jakarta-sans-vietnamese-800-normal-CxbopLd3.woff2
+│  │  ├─ SadBeeHouseMascotwithShoppingReceipt-NpIFhKCy.png
 │  │  ├─ Siteplan-CngvOS8r.png
 │  │  ├─ Verified_Mascot-QFrbpffe.png
-│  │  └─ web-BRq4WRN9.js
+│  │  ├─ web-Bd-25-g2.js
+│  │  ├─ Worried Mascot and Locked Property Link-CB7C94r1.png
+│  │  ├─ Worried_Bee_Mascot_Facing_Loading Error-jVhJ1xjj.png
+│  │  ├─ Worried_BeeHouseMascotwithClipboard-Map-P0KZ3BIT.png
+│  │  └─ WorriedMascotwithFailedDetails-20lZ_GwS.png
 │  ├─ mascot-frames/
 │  │  ├─ mascot_01_password_cover/
 │  │  │  ├─ frame-0001.webp
@@ -6154,10 +6207,23 @@ poliland-mobile/
 │  │  ├─ logos/
 │  │  │  └─ logo.png
 │  │  ├─ mascot/
+│  │  │  ├─ Cheerful House Mascot Desk Scene.png
 │  │  │  ├─ Cheerful_Chibi_House_Mascot.png
+│  │  │  ├─ Chibi_House_Mascot_Exploring.png
 │  │  │  ├─ Confused_Mascot_and_Missing Panorama.png
+│  │  │  ├─ Mascot Examining Transaction History.png
 │  │  │  ├─ Mascot_No_Data_Scene.png
-│  │  │  └─ Verified_Mascot.png
+│  │  │  ├─ MascotInvestigatingSearch Filters.png
+│  │  │  ├─ MascotwithEmptyReceiptandCoins.png
+│  │  │  ├─ MascotWritingaNewNote.png
+│  │  │  ├─ Panicked Mascot and Trash Can Mishap.png
+│  │  │  ├─ PoliLand Mascot Workspace Scene.png
+│  │  │  ├─ SadBeeHouseMascotwithShoppingReceipt.png
+│  │  │  ├─ Verified_Mascot.png
+│  │  │  ├─ Worried Mascot and Locked Property Link.png
+│  │  │  ├─ Worried_Bee_Mascot_Facing_Loading Error.png
+│  │  │  ├─ Worried_BeeHouseMascotwithClipboard-Map.png
+│  │  │  └─ WorriedMascotwithFailedDetails.png
 │  │  └─ siteplan/
 │  │     ├─ background.webp
 │  │     ├─ BG.svg
@@ -6165,6 +6231,10 @@ poliland-mobile/
 │  │     ├─ Siteplan.png
 │  │     └─ Siteplan.svg
 │  ├─ components/
+│  │  ├─ Admin/
+│  │  │  ├─ finance/
+│  │  │  │  └─ FinanceAmountBreakdown.vue
+│  │  │  └─ CustomerNotes.vue
 │  │  ├─ auth/
 │  │  │  ├─ LoginMascot.vue
 │  │  │  └─ MascotCanvas.vue
@@ -6217,8 +6287,10 @@ poliland-mobile/
 │  │     │  └─ SiteplanSkeleton.vue
 │  │     ├─ AppButton.vue
 │  │     ├─ AppInput.vue
+│  │     ├─ AppModal.vue
 │  │     └─ Skeleton.vue
 │  ├─ composables/
+│  │  ├─ useFinanceCalculations.ts
 │  │  ├─ useMascotAnimation.ts
 │  │  ├─ usePageLoading.ts
 │  │  └─ useSiteplant.ts
@@ -6232,14 +6304,24 @@ poliland-mobile/
 │  │  ├─ guards.ts
 │  │  └─ index.ts
 │  ├─ services/
+│  │  ├─ Admin/
+│  │  │  ├─ customerNotesService.ts
+│  │  │  └─ LotsearchService.ts
 │  │  ├─ auth/
 │  │  │  └─ authService.ts
 │  │  ├─ config/
 │  │  │  └─ supabase.ts
+│  │  ├─ Finance/
+│  │  │  ├─ bankAccountService.ts
+│  │  │  ├─ paymentInstructionService.ts
+│  │  │  ├─ paymentPlanService.ts
+│  │  │  └─ paymentService.ts
 │  │  ├─ marketing/
 │  │  │  ├─ customerFollowupService.ts
 │  │  │  ├─ customerService.ts
 │  │  │  └─ spkService.ts
+│  │  ├─ payment/
+│  │  │  └─ paymentCalculator.ts
 │  │  ├─ contactService.ts
 │  │  ├─ faqService.ts
 │  │  ├─ featureService.ts
@@ -6250,16 +6332,25 @@ poliland-mobile/
 │  │  ├─ progressService.ts
 │  │  └─ siteplanService.ts
 │  ├─ styles/
+│  │  ├─ main.css
 │  │  └─ siteplan.css
 │  ├─ theme/
 │  │  └─ variables.css
 │  ├─ types/
-│  │  └─ common.ts
+│  │  ├─ common.ts
+│  │  └─ finance.ts
 │  ├─ utils/
+│  │  ├─ paymentPlan.ts
 │  │  └─ siteplan.ts
 │  ├─ views/
 │  │  ├─ Admin/
-│  │  │  └─ AdminDashboard.vue
+│  │  │  ├─ AdminDashboard.vue
+│  │  │  ├─ AdminDetailKavling.vue
+│  │  │  ├─ AdminKavling.vue
+│  │  │  ├─ AdminKeuangan.vue
+│  │  │  ├─ AdminLainnya.vue
+│  │  │  ├─ AdminPembeli.vue
+│  │  │  └─ AdminPembeliDetail.vue
 │  │  ├─ auth/
 │  │  │  ├─ AuthCallbackPage.vue
 │  │  │  ├─ ForgotPasswordPage.vue
@@ -6268,7 +6359,6 @@ poliland-mobile/
 │  │  │  ├─ RegisterPage.vue
 │  │  │  └─ ResetPasswordPage.vue
 │  │  ├─ beranda/
-│  │  │  ├─ BerandaAdminPage.vue
 │  │  │  └─ BerandaClientPage.vue
 │  │  ├─ marketing/
 │  │  │  ├─ BerandaMarketingPage.vue
@@ -6292,6 +6382,12 @@ poliland-mobile/
 │  ├─ App.vue
 │  ├─ main.ts
 │  └─ vite-env.d.ts
+├─ supabase/
+│  ├─ migrations/
+│  │  ├─ 202611070001_add_whatsapp_and_customer_notes.sql
+│  │  └─ 202611070002_upgrade_customer_notes.sql
+│  ├─ seed_admin_buyers_pagination.sql
+│  └─ seed_finance_statuses.sql
 ├─ tests/
 │  ├─ e2e/
 │  │  ├─ fixtures/
@@ -6310,6 +6406,7 @@ poliland-mobile/
 ├─ .gitignore
 ├─ capacitor.config.ts
 ├─ cypress.config.ts
+├─ DESIGN.md
 ├─ index.html
 ├─ ionic.config.json
 ├─ ionic.starter.json

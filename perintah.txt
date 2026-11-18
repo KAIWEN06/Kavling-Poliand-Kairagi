@@ -1,0 +1,362 @@
+# CODEX TASK — FIX SPK CREATION & MAKE PAYMENT PROOF REQUIRED
+
+## ROLE
+Act as a Senior Full-Stack Engineer specializing in:
+- Vue 3 Composition API
+- TypeScript
+- Supabase PostgreSQL
+- Supabase Storage
+- Supabase Auth & Row Level Security (RLS)
+- Financial transaction systems
+
+You are working on the existing **PoliLand Kairagi** project.
+
+Your task is to investigate and fix the SPK creation failure in the Admin SPK page and enforce payment proof as a mandatory document.
+
+IMPORTANT: Work directly on the existing codebase. Do not merely provide recommendations or code examples. Inspect, modify, and test the actual implementation.
+
+---
+
+## 1. CURRENT PROBLEMS
+
+There are two issues:
+
+### Issue A — Admin cannot create SPK
+
+When Admin opens the "Buat SPK untuk Client" modal, fills in the form, and clicks "SIMPAN PENGAJUAN", the application displays:
+
+`Pengajuan SPK gagal disimpan.`
+
+The root cause has not yet been identified.
+
+Do not assume the problem is only frontend validation. Trace the complete execution flow.
+
+### Issue B — Payment proof is incorrectly optional
+
+Current form:
+
+| Document | Current status | Required status |
+|---|---|---|
+| KTP | Required | Required |
+| Kartu Keluarga (KK) | Required | Required |
+| Bukti Pembayaran | Optional | REQUIRED |
+| NPWP | Optional | Optional |
+| Catatan | Optional | Optional |
+
+Payment proof must be mandatory when Admin creates an SPK.
+
+---
+
+## 2. FIRST: INSPECT THE EXISTING IMPLEMENTATION
+
+Locate and inspect the following files:
+
+- `SPKAdminPage.vue`
+- `spkAdminService.ts`
+- `paymentService.ts`
+- `customerService.ts`
+- Related TypeScript interfaces and validation utilities.
+- Relevant Supabase database migrations.
+- Supabase Storage configuration and RLS policies.
+
+Search the repository for:
+- `createAdminSPKRequest`
+- `validateAdminSPKInput`
+- `uploadSPKBookingProof`
+- `createSPKBookingPayment`
+- `spk_request_id`
+- `booking_fee_snapshot`
+- `payment-proofs`
+
+Understand the current architecture before making changes.
+
+Do not duplicate existing functions or introduce unnecessary abstractions.
+
+---
+
+## 3. FIX FRONTEND VALIDATION
+
+In `SPKAdminPage.vue`:
+
+1. Make KTP mandatory.
+2. Make KK mandatory.
+3. Make Bukti Pembayaran mandatory.
+4. Keep NPWP optional.
+5. Keep Catatan optional.
+
+Update the UI:
+- Add a red required indicator (*) to Bukti Pembayaran.
+- Remove the `(opsional)` label.
+- Show a clear validation message if no payment proof is selected.
+- Disable submission or prevent submission when required documents are missing.
+- Preserve the current modal layout, styling, and responsive behavior.
+
+Do not perform a visual redesign.
+
+---
+
+## 4. FIX SERVICE VALIDATION
+
+In `spkAdminService.ts`, inspect and update:
+
+`validateAdminSPKInput()`
+
+Ensure that:
+- KTP is required.
+- KK is required.
+- Payment proof is required.
+- NPWP is optional.
+- Notes are optional.
+
+Frontend validation must not be the only protection.
+
+The service must reject invalid input before uploading files or inserting records.
+
+Use the existing file validation rules for file type and size.
+
+---
+
+## 5. FIX THE SPK CREATION WORKFLOW
+
+Inspect and repair `createAdminSPKRequest()`.
+
+The intended workflow is:
+
+1. Validate all required form fields.
+2. Validate KTP, KK, and payment proof.
+3. Insert the SPK record into `spk_requests`.
+4. Retrieve the newly created SPK ID.
+5. Upload KTP and KK to the existing SPK document storage bucket.
+6. Upload payment proof to `payment-proofs`.
+7. Upload NPWP only if provided.
+8. Save document records using the existing database structure.
+9. Create the Booking Fee payment record.
+10. Return the created SPK data to the frontend.
+
+Ensure the upload and database operations are handled safely.
+
+If any step fails:
+- Return a meaningful error.
+- Clean up newly created storage objects when safe.
+- Clean up partially created database records when safe.
+- Do not leave orphaned or inconsistent records.
+
+Important: Supabase Storage and PostgreSQL do not share a single transaction. Implement explicit compensation/cleanup logic rather than assuming all operations are atomic.
+
+Do not delete pre-existing files or records during cleanup.
+
+---
+
+## 6. FIX BOOKING FEE PAYMENT CREATION
+
+Inspect these existing functions in `paymentService.ts`:
+
+- `uploadSPKBookingProof()`
+- `createSPKBookingPayment()`
+
+Ensure that the payment record contains:
+
+```ts
+{
+  spk_request_id: newlyCreatedSPKId,
+  customer_id: customerId,
+  lot_id: lotId,
+  transaction_id: null,
+  payment_date: null,
+  amount: bookingFeeSnapshot,
+  payment_category: 'Booking',
+  proof_path: uploadedProofPath,
+  status: 'Pending'
+}
+```
+
+Use the actual existing types and database schema. Adapt the example to the repository implementation.
+
+Requirements:
+- Never create a payment record without a valid `proof_path`.
+- Never create duplicate Booking Fee records for the same submission.
+- Use the Booking Fee snapshot from the SPK.
+- Do not hardcode different Booking Fee values across components.
+- Do not create `lot_transactions` during SPK submission.
+
+---
+
+## 7. CHECK SUPABASE DATABASE AND STORAGE
+
+Investigate possible database and storage failures.
+
+Check:
+
+### Database
+- Does `spk_requests` accept the submitted payload?
+- Does `payments.spk_request_id` exist?
+- Are foreign keys valid?
+- Are required columns being supplied?
+- Are enum/check constraints satisfied?
+- Are there triggers that reject the insert?
+- Are RLS policies allowing the authenticated Admin to perform the operation?
+
+### Storage
+- Does the `payment-proofs` bucket exist?
+- Is the upload path valid?
+- Do Storage policies allow the current Admin role to upload?
+- Can the uploaded file be accessed through the existing document preview mechanism?
+
+Do not disable RLS to bypass errors.
+
+If a policy is incorrect, create a narrowly scoped policy consistent with the existing authentication and authorization model.
+
+Do not assume that a migration has been applied to the live Supabase database.
+
+If SQL changes are required:
+- Create a new migration.
+- Preserve existing data.
+- Avoid destructive changes.
+- Explain the migration before asking for production execution.
+
+---
+
+## 8. IMPROVE ERROR HANDLING
+
+The current generic message:
+
+`Pengajuan SPK gagal disimpan.`
+
+does not identify the actual failure.
+
+Implement structured error handling.
+
+Differentiate:
+- Validation failure.
+- SPK database insert failure.
+- Document upload failure.
+- Booking payment insert failure.
+- Storage permission failure.
+- Database RLS failure.
+- Other unexpected errors.
+
+Show user-friendly messages in the UI.
+
+Keep detailed diagnostic information in development logs.
+
+Never expose:
+- Supabase service role keys.
+- Access tokens.
+- Passwords.
+- Sensitive authentication information.
+
+Do not silently swallow errors.
+
+---
+
+## 9. VERIFY ADMIN KEUANGAN INTEGRATION
+
+After successful SPK creation, ensure that the Booking Fee appears in Admin Keuangan.
+
+The payment must be retrievable through `payments.spk_request_id`, even though:
+
+`transaction_id = null`
+
+Ensure the query does not depend exclusively on `lot_transactions`.
+
+Expected behavior:
+
+1. Admin creates an SPK.
+2. Payment proof is uploaded.
+3. A Booking Fee payment record is created.
+4. Its status is `Pending`.
+5. Admin Keuangan can see the payment.
+6. Admin Keuangan can verify the payment.
+7. Admin SPK can see the updated payment status.
+8. SPK approval becomes available only after the confirmed Booking Fee reaches the required amount.
+
+Do not automatically approve the SPK after payment verification.
+
+---
+
+## 10. BUSINESS RULES — DO NOT CHANGE
+
+Preserve these existing rules:
+
+### Cash
+- Booking Fee is mandatory before SPK approval.
+- No DP requirement for Cash.
+
+### Installment
+- Booking Fee is mandatory before SPK approval.
+- DP is separate from Booking Fee.
+- DP does not have to be confirmed before SPK approval.
+
+### General
+- Default Booking Fee: Rp1.000.000.
+- Booking Fee must not be counted as DP.
+- Do not create a transaction before SPK approval.
+- Do not create duplicate payment records.
+- Preserve existing payment history.
+
+---
+
+## 11. TESTING REQUIREMENTS
+
+Run the available project checks and test these scenarios:
+
+| Test | Expected result |
+|---|---|
+| Submit with KTP, KK, and payment proof | Success |
+| Submit without KTP | Validation error |
+| Submit without KK | Validation error |
+| Submit without payment proof | Validation error |
+| Submit without NPWP | Allowed |
+| Submit without notes | Allowed |
+| Invalid payment proof file | Validation error |
+| Payment proof upload fails | No inconsistent SPK submission |
+| Payment database insert fails | Safe cleanup |
+| SPK creation succeeds | Booking Fee appears in Admin Keuangan |
+| Payment has no transaction_id | Still visible in Finance |
+| Payment is confirmed | SPK displays updated status |
+
+Run:
+- TypeScript type checking.
+- Production build.
+- Existing relevant tests.
+- Additional tests for the corrected workflow where practical.
+
+Fix any regressions introduced by your changes.
+
+---
+
+## 12. EXECUTION RULES
+
+- Work directly in the current repository.
+- Inspect before modifying.
+- Follow existing naming conventions and architecture.
+- Reuse existing services and utilities.
+- Do not redesign unrelated UI.
+- Do not delete existing functionality.
+- Do not bypass authentication or RLS.
+- Do not fabricate successful test results.
+- Do not execute destructive SQL.
+- Do not modify unrelated files unnecessarily.
+
+If an essential database or authorization detail cannot be verified, explain the limitation instead of guessing.
+
+---
+
+## 13. FINAL REPORT
+
+After implementation, provide:
+
+1. Root cause of the SPK creation failure.
+2. Files inspected.
+3. Files modified.
+4. Exact changes made.
+5. Database or Storage policy changes required.
+6. Build and type-check results.
+7. Test results.
+8. Remaining issues requiring manual Supabase configuration.
+
+**DEFINITION OF DONE:**
+
+Admin can successfully create an SPK only when KTP, KK, and payment proof are provided. The system creates a valid Pending Booking Fee payment linked to the SPK, and that payment appears in Admin Keuangan for verification.
+
+Do not consider the task complete if only the frontend label or validation has been changed.

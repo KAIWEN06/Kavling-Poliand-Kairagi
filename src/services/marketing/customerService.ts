@@ -1,4 +1,6 @@
 import { supabase } from '@/services/config/supabase'
+import type { FinanceAdminPaymentRecord, FinanceLotRecord, FinancePaymentRecord } from '@/types/finance'
+import type { FinanceCustomerRecord } from '@/types/finance'
 
 export interface Customer {
   id?: number
@@ -9,6 +11,7 @@ export interface Customer {
   nik?: string | null
   address?: string | null
   notes?: string | null
+  marketing_id?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -33,8 +36,151 @@ export interface CreateCustomerPayload {
   }>
 }
 
+export interface CustomerUsage {
+  label: string
+  count: number
+}
+
+/**
+ * Semua relasi dan riwayat menjadi penghalang penghapusan pembeli.
+ * Data terkait tidak dihapus otomatis agar histori tetap utuh.
+ */
+async function getCustomerUsage(customerId: number): Promise<CustomerUsage[]> {
+  const [
+    { count: interestCount, error: interestsError },
+    { count: transactionCount, error: transactionsError },
+    { count: paymentCount, error: paymentsError },
+    { count: noteCount, error: notesError },
+    { count: followupCount, error: followupsError },
+    { count: lotCount, error: lotsError },
+    { count: noteHistoryCount, error: noteHistoriesError },
+  ] = await Promise.all([
+    supabase.from('customer_interests').select('id', { count: 'exact', head: true }).eq('customer_id', customerId),
+    supabase.from('lot_transactions').select('id', { count: 'exact', head: true }).eq('customer_id', customerId),
+    supabase.from('payments').select('id', { count: 'exact', head: true }).eq('customer_id', customerId),
+    supabase.from('customer_notes').select('id', { count: 'exact', head: true }).eq('customer_id', customerId),
+    supabase.from('customer_followups').select('id', { count: 'exact', head: true }).eq('customer_id', customerId),
+    supabase.from('lots').select('id', { count: 'exact', head: true }).eq('customer_id', customerId),
+    supabase.from('customer_note_histories').select('id', { count: 'exact', head: true }).eq('customer_id', customerId),
+  ])
+
+  const error = [
+    interestsError,
+    transactionsError,
+    paymentsError,
+    notesError,
+    followupsError,
+    lotsError,
+    noteHistoriesError,
+  ].find(Boolean)
+  if (error) throw error
+
+  return [
+    { label: 'Minat kavling', count: interestCount ?? 0 },
+    { label: 'Transaksi', count: transactionCount ?? 0 },
+    { label: 'Pembayaran', count: paymentCount ?? 0 },
+    { label: 'Catatan', count: noteCount ?? 0 },
+    { label: 'Riwayat catatan', count: noteHistoryCount ?? 0 },
+    { label: 'Riwayat tindak lanjut', count: followupCount ?? 0 },
+    { label: 'Kavling yang terhubung', count: lotCount ?? 0 },
+  ].filter((usage) => usage.count > 0)
+}
+
 export const customerService = {
-  async getAdminCustomers() {
+  async getAdminPaymentVerificationRecords(): Promise<FinanceAdminPaymentRecord[]> {
+    const { data, error } = await supabase
+      .from('payments')
+      .select(`
+        id,
+        transaction_id,
+        spk_request_id,
+        lot_id,
+        customer_id,
+        amount,
+        payment_date,
+        payment_method,
+        payment_category,
+        status,
+        note,
+        proof_path,
+        reference_number,
+        review_note,
+        verified_at,
+        verified_by,
+        created_at
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    const customerIds = [...new Set((data ?? []).map((row: any) => Number(row.customer_id)).filter((id) => Number.isFinite(id) && id > 0))]
+    const lotIds = [...new Set((data ?? []).map((row: any) => Number(row.lot_id)).filter((id) => Number.isFinite(id) && id > 0))]
+    const spkIds = [...new Set((data ?? []).map((row: any) => Number(row.spk_request_id)).filter((id) => Number.isFinite(id) && id > 0))]
+    const [customersResult, lotsResult, spkResult] = await Promise.all([
+      customerIds.length
+        ? supabase.from('customers').select('id, full_name, phone, whatsapp_phone, created_at').in('id', customerIds)
+        : Promise.resolve({ data: [], error: null } as any),
+      lotIds.length
+        ? supabase.from('lots').select('id, lot_number, area, blocks(name)').in('id', lotIds)
+        : Promise.resolve({ data: [], error: null } as any),
+      spkIds.length
+        ? supabase.from('spk_requests').select('id, spk_number, status').in('id', spkIds)
+        : Promise.resolve({ data: [], error: null } as any),
+    ])
+    for (const result of [customersResult, lotsResult, spkResult]) {
+      if (result.error) throw result.error
+    }
+
+    const customerMap = new Map<number, any>((customersResult.data || []).map((row: any) => [Number(row.id), row]))
+    const lotMap = new Map<number, any>((lotsResult.data || []).map((row: any) => [Number(row.id), row]))
+    const spkMap = new Map<number, any>((spkResult.data || []).map((row: any) => [Number(row.id), row]))
+
+    return (data ?? []).map((row: any) => {
+      const customer = customerMap.get(Number(row.customer_id))
+      const lot = lotMap.get(Number(row.lot_id))
+      const block = Array.isArray(lot?.blocks) ? lot.blocks[0] : lot?.blocks
+      const spk = spkMap.get(Number(row.spk_request_id))
+      const payment = {
+        ...row,
+        id: Number(row.id),
+        transaction_id: row.transaction_id == null ? null : Number(row.transaction_id),
+        spk_request_id: row.spk_request_id == null ? null : Number(row.spk_request_id),
+        lot_id: row.lot_id == null ? null : Number(row.lot_id),
+        customer_id: row.customer_id == null ? null : Number(row.customer_id),
+        amount: row.amount == null ? null : Number(row.amount),
+      } as FinancePaymentRecord
+
+      return {
+        payment,
+        customer: customer
+          ? {
+              id: Number(customer.id),
+              full_name: customer.full_name || '',
+              phone: customer.phone ?? null,
+              whatsapp_phone: customer.whatsapp_phone ?? null,
+              created_at: customer.created_at,
+            }
+          : null,
+        lot: lot
+          ? {
+              id: Number(lot.id),
+              lot_number: lot.lot_number,
+              area: lot.area == null ? null : Number(lot.area),
+              blocks: block ? { name: block.name } : null,
+            } as FinanceLotRecord
+          : null,
+        spk: spk
+          ? {
+              id: Number(spk.id),
+              spk_number: spk.spk_number,
+              status: spk.status,
+            }
+          : null,
+      }
+    })
+  },
+
+  async getAdminCustomers(): Promise<FinanceCustomerRecord[]> {
     const { data, error } = await supabase
       .from('customers')
       .select(`
@@ -47,10 +193,12 @@ export const customerService = {
         notes,
         created_at,
         marketing_id,
+        registration_source,
         marketing:profiles!customers_marketing_id_fkey (id, full_name, role),
         payments (
           id,
           transaction_id,
+          spk_request_id,
           lot_id,
           customer_id,
           amount,
@@ -59,7 +207,13 @@ export const customerService = {
           payment_category,
           status,
           note,
-          created_at
+          proof_path,
+          reference_number,
+          review_note,
+          verified_at,
+          verified_by,
+          created_at,
+          lots (lot_number)
         ),
         customer_notes (id, note, created_at),
         customer_interests (
@@ -77,6 +231,9 @@ export const customerService = {
             block_id,
             dimension,
             area,
+            status,
+            cash_price,
+            promo_price,
             blocks (id, code, name)
           )
         ),
@@ -115,7 +272,7 @@ export const customerService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data ?? []
+    return (data ?? []) as unknown as FinanceCustomerRecord[]
   },
 
   async getCustomers() {
@@ -193,7 +350,62 @@ export const customerService = {
     return data
   },
 
+  async getMarketingOptions() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('role', 'marketing')
+      .order('full_name', { ascending: true })
+
+    if (error) throw error
+    return data ?? []
+  },
+
   async createCustomer(payload: CreateCustomerPayload) {
+    // Tentukan sumber marketing dari akun yang sedang login.
+    // Marketing selalu dikaitkan ke profilnya sendiri; Admin boleh memilih marketing.
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError) throw userError
+    if (!user) throw new Error('Sesi login tidak ditemukan. Silakan login kembali.')
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profileError) throw profileError
+    if (!profile) throw new Error('Profil pengguna tidak ditemukan.')
+
+    let marketingId: string | null = null
+
+    if (profile.role === 'marketing') {
+      // Jangan izinkan Marketing mengatribusikan pembeli ke akun Marketing lain.
+      marketingId = profile.id
+    } else if (profile.role === 'admin') {
+      marketingId = payload.customer.marketing_id ?? null
+
+      if (marketingId) {
+        const { data: selectedMarketing, error: marketingError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', marketingId)
+          .eq('role', 'marketing')
+          .maybeSingle()
+
+        if (marketingError) throw marketingError
+        if (!selectedMarketing) {
+          throw new Error('Marketing yang dipilih tidak ditemukan atau bukan akun Marketing.')
+        }
+      }
+    } else {
+      throw new Error('Role akun tidak memiliki izin untuk menambahkan pembeli.')
+    }
+
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .insert({
@@ -203,6 +415,8 @@ export const customerService = {
         nik: payload.customer.nik ?? null,
         address: payload.customer.address ?? null,
         notes: payload.customer.notes ?? null,
+        marketing_id: marketingId,
+        registration_source: profile.role === 'marketing' || marketingId ? 'Marketing' : 'Admin',
       })
       .select()
       .single()
@@ -250,13 +464,33 @@ export const customerService = {
     return data
   },
 
+  async getCustomerUsage(id: number) {
+    return getCustomerUsage(id)
+  },
+
   async deleteCustomer(id: number) {
-    const { error } = await supabase
+    // Periksa ulang tepat sebelum DELETE agar tidak hanya bergantung pada modal UI.
+    const usage = await getCustomerUsage(id)
+    if (usage.length > 0) {
+      const usageSummary = usage.map(({ label, count }) => `${label} (${count})`).join(', ')
+      throw new Error(
+        `Pembeli tidak dapat dihapus karena masih memiliki data atau riwayat terkait: ${usageSummary}. Data tersebut harus tetap dipertahankan.`,
+      )
+    }
+
+    // Tidak ada relasi yang dibersihkan otomatis. Jika ada relasi yang belum
+    // tercakup pemeriksaan ini, foreign key database tetap menjadi perlindungan.
+    const { data, error } = await supabase
       .from('customers')
       .delete()
       .eq('id', id)
+      .select('id')
+      .maybeSingle()
 
     if (error) throw error
+    if (!data) {
+      throw new Error('Data pembeli tidak terhapus. Periksa izin DELETE dan pastikan data masih tersedia.')
+    }
   },
 
   async getAvailableLots() {
@@ -336,6 +570,38 @@ export const customerService = {
   },
 
   async removeInterest(id: number) {
+    const { data: interest, error: interestError } = await supabase
+      .from('customer_interests')
+      .select('id, customer_id, lot_id')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (interestError) throw interestError
+    if (!interest) throw new Error('Data minat tidak ditemukan atau sudah dihapus.')
+
+    const [
+      { count: transactionCount, error: transactionError },
+      { count: paymentCount, error: paymentError },
+    ] = await Promise.all([
+      supabase
+        .from('lot_transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('customer_id', interest.customer_id)
+        .eq('lot_id', interest.lot_id),
+      supabase
+        .from('payments')
+        .select('id', { count: 'exact', head: true })
+        .eq('customer_id', interest.customer_id)
+        .eq('lot_id', interest.lot_id),
+    ])
+
+    if (transactionError) throw transactionError
+    if (paymentError) throw paymentError
+
+    if ((transactionCount ?? 0) > 0 || (paymentCount ?? 0) > 0) {
+      throw new Error('Minat kavling tidak dapat dihapus karena sudah terhubung dengan transaksi atau pembayaran. Riwayat tersebut harus tetap dipertahankan.')
+    }
+
     const { error } = await supabase
       .from('customer_interests')
       .delete()

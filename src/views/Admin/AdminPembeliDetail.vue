@@ -19,7 +19,7 @@
         <template v-else-if="customer">
           <section class="detail-hero">
             <div :class="['detail-avatar', customer.tone]">{{ initials(customer.full_name) }}</div>
-            <div class="detail-hero-copy"><h1>{{ customer.full_name }}</h1><p>{{ customer.phone || 'Nomor belum tercatat' }}</p><p>{{ customer.email || 'Email belum tercatat' }}</p><p>{{ customer.address || 'Alamat belum tercatat' }}</p></div>
+            <div class="detail-hero-copy"><h1>{{ customer.full_name }}</h1></div>
             <span class="detail-status">{{ customer.statusLabel }}</span>
           </section>
 
@@ -27,27 +27,26 @@
             <a :href="customer.phone ? `tel:${customer.phone}` : undefined" class="detail-action"><ion-icon :icon="callOutline" /><span>Telepon</span></a>
             <a :href="whatsappPhone ? `https://wa.me/${whatsappPhone.replace(/\D/g, '')}` : undefined" class="detail-action"><ion-icon :icon="logoWhatsapp" /><span>WhatsApp</span></a>
             <button type="button" class="detail-action" @click="editCustomer"><ion-icon :icon="createOutline" /><span>Edit</span></button>
+            <button type="button" class="detail-action detail-action--danger" :aria-label="`Hapus data pembeli ${customer.full_name}`" @click="openDeleteConfirmation">
+              <ion-icon :icon="trashOutline" aria-hidden="true" /><span>Hapus</span>
+            </button>
           </div>
 
           <div class="detail-tabs" role="tablist" aria-label="Detail customer">
-            <button type="button" :class="{ active: activeTab === 'summary' }" @click="activeTab = 'summary'">Ringkasan</button>
+            <button type="button" :class="{ active: activeTab === 'summary' }" @click="activeTab = 'summary'">Informasi</button>
             <button type="button" :class="{ active: activeTab === 'lots' }" @click="activeTab = 'lots'">Kavling ({{ customer.interests.length + customer.transactions.length }})</button>
             <button type="button" :class="{ active: activeTab === 'notes' }" @click="activeTab = 'notes'">Catatan</button>
           </div>
 
           <section v-if="activeTab === 'summary'" class="detail-card personal-card" aria-labelledby="personal-title">
-            <div class="card-head">
-              <div>
-                <h2 id="personal-title">Informasi pribadi</h2>
-                <p class="head-sub">Informasi kontak dan data customer</p>
-              </div>
-            </div>
             <dl class="personal-info-list">
+              <div class="personal-info-item"><dt>Nama</dt><dd>{{(customer.full_name) }}</dd></div>
               <div class="personal-info-item"><dt>Nomor telepon</dt><dd>{{ customer.phone || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>WhatsApp</dt><dd>{{ customer.whatsapp_phone || customer.phone || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Email</dt><dd>{{ customer.email || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Alamat</dt><dd>{{ customer.address || 'Belum tercatat' }}</dd></div>
-              <div class="personal-info-item personal-info-note"><dt>Catatan</dt><dd>{{ customer.notes || 'Belum ada catatan' }}</dd></div>
+              <div class="personal-info-item"><dt>Asal data client</dt><dd>{{ customer.registrationSource || 'Belum tercatat' }}</dd></div>
+              <div v-if="customer.marketingName" class="personal-info-item"><dt>Marketing</dt><dd>{{ customer.marketingName }}</dd></div>
             </dl>
           </section>
 
@@ -75,20 +74,43 @@
 
               <div v-else class="lot-cards-list">
                 <article v-for="interest in customer.interests" :key="interest.id" class="lot-card-item">
-                  <div class="lot-card-main">
-                    <div class="lot-card-info">
-                      <div class="lot-card-badge-row">
-                        <span class="lot-badge-num">{{ interest.lotNumber }}</span>
-                        <span class="lot-badge-type">{{ interest.paymentType }}</span>
-                        <span :class="['lot-status-chip', lotStatusClass(interest.status)]">
-                          {{ transactionStatusLabel(interest.status) }}
-                        </span>
-                      </div>
-                      <p class="lot-card-meta">
-                        {{ interest.block }}
-                        <template v-if="interest.area"> · {{ interest.area }} m²</template>
-                        <template v-if="interest.dimension"> · {{ interest.dimension }}</template>
-                      </p>
+                  <div class="lot-card-heading">
+                    <div class="lot-card-identity">
+                      <span class="lot-badge-num">{{ interest.lotNumber }}</span>
+                      <span class="lot-badge-type">{{ interest.paymentType }}</span>
+                    </div>
+                    <span :class="['lot-status-chip', lotStatusClass(interest.status)]">
+                      {{ transactionStatusLabel(interest.status) }}
+                    </span>
+                  </div>
+
+                  <div class="lot-card-details">
+                    <div class="lot-detail-cell">
+                      <span class="lot-detail-label">Blok</span>
+                      <strong>{{ interest.block || 'Belum ditentukan' }}</strong>
+                    </div>
+                    <div v-if="interest.area" class="lot-detail-cell">
+                      <span class="lot-detail-label">Luas tanah</span>
+                      <strong>{{ interest.area }} m²</strong>
+                    </div>
+                    <div v-if="interest.dimension" class="lot-detail-cell">
+                      <span class="lot-detail-label">Dimensi</span>
+                      <strong>{{ interest.dimension }}</strong>
+                    </div>
+                    <div v-if="interest.price !== null" class="lot-detail-cell">
+                      <span class="lot-detail-label">Harga kavling</span>
+                      <strong class="lot-card-price">
+                        {{ formatCurrency(interest.price) }}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div class="lot-card-footer">
+                    <div class="lot-price-group">
+                      <span
+                        v-if="interest.promoPrice != null && interest.cashPrice != null && interest.promoPrice < interest.cashPrice"
+                        class="lot-card-price-note"
+                      >Harga promo</span>
                     </div>
 
                     <div class="lot-card-actions">
@@ -301,13 +323,53 @@
             <label for="edit-whatsapp">Nomor WhatsApp<input id="edit-whatsapp" v-model.trim="editForm.whatsapp_phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
             <label for="edit-email">Email<input id="edit-email" v-model.trim="editForm.email" type="email" inputmode="email" autocomplete="email" /></label>
             <label for="edit-address">Alamat<textarea id="edit-address" v-model.trim="editForm.address" rows="2" autocomplete="street-address" /></label>
-            <label for="edit-notes">Catatan<textarea id="edit-notes" v-model.trim="editForm.notes" rows="3" /></label>
             <p v-if="editError" class="edit-error" role="alert">{{ editError }}</p>
           </form>
         </AppModal>
       </main>
     </ion-content>
     <MobileTabBar variant="admin" />
+    <AppModal
+      v-model="deleteModalOpen"
+      title="Hapus data pembeli"
+      variant="dialog"
+      :loading="deleteChecking || deleteSaving"
+      :confirm-disabled="!deleteChecked || deleteUsages.length > 0 || deleteChecking || deleteSaving || Boolean(deleteError)"
+      confirm-text="Hapus data"
+      confirm-variant="danger"
+      cancel-text="Batal"
+      @confirm="confirmDeleteCustomer"
+      @cancel="closeDeleteConfirmation"
+      @close="closeDeleteConfirmation"
+    >
+      <div class="customer-delete-check">
+        <p v-if="deleteChecking" role="status" aria-live="polite">
+          Memeriksa...
+        </p>
+        <div v-else-if="deleteError" class="customer-delete-error" role="alert">
+          <p>Data belum dihapus. Pemeriksaan atau penghapusan gagal: {{ deleteError }}</p>
+          <AppButton size="small" @click="checkDeleteEligibility">Periksa lagi</AppButton>
+        </div>
+        <div v-else-if="deleteUsages.length" role="alert">
+          <div class="customer-delete-usage-alert">
+            <img :src="worriedMascot" alt="Maskot khawatir karena data masih terhubung" />
+            <div>
+              <strong>Data pembeli masih memiliki relasi atau riwayat sehingga tidak dapat dihapus.</strong>
+              <ul>
+                <li v-for="usage in deleteUsages" :key="usage.label">
+                  {{ usage.label }} ({{ usage.count }})
+                </li>
+              </ul>
+              <p>Data minat, catatan, tindak lanjut, transaksi, pembayaran, dan hubungan kavling yang sudah tercatat tidak akan dihapus.</p>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="deleteChecked" class="customer-delete-ready">
+          <img :src="panickedMascot" alt="Maskot panik di samping tempat sampah" />
+          <p>Pembeli ini belum memiliki data atau riwayat yang terhubung. Penghapusan data pembeli tidak dapat dibatalkan.</p>
+        </div>
+      </div>
+    </AppModal>
   </ion-page>
 </template>
 
@@ -322,6 +384,8 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import CustomerNotes from '@/components/Admin/CustomerNotes.vue'
 import { customerService } from '@/services/marketing/customerService'
+import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.png'
+import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.png'
 
 const route = useRoute()
 const router = useRouter()
@@ -333,6 +397,13 @@ const whatsappPhone = computed(() => customer.value?.whatsapp_phone || customer.
 const editing = ref(false)
 const saving = ref(false)
 const editError = ref('')
+const deleteModalOpen = ref(false)
+const deleteChecking = ref(false)
+const deleteSaving = ref(false)
+const deleteChecked = ref(false)
+const deleteError = ref('')
+const deleteUsages = ref<Array<{ label: string; count: number }>>([])
+let deleteCheckSequence = 0
 const editForm = reactive({ full_name: '', phone: '', whatsapp_phone: '', email: '', address: '', notes: '' })
 const availableLots = ref<any[]>([])
 const filteredAvailableLots = computed(() => {
@@ -355,6 +426,15 @@ function blockLabel(block: any) { return block?.name || block?.code || 'Blok bel
 function formatLotPrice(lot: any) {
   const price = lot.promo_price ?? lot.cash_price
   return price ? formatCurrency(Number(price)) : 'Harga belum diatur'
+}
+function hasTransactionAndPayment(row: any) {
+  const transactions = row.lot_transactions ?? []
+  const payments = row.payments ?? []
+  return transactions.some((transaction: any) =>
+    payments.some((payment: any) =>
+      Number(payment.transaction_id) === Number(transaction.id)
+    )
+  )
 }
 function transactionStatusLabel(status: string) {
   if (status === 'Sold') return 'Terjual'
@@ -469,6 +549,63 @@ async function saveCustomer() {
   }
 }
 
+function openDeleteConfirmation() {
+  if (!customer.value) return
+  deleteModalOpen.value = true
+  void checkDeleteEligibility()
+}
+
+async function checkDeleteEligibility() {
+  const target = customer.value
+  if (!target) return
+
+  const sequence = ++deleteCheckSequence
+  deleteChecking.value = true
+  deleteChecked.value = false
+  deleteError.value = ''
+  deleteUsages.value = []
+
+  try {
+    const usages = await customerService.getCustomerUsage(target.id)
+    if (sequence !== deleteCheckSequence || customer.value?.id !== target.id) return
+    deleteUsages.value = usages
+    deleteChecked.value = true
+  } catch (error) {
+    if (sequence !== deleteCheckSequence || customer.value?.id !== target.id) return
+    deleteError.value = error instanceof Error ? error.message : 'Periksa koneksi dan coba lagi.'
+  } finally {
+    if (sequence === deleteCheckSequence) deleteChecking.value = false
+  }
+}
+
+function closeDeleteConfirmation() {
+  deleteCheckSequence += 1
+  deleteChecking.value = false
+  deleteChecked.value = false
+  deleteError.value = ''
+  deleteUsages.value = []
+}
+
+async function confirmDeleteCustomer() {
+  const target = customer.value
+  if (!target || !deleteChecked.value || deleteUsages.value.length || deleteError.value || deleteSaving.value) return
+
+  deleteSaving.value = true
+  deleteError.value = ''
+
+  try {
+    await customerService.deleteCustomer(target.id)
+  } catch (error) {
+    deleteError.value = error instanceof Error ? error.message : 'Data pembeli gagal dihapus. Periksa koneksi dan coba lagi.'
+    deleteSaving.value = false
+    return
+  }
+
+  deleteSaving.value = false
+  deleteModalOpen.value = false
+  await router.replace('/admin/pembeli')
+}
+
 async function loadCustomer() {
   loading.value = true
   errorMessage.value = ''
@@ -476,13 +613,37 @@ async function loadCustomer() {
     const rows = await customerService.getAdminCustomers()
     const row = rows.find((item: any) => String(item.id) === String(route.params.id)) as any
     if (!row) { customer.value = null; return }
+    const marketingRelation = Array.isArray(row.marketing)
+      ? row.marketing[0]
+      : row.marketing
+    const marketerRelation = Array.isArray(row.marketer)
+      ? row.marketer[0]
+      : row.marketer
+    const marketingProfile = Array.isArray(row.marketing_profile)
+      ? row.marketing_profile[0]
+      : row.marketing_profile
+
     customer.value = {
       ...row,
+      marketingName: marketingRelation?.full_name
+        || marketerRelation?.full_name
+        || marketingProfile?.full_name
+        || row.marketing_name
+        || null,
+      registrationSource: row.registration_source === 'Marketing'
+        ? 'Marketing'
+        : row.registration_source === 'Admin'
+          ? 'Admin'
+          : row.registration_source === 'Client'
+            ? 'Client'
+            : 'Belum tercatat',
       statusLabel: row.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')
         ? 'Pembeli'
-        : row.customer_notes?.length || row.customer_interests?.length
-          ? 'Tindak Lanjut'
-          : 'Prospek',
+        : hasTransactionAndPayment(row)
+          ? 'Ditinjau'
+          : row.customer_notes?.length || row.customer_interests?.length
+            ? 'Tindak Lanjut'
+            : 'Prospek',
       tone: 'mint',
       interests: (row.customer_interests ?? []).map((interest: any) => {
         const lot = interest.lots ?? {}
@@ -494,6 +655,13 @@ async function loadCustomer() {
           dimension: lot.dimension || null,
           area: lot.area != null ? Number(lot.area) : null,
           status: lot.status || null,
+          cashPrice: lot.cash_price != null ? Number(lot.cash_price) : null,
+          promoPrice: lot.promo_price != null ? Number(lot.promo_price) : null,
+          price: lot.promo_price != null
+            ? Number(lot.promo_price)
+            : lot.cash_price != null
+              ? Number(lot.cash_price)
+              : null,
           paymentType: interest.payment_type === 'Installment' ? 'Cicilan' : 'Cash',
         }
       }),
@@ -595,9 +763,13 @@ onMounted(loadCustomer)
 .detail-hero h1 { margin: 0 0 3px; font-size: 18px; font-weight: var(--font-weight-extrabold); }
 .detail-hero p, .muted { margin: 1px 0 0; color: var(--text-secondary); font-size: 12px; }
 .detail-status { align-self: flex-start; padding: 5px 9px; border: 1px solid var(--poliland-green); border-radius: 999px; color: var(--poliland-green); font-size: 11px; font-weight: var(--font-weight-bold); white-space: nowrap; }
-.detail-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 16px; }
+.detail-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-bottom: 16px; }
 .detail-action { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 58px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; text-decoration: none; }
 .detail-action ion-icon { color: var(--poliland-green); font-size: 20px; }
+.detail-action--danger { color: var(--status-danger); cursor: pointer; }
+.detail-action--danger ion-icon { color: var(--status-danger); }
+.detail-action--danger:hover, .detail-action--danger:active { border-color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 9%, white); }
+.detail-action--danger:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .detail-tabs { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 -16px; border-bottom: 1px solid var(--border-default); }
 .detail-tabs button { min-height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); }
 .detail-tabs button.active { border-bottom-color: var(--poliland-gold); color: var(--poliland-gold-text); }
@@ -610,15 +782,47 @@ onMounted(loadCustomer)
 .empty-mascot { width: 64px; height: 64px; flex: 0 0 64px; object-fit: contain; }
 
 .lot-cards-list { display: grid; gap: 10px; }
-.lot-card-item { padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); transition: border-color 0.2s; }
-.lot-card-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.lot-card-info { display: grid; gap: 4px; min-width: 0; flex: 1; }
-.lot-card-badge-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.lot-badge-num { font-size: 15px; font-weight: var(--font-weight-extrabold); color: var(--text-primary); }
-.lot-badge-type { padding: 2px 8px; border-radius: 6px; background: var(--surface-primary); border: 1px solid var(--border-default); font-size: 11px; font-weight: var(--font-weight-bold); color: var(--poliland-green); }
-.lot-card-meta { margin: 0; color: var(--text-secondary); font-size: 12px; }
-
-.lot-card-actions { display: flex; align-items: center; gap: 8px; }
+.lot-card-item {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
+}
+.lot-card-heading,
+.lot-card-identity,
+.lot-card-footer,
+.lot-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lot-card-identity { justify-content: flex-start; min-width: 0; }
+.lot-badge-num { color: var(--text-primary); font-size: 15px; font-weight: var(--font-weight-extrabold); }
+.lot-badge-type {
+  padding: 3px 9px;
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+  background: var(--surface-primary);
+  color: var(--poliland-green);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+}
+.lot-card-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+}
+.lot-detail-cell { display: grid; gap: 3px; min-width: 0; }
+.lot-detail-label { color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-medium); }
+.lot-detail-cell strong { color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
+.lot-card-footer { align-items: flex-end; flex-wrap: wrap; }
+.lot-price-group { display: grid; gap: 3px; min-width: 0; }
+.lot-card-price { color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-extrabold); overflow-wrap: anywhere; }
+.lot-card-price-note { color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-semibold); }
+.lot-card-actions { flex-shrink: 0; }
 .btn-nav-lot { display: inline-flex; align-items: center; gap: 4px; min-height: 38px; padding: 0 12px; border: 1px solid var(--poliland-green); border-radius: var(--radius-control); background: var(--status-success-bg); color: var(--poliland-green); font: inherit; font-size: 12px; font-weight: var(--font-weight-bold); cursor: pointer; text-decoration: none; }
 .btn-nav-lot ion-icon { font-size: 14px; }
 .btn-nav-lot:hover, .btn-nav-lot:focus-visible { background: var(--poliland-green); color: #fff; }
@@ -664,6 +868,17 @@ onMounted(loadCustomer)
 .edit-modal-form input, .edit-modal-form textarea { width: 100%; min-height: 44px; padding: 11px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px; }
 .edit-modal-form textarea { resize: vertical; }
 .edit-error { margin: 12px 0 0; color: var(--status-danger); font-size: 12px; }
+.customer-delete-check { display: grid; gap: 10px; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
+.customer-delete-check p { margin: 0; }
+.customer-delete-check ul { display: grid; gap: 4px; margin: 0; padding-left: 20px; }
+.customer-delete-usage-alert { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 12px; }
+.customer-delete-usage-alert img { display: block; width: 84px; height: 84px; object-fit: contain; }
+.customer-delete-usage-alert > div { display: grid; gap: 8px; min-width: 0; }
+.customer-delete-usage-alert ul { margin: 0; }
+.customer-delete-usage-alert p { margin: 0; }
+.customer-delete-error { display: grid; gap: 10px; color: var(--status-danger); }
+.customer-delete-ready { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.customer-delete-ready img { display: block; width: 100px; height: 100px; object-fit: contain; }
 .interest-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.interest-section-head h2 { margin: 0; }.add-interest-button, .remove-interest-button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.interest-empty { display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 8px 10px; border-radius: var(--radius-control); background: var(--app-background); }.interest-list { display: grid; gap: 8px; margin-top: 12px; padding: 0; list-style: none; }.interest-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }.interest-list li span { color: var(--text-secondary); font-size: 11px; }.remove-interest-button { color: var(--status-danger); }.interest-form { display: grid; gap: 10px; margin-top: 12px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }.interest-form label { display: grid; gap: 6px; color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }.interest-form select { min-height: 44px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 12px; }.interest-form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.interest-form-actions button { min-height: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); }.interest-form-actions button[type='submit'] { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }.add-interest-button:focus-visible, .remove-interest-button:focus-visible, .interest-form button:focus-visible, .interest-form select:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .lot-picker-head { display: grid; gap: 6px; }
 .lot-picker-head label { color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }
@@ -785,4 +1000,11 @@ onMounted(loadCustomer)
 }
 .edit-panel-actions :deep(.save-customer-button) { --color: #fff; }
 .edit-panel input:focus-visible, .edit-panel textarea:focus-visible, .edit-panel button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+
+@media (max-width: 380px) {
+  .lot-card-item { padding: 12px; gap: 10px; }
+  .lot-card-footer { align-items: stretch; }
+  .lot-card-actions { width: 100%; }
+  .btn-nav-lot { flex: 1; justify-content: center; }
+}
 </style>

@@ -157,7 +157,7 @@
           <div class="section-heading">
 
             <h2>
-              Ringkasan
+              Infromasi
             </h2>
 
             <button
@@ -1102,6 +1102,7 @@ const lotOptionsLoading = ref(false)
 const lotOptionsError = ref('')
 const lotOptions = ref<Lot[]>([])
 const selectedLotId = ref('')
+const currentLotPrice = ref<number | null>(null)
 
 const summaryForm = reactive({
   name: '',
@@ -1125,6 +1126,17 @@ function applyLotData(selectedLot: Lot) {
     : '—'
   prospect.value.paymentMethod =
     selectedLot.payment_type ?? '—'
+
+  const rawPrice = (selectedLot as Lot & {
+    price?: number | string | null
+  }).price
+  const parsedPrice = typeof rawPrice === 'string'
+    ? Number(rawPrice)
+    : rawPrice
+  currentLotPrice.value =
+    parsedPrice != null && Number.isFinite(parsedPrice)
+      ? parsedPrice
+      : null
 }
 
 
@@ -1194,7 +1206,7 @@ const lot = computed(() => {
     dimension: '—',
     paymentType: selected?.paymentMethod || '—',
     tenor: selected?.tenor || '—',
-    price: null as number | null,
+    price: currentLotPrice.value,
     note: selected?.notes || '—',
     panoramaUrl: '',
   }

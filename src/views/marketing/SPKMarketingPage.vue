@@ -473,7 +473,7 @@
 
                   <span class="tenor-copy">
                     <strong>{{ formatMonths(plan.months) }}</strong>
-                    <small>{{ plan.plan_name }}</small>
+                    <small>{{ formatPaymentPlanName(plan.plan_name, plan.months) }}</small>
                   </span>
 
                   <span class="tenor-price">
@@ -523,7 +523,7 @@
                   </strong>
 
                   <small>
-                    {{ selectedPlan.plan_name }}
+                    {{ formatPaymentPlanName(selectedPlan.plan_name, selectedPlan.months) }}
                   </small>
                 </div>
 
@@ -830,6 +830,9 @@ import {
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import { formatPaymentPlanName } from '@/utils/paymentPlan'
+
+
 
 import {
   formatLotNumber,
@@ -837,10 +840,13 @@ import {
   getLotByNumber,
   getLotInstallments,
   getPaymentPlans,
+  submitSPKRequest,
   type Lot,
   type LotInstallment,
   type PaymentPlan,
-} from '../../services/marketing/spkService'
+  type SPKDocumentFile,
+} from '@/services/marketing/spkService'
+
 
 
 /* =========================================================
@@ -1093,14 +1099,6 @@ watch(
 function formatMonths(
   months: number,
 ) {
-  if (months >= 12) {
-    const years = months / 12
-
-    if (Number.isInteger(years)) {
-      return `${years} Tahun`
-    }
-  }
-
   return `${months} Bulan`
 }
 
@@ -1261,6 +1259,7 @@ function selectPlan(
    SUBMIT
    ========================================================= */
 
+
 async function submitSPK() {
   successMessage.value = ''
   submitError.value = ''
@@ -1271,26 +1270,60 @@ async function submitSPK() {
     return
   }
 
+  if (
+    !lot.id ||
+    selectedPrice.value === null ||
+    selectedPrice.value === undefined
+  ) {
+    submitError.value = 'Data kavling atau harga tidak valid.'
+    return
+  }
+
+  if (
+    form.paymentMethod === 'Installment' &&
+    (!selectedPlan.value || !selectedInstallment.value)
+  ) {
+    submitError.value = 'Skema cicilan belum tersedia.'
+    return
+  }
+
+  const documentFiles: SPKDocumentFile[] = [
+    { type: 'KTP', file: files.ktp! },
+    { type: 'KK', file: files.kk! },
+    ...(files.npwp
+      ? [{ type: 'NPWP' as const, file: files.npwp }]
+      : []),
+    { type: 'Payment Proof', file: files.paymentProof! },
+  ]
+
+  // Form saat ini menyatakan maksimal 5 MB per dokumen.
+  const maxFileSize = 5 * 1024 * 1024
+
+  const oversizedFile = documentFiles.find(
+    document => document.file.size > maxFileSize,
+  )
+
+  if (oversizedFile) {
+    submitError.value =
+      `${oversizedFile.file.name} melebihi batas 5 MB.`
+    return
+  }
+
   submitting.value = true
 
   try {
-    const payload = {
-      lot_id: lot.id,
+    const result = await submitSPKRequest(
+      {
+        customer_full_name: form.fullName.trim(),
+        customer_phone: form.phone.trim(),
+        customer_email: form.email.trim() || null,
+        customer_address: form.address.trim(),
 
-      customer: {
-        full_name: form.fullName,
-        phone: form.phone,
-        email: form.email || null,
-        address: form.address,
-      },
+        lot_id: Number(lot.id),
+        lot_price_snapshot: Number(selectedPrice.value),
 
-      lot: {
-        lot_number: lot.lot_number,
-        price: selectedPrice.value,
-      },
+        payment_method: form.paymentMethod,
 
-      payment: {
-        method: form.paymentMethod,
         payment_plan_id:
           form.paymentMethod === 'Installment'
             ? form.paymentPlanId
@@ -1305,56 +1338,37 @@ async function submitSPK() {
           form.paymentMethod === 'Installment'
             ? selectedInstallment.value?.monthly_payment ?? null
             : null,
+
+        margin_percent_snapshot:
+          form.paymentMethod === 'Installment'
+            ? selectedPlan.value?.margin_percent ?? null
+            : null,
+
+        notes: form.notes.trim() || null,
       },
-
-      notes:
-        form.notes || null,
-
-      documents: {
-        ktp:
-          files.ktp?.name ??
-          null,
-
-        kk:
-          files.kk?.name ??
-          null,
-
-        npwp:
-          files.npwp?.name ??
-          null,
-
-        payment_proof:
-          files.paymentProof?.name ??
-          null,
-      },
-    }
-
-    /*
-     * INSERT SPK belum dilakukan karena struktur tabel SPK
-     * belum diberikan. Payload ini sudah siap untuk
-     * dihubungkan ke service INSERT nantinya.
-     */
-    console.log(
-      'SPK payload:',
-      payload,
-    )
-
-    await new Promise(resolve =>
-      setTimeout(resolve, 500),
+      documentFiles,
     )
 
     successMessage.value =
-      'Pengajuan SPK berhasil disiapkan dan menunggu validasi Admin.'
+      `Pengajuan ${result.spk_number} berhasil dikirim dan menunggu validasi Admin.`
+
+    console.info('SPK berhasil disimpan:', result)
 
   } catch (error) {
     console.error(error)
 
-    submitError.value =
-      'Pengajuan SPK gagal diproses.'
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Terjadi kesalahan saat mengirim pengajuan SPK.'
+
+    submitError.value = message
+
   } finally {
     submitting.value = false
   }
 }
+
 
 
 /* =========================================================

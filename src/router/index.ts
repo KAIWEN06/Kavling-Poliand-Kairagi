@@ -19,12 +19,16 @@ import ResetPasswordPage from '@/views/auth/ResetPasswordPage.vue'
 import RegisterPage from '@/views/auth/RegisterPage.vue'
 import AuthCallbackPage from '@/views/auth/AuthCallbackPage.vue'
 import BerandaAdminPage from '@/views/Admin/AdminDashboard.vue'
+import AdminAksesTimPage from '@/views/Admin/AdminAksesTim.vue'
 import AdminKavlingPage from '@/views/Admin/AdminKavling.vue'
 import AdminKavlingDetailPage from '@/views/Admin/AdminDetailKavling.vue'
 import AdminPembeliPage from '@/views/Admin/AdminPembeli.vue'
 import AdminPembeliDetailPage from '@/views/Admin/AdminPembeliDetail.vue'
 import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
 import AdminLainnyaPage from '@/views/Admin/AdminLainnya.vue'
+import AdminContentPage from '@/views/Admin/AdminContentPage.vue'
+import SPKAdminPage from '@/views/Admin/SPKAdminPage.vue'
+import TinjauSPKPage from '@/views/Admin/TinjauSPKPage.vue'
 import BerandaMarketingPage from '@/views/marketing/BerandaMarketingPage.vue'
 import KavlingMarketingPage from '@/views/marketing/KavlingMarketingPage.vue'
 import CalonPembeliMarketingPage from '@/views/marketing/CalonPembeliMarketingPage.vue'
@@ -88,6 +92,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'admin' },
   },
   {
+    path: '/beranda-owner',
+    name: 'BerandaOwner',
+    component: BerandaAdminPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
     path: '/admin/kavling',
     name: 'AdminKavling',
     component: AdminKavlingPage,
@@ -130,9 +140,34 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'admin' },
   },
   {
+    path: '/admin/konten',
+    name: 'AdminKonten',
+    component: AdminContentPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/akses-tim',
+    name: 'AdminAksesTim',
+    component: AdminAksesTimPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
     path: '/admin/spk',
     name: 'AdminSPK',
-    component: SPKMarketingPage,
+    component: SPKAdminPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/siteplan',
+    name: 'AdminSiteplan',
+    component: SiteplanPage,
+    props: { variant: 'admin' },
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/spk/:spkId/tinjau',
+    name: 'AdminTinjauSPK',
+    component: TinjauSPKPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {

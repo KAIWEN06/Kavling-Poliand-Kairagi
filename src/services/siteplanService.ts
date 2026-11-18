@@ -384,7 +384,7 @@ export async function getLotInstallments(
   |
   */
 
-  return ((data || []) as LotInstallment[]).sort((a, b) => {
+  const sorted = ((data || []) as LotInstallment[]).sort((a, b) => {
     const left = Array.isArray(a.payment_plans)
       ? a.payment_plans[0]?.months ?? 0
       : a.payment_plans?.months ?? 0
@@ -394,5 +394,13 @@ export async function getLotInstallments(
       : b.payment_plans?.months ?? 0
 
     return left - right
+  })
+
+  return sorted.filter((item, index, rows) => {
+    const plan = Array.isArray(item.payment_plans) ? item.payment_plans[0] : item.payment_plans
+    return rows.findIndex((candidate) => {
+      const candidatePlan = Array.isArray(candidate.payment_plans) ? candidate.payment_plans[0] : candidate.payment_plans
+      return candidatePlan?.id === plan?.id
+    }) === index
   })
 }

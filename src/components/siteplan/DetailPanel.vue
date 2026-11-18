@@ -210,7 +210,7 @@
                 class="installment-item"
               >
                 <span>
-                  {{ item.payment_plans?.plan_name || 'Cicilan' }}
+                  {{ formatPaymentPlanName(item.payment_plans?.plan_name, item.payment_plans?.months) }}
                 </span>
 
                 <strong>
@@ -279,7 +279,7 @@
       </div>
 
       <!-- FOOTER ACTION -->
-      <footer class="detail-footer">
+      <footer v-if="variant !== 'admin'" class="detail-footer">
         <div class="action-grid">
           <!-- SURVEI -->
           <AppButton
@@ -312,6 +312,17 @@
           Tanya lebih lanjut
         </AppButton>
       </footer>
+
+      <footer v-else class="detail-footer detail-footer--admin">
+        <AppButton
+          type="button"
+          variant="primary"
+          expand="block"
+          @click="openAdminDetail"
+        >
+          Kelola Kavling
+        </AppButton>
+      </footer>
     </aside>
 
     <!-- ================================================= -->
@@ -319,6 +330,7 @@
     <!-- ================================================= -->
 
     <ion-modal
+      v-if="variant !== 'admin'"
       :is-open="showSurveyModal"
       class="survey-modal"
       @didDismiss="closeSurveyModal"
@@ -390,6 +402,7 @@
     </ion-modal>
 
     <ion-modal
+  v-if="variant !== 'admin'"
   :is-open="showPurchaseModal"
   class="purchase-modal"
   @didDismiss="closePurchaseModal"
@@ -474,6 +487,7 @@ import { closeOutline, compassOutline } from 'ionicons/icons'
 
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.png'
+import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
 import { getLotInstallments } from '../../services/siteplanService'
 
@@ -807,6 +821,16 @@ function close() {
   )
 
   emit('close')
+}
+
+function openAdminDetail() {
+  const lotId = props.lot?.id
+  if (lotId !== null && lotId !== undefined) {
+    router.push({
+      name: 'AdminKavlingDetail',
+      params: { id: String(lotId) },
+    })
+  }
 }
 
 /* ===================================================== */
@@ -2251,3 +2275,4 @@ function getBlockCode(
   }
 }
 </style>
+

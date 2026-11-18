@@ -935,7 +935,7 @@ async function shareLot(lot: Lot) {
 }
 
 function openFullMap() {
-  ionRouter.push('/siteplan')
+  ionRouter.push('/admin/siteplan')
 }
 
 function openDetail(id: number) {

@@ -281,7 +281,7 @@
                 </span>
                 <span class="plan-text">
                   <strong>{{ plan.months }} Bulan</strong>
-                  <small>{{ plan.plan_name }}</small>
+                  <small>{{ formatPaymentPlanName(plan.plan_name, plan.months) }}</small>
                 </span>
               </button>
             </div>
@@ -361,6 +361,7 @@ import {
   getCurrentMarketingProfile,
   getPaymentPlans,
 } from '@/services/marketing/customerService'
+import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
 const ionRouter = useIonRouter()
 
