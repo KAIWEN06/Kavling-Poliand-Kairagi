@@ -34,7 +34,7 @@ type QuickAction = { label: string; icon: string; tone: 'green' | 'gold' | 'neut
 const router = useRouter()
 const message = ref('')
 const actions: QuickAction[] = [
-  { label: 'Siteplan 2D', icon: mapOutline, tone: 'green', route: '/admin/kavling' },
+  { label: 'Siteplan 2D', icon: mapOutline, tone: 'green', route: '/admin/siteplan' },
   { label: 'Tambah client', icon: peopleOutline, tone: 'neutral', route: '/admin/pembeli' },
   { label: 'Pembayaran', icon: walletOutline, tone: 'gold', route: '/admin/keuangan' },
   { label: 'Kelola konten', icon: gridOutline, tone: 'neutral' },

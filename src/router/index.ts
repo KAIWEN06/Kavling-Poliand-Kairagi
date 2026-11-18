@@ -146,6 +146,13 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'admin' },
   },
   {
+    path: '/admin/siteplan',
+    name: 'AdminSiteplan',
+    component: SiteplanPage,
+    props: { variant: 'admin' },
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
     path: '/admin/spk/:spkId/tinjau',
     name: 'AdminTinjauSPK',
     component: TinjauSPKPage,

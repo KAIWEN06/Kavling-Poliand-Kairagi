@@ -246,7 +246,10 @@
                 class="spk-lot-option" :class="{ selected: selectedLotIds.includes(lot.id) }"
                 :aria-pressed="selectedLotIds.includes(lot.id)" @click="toggleLot(lot.id)">
                 <span class="spk-lot-check" aria-hidden="true">{{ selectedLotIds.includes(lot.id) ? '✓' : '' }}</span>
-                <span><strong>{{ lot.lot_number }}</strong><small>{{ lot.block_name || lot.block_code || (lot.block_id ? `Blok ID ${lot.block_id}` : 'Tanpa blok') }}</small></span>
+                <span>
+                  <strong>{{ lot.lot_number }} <em v-if="isInterestedLot(lot.id)" class="spk-interest-badge">Minat client</em></strong>
+                  <small>{{ lot.block_name || lot.block_code || (lot.block_id ? `Blok ID ${lot.block_id}` : 'Tanpa blok') }}</small>
+                </span>
                 <b>{{ formatCurrency(lotPrice(lot)) }}</b>
               </button>
               <p v-if="!filteredAvailableLots.length" class="spk-lot-empty">Kavling tersedia tidak ditemukan.</p>
@@ -465,8 +468,17 @@ const customerSourceOptions: Array<{ label: string; value: CustomerSource }> = [
 ]
 const filteredAvailableLots = computed(() => {
   const query = lotSearchQuery.value.trim().toLocaleLowerCase('id-ID')
-  if (!query) return availableLots.value
-  return availableLots.value.filter((lot) => `${lot.lot_number} ${lot.block_name || ''} ${lot.block_code || ''} ${lot.block_id ?? ''}`.toLocaleLowerCase('id-ID').includes(query))
+  const interestedIds = new Set((selectedCustomer.value?.interests ?? []).map(interest => interest.lot_id))
+  const matchingLots = query
+    ? availableLots.value.filter((lot) => `${lot.lot_number} ${lot.block_name || ''} ${lot.block_code || ''} ${lot.block_id ?? ''}`.toLocaleLowerCase('id-ID').includes(query))
+    : availableLots.value
+
+  return [...matchingLots].sort((a, b) => {
+    const aInterested = interestedIds.has(a.id)
+    const bInterested = interestedIds.has(b.id)
+    if (aInterested !== bInterested) return aInterested ? -1 : 1
+    return a.lot_number.localeCompare(b.lot_number)
+  })
 })
 const canSubmitCreate = computed(() => Boolean(
   selectedCustomerId.value && selectedLotIds.value.length > 0 &&
@@ -761,6 +773,9 @@ function clearSelectedCustomer() {
   customerSearchQuery.value = ''
   showNewCustomerForm.value = false
 }
+function isInterestedLot(lotId: number) {
+  return selectedCustomer.value?.interests.some(interest => interest.lot_id === lotId) ?? false
+}
 function selectCustomer(customer: AdminSPKCustomer) {
   selectedCustomerId.value = customer.id
   customerSearchQuery.value = customer.full_name
@@ -1046,6 +1061,7 @@ onMounted(loadRequests)
 .spk-lot-option > span:nth-child(2) { display:grid; min-width:0; gap:3px; }
 .spk-lot-option small { color:var(--text-secondary); font-size:10px; }
 .spk-lot-option > b { color:var(--text-primary); font-size:10px; text-align:right; white-space:nowrap; }
+.spk-interest-badge { display:inline-flex; align-items:center; min-height:20px; margin-left:4px; padding:2px 7px; border-radius:999px; background:var(--poliland-gold-soft); color:var(--poliland-gold-text); font-size:9px; font-style:normal; vertical-align:1px; }
 .spk-lot-check { display:grid; width:24px; height:24px; place-items:center; border:1px solid var(--border-default); border-radius:7px; background:var(--surface-primary); color:var(--poliland-green); font-weight:800; }
 .spk-lot-option.selected .spk-lot-check { border-color:var(--poliland-green); background:var(--poliland-green); color:#fff; }
 .spk-lot-empty { margin:0; padding:16px; color:var(--text-secondary); font-size:11px; text-align:center; }

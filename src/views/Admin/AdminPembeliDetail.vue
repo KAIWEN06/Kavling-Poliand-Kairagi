@@ -45,6 +45,7 @@
               <div class="personal-info-item"><dt>WhatsApp</dt><dd>{{ customer.whatsapp_phone || customer.phone || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Email</dt><dd>{{ customer.email || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Alamat</dt><dd>{{ customer.address || 'Belum tercatat' }}</dd></div>
+              <div class="personal-info-item"><dt>Asal data client</dt><dd>{{ customer.registrationSource || 'Belum tercatat' }}</dd></div>
               <div v-if="customer.marketingName" class="personal-info-item"><dt>Marketing</dt><dd>{{ customer.marketingName }}</dd></div>
             </dl>
           </section>
@@ -426,6 +427,15 @@ function formatLotPrice(lot: any) {
   const price = lot.promo_price ?? lot.cash_price
   return price ? formatCurrency(Number(price)) : 'Harga belum diatur'
 }
+function hasTransactionAndPayment(row: any) {
+  const transactions = row.lot_transactions ?? []
+  const payments = row.payments ?? []
+  return transactions.some((transaction: any) =>
+    payments.some((payment: any) =>
+      Number(payment.transaction_id) === Number(transaction.id)
+    )
+  )
+}
 function transactionStatusLabel(status: string) {
   if (status === 'Sold') return 'Terjual'
   if (status === 'Booking') return 'Dipesan'
@@ -620,11 +630,20 @@ async function loadCustomer() {
         || marketingProfile?.full_name
         || row.marketing_name
         || null,
+      registrationSource: row.registration_source === 'Marketing'
+        ? 'Marketing'
+        : row.registration_source === 'Admin'
+          ? 'Admin'
+          : row.registration_source === 'Client'
+            ? 'Client'
+            : 'Belum tercatat',
       statusLabel: row.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')
         ? 'Pembeli'
-        : row.customer_notes?.length || row.customer_interests?.length
-          ? 'Tindak Lanjut'
-          : 'Prospek',
+        : hasTransactionAndPayment(row)
+          ? 'Ditinjau'
+          : row.customer_notes?.length || row.customer_interests?.length
+            ? 'Tindak Lanjut'
+            : 'Prospek',
       tone: 'mint',
       interests: (row.customer_interests ?? []).map((interest: any) => {
         const lot = interest.lots ?? {}

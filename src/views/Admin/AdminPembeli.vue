@@ -49,9 +49,10 @@
                 <h3>{{ customer.full_name }}</h3>
                 <p>Telepon: {{ customer.phone || '—' }}</p><p>WhatsApp: {{ customer.whatsapp_phone || '—' }}</p>
                 <small>{{ customer.statusLabel }} · {{ formatDate(customer.created_at) }}</small>
-                <small v-if="customer.source" class="buyer-source">
-                  <ion-icon :icon="personOutline" aria-hidden="true" /> {{ customer.source }}
+                <small v-if="customer.registrationSource" class="buyer-source">
+                  <ion-icon :icon="personOutline" aria-hidden="true" /> Asal data: {{ customer.registrationSource }}
                 </small>
+                <small v-if="customer.source" class="buyer-source">Marketing: {{ customer.source }}</small>
               </div>
               <span :class="['buyer-status', customer.tone]">{{ customer.statusLabel }}</span>
               <ion-icon class="buyer-chevron" :icon="chevronForwardOutline" aria-hidden="true" />
@@ -307,7 +308,7 @@ import { customerService } from '@/services/marketing/customerService'
 import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.png'
 import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.png'
 
-type FilterValue = 'all' | 'prospect' | 'follow-up' | 'buyer'
+type FilterValue = 'all' | 'prospect' | 'follow-up' | 'reviewed' | 'buyer'
 type Customer = {
   id: number
   full_name: string
@@ -317,8 +318,9 @@ type Customer = {
   address: string | null
   notes: string | null
   created_at: string | null
-  statusLabel: 'Prospek' | 'Tindak Lanjut' | 'Pembeli'
+  statusLabel: 'Prospek' | 'Tindak Lanjut' | 'Ditinjau' | 'Pembeli'
   source: string | null
+  registrationSource: string | null
   tone: 'mint' | 'gold' | 'rose' | 'blue'
   interests: Interest[]
   transactions: Transaction[]
@@ -344,6 +346,7 @@ const filters: { value: FilterValue; label: string }[] = [
   { value: 'all', label: 'Semua' },
   { value: 'prospect', label: 'Calon Pembeli' },
   { value: 'follow-up', label: 'Tindak Lanjut' },
+  { value: 'reviewed', label: 'Ditinjau' },
   { value: 'buyer', label: 'Pembeli' },
 ]
 
@@ -356,8 +359,9 @@ const filteredCustomers = computed(() => {
     const matchesFilter = selectedFilter.value === 'all' ||
       (selectedFilter.value === 'prospect' && customer.statusLabel === 'Prospek') ||
       (selectedFilter.value === 'follow-up' && customer.statusLabel === 'Tindak Lanjut') ||
+      (selectedFilter.value === 'reviewed' && customer.statusLabel === 'Ditinjau') ||
       (selectedFilter.value === 'buyer' && customer.statusLabel === 'Pembeli')
-    const matchesQuery = !term || [customer.full_name, customer.phone, customer.email].filter(Boolean).join(' ').toLowerCase().includes(term)
+    const matchesQuery = !term || [customer.full_name, customer.phone, customer.email, customer.registrationSource, customer.source].filter(Boolean).join(' ').toLowerCase().includes(term)
     return matchesFilter && matchesQuery
   })
 })
@@ -404,6 +408,7 @@ function filterCount(filter: FilterValue) {
   const labels: Record<Exclude<FilterValue, 'all'>, Customer['statusLabel']> = {
     prospect: 'Prospek',
     'follow-up': 'Tindak Lanjut',
+    reviewed: 'Ditinjau',
     buyer: 'Pembeli',
   }
   return customers.value.filter((customer) => customer.statusLabel === labels[filter as Exclude<FilterValue, 'all'>]).length
@@ -416,6 +421,16 @@ function initials(name: string) {
 function formatDate(value: string | null) {
   if (!value) return 'Tanggal belum tercatat'
   return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function hasTransactionAndPayment(row: any) {
+  const transactions = row.lot_transactions ?? []
+  const payments = row.payments ?? []
+  return transactions.some((transaction: any) =>
+    payments.some((payment: any) =>
+      Number(payment.transaction_id) === Number(transaction.id)
+    )
+  )
 }
 
 function blockLabel(block: any) {
@@ -438,11 +453,24 @@ async function loadCustomers() {
       created_at: row.created_at ?? null,
       statusLabel: row.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')
         ? 'Pembeli'
-        : row.customer_notes?.length || row.customer_interests?.length
-          ? 'Tindak Lanjut'
-          : 'Prospek',
+        : hasTransactionAndPayment(row)
+          ? 'Ditinjau'
+          : row.customer_notes?.length || row.customer_interests?.length
+            ? 'Tindak Lanjut'
+            : 'Prospek',
       source: row.marketing?.full_name || null,
-      tone: row.lot_transactions?.some((transaction: any) => transaction.status === 'Sold') ? 'mint' : 'gold',
+      registrationSource: row.registration_source === 'Marketing'
+        ? 'Marketing'
+        : row.registration_source === 'Admin'
+          ? 'Admin'
+          : row.registration_source === 'Client'
+            ? 'Client'
+            : 'Tidak tercatat',
+      tone: row.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')
+        ? 'mint'
+        : hasTransactionAndPayment(row)
+          ? 'blue'
+          : 'gold',
       interests: (row.customer_interests ?? []).map((interest: any) => ({
         id: interest.id,
         lotNumber: interest.lots?.lot_number || `Lot #${interest.lot_id}`,

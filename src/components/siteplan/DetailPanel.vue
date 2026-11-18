@@ -279,7 +279,7 @@
       </div>
 
       <!-- FOOTER ACTION -->
-      <footer class="detail-footer">
+      <footer v-if="variant !== 'admin'" class="detail-footer">
         <div class="action-grid">
           <!-- SURVEI -->
           <AppButton
@@ -311,6 +311,17 @@
           Tanya lebih lanjut
         </AppButton>
       </footer>
+
+      <footer v-else class="detail-footer detail-footer--admin">
+        <AppButton
+          type="button"
+          variant="primary"
+          expand="block"
+          @click="openAdminDetail"
+        >
+          Kelola Kavling
+        </AppButton>
+      </footer>
     </aside>
 
     <!-- ================================================= -->
@@ -318,6 +329,7 @@
     <!-- ================================================= -->
 
     <ion-modal
+      v-if="variant !== 'admin'"
       :is-open="showSurveyModal"
       class="survey-modal"
       @didDismiss="closeSurveyModal"
@@ -389,6 +401,7 @@
     </ion-modal>
 
     <ion-modal
+  v-if="variant !== 'admin'"
   :is-open="showPurchaseModal"
   class="purchase-modal"
   @didDismiss="closePurchaseModal"
@@ -554,6 +567,10 @@ const props = defineProps({
   lot: {
     type: Object,
     default: null,
+  },
+  variant: {
+    type: String,
+    default: 'public',
   },
 })
 
@@ -805,6 +822,16 @@ function close() {
   )
 
   emit('close')
+}
+
+function openAdminDetail() {
+  const lotId = props.lot?.id
+  if (lotId !== null && lotId !== undefined) {
+    router.push({
+      name: 'AdminKavlingDetail',
+      params: { id: String(lotId) },
+    })
+  }
 }
 
 /* ===================================================== */

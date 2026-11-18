@@ -193,6 +193,7 @@ export const customerService = {
         notes,
         created_at,
         marketing_id,
+        registration_source,
         marketing:profiles!customers_marketing_id_fkey (id, full_name, role),
         payments (
           id,
