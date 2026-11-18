@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
   IonContent,
   IonIcon,
@@ -29,7 +29,9 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import { authService } from '@/services/auth/authService'
 import {
   createClientSpk,
+  getAvailableClientSpkBookingFees,
   getClientSpkErrorMessage,
+  type AvailableBookingFeeReuse,
 } from '@/services/clientSpkService'
 import { lotService, type LotRecord } from '@/services/lotService'
 
@@ -44,7 +46,7 @@ const paymentPlans = ref<Awaited<ReturnType<typeof lotService.getLotInstallments
 const paymentPlansLoading = ref(false)
 const paymentPlansError = ref('')
 const paymentScheme = ref<'Cash' | 'Installment' | ''>('')
-const paymentMethod = ref<'Transfer Bank'>('Transfer Bank')
+const paymentMethod = ref<'' | 'Transfer Bank' | 'Tunai'>('')
 const selectedPlanId = ref<number | null>(null)
 const downPaymentInput = ref('')
 const downPaymentManual = ref(false)
@@ -55,6 +57,17 @@ const documentError = ref('')
 const saveError = ref('')
 const saving = ref(false)
 const submissionComplete = ref(false)
+const availableBookingFees = ref<AvailableBookingFeeReuse[]>([])
+const bookingFeesLoading = ref(false)
+const bookingFeesError = ref('')
+const selectedReusePaymentId = ref<number | null>(null)
+const selectedReusePayment = computed(() =>
+  availableBookingFees.value.find((item) => item.paymentId === selectedReusePaymentId.value) ?? null,
+)
+
+watch(selectedReusePaymentId, (paymentId) => {
+  if (paymentId) documents.paymentProof = null
+})
 
 const form = reactive({
   fullName: '',
@@ -130,6 +143,7 @@ const transferAmount = computed(() => {
 })
 
 const showTransferAccount = computed(() => {
+  if (paymentMethod.value !== 'Transfer Bank') return false
   if (paymentScheme.value === 'Cash') return lotPrice.value !== null
   return paymentScheme.value === 'Installment'
     && installmentEstimate.value !== null
@@ -312,6 +326,22 @@ async function copyBankAccount() {
   }
 }
 
+async function loadAvailableBookingFees() {
+  bookingFeesLoading.value = true
+  bookingFeesError.value = ''
+  try {
+    availableBookingFees.value = await getAvailableClientSpkBookingFees()
+  } catch (error) {
+    console.error('[SPK Client] Gagal memuat Booking Fee reusable:', error)
+    bookingFeesError.value = getClientSpkErrorMessage(
+      error,
+      'Booking Fee sebelumnya gagal dimuat.',
+    )
+  } finally {
+    bookingFeesLoading.value = false
+  }
+}
+
 function goToLots() {
   ionRouter.replace('/client/kavling')
 }
@@ -344,9 +374,15 @@ async function saveSpk() {
   const scheme = paymentScheme.value
   const method = paymentMethod.value
   if (!form.fullName || !form.phone || !form.address || !scheme
-    || !documents.ktp || !documents.kk || !documents.paymentProof) {
+    || !documents.ktp || !documents.kk
+    || (!selectedReusePaymentId.value && !documents.paymentProof)) {
     saveError.value =
-      'Lengkapi nama, nomor kontak, alamat, pembayaran, serta unggah KTP, KK, dan bukti pembayaran.'
+      'Lengkapi nama, nomor kontak, alamat, pembayaran, KTP, KK, serta bukti pembayaran jika tidak menggunakan Booking Fee sebelumnya.'
+    return
+  }
+
+  if (method !== 'Transfer Bank' && method !== 'Tunai') {
+    saveError.value = 'Pilih metode pembayaran yang valid.'
     return
   }
 
@@ -389,6 +425,7 @@ async function saveSpk() {
         downPaymentAmount: scheme === 'Installment' ? downPaymentAmount.value : 0,
       },
       documents,
+      reuseBookingPaymentId: selectedReusePaymentId.value,
     })
     submissionComplete.value = true
   } catch (error) {
@@ -405,6 +442,7 @@ async function saveSpk() {
 onMounted(() => {
   void loadLot()
   void loadBuyerProfile()
+  void loadAvailableBookingFees()
 })
 </script>
 
@@ -613,6 +651,18 @@ onMounted(() => {
                 </button>
               </div>
 
+              <div class="spk-field spk-payment-method-field">
+                <label for="spk-method">Metode Pembayaran <span>*</span></label>
+                <div class="spk-input-wrap spk-select-wrap">
+                  <ion-icon :icon="walletOutline" aria-hidden="true" />
+                  <select id="spk-method" v-model="paymentMethod">
+                    <option disabled value="">Pilih metode pembayaran</option>
+                    <option value="Transfer Bank">Transfer Bank</option>
+                    <option value="Tunai">Tunai</option>
+                  </select>
+                </div>
+              </div>
+
               <p class="spk-payment-note">
                 Perhitungan dilakukan untuk kavling {{ lot?.lot_number || 'ini' }}.
               </p>
@@ -766,6 +816,66 @@ onMounted(() => {
             </div>
           </section>
 
+          <section
+            v-if="availableBookingFees.length || bookingFeesLoading || bookingFeesError"
+            class="spk-card"
+            aria-labelledby="reuse-title"
+          >
+            <div class="spk-card-heading">
+              <span class="spk-heading-icon">
+                <ion-icon :icon="walletOutline" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="reuse-title">Booking Fee Sebelumnya</h2>
+                <p>Gunakan pembayaran yang sudah dikonfirmasi Finance tanpa transfer atau verifikasi ulang.</p>
+              </div>
+            </div>
+
+            <div class="spk-card-body">
+              <p v-if="bookingFeesLoading" class="spk-upload-note" role="status">
+                Memeriksa pembayaran yang tersedia...
+              </p>
+              <p v-if="bookingFeesError" class="spk-inline-error" role="alert">
+                {{ bookingFeesError }}
+              </p>
+
+              <div
+                v-for="fee in availableBookingFees"
+                :key="fee.paymentId"
+                class="spk-reuse-option"
+              >
+                <label class="spk-reuse-label">
+                  <input
+                    v-model="selectedReusePaymentId"
+                    type="radio"
+                    name="reuseBookingFee"
+                    :value="fee.paymentId"
+                  />
+                  <span>
+                    <strong>{{ formatCurrency(fee.amount) }}</strong>
+                    <small>SPK {{ fee.sourceSpkNumber }} · Kavling {{ fee.sourceLotNumber }}</small>
+                    <small v-if="fee.verifiedAt">
+                      Dikonfirmasi {{ new Date(fee.verifiedAt).toLocaleDateString('id-ID') }}
+                    </small>
+                  </span>
+                </label>
+              </div>
+
+              <button
+                v-if="selectedReusePaymentId"
+                type="button"
+                class="spk-reuse-clear"
+                @click="selectedReusePaymentId = null"
+              >
+                Batalkan penggunaan Booking Fee sebelumnya
+              </button>
+
+              <p v-if="selectedReusePayment" class="spk-upload-note">
+                Pembayaran ini akan ditautkan ke SPK baru. Status tetap terkonfirmasi dan tidak dibuat sebagai pembayaran baru.
+              </p>
+            </div>
+          </section>
+
           <section class="spk-card" aria-labelledby="documents-title">
             <div class="spk-card-heading spk-documents-heading">
               <span class="spk-heading-icon">
@@ -773,7 +883,7 @@ onMounted(() => {
               </span>
               <div>
                 <h2 id="documents-title">Dokumen Pendukung</h2>
-                <p>Unggah dokumen pembeli dan bukti pembayaran sebagai lampiran SPK.</p>
+                <p>KTP dan KK wajib. NPWP opsional. Bukti pembayaran wajib kecuali menggunakan Booking Fee sebelumnya.</p>
               </div>
             </div>
 
@@ -784,7 +894,7 @@ onMounted(() => {
               </p>
               <div class="spk-document-grid">
                 <article
-                  v-for="field in documentFields"
+                  v-for="field in documentFields.filter((item) => !(item.key === 'paymentProof' && selectedReusePaymentId))"
                   :key="field.key"
                   class="spk-document-field"
                   :class="{ 'spk-document-wide': field.key === 'paymentProof' }"
@@ -802,7 +912,7 @@ onMounted(() => {
                     <input
                       type="file"
                       accept=".jpg,.jpeg,.png,.pdf"
-                      :required="field.required"
+                      :required="field.key === 'paymentProof' ? !selectedReusePaymentId : field.required"
                       :aria-label="`Unggah ${field.label}`"
                       @change="updateDocument(field.key, $event)"
                     />
@@ -1797,5 +1907,54 @@ onMounted(() => {
   .buyer-fields {
     grid-template-columns: 1fr;
   }
+}
+
+.spk-payment-method-field {
+  margin-top: 14px;
+}
+
+.spk-reuse-option {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+}
+
+.spk-reuse-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.spk-reuse-label input {
+  margin-top: 4px;
+  accent-color: var(--poliland-green);
+}
+
+.spk-reuse-label span {
+  display: grid;
+  gap: 4px;
+}
+
+.spk-reuse-label strong {
+  color: var(--text-primary);
+}
+
+.spk-reuse-label small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.spk-reuse-clear {
+  margin-top: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--poliland-green);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
 }
 </style>

@@ -48,6 +48,15 @@ export interface ClientSpkRecord {
   documents: Partial<Record<ClientSpkDocumentKey, ClientSpkDocument>>
 }
 
+export interface AvailableBookingFeeReuse {
+  paymentId: number
+  amount: number
+  verifiedAt: string | null
+  sourceSpkRequestId: number
+  sourceSpkNumber: string
+  sourceLotNumber: string
+}
+
 export interface CreateClientSpkInput {
   lot: {
     id: number
@@ -62,13 +71,14 @@ export interface CreateClientSpkInput {
   }
   payment: {
     scheme: 'Cash' | 'Installment'
-    method: 'Transfer Bank'
+    method: 'Transfer Bank' | 'Tunai'
     planId: number | null
     tenorMonths: number | null
     monthlyPayment: number | null
     downPaymentAmount: number
   }
   documents: Record<ClientSpkDocumentKey, File | null>
+  reuseBookingPaymentId?: number | null
 }
 
 interface SpkRequestRow {
@@ -180,7 +190,7 @@ function validateInput(input: CreateClientSpkInput) {
     throw new Error('Skema pembayaran tidak valid.')
   }
 
-  if (input.payment.method !== 'Transfer Bank') {
+  if (!['Transfer Bank', 'Tunai'].includes(input.payment.method)) {
     throw new Error('Metode pembayaran tidak valid.')
   }
 
@@ -215,6 +225,8 @@ function validateInput(input: CreateClientSpkInput) {
   }
 
   for (const { key } of DOCUMENTS) {
+    if (key === 'paymentProof' && input.reuseBookingPaymentId) continue
+
     const file = input.documents[key]
 
     if (!file) {
@@ -259,6 +271,22 @@ async function removeUploadedFiles(paths: string[]) {
       error,
     )
   }
+}
+
+/** Mengambil Booking Fee terverifikasi yang boleh dipakai ulang oleh akun Client ini. */
+export async function getAvailableClientSpkBookingFees(): Promise<AvailableBookingFeeReuse[]> {
+  await getAuthenticatedUser()
+  const { data, error } = await supabase.rpc('get_client_available_spk_booking_fees')
+  if (error) throw error
+
+  return (data ?? []).map((row: any) => ({
+    paymentId: Number(row.payment_id),
+    amount: Number(row.amount),
+    verifiedAt: row.verified_at ?? null,
+    sourceSpkRequestId: Number(row.source_spk_request_id),
+    sourceSpkNumber: String(row.source_spk_number),
+    sourceLotNumber: String(row.source_lot_number),
+  }))
 }
 
 /**
@@ -391,12 +419,17 @@ export async function createClientSpk(
     //
     // Client tidak melakukan INSERT langsung ke payments.
 
-    const { error: paymentError } = await supabase.rpc(
-      'create_client_spk_initial_payment',
-      {
-        p_request_id: requestId,
-      },
-    )
+    const { error: paymentError } = input.reuseBookingPaymentId
+      ? await supabase.rpc('client_reuse_spk_booking_fee', {
+          p_new_spk_request_id: requestId,
+          p_payment_id: input.reuseBookingPaymentId,
+        })
+      : await supabase.rpc(
+          'create_client_spk_initial_payment',
+          {
+            p_request_id: requestId,
+          },
+        )
 
     if (paymentError) throw paymentError
 
