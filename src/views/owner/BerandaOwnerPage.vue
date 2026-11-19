@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { IonContent, IonIcon, IonPage } from '@ionic/vue'
+import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import {
   arrowDownOutline,
   arrowForwardOutline,
@@ -11,6 +11,7 @@ import {
   chevronDownOutline,
   chevronForwardOutline,
   layersOutline,
+  logOutOutline,
   personOutline,
   walletOutline,
 } from 'ionicons/icons'
@@ -20,6 +21,7 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import { authService } from '@/services/auth/authService'
 import { supabase } from '@/services/config/supabase'
 import { getLots, type SiteplanLot } from '@/services/siteplanService'
+import { getNorthSulawesiOrigin } from '@/utils/northSulawesiOrigin'
 import { normalizeLotStatus } from '@/utils/siteplan'
 
 type OwnerCustomer = {
@@ -69,6 +71,8 @@ const transactions = ref<OwnerTransaction[]>([])
 const payments = ref<OwnerPayment[]>([])
 const loading = ref(true)
 const loadError = ref('')
+const logoutError = ref('')
+const isLoggingOut = ref(false)
 const selectedYear = ref(new Date().getFullYear())
 const selectedMonth = ref<number | null>(null)
 
@@ -116,10 +120,13 @@ const salesGrowth = computed(() => {
   return Math.round(((yearSales.value - previousYearSales.value) / previousYearSales.value) * 100)
 })
 
+const validCustomerOrigins = computed(() => customers.value
+  .map((customer) => getNorthSulawesiOrigin(customer.address))
+  .filter((origin): origin is string => origin !== null))
+
 const consumerOrigins = computed(() => {
   const originCounts = new Map<string, number>()
-  for (const customer of customers.value) {
-    const origin = getCustomerOrigin(customer.address)
+  for (const origin of validCustomerOrigins.value) {
     originCounts.set(origin, (originCounts.get(origin) ?? 0) + 1)
   }
   const palette = ['var(--poliland-gold, #cba044)', 'var(--poliland-green, #355a2c)', '#c51f24', '#ffad76', '#8f7965']
@@ -129,18 +136,21 @@ const consumerOrigins = computed(() => {
     .map(([name, count], index) => ({
       name,
       count,
-      percent: customers.value.length ? Math.round(count / customers.value.length * 100) : 0,
+      percent: validCustomerOrigins.value.length
+        ? Math.round(count / validCustomerOrigins.value.length * 100)
+        : 0,
       color: palette[index] ?? '#8f7965',
     }))
 })
 
 const originDonutStyle = computed(() => {
-  if (!consumerOrigins.value.length) {
+  const total = validCustomerOrigins.value.length
+  if (!total) {
     return { background: 'conic-gradient(#e7e4dd 0deg 360deg)' }
   }
   let start = 0
   const slices = consumerOrigins.value.map((origin) => {
-    const end = start + origin.percent * 3.6
+    const end = start + origin.count / total * 360
     const slice = `${origin.color} ${start}deg ${end}deg`
     start = end
     return slice
@@ -262,21 +272,27 @@ async function loadDashboard() {
   }
 }
 
+async function logout() {
+  if (isLoggingOut.value) return
+
+  isLoggingOut.value = true
+  logoutError.value = ''
+  try {
+    await authService.logout()
+    await router.replace('/login')
+  } catch (error) {
+    console.error('[Beranda Owner] Gagal keluar dari akun:', error)
+    logoutError.value = error instanceof Error
+      ? error.message
+      : 'Tidak dapat keluar. Silakan coba lagi.'
+  } finally {
+    isLoggingOut.value = false
+  }
+}
+
 function isSold(status: string | null | undefined) {
   const normalized = (status ?? '').trim().toLocaleLowerCase('id-ID')
   return normalized === 'sold' || normalized === 'terjual'
-}
-
-function getCustomerOrigin(address: string | null) {
-  if (!address?.trim()) return 'Belum diketahui'
-  const normalized = address.toLocaleLowerCase('id-ID')
-  if (normalized.includes('singkil')) return 'Singkil'
-  if (normalized.includes('bitung')) return 'Bitung'
-  if (normalized.includes('minahasa selatan') || normalized.includes('minsel')) return 'Minahasa Selatan'
-  if (normalized.includes('minahasa utara') || normalized.includes('minut')) return 'Minahasa Utara'
-  if (normalized.includes('manado')) return 'Manado'
-  const firstPart = address.split(',').map((part) => part.trim()).filter(Boolean).at(-1)
-  return firstPart || 'Lainnya'
 }
 
 function relativeTime(value: string) {
@@ -319,8 +335,19 @@ onMounted(() => void loadDashboard())
             <h1>{{ ownerName }}</h1>
             <span>Pantau perkembangan penjualan dan kelola investasi PoliLand Kairagi secara langsung melalui dashboard ini.</span>
           </div>
-          <span class="project-chip"><i></i> PoliLand Kairagi</span>
+          <button
+            type="button"
+            class="logout-button"
+            :disabled="isLoggingOut"
+            :aria-label="isLoggingOut ? 'Sedang keluar' : 'Keluar dari akun Owner'"
+            @click="logout"
+          >
+            <ion-spinner v-if="isLoggingOut" name="crescent" aria-hidden="true" />
+            <ion-icon v-else :icon="logOutOutline" aria-hidden="true" />
+            <span>{{ isLoggingOut ? 'Keluar...' : 'Keluar' }}</span>
+          </button>
         </section>
+        <p v-if="logoutError" class="logout-error" role="alert">{{ logoutError }}</p>
 
         <section id="inventory" class="inventory-grid" aria-label="Ringkasan kavling">
           <article class="inventory-card total-card">
@@ -399,7 +426,7 @@ onMounted(() => void loadDashboard())
           </div>
           <div class="origin-content">
             <div class="origin-donut" :style="originDonutStyle">
-              <div><small>Total</small><strong>{{ customers.length }}</strong><small>Konsumen</small></div>
+              <div><small>Total</small><strong>{{ validCustomerOrigins.length }}</strong><small>Konsumen</small></div>
             </div>
             <div v-if="consumerOrigins.length" class="origin-legend">
               <div v-for="origin in consumerOrigins" :key="origin.name" class="origin-row">
@@ -409,7 +436,7 @@ onMounted(() => void loadDashboard())
                 <small>{{ origin.percent }}%</small>
               </div>
             </div>
-            <p v-else class="origin-empty">Data asal konsumen belum tersedia.</p>
+            <p v-else class="origin-empty">Belum ada alamat yang cocok dengan wilayah Sulawesi Utara.</p>
           </div>
         </section>
 
@@ -467,19 +494,27 @@ onMounted(() => void loadDashboard())
 .welcome-copy h1 { margin: 0 0 6px; color: var(--text-primary, #252525); font-size: 26px; font-weight: 800; letter-spacing: -.5px; }
 .welcome-copy > span { display: block; max-width: 480px; color: #625c59; font-size: 12px; line-height: 1.55; }
 
-.project-chip {
+.logout-button {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid #efc7c7;
   border-radius: 999px;
-  color: var(--poliland-gold-text, #966a12);
-  background: var(--poliland-gold-soft, #f4d69a);
+  color: #b43a36;
+  background: #fff0ed;
+  font: inherit;
   font-size: 10px;
-  white-space: nowrap;
+  font-weight: 700;
+  cursor: pointer;
 }
-.project-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--poliland-green, #355a2c); }
+.logout-button ion-icon,.logout-button ion-spinner { font-size: 15px; }
+.logout-button:disabled { cursor: wait; opacity: .65; }
+.logout-button:focus-visible { outline: 2px solid #b43a36; outline-offset: 2px; }
+.logout-error { margin: -8px 0 0; color: #b43a36; font-size: 11px; }
 
 .inventory-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; scroll-margin-top: 16px; }
 .inventory-card { display: grid; min-width: 0; gap: 3px; padding: 10px; border-radius: 15px; background: #fff; box-shadow: 0 5px 16px rgb(33 49 74 / 4%); }
@@ -566,7 +601,7 @@ onMounted(() => void loadDashboard())
 
 @media (max-width: 360px) {
   .owner-shell { padding-right: 12px; padding-left: 12px; }
-  .project-chip { padding: 5px 7px; font-size: 9px; }
+  .logout-button { gap: 4px; padding: 0 8px; font-size: 9px; }
   .welcome-copy h1 { font-size: 23px; }
   .inventory-card { padding: 8px; }
   .inventory-card strong { font-size: 18px; }

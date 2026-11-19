@@ -47,6 +47,7 @@ import LaporanOwnerPage from '@/views/owner/LaporanOwnerPage.vue'
 import LainnyaOwnerPage from '@/views/owner/LainnyaOwnerPage.vue'
 import OwnerSiteplanPage from '@/views/owner/OwnerSiteplanPage.vue'
 import OwnerDataPage from '@/views/owner/OwnerDataPage.vue'
+import OwnerProfilePage from '@/views/owner/OwnerProfilePage.vue'
 import { setupAuthGuards } from '@/router/guards'
 
 const routes: Array<RouteRecordRaw> = [
@@ -280,6 +281,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/owner/lainnya',
     name: 'LainnyaOwner',
     component: LainnyaOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/profil',
+    name: 'OwnerProfile',
+    component: OwnerProfilePage,
     meta: { requiresAuth: true, role: 'owner' },
   },
   {

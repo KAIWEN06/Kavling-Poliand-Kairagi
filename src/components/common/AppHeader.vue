@@ -67,14 +67,19 @@
               <img src="@/assets/icons/icons.png" alt="" aria-hidden="true" />
               <div><strong>PoliLand</strong><span>Kairagi</span></div>
             </div>
-            <button type="button" class="owner-notification" aria-label="Aktivitas terbaru" @click="goNotifications">
+            <button
+              type="button"
+              class="owner-notification"
+              :aria-label="ownerHasNotification ? 'Aktivitas terbaru, ada aktivitas baru' : 'Aktivitas terbaru'"
+              @click="goNotifications"
+            >
               <ion-icon :icon="notificationsOutline" />
-              <span class="notification-dot"></span>
+              <span v-if="ownerHasNotification" class="notification-dot"></span>
             </button>
-            <span class="owner-avatar" aria-label="Akun Owner">
+            <button type="button" class="owner-avatar" aria-label="Profil Owner" @click="goOwnerProfile">
               <img v-if="ownerAvatarUrl" :src="ownerAvatarUrl" alt="" />
               <ion-icon v-else :icon="personCircleOutline" aria-hidden="true" />
-            </span>
+            </button>
           </div>
           <div v-if="showBack || backLabel !== 'Kembali'" class="owner-subnav">
             <button v-if="showBack" type="button" @click="goBack">
@@ -261,6 +266,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { getClientSpks } from '@/services/clientSpkService'
 import { authService } from '@/services/auth/authService'
+import { supabase } from '@/services/config/supabase'
 
 
 const props = withDefaults(
@@ -289,7 +295,10 @@ const notificationEvent = ref<Event>()
 const notificationLoading = ref(false)
 const rejectedSpks = ref<Awaited<ReturnType<typeof getClientSpks>>>([])
 const ownerAvatarUrl = ref('')
+const ownerHasNotification = ref(false)
+const ownerNotificationStorageKey = ref('')
 let notificationRefreshTimer: number | undefined
+let ownerNotificationRefreshTimer: number | undefined
 
 const rejectionNotifications = computed(() => rejectedSpks.value
   .filter((record) => record.status === 'Rejected' && record.rejectionReason?.trim())
@@ -311,6 +320,58 @@ async function loadClientNotifications() {
   }
 }
 
+async function loadOwnerNotifications(userId: string) {
+  const storageKey = `owner-lot-activity-seen:${userId}`
+  ownerNotificationStorageKey.value = storageKey
+
+  try {
+    const { data, error } = await supabase
+      .from('lot_transactions')
+      .select('status, created_at, updated_at, booking_date, sold_date')
+      .order('updated_at', { ascending: false })
+      .limit(100)
+
+    if (error) throw error
+
+    const lastSeen = localStorage.getItem(storageKey)
+    if (!lastSeen) {
+      const latestActivityTime = (data ?? []).reduce((latest, transaction) => {
+        const activityDate = transaction.updated_at
+          || transaction.sold_date
+          || transaction.booking_date
+          || transaction.created_at
+        const activityTime = activityDate ? new Date(activityDate).getTime() : 0
+        return Number.isFinite(activityTime) ? Math.max(latest, activityTime) : latest
+      }, 0)
+      localStorage.setItem(
+        storageKey,
+        new Date(latestActivityTime || Date.now()).toISOString(),
+      )
+      ownerHasNotification.value = false
+      return
+    }
+
+    const lastSeenTime = new Date(lastSeen).getTime()
+    ownerHasNotification.value = (data ?? []).some((transaction) => {
+      const status = String(transaction.status ?? '').toLocaleLowerCase('id-ID')
+      const isBooking = status.includes('book') || status.includes('reserv')
+      const isSold = status === 'sold' || status === 'terjual'
+      if (!isBooking && !isSold) return false
+
+      const activityDate = transaction.updated_at
+        || transaction.sold_date
+        || transaction.booking_date
+        || transaction.created_at
+      if (!activityDate) return false
+
+      const activityTime = new Date(activityDate).getTime()
+      return Number.isFinite(activityTime) && activityTime > lastSeenTime
+    })
+  } catch (error) {
+    console.error('[Owner Header] Gagal memuat aktivitas baru:', error)
+  }
+}
+
 function toggleClientNotifications(event: Event) {
   notificationEvent.value = event
   showClientNotifications.value = !showClientNotifications.value
@@ -327,6 +388,12 @@ onMounted(() => {
     void authService.getCurrentUser().then((user) => {
       const avatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
       ownerAvatarUrl.value = typeof avatar === 'string' ? avatar : ''
+      if (user) {
+        void loadOwnerNotifications(user.id)
+        ownerNotificationRefreshTimer = window.setInterval(() => {
+          void loadOwnerNotifications(user.id)
+        }, 30_000)
+      }
     }).catch((error) => {
       console.error('[Owner Header] Gagal memuat profil:', error)
     })
@@ -343,6 +410,9 @@ onBeforeUnmount(() => {
   if (notificationRefreshTimer !== undefined) {
     window.clearInterval(notificationRefreshTimer)
   }
+  if (ownerNotificationRefreshTimer !== undefined) {
+    window.clearInterval(ownerNotificationRefreshTimer)
+  }
 })
 
 
@@ -357,10 +427,23 @@ function goLogin() {
 
 function goNotifications() {
   if (props.variant === 'owner') {
+    const storageKey = ownerNotificationStorageKey.value
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, new Date().toISOString())
+        ownerHasNotification.value = false
+      } catch (error) {
+        console.error('[Owner Header] Gagal memperbarui status aktivitas:', error)
+      }
+    }
     ionRouter.push('/beranda-owner#activity')
     return
   }
   ionRouter.push('/notifications')
+}
+
+function goOwnerProfile() {
+  ionRouter.push('/owner/profil')
 }
 
 
@@ -597,10 +680,13 @@ function goBack() {
   height: 42px;
   flex: 0 0 auto;
   place-items: center;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   color: var(--poliland-gold-text-soft, #805708);
   background: var(--poliland-gold-soft, #f4d69a);
   font-size: 30px;
+  cursor: pointer;
 }
 
 .owner-avatar img {

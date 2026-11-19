@@ -25,7 +25,7 @@
         <p v-else-if="loading" class="state">Memuat data kavling...</p>
         <p v-else-if="!filteredLots.length" class="state">Tidak ada kavling yang sesuai.</p>
         <section v-else class="lot-list" aria-label="Daftar kavling">
-          <header class="lot-list-heading">
+          <header id="owner-lot-list-top" class="lot-list-heading">
             <h2>Daftar Kavling</h2>
             <span><ion-icon :icon="swapVerticalOutline" aria-hidden="true" /> Nomor kavling</span>
           </header>
@@ -67,11 +67,21 @@
         </section>
 
         <nav v-if="pageCount > 1" class="pagination" aria-label="Halaman kavling">
-          <button type="button" :disabled="page === 1" aria-label="Halaman sebelumnya" @click="page--"><ion-icon :icon="chevronBackOutline" /></button>
-          <button v-for="pageNumber in pageNumbers" :key="pageNumber" type="button" :class="{ active: page === pageNumber }" @click="page = pageNumber">{{ pageNumber }}</button>
-          <button type="button" :disabled="page === pageCount" aria-label="Halaman berikutnya" @click="page++"><ion-icon :icon="chevronForwardOutline" /></button>
+          <button type="button" :disabled="page === 1" aria-label="Halaman sebelumnya" @click="changePage(page - 1)"><ion-icon :icon="chevronBackOutline" /></button>
+          <template v-for="(pageNumber, index) in pageNumbers" :key="pageNumber ?? `ellipsis-${index}`">
+            <span v-if="pageNumber === null" class="pagination-ellipsis" aria-hidden="true">…</span>
+            <button
+              v-else
+              type="button"
+              :class="{ active: page === pageNumber }"
+              :aria-label="`Halaman ${pageNumber}`"
+              :aria-current="page === pageNumber ? 'page' : undefined"
+              @click="changePage(pageNumber)"
+            >{{ pageNumber }}</button>
+          </template>
+          <button type="button" :disabled="page === pageCount" aria-label="Halaman berikutnya" @click="changePage(page + 1)"><ion-icon :icon="chevronForwardOutline" /></button>
         </nav>
-        <p v-if="pageCount > 1" class="page-caption">Halaman {{ page }} dari {{ pageCount }}</p>
+        <p v-if="!error && !loading && filteredLots.length" class="page-caption">Menampilkan {{ firstVisibleLot }}–{{ lastVisibleLot }} dari {{ filteredLots.length }} kavling · Halaman {{ page }} dari {{ pageCount }} · {{ PAGE_SIZE }} kavling per halaman</p>
       </main>
     </ion-content>
     <MobileTabBar variant="owner" />
@@ -96,7 +106,7 @@
             <div><dt>Harga</dt><dd>{{ lotPriceLabel(selectedLot) }}</dd></div>
             <div v-if="selectedLot.customers?.full_name"><dt>{{ normalizedStatus(selectedLot.status) === 'sold' ? 'Pembeli' : 'Pemesan' }}</dt><dd>{{ selectedLot.customers.full_name }}</dd></div>
             <div v-if="selectedLot.booking_date || selectedLot.sold_date"><dt>Tanggal</dt><dd>{{ dateLabel(selectedLot.sold_date || selectedLot.booking_date) }}</dd></div>
-            <div v-if="selectedLot.payment_type"><dt>Pembayaran</dt><dd>{{ paymentLabel(selectedLot.payment_type) }}</dd></div>
+            <div><dt>Pembayaran</dt><dd>{{ normalizedStatus(selectedLot.status) === 'sold' && selectedLot.payment_type ? paymentLabel(selectedLot.payment_type) : '—' }}</dd></div>
           </dl>
         </div>
       </ion-content>
@@ -160,7 +170,7 @@ const page = ref(1)
 const selectedLot = ref<SiteplanLot | null>(null)
 const showSiteplan = ref(false)
 const selectedSiteplanLot = ref<SiteplanLot | null>(null)
-const pageSize = 8
+const PAGE_SIZE = 10
 const shareToastOpen = ref(false)
 const shareToastMessage = ref('')
 const filters = [{ value: 'all', label: 'Semua' }, { value: 'available', label: 'Tersedia' }, { value: 'booking', label: 'Booking' }, { value: 'sold', label: 'Terjual' }] as const
@@ -183,9 +193,26 @@ const filteredLots = computed(() => lots.value.filter(lot => {
   const searchable = [lot.lot_number, blockName(lot), lot.customers?.full_name].join(' ').toLocaleLowerCase('id-ID')
   return statusMatch && (!needle || searchable.includes(needle))
 }))
-const pageCount = computed(() => Math.ceil(filteredLots.value.length / pageSize))
-const pageLots = computed(() => filteredLots.value.slice((page.value - 1) * pageSize, page.value * pageSize))
-const pageNumbers = computed(() => Array.from({ length: pageCount.value }, (_, index) => index + 1))
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredLots.value.length / PAGE_SIZE)))
+const pageLots = computed(() => filteredLots.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
+const firstVisibleLot = computed(() => (page.value - 1) * PAGE_SIZE + 1)
+const lastVisibleLot = computed(() => Math.min(page.value * PAGE_SIZE, filteredLots.value.length))
+const pageNumbers = computed<Array<number | null>>(() => {
+  const total = pageCount.value
+  const current = page.value
+  if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
+
+  const pages: Array<number | null> = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+
+  if (start > 2) pages.push(null)
+  for (let pageNumber = start; pageNumber <= end; pageNumber += 1) pages.push(pageNumber)
+  if (end < total - 1) pages.push(null)
+  pages.push(total)
+
+  return pages
+})
 
 function normalizedStatus(status?: string) { return normalizeLotStatus(status) || 'unknown' }
 function blockName(lot: SiteplanLot) { return lot.blocks?.code || lot.blocks?.name || (lot.block_id ? String(lot.block_id) : '—') }
@@ -225,7 +252,12 @@ async function shareLot(lot: SiteplanLot) {
     shareToastOpen.value = true
   }
 }
-function paymentLabel(value: string) { return value.toLocaleLowerCase('id-ID') === 'cash' ? 'Cash' : value }
+function paymentLabel(value: string) {
+  const normalized = value.toLocaleLowerCase('id-ID')
+  if (normalized === 'cash') return 'Cash'
+  if (normalized === 'installment') return 'Cicilan'
+  return value
+}
 function dateLabel(value?: string) {
   if (!value || Number.isNaN(new Date(value).getTime())) return ''
   return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -245,6 +277,13 @@ function transactionSummary(lot: SiteplanLot) {
 async function openSiteplan() { showSiteplan.value = true; await loadLots() }
 function closeSiteplan() { showSiteplan.value = false; selectedSiteplanLot.value = null }
 watch([query, statusFilter], () => { page.value = 1 })
+watch(pageCount, total => {
+  if (page.value > total) page.value = total
+})
+
+function changePage(nextPage: number) {
+  page.value = Math.min(Math.max(nextPage, 1), pageCount.value)
+}
 
 async function loadLots() {
   loading.value = true
@@ -259,7 +298,7 @@ onMounted(() => { void loadLots() })
 <style scoped>
 .owner-page,.owner-content{--background:var(--app-background, #faf9f6);color:var(--text-primary, #252525);font-family:var(--font-primary,var(--ion-font-family,sans-serif))}.owner-shell{display:grid;gap:13px;width:min(100%,760px);margin:auto;padding:14px 16px calc(100px + env(safe-area-inset-bottom,0px))}.search-box{display:flex;min-height:42px;align-items:center;gap:9px;padding:0 12px;border:1px solid #e5e9f3;border-radius:13px;background:#fff;color:#58647c}.search-box ion-icon{font-size:18px}.search-box input{width:100%;min-width:0;border:0;outline:0;color:var(--text-primary, #252525);background:transparent;font:inherit;font-size:13px}.search-box input::placeholder{color:#818a9b}.search-box button{border:0;background:transparent;font-size:20px;color:#71798a}.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.filters button{display:flex;min-height:34px;flex:0 0 auto;align-items:center;gap:5px;padding:0 10px;border:1px solid #e8eaf1;border-radius:10px;color:#34415a;background:#fff;font:inherit;font-size:11px}.filters button.active{border-color:var(--poliland-gold, #cba044);color:#252525;background:var(--poliland-gold-soft, #f4d69a)}.filters small{padding:1px 5px;border-radius:99px;background:#ffffff55;font-size:9px}.dot,.status-pill i{width:8px;height:8px;border-radius:50%;background:var(--poliland-green, #355a2c)}.dot.booking,.status-pill.booking i{background:var(--poliland-gold, #cba044)}.dot.sold,.status-pill.sold i{background:#c5232c}.project-strip{display:flex;align-items:center;gap:8px;padding:11px;border-radius:14px;background:var(--surface-muted, #f5f3ee)}.project-icon{display:grid;width:27px;height:27px;place-items:center;color:var(--poliland-gold, #cba044);font-size:17px}.project-strip>div{display:grid;min-width:0;flex:1;gap:2px}.project-strip small{color:#58627a;font-size:9px}.project-strip strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.project-stat{padding:4px 7px;border-radius:99px;font-size:9px;white-space:nowrap}.project-stat.available{color:var(--poliland-green, #355a2c);background:var(--status-success-bg, #e8eee4)}.project-stat.booking{color:var(--poliland-gold-text-soft, #805708);background:var(--poliland-gold-soft, #f4d69a)}.siteplan-link{display:flex;width:100%;align-items:center;gap:10px;padding:10px;border:1px solid var(--border-default);border-radius:14px;background:#fff;color:var(--text-primary);text-align:left;font:inherit;cursor:pointer}.siteplan-link-icon{display:grid;width:38px;height:38px;flex:0 0 auto;place-items:center;border-radius:11px;color:var(--poliland-gold-text-soft);background:var(--poliland-gold-soft);font-size:20px}.siteplan-link>span:nth-child(2){display:grid;flex:1;gap:3px}.siteplan-link strong{font-size:13px}.siteplan-link small{color:var(--text-secondary);font-size:10px}.lot-list{display:grid;gap:8px}.lot-card{display:flex;min-width:0;align-items:center;gap:9px;padding:8px;border:1px solid var(--border-default);border-radius:15px;background:#fff;text-align:left;box-shadow:0 4px 12px rgb(37 37 37 / 4%);cursor:pointer}.lot-photo{position:relative;display:grid;width:70px;height:70px;flex:0 0 auto;place-items:center;overflow:hidden;border-radius:9px;color:var(--poliland-gold, #cba044);background:var(--surface-muted);font-size:25px}.lot-photo img{width:100%;height:100%;object-fit:cover}.lot-photo small{position:absolute;bottom:4px;left:4px;padding:2px 5px;border-radius:4px;color:#fff;background:rgb(37 37 37 / 80%);font-size:9px}.lot-copy{display:grid;min-width:0;flex:1;gap:3px}.lot-copy strong{overflow:hidden;color:var(--text-primary, #252525);font-size:14px;text-overflow:ellipsis;white-space:nowrap}.lot-copy small{color:#596780;font-size:11px}.lot-copy small.booking-customer{color:var(--poliland-gold-text-soft);font-size:10px}.status-pill{display:inline-flex;flex:0 0 auto;align-items:center;gap:5px;padding:7px 9px;border-radius:99px;color:var(--poliland-green);background:var(--status-success-bg);font-size:10px;white-space:nowrap}.status-pill i{width:7px;height:7px}.status-pill.booking{color:var(--poliland-gold-text-soft);background:var(--poliland-gold-soft)}.status-pill.sold{color:#9f2228;background:#ffe0e0}.status-pill.unknown{color:#525866;background:#eceef2}.status-pill.unknown i{background:#868b94}.chevron{flex:0 0 auto;color:#62708a;font-size:17px}.state{margin:0;padding:22px 12px;border-radius:14px;color:#68738a;background:#fff;text-align:center;font-size:13px}.state button{margin-left:7px;border:0;color:#98711f;background:transparent;font:inherit;font-weight:700}.state.error{color:#a83838}.pagination{display:flex;justify-content:center;gap:5px;padding:13px 0 0;border-top:1px solid var(--border-default)}.pagination button{display:grid;min-width:34px;height:34px;place-items:center;border:1px solid var(--border-default);border-radius:9px;color:#34415a;background:#fff;font:inherit;font-size:12px}.pagination button.active{border-color:var(--poliland-gold);color:#252525;background:var(--poliland-gold-soft)}.pagination button:disabled{opacity:.4}.page-caption{margin:-7px 0 0;color:#818697;text-align:center;font-size:11px}.lot-detail{position:relative;display:grid;gap:16px;padding:34px 24px;color:var(--text-primary, #252525)}.lot-detail h2{margin:0;font-size:22px}.close-detail{position:absolute;top:10px;right:14px;border:0;color:#596780;background:transparent;font-size:27px}.lot-detail dl{display:grid;gap:0;margin:0}.lot-detail dl div{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid var(--border-default)}.lot-detail dt{color:#727b8e}.lot-detail dd{margin:0;font-weight:700;text-align:right}
 .owner-siteplan-modal{--width:100%;--height:100%;--border-radius:0}.owner-siteplan-modal ion-toolbar{--background:var(--app-background,#faf9f6);--color:var(--text-primary,#252525);--border-color:var(--border-default,#eae7e0)}.owner-siteplan-content{--background:#d5dfb9}.owner-siteplan-map{position:absolute;inset:0;overflow:hidden}.owner-siteplan-map :deep(.siteplan-map){width:100%;height:100%}.siteplan-state{position:absolute;top:12px;left:50%;z-index:10;transform:translateX(-50%);margin:0;padding:9px 12px;border:1px solid var(--border-default);border-radius:11px;background:#fff;color:var(--text-primary);font-size:12px;white-space:nowrap}.siteplan-error{color:#a83838}.siteplan-state button{margin-left:5px;border:0;background:transparent;color:var(--poliland-green);font:inherit;font-weight:700}.siteplan-status-legend{position:absolute;top:72px;left:12px;z-index:20;display:flex;max-width:calc(100% - 24px);flex-wrap:wrap;gap:6px;padding:7px;border:1px solid var(--border-default);border-radius:12px;background:#fff;box-shadow:0 4px 14px rgb(37 37 37 / 12%)}.siteplan-status-legend span{display:inline-flex;align-items:center;gap:4px;color:var(--text-secondary);font-size:9px;white-space:nowrap}.siteplan-status-legend i{width:8px;height:8px;border-radius:50%}.siteplan-status-legend b{color:var(--text-primary);font-size:10px}.available-dot{background:#22c55e}.booking-dot{background:#facc15}.sold-dot{background:#ef4444}.other-dot{background:#9ca3af}.siteplan-lot-detail{position:absolute;right:12px;bottom:12px;left:12px;z-index:30;display:grid;gap:10px;padding:16px;border:1px solid var(--border-default);border-radius:17px;background:#fff;box-shadow:0 8px 28px rgb(37 37 37 / 18%)}.siteplan-close-detail{position:absolute;top:7px;right:8px;width:30px;height:30px;border:0;border-radius:50%;background:var(--surface-muted);color:var(--text-secondary);font-size:22px}.siteplan-detail-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:28px}.siteplan-detail-heading small{color:var(--text-secondary);font-size:10px}.siteplan-detail-heading h2{margin:2px 0 0;color:var(--text-primary);font-size:18px}.siteplan-lot-detail dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0}.siteplan-lot-detail dl div{display:grid;gap:3px;padding:8px;border-radius:10px;background:var(--surface-muted)}.siteplan-lot-detail dt{color:var(--text-secondary);font-size:10px}.siteplan-lot-detail dd{margin:0;color:var(--text-primary);font-size:12px;font-weight:700}.siteplan-customer{margin:0;padding-top:8px;border-top:1px solid var(--border-default);color:var(--text-secondary);font-size:11px;line-height:1.4}
-.owner-shell{box-sizing:border-box;width:100%;max-width:760px;min-width:0;gap:16px;padding:16px;margin-inline:auto}
+.owner-shell{box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr);width:100%;max-width:760px;min-width:0;gap:16px;padding:16px clamp(16px,5vw,24px) calc(100px + env(safe-area-inset-bottom,0px));margin-inline:auto}
 .search-box{box-sizing:border-box;width:100%;min-width:0;min-height:54px;padding:0 16px;border-color:#e9e6df;border-radius:17px;color:#777982}
 .search-box ion-icon{font-size:22px}
 .search-box input{font-size:15px}
@@ -274,14 +313,14 @@ onMounted(() => { void loadLots() })
 .siteplan-link-icon{color:#355a2c;background:#e8eee4}
 .siteplan-link>span:nth-child(2){min-width:0}
 .siteplan-link small{overflow-wrap:anywhere}
-.lot-list{gap:12px}
-.lot-list,.lot-card{box-sizing:border-box;width:100%;min-width:0}
+.lot-list{grid-template-columns:minmax(0,1fr);gap:12px}
+.lot-list,.lot-card{box-sizing:border-box;width:100%;min-width:0;max-width:100%}
 .lot-list-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 2px}
 .lot-list-heading h2{margin:0;color:#292929;font-size:18px;font-weight:700}
 .lot-list-heading span{display:inline-flex;align-items:center;gap:5px;color:#355a2c;font-size:13px;font-weight:600;white-space:nowrap}
 .lot-list-heading ion-icon{font-size:17px}
 .lot-card{display:grid;gap:13px;padding:16px;border-color:#e9e6df;border-radius:20px;box-shadow:none}
-.lot-card-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lot-card-heading{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:10px}
 .lot-copy{gap:3px}
 .lot-copy h3{margin:0;overflow:hidden;color:#292929;font-size:18px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
 .lot-copy p{margin:0;color:#81818a;font-size:13px;line-height:1.5}
@@ -304,4 +343,6 @@ onMounted(() => { void loadLots() })
 ion-modal.owner-lot-detail-modal{--width:100%;--height:100%;--border-radius:22px 22px 0 0;--backdrop-opacity:.35}
 .lot-detail-content{--background:#fff}
 .lot-detail{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+.pagination-ellipsis{display:grid;min-width:20px;place-items:center;color:#818697;font-size:14px}
+.page-caption{line-height:1.5}
 </style>
