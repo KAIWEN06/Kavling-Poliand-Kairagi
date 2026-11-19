@@ -4,7 +4,7 @@
     :translucent="false"
   >
 
-    <ion-toolbar>
+    <ion-toolbar :class="{ 'owner-toolbar': variant === 'owner', 'owner-toolbar-with-back': variant === 'owner' && (showBack || backLabel !== 'Kembali') }">
 
       <!-- =================================================
            MARKETING HEADER
@@ -58,6 +58,32 @@
 
         </div>
 
+      </template>
+
+      <template v-if="variant === 'owner'">
+        <div class="owner-header-stack">
+          <div class="owner-main-header">
+            <div class="owner-brand">
+              <img src="@/assets/icons/icons.png" alt="" aria-hidden="true" />
+              <div><strong>PoliLand</strong><span>Kairagi</span></div>
+            </div>
+            <button type="button" class="owner-notification" aria-label="Aktivitas terbaru" @click="goNotifications">
+              <ion-icon :icon="notificationsOutline" />
+              <span class="notification-dot"></span>
+            </button>
+            <span class="owner-avatar" aria-label="Akun Owner">
+              <img v-if="ownerAvatarUrl" :src="ownerAvatarUrl" alt="" />
+              <ion-icon v-else :icon="personCircleOutline" aria-hidden="true" />
+            </span>
+          </div>
+          <div v-if="showBack || backLabel !== 'Kembali'" class="owner-subnav">
+            <button v-if="showBack" type="button" @click="goBack">
+              <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
+              <span>{{ backLabel }}</span>
+            </button>
+            <span v-else class="owner-page-title">{{ backLabel }}</span>
+          </div>
+        </div>
       </template>
 
       <!-- CLIENT HEADER -->
@@ -227,17 +253,19 @@ import {
 import {
   arrowBackOutline,
   notificationsOutline,
+  personCircleOutline,
 } from 'ionicons/icons'
 
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import AppButton from '@/components/ui/AppButton.vue'
 import { getClientSpks } from '@/services/clientSpkService'
+import { authService } from '@/services/auth/authService'
 
 
 const props = withDefaults(
   defineProps<{
-    variant?: 'default' | 'marketing' | 'admin' | 'client'
+    variant?: 'default' | 'marketing' | 'admin' | 'client' | 'owner'
     title?: string
     showBack?: boolean
     backRoute?: string
@@ -260,6 +288,7 @@ const showClientNotifications = ref(false)
 const notificationEvent = ref<Event>()
 const notificationLoading = ref(false)
 const rejectedSpks = ref<Awaited<ReturnType<typeof getClientSpks>>>([])
+const ownerAvatarUrl = ref('')
 let notificationRefreshTimer: number | undefined
 
 const rejectionNotifications = computed(() => rejectedSpks.value
@@ -294,6 +323,14 @@ function openRejectedSpk(id: number) {
 }
 
 onMounted(() => {
+  if (props.variant === 'owner') {
+    void authService.getCurrentUser().then((user) => {
+      const avatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
+      ownerAvatarUrl.value = typeof avatar === 'string' ? avatar : ''
+    }).catch((error) => {
+      console.error('[Owner Header] Gagal memuat profil:', error)
+    })
+  }
   if (props.variant === 'client') {
     void loadClientNotifications()
     notificationRefreshTimer = window.setInterval(() => {
@@ -319,6 +356,10 @@ function goLogin() {
 
 
 function goNotifications() {
+  if (props.variant === 'owner') {
+    ionRouter.push('/beranda-owner#activity')
+    return
+  }
   ionRouter.push('/notifications')
 }
 
@@ -367,6 +408,15 @@ function goBack() {
   padding:
     0
     12px;
+}
+
+.app-header ion-toolbar.owner-toolbar {
+  --min-height: 68px;
+  padding: 0;
+}
+
+.app-header ion-toolbar.owner-toolbar-with-back {
+  --min-height: 116px;
 }
 
 
@@ -473,6 +523,123 @@ function goBack() {
   width: 34px;
   height: 34px;
   object-fit: contain;
+}
+
+.owner-header-stack {
+  width: 100%;
+  background: #fff;
+}
+
+.owner-main-header {
+  display: flex;
+  height: 68px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-default, #eae7e0);
+  background: #fff;
+}
+
+.owner-brand {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+}
+
+.owner-brand img {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.owner-brand div {
+  display: grid;
+  line-height: 1.05;
+}
+
+.owner-brand strong {
+  color: #c0a15e;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.owner-brand span {
+  color: #6b6b6b;
+  font-size: 14px;
+}
+
+.owner-notification {
+  position: relative;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  color: #303030;
+  background: transparent;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.owner-notification .notification-dot {
+  top: 5px;
+  right: 3px;
+  border-color: #fff;
+}
+
+.owner-avatar {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--poliland-gold-text-soft, #805708);
+  background: var(--poliland-gold-soft, #f4d69a);
+  font-size: 30px;
+}
+
+.owner-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.owner-subnav {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border-default, #eae7e0);
+  background: #fff;
+}
+
+.owner-subnav button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  color: #10213a;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.owner-subnav ion-icon { font-size: 24px; }
+
+.owner-page-title {
+  color: #10213a;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 
