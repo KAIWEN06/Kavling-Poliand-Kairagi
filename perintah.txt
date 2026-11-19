@@ -1,362 +1,471 @@
-# CODEX TASK — FIX SPK CREATION & MAKE PAYMENT PROOF REQUIRED
+# AUDIT MENYELURUH MODUL KEUANGAN POLILAND KAIRAGI
 
-## ROLE
-Act as a Senior Full-Stack Engineer specializing in:
-- Vue 3 Composition API
-- TypeScript
-- Supabase PostgreSQL
-- Supabase Storage
-- Supabase Auth & Row Level Security (RLS)
-- Financial transaction systems
+Bertindaklah sebagai **Senior Full-Stack Developer, Database Architect, dan Financial System Auditor** yang berpengalaman dalam Vue 3, Ionic, TypeScript, Supabase PostgreSQL, Supabase Storage, RLS, RPC, dan sistem pencatatan transaksi keuangan.
 
-You are working on the existing **PoliLand Kairagi** project.
+Saya ingin kamu melakukan audit menyeluruh terhadap modul keuangan aplikasi PoliLand Kairagi.
 
-Your task is to investigate and fix the SPK creation failure in the Admin SPK page and enforce payment proof as a mandatory document.
+**Tujuan utama:** memastikan seluruh pembayaran Client tercatat dengan benar, tidak terjadi pembayaran ganda, status pembayaran konsisten antara Client dan Admin, serta seluruh perhitungan uang masuk, jumlah yang sudah dibayar, dan sisa kewajiban sesuai dengan kesepakatan SPK.
 
-IMPORTANT: Work directly on the existing codebase. Do not merely provide recommendations or code examples. Inspect, modify, and test the actual implementation.
+## A. ATURAN KERJA
 
----
+1. Periksa struktur proyek dan pahami arsitektur yang sudah digunakan.
+2. Periksa seluruh file yang berkaitan dengan pembayaran, keuangan, SPK, transaksi, dan jadwal cicilan.
+3. Periksa implementasi frontend, service, database, SQL function/RPC, trigger, RLS, serta Supabase Storage.
+4. Jangan membuat asumsi tentang nama kolom, relasi tabel, status, atau fungsi yang belum diverifikasi.
+5. Jangan menghapus atau mengganti implementasi yang masih berfungsi tanpa alasan teknis yang jelas.
+6. Jangan membuat data dummy untuk menutupi data yang tidak tersedia.
+7. Jangan mengubah struktur database atau kode sebelum menyelesaikan audit dan menyampaikan laporan temuan.
+8. Pertahankan desain UI/UX yang sudah ada. Fokus utama adalah ketepatan logika dan konsistensi data.
 
-## 1. CURRENT PROBLEMS
-
-There are two issues:
-
-### Issue A — Admin cannot create SPK
-
-When Admin opens the "Buat SPK untuk Client" modal, fills in the form, and clicks "SIMPAN PENGAJUAN", the application displays:
-
-`Pengajuan SPK gagal disimpan.`
-
-The root cause has not yet been identified.
-
-Do not assume the problem is only frontend validation. Trace the complete execution flow.
-
-### Issue B — Payment proof is incorrectly optional
-
-Current form:
-
-| Document | Current status | Required status |
-|---|---|---|
-| KTP | Required | Required |
-| Kartu Keluarga (KK) | Required | Required |
-| Bukti Pembayaran | Optional | REQUIRED |
-| NPWP | Optional | Optional |
-| Catatan | Optional | Optional |
-
-Payment proof must be mandatory when Admin creates an SPK.
+Pada tahap pertama, lakukan pemeriksaan dan berikan laporan. Jangan langsung melakukan perubahan kode.
 
 ---
 
-## 2. FIRST: INSPECT THE EXISTING IMPLEMENTATION
+## B. AUDIT BUG UNGGAH ULANG BUKTI PEMBAYARAN
 
-Locate and inspect the following files:
+Saya menemukan bug berikut:
 
-- `SPKAdminPage.vue`
-- `spkAdminService.ts`
-- `paymentService.ts`
-- `customerService.ts`
-- Related TypeScript interfaces and validation utilities.
-- Relevant Supabase database migrations.
-- Supabase Storage configuration and RLS policies.
+1. Client mengirim bukti pembayaran.
+2. Admin memeriksa bukti.
+3. Admin meminta Client mengunggah ulang karena bukti kurang jelas atau tidak sesuai.
+4. Client membuka halaman pembayaran dan mengunggah bukti baru.
+5. Setelah diunggah, muncul transaksi pembayaran baru.
+6. Akibatnya, terdapat dua data pembayaran untuk kewajiban yang sama.
 
-Search the repository for:
-- `createAdminSPKRequest`
-- `validateAdminSPKInput`
-- `uploadSPKBookingProof`
-- `createSPKBookingPayment`
-- `spk_request_id`
-- `booking_fee_snapshot`
-- `payment-proofs`
+Periksa seluruh proses ini.
 
-Understand the current architecture before making changes.
+### Hal yang harus diperiksa
 
-Do not duplicate existing functions or introduce unnecessary abstractions.
+- Bagaimana Admin mengubah status menjadi `Needs Reupload`.
+- Bagaimana status tersebut dikirim dan ditampilkan kepada Client.
+- Bagaimana Client mengidentifikasi pembayaran yang harus diunggah ulang.
+- Apakah Client menggunakan ID pembayaran sebelumnya atau membuat ID pembayaran baru.
+- Apakah proses unggah ulang menjalankan INSERT atau UPDATE.
+- Apakah alokasi cicilan lama ikut dibuat kembali.
+- Apakah bukti lama dan bukti baru memiliki relasi yang benar.
+- Apakah pembayaran lama masih dapat diverifikasi setelah bukti diganti.
+- Apakah terdapat kemungkinan dua request bersamaan membuat pembayaran ganda.
 
----
+### Perilaku yang diharapkan
 
-## 3. FIX FRONTEND VALIDATION
+Ketika status pembayaran `Needs Reupload`:
 
-In `SPKAdminPage.vue`:
+- Client harus membuka pengajuan pembayaran yang sama.
+- Client mengganti bukti pembayaran pada pengajuan tersebut.
+- Sistem memperbarui bukti dan mengembalikan status sesuai alur verifikasi, biasanya `Pending`.
+- ID pembayaran, nominal, kategori pembayaran, transaksi, dan alokasi cicilan tetap terhubung ke pengajuan awal.
+- Sistem tidak membuat pembayaran baru.
+- Admin dapat melihat bukti terbaru dan riwayat perubahan bukti.
 
-1. Make KTP mandatory.
-2. Make KK mandatory.
-3. Make Bukti Pembayaran mandatory.
-4. Keep NPWP optional.
-5. Keep Catatan optional.
+Untuk status `Rejected`, periksa aturan yang sudah digunakan. Pastikan penolakan tidak menyebabkan nominal pembayaran atau alokasi cicilan terhitung sebagai pembayaran berhasil.
 
-Update the UI:
-- Add a red required indicator (*) to Bukti Pembayaran.
-- Remove the `(opsional)` label.
-- Show a clear validation message if no payment proof is selected.
-- Disable submission or prevent submission when required documents are missing.
-- Preserve the current modal layout, styling, and responsive behavior.
-
-Do not perform a visual redesign.
+Jangan menyamakan `Rejected` dan `Needs Reupload` tanpa memeriksa kebutuhan bisnis dan implementasi yang ada.
 
 ---
 
-## 4. FIX SERVICE VALIDATION
+## C. AUDIT STATUS DAN SIKLUS HIDUP PEMBAYARAN
 
-In `spkAdminService.ts`, inspect and update:
+Periksa apakah transisi status pembayaran konsisten.
 
-`validateAdminSPKInput()`
+Status yang digunakan pada database antara lain:
 
-Ensure that:
-- KTP is required.
-- KK is required.
-- Payment proof is required.
-- NPWP is optional.
-- Notes are optional.
+- `Pending`
+- `Confirmed`
+- `Rejected`
+- `Needs Reupload`
 
-Frontend validation must not be the only protection.
+Periksa apakah semua komponen menggunakan arti status yang sama.
 
-The service must reject invalid input before uploading files or inserting records.
+Buat pemetaan alur:
 
-Use the existing file validation rules for file type and size.
+Client mengirim bukti → Pending → Admin memeriksa → Confirmed / Rejected / Needs Reupload.
 
----
+Periksa juga:
 
-## 5. FIX THE SPK CREATION WORKFLOW
+1. Apakah pembayaran yang `Pending` sudah mencegah pengajuan ganda?
+2. Apakah pembayaran `Confirmed` tidak dapat dibayar atau dialokasikan kembali?
+3. Apakah pembayaran `Rejected` tidak masuk perhitungan uang diterima?
+4. Apakah pembayaran `Needs Reupload` tetap mempertahankan identitas pengajuan awal?
+5. Apakah Client menerima informasi alasan penolakan atau unggah ulang?
+6. Apakah Admin dapat melihat status terbaru tanpa data yang tertinggal akibat cache?
+7. Apakah dua Admin dapat memproses pembayaran yang sama secara bersamaan?
+8. Apakah status jadwal cicilan berubah hanya setelah pembayaran benar-benar dikonfirmasi?
 
-Inspect and repair `createAdminSPKRequest()`.
-
-The intended workflow is:
-
-1. Validate all required form fields.
-2. Validate KTP, KK, and payment proof.
-3. Insert the SPK record into `spk_requests`.
-4. Retrieve the newly created SPK ID.
-5. Upload KTP and KK to the existing SPK document storage bucket.
-6. Upload payment proof to `payment-proofs`.
-7. Upload NPWP only if provided.
-8. Save document records using the existing database structure.
-9. Create the Booking Fee payment record.
-10. Return the created SPK data to the frontend.
-
-Ensure the upload and database operations are handled safely.
-
-If any step fails:
-- Return a meaningful error.
-- Clean up newly created storage objects when safe.
-- Clean up partially created database records when safe.
-- Do not leave orphaned or inconsistent records.
-
-Important: Supabase Storage and PostgreSQL do not share a single transaction. Implement explicit compensation/cleanup logic rather than assuming all operations are atomic.
-
-Do not delete pre-existing files or records during cleanup.
+Periksa semua kemungkinan transisi status yang tidak valid.
 
 ---
 
-## 6. FIX BOOKING FEE PAYMENT CREATION
+## D. AUDIT PERHITUNGAN KEUANGAN
 
-Inspect these existing functions in `paymentService.ts`:
+Ini bagian paling penting.
 
-- `uploadSPKBookingProof()`
-- `createSPKBookingPayment()`
+Sistem harus dapat mengetahui secara akurat:
 
-Ensure that the payment record contains:
+- Harga final kavling sesuai SPK.
+- Total DP yang diwajibkan.
+- Total cicilan sesuai jadwal.
+- Total pembayaran yang dikirim Client.
+- Total pembayaran yang sudah dikonfirmasi.
+- Total pembayaran yang masih menunggu verifikasi.
+- Total pembayaran yang ditolak.
+- Total pembayaran yang perlu diunggah ulang.
+- Total uang yang benar-benar diterima perusahaan.
+- Sisa kewajiban pembayaran Client.
+- Persentase pembayaran yang sudah diselesaikan.
 
-```ts
-{
-  spk_request_id: newlyCreatedSPKId,
-  customer_id: customerId,
-  lot_id: lotId,
-  transaction_id: null,
-  payment_date: null,
-  amount: bookingFeeSnapshot,
-  payment_category: 'Booking',
-  proof_path: uploadedProofPath,
-  status: 'Pending'
-}
-```
+### Aturan perhitungan
 
-Use the actual existing types and database schema. Adapt the example to the repository implementation.
+Jangan menjumlahkan seluruh data pada tabel `payments` secara sembarangan.
 
-Requirements:
-- Never create a payment record without a valid `proof_path`.
-- Never create duplicate Booking Fee records for the same submission.
-- Use the Booking Fee snapshot from the SPK.
-- Do not hardcode different Booking Fee values across components.
-- Do not create `lot_transactions` during SPK submission.
+Pisahkan dengan jelas:
 
----
+**1. Total pembayaran diajukan**
 
-## 7. CHECK SUPABASE DATABASE AND STORAGE
+Pembayaran yang pernah dikirim Client, termasuk yang masih menunggu verifikasi.
 
-Investigate possible database and storage failures.
+**2. Total pembayaran terkonfirmasi**
 
-Check:
+Hanya pembayaran dengan status `Confirmed` yang dihitung sebagai uang diterima.
 
-### Database
-- Does `spk_requests` accept the submitted payload?
-- Does `payments.spk_request_id` exist?
-- Are foreign keys valid?
-- Are required columns being supplied?
-- Are enum/check constraints satisfied?
-- Are there triggers that reject the insert?
-- Are RLS policies allowing the authenticated Admin to perform the operation?
+**3. Total pembayaran tertunda**
 
-### Storage
-- Does the `payment-proofs` bucket exist?
-- Is the upload path valid?
-- Do Storage policies allow the current Admin role to upload?
-- Can the uploaded file be accessed through the existing document preview mechanism?
+Pembayaran dengan status `Pending` yang belum boleh dianggap sebagai uang diterima.
 
-Do not disable RLS to bypass errors.
+**4. Total pembayaran ditolak**
 
-If a policy is incorrect, create a narrowly scoped policy consistent with the existing authentication and authorization model.
+Pembayaran `Rejected` tidak boleh dihitung sebagai uang diterima.
 
-Do not assume that a migration has been applied to the live Supabase database.
+**5. Total kewajiban tersisa**
 
-If SQL changes are required:
-- Create a new migration.
-- Preserve existing data.
-- Avoid destructive changes.
-- Explain the migration before asking for production execution.
+Harus dihitung berdasarkan harga final dan pembayaran terkonfirmasi yang benar-benar dialokasikan ke kewajiban transaksi.
 
----
+Pastikan tidak terjadi penghitungan ganda antara DP, booking fee, pembayaran tunai, dan cicilan.
 
-## 8. IMPROVE ERROR HANDLING
+Periksa juga apakah Booking Fee merupakan bagian dari harga final atau kewajiban terpisah berdasarkan struktur transaksi yang berlaku. Jangan mengurangi atau menambah harga final secara otomatis tanpa memastikan aturan SPK.
 
-The current generic message:
+### Contoh validasi
 
-`Pengajuan SPK gagal disimpan.`
+Harga final: Rp450.000.000
 
-does not identify the actual failure.
+DP: Rp45.000.000
 
-Implement structured error handling.
+Cicilan: 12 × Rp33.750.000
 
-Differentiate:
-- Validation failure.
-- SPK database insert failure.
-- Document upload failure.
-- Booking payment insert failure.
-- Storage permission failure.
-- Database RLS failure.
-- Other unexpected errors.
+Jika DP sudah dikonfirmasi dan Client membayar dua cicilan:
 
-Show user-friendly messages in the UI.
+- DP terkonfirmasi: Rp45.000.000
+- Cicilan terkonfirmasi: Rp67.500.000
+- Total diterima: Rp112.500.000
+- Total kewajiban tersisa: Rp337.500.000
+- Persentase pembayaran: 25%
 
-Keep detailed diagnostic information in development logs.
+Jika pembayaran cicilan berikutnya masih `Pending`, uang tersebut tidak boleh ditambahkan ke total diterima.
 
-Never expose:
-- Supabase service role keys.
-- Access tokens.
-- Passwords.
-- Sensitive authentication information.
-
-Do not silently swallow errors.
+Gunakan contoh ini untuk memeriksa ketepatan rumus, bukan untuk mengganti data transaksi yang ada.
 
 ---
 
-## 9. VERIFY ADMIN KEUANGAN INTEGRATION
+## E. AUDIT TIGA SKEMA PEMBAYARAN
 
-After successful SPK creation, ensure that the Booking Fee appears in Admin Keuangan.
+Pastikan ketiga skema ini berjalan sesuai kesepakatan SPK.
 
-The payment must be retrievable through `payments.spk_request_id`, even though:
+### 1. Cash
 
-`transaction_id = null`
+- Client hanya dapat membayar pelunasan harga final.
+- Tidak ada pilihan cicilan.
+- Tidak ada DP terpisah.
+- Pembayaran harus sesuai harga final.
+- Setelah dikonfirmasi, transaksi dinyatakan lunas.
+- Tidak boleh ada pengajuan pembayaran tunai ganda.
 
-Ensure the query does not depend exclusively on `lot_transactions`.
+### 2. Cicilan dengan DP
 
-Expected behavior:
+- Client wajib membayar DP terlebih dahulu.
+- Cicilan belum dapat dibayar sebelum DP dikonfirmasi.
+- Setelah DP dikonfirmasi, Client dapat membayar cicilan.
+- Client boleh membayar satu atau beberapa cicilan sekaligus.
+- Satu pengajuan pembayaran dapat memiliki satu bukti pembayaran dan beberapa alokasi cicilan.
 
-1. Admin creates an SPK.
-2. Payment proof is uploaded.
-3. A Booking Fee payment record is created.
-4. Its status is `Pending`.
-5. Admin Keuangan can see the payment.
-6. Admin Keuangan can verify the payment.
-7. Admin SPK can see the updated payment status.
-8. SPK approval becomes available only after the confirmed Booking Fee reaches the required amount.
+### 3. Pure Cicilan tanpa DP
 
-Do not automatically approve the SPK after payment verification.
+- Tidak ada kewajiban DP.
+- Client dapat langsung membayar cicilan pertama.
+- Tidak boleh muncul kewajiban DP yang sebenarnya tidak ada dalam SPK.
+- Jadwal cicilan harus tetap sesuai kesepakatan final.
 
----
-
-## 10. BUSINESS RULES — DO NOT CHANGE
-
-Preserve these existing rules:
-
-### Cash
-- Booking Fee is mandatory before SPK approval.
-- No DP requirement for Cash.
-
-### Installment
-- Booking Fee is mandatory before SPK approval.
-- DP is separate from Booking Fee.
-- DP does not have to be confirmed before SPK approval.
-
-### General
-- Default Booking Fee: Rp1.000.000.
-- Booking Fee must not be counted as DP.
-- Do not create a transaction before SPK approval.
-- Do not create duplicate payment records.
-- Preserve existing payment history.
+Periksa apakah sistem membedakan DP wajib dengan transaksi yang nominal DP-nya nol.
 
 ---
 
-## 11. TESTING REQUIREMENTS
+## F. AUDIT URUTAN CICILAN
 
-Run the available project checks and test these scenarios:
+Aturan yang sudah disepakati:
 
-| Test | Expected result |
-|---|---|
-| Submit with KTP, KK, and payment proof | Success |
-| Submit without KTP | Validation error |
-| Submit without KK | Validation error |
-| Submit without payment proof | Validation error |
-| Submit without NPWP | Allowed |
-| Submit without notes | Allowed |
-| Invalid payment proof file | Validation error |
-| Payment proof upload fails | No inconsistent SPK submission |
-| Payment database insert fails | Safe cleanup |
-| SPK creation succeeds | Booking Fee appears in Admin Keuangan |
-| Payment has no transaction_id | Still visible in Finance |
-| Payment is confirmed | SPK displays updated status |
+Client hanya boleh membayar cicilan secara berurutan.
 
-Run:
-- TypeScript type checking.
-- Production build.
-- Existing relevant tests.
-- Additional tests for the corrected workflow where practical.
+Contoh:
 
-Fix any regressions introduced by your changes.
+Jika cicilan 1–3 sudah lunas, pilihan berikutnya:
 
----
+- Cicilan 4
+- Cicilan 4–5
+- Cicilan 4–6
+- Sampai cicilan 4–12.
 
-## 12. EXECUTION RULES
+Tidak boleh memilih cicilan 4 dan 6 tanpa cicilan 5.
 
-- Work directly in the current repository.
-- Inspect before modifying.
-- Follow existing naming conventions and architecture.
-- Reuse existing services and utilities.
-- Do not redesign unrelated UI.
-- Do not delete existing functionality.
-- Do not bypass authentication or RLS.
-- Do not fabricate successful test results.
-- Do not execute destructive SQL.
-- Do not modify unrelated files unnecessarily.
+Periksa:
 
-If an essential database or authorization detail cannot be verified, explain the limitation instead of guessing.
+1. Apakah frontend membatasi pilihan cicilan?
+2. Apakah backend/RPC juga melakukan validasi?
+3. Apakah cicilan yang sedang menunggu verifikasi mengunci pembayaran berikutnya?
+4. Apakah pembayaran beberapa cicilan sekaligus menghasilkan satu payment dan beberapa payment_allocations?
+5. Apakah nominal pembayaran sama dengan jumlah seluruh cicilan yang dipilih?
+6. Apakah satu cicilan dapat memiliki alokasi pembayaran lebih dari satu kali?
+7. Apakah pembatalan atau penolakan pembayaran mengembalikan hak pembayaran Client dengan benar?
+8. Apakah status cicilan baru berubah menjadi Paid setelah Admin mengonfirmasi pembayaran?
+
+Periksa juga konsistensi antara `installment_schedules.status`, `payments.status`, dan `payment_allocations`.
 
 ---
 
-## 13. FINAL REPORT
+## G. AUDIT ADMIN KEUANGAN
 
-After implementation, provide:
+Periksa halaman Admin Keuangan secara menyeluruh.
 
-1. Root cause of the SPK creation failure.
-2. Files inspected.
-3. Files modified.
-4. Exact changes made.
-5. Database or Storage policy changes required.
-6. Build and type-check results.
-7. Test results.
-8. Remaining issues requiring manual Supabase configuration.
+Periksa:
 
-**DEFINITION OF DONE:**
+- Daftar pembayaran masuk.
+- Filter status pembayaran.
+- Pencarian nama Client.
+- Pencarian nomor kavling.
+- Detail pembayaran.
+- Bukti transfer.
+- Verifikasi pembayaran.
+- Penolakan pembayaran.
+- Permintaan unggah ulang.
+- Riwayat verifikasi.
+- Informasi nominal.
+- Kategori pembayaran.
+- Alokasi cicilan.
+- Status transaksi.
 
-Admin can successfully create an SPK only when KTP, KK, and payment proof are provided. The system creates a valid Pending Booking Fee payment linked to the SPK, and that payment appears in Admin Keuangan for verification.
+Pastikan Admin dapat mengetahui apakah pembayaran tersebut merupakan:
 
-Do not consider the task complete if only the frontend label or validation has been changed.
+- Booking Fee.
+- DP.
+- Cicilan keberapa.
+- Gabungan beberapa cicilan.
+- Pelunasan tunai.
+
+Jangan hanya menampilkan tulisan `Installment` tanpa nomor cicilan.
+
+### Pemeriksaan bukti pembayaran
+
+Periksa:
+
+- `proof_path`.
+- Nama bucket.
+- Path file.
+- Signed URL.
+- Storage policy.
+- Hak akses Admin.
+- Hak akses Client.
+- Masa berlaku signed URL.
+- Mekanisme fallback untuk dokumen lama.
+
+Pastikan bukti pembayaran yang diunggah Client benar-benar dapat dibuka oleh Admin.
+
+Jangan menganggap semua bukti yang memiliki `spk_request_id` berada di bucket dokumen SPK. Periksa lokasi file sebenarnya.
+
+---
+
+## H. AUDIT DATABASE DAN SUPABASE
+
+Periksa tabel dan relasi yang sudah tersedia, terutama:
+
+- `customers`
+- `profiles`
+- `lots`
+- `lot_transactions`
+- `payments`
+- `payment_plans`
+- `lot_installments`
+- `installment_schedules`
+- `payment_allocations`
+- `spk_requests`
+- `spk_request_documents`
+
+Periksa:
+
+1. Foreign key dan relasi antar tabel.
+2. Kolom yang digunakan untuk menghubungkan pembayaran dengan transaksi.
+3. Kolom yang menghubungkan pembayaran dengan SPK.
+4. Constraint status.
+5. Constraint nominal.
+6. Unique constraint.
+7. Trigger pembaruan status.
+8. RPC pengiriman pembayaran.
+9. RPC verifikasi pembayaran.
+10. RLS untuk seluruh tabel terkait.
+11. Storage policies untuk bucket bukti pembayaran.
+12. Potensi race condition.
+13. Potensi data yatim/orphan.
+14. Potensi duplikasi alokasi pembayaran.
+
+Periksa apakah operasi berikut berjalan secara atomik:
+
+- Konfirmasi pembayaran.
+- Pembuatan alokasi cicilan.
+- Perubahan status jadwal cicilan.
+- Pembaruan status transaksi.
+- Pencatatan waktu dan Admin yang melakukan verifikasi.
+
+Jika ada bagian yang dapat berhasil sebagian tetapi gagal sebagian, catat sebagai risiko integritas data.
+
+---
+
+## I. AUDIT REKONSILIASI KEUANGAN
+
+Pastikan terdapat sumber data yang dapat dipercaya untuk menjawab:
+
+- Berapa total harga transaksi?
+- Berapa DP yang harus dibayar?
+- Berapa uang yang sudah diterima perusahaan?
+- Berapa uang yang masih menunggu verifikasi?
+- Berapa cicilan yang sudah lunas?
+- Berapa cicilan yang belum lunas?
+- Berapa sisa kewajiban Client?
+- Apakah transaksi sudah lunas?
+- Apakah terdapat pembayaran ganda?
+- Apakah ada pembayaran yang sudah dikonfirmasi tetapi tidak memiliki alokasi yang benar?
+- Apakah ada cicilan berstatus Paid tanpa pembayaran terkonfirmasi?
+- Apakah ada pembayaran terkonfirmasi yang belum mengubah jadwal cicilan?
+
+Buat pemeriksaan silang antara data transaksi, pembayaran, dan jadwal cicilan.
+
+Jangan hanya mempercayai angka ringkasan yang ditampilkan di frontend.
+
+---
+
+## J. AUDIT RIWAYAT DAN JEJAK PERUBAHAN
+
+Periksa apakah sistem menyimpan riwayat:
+
+- Pengiriman bukti pembayaran pertama.
+- Permintaan unggah ulang.
+- Pengiriman bukti pengganti.
+- Penolakan pembayaran.
+- Konfirmasi pembayaran.
+- Admin yang melakukan verifikasi.
+- Waktu perubahan status.
+- Catatan alasan penolakan.
+- Perubahan alokasi pembayaran.
+
+Riwayat harus dapat ditelusuri tanpa menghilangkan identitas transaksi pembayaran sebelumnya.
+
+Jika sistem belum mempunyai audit log yang memadai, berikan rekomendasi struktur yang sesuai. Jangan langsung menghapus atau menimpa informasi penting.
+
+---
+
+## K. SKENARIO PENGUJIAN WAJIB
+
+Buat test case untuk skenario berikut:
+
+1. Pembayaran Cash berhasil.
+2. Pembayaran Cash ditolak.
+3. Pembayaran Cash diminta unggah ulang.
+4. Client mengunggah ulang bukti Cash.
+5. Client mencoba mengirim Cash dua kali.
+6. Pembayaran DP berhasil.
+7. Pembayaran DP ditolak.
+8. Pembayaran DP diminta unggah ulang.
+9. Client mengunggah ulang bukti DP.
+10. Client mencoba membayar cicilan sebelum DP dikonfirmasi.
+11. Pure cicilan tanpa DP.
+12. Membayar satu cicilan.
+13. Membayar dua cicilan sekaligus.
+14. Membayar cicilan secara tidak berurutan.
+15. Mengirim ulang pembayaran saat status masih Pending.
+16. Membayar cicilan yang sudah lunas.
+17. Membayar cicilan yang sedang menunggu verifikasi.
+18. Admin mengonfirmasi pembayaran.
+19. Admin menolak pembayaran.
+20. Dua Admin memproses pembayaran yang sama.
+21. Dua request pembayaran dikirim hampir bersamaan.
+22. Bukti pembayaran tidak ditemukan di Storage.
+23. Client mencoba mengakses pembayaran milik Client lain.
+24. Transaksi memiliki data pembayaran yang tidak cocok dengan jadwal cicilan.
+25. Total pembayaran sudah sama dengan harga final.
+
+Untuk setiap test case, tentukan:
+- Kondisi awal.
+- Tindakan.
+- Hasil yang diharapkan.
+- Hasil aktual jika dapat diuji.
+- Status PASS/FAIL/BLOCKED.
+
+Jangan mengklaim PASS jika belum benar-benar dijalankan.
+
+---
+
+## L. FORMAT LAPORAN AUDIT
+
+Setelah pemeriksaan, berikan laporan terstruktur:
+
+### 1. Ringkasan kondisi sistem
+Jelaskan bagian yang sudah benar dan bagian yang bermasalah.
+
+### 2. Daftar bug
+Gunakan tabel:
+
+| No | Bug | Penyebab | Dampak keuangan | Prioritas |
+|---|---|---|---|---|
+
+Gunakan prioritas:
+- Critical: dapat menyebabkan kehilangan atau duplikasi uang.
+- High: dapat menyebabkan salah hitung atau status transaksi salah.
+- Medium: mengganggu proses operasional.
+- Low: masalah tampilan atau kenyamanan.
+
+### 3. Analisis alur pembayaran
+Jelaskan alur Client → Database → Admin → Database → Client.
+
+### 4. Analisis integritas data
+Jelaskan apakah seluruh nominal, pembayaran, dan alokasi cicilan sudah konsisten.
+
+### 5. Analisis keamanan
+Jelaskan masalah RLS, Storage, RPC, dan kemungkinan manipulasi request.
+
+### 6. Daftar file yang bermasalah
+Sebutkan path file dan fungsi yang harus diperbaiki.
+
+### 7. Rekomendasi perbaikan
+Urutkan berdasarkan prioritas dan jelaskan dampak setiap perbaikan.
+
+### 8. Rencana pengujian
+Berikan test case lengkap beserta hasil yang dapat dibuktikan.
+
+### 9. Rencana migrasi database
+Jika diperlukan, tampilkan perubahan SQL yang disarankan, tetapi jangan jalankan sebelum persetujuan.
+
+---
+
+## M. KRITERIA SISTEM DIANGGAP SIAP
+
+Modul keuangan baru dapat dianggap stabil apabila:
+
+1. Satu kewajiban pembayaran tidak dapat menghasilkan pembayaran ganda.
+2. Unggah ulang memperbarui pengajuan yang sama.
+3. Penolakan dan unggah ulang tidak membuat uang seolah-olah sudah diterima.
+4. Pembayaran terkonfirmasi tercatat secara permanen.
+5. Nominal diterima dan sisa kewajiban selalu konsisten.
+6. DP dan cicilan tidak dihitung dua kali.
+7. Cicilan hanya dapat dibayar berurutan.
+8. Pembayaran beberapa cicilan memiliki alokasi yang tepat.
+9. Client dan Admin melihat status serta nominal yang sama.
+10. Bukti pembayaran dapat diakses oleh pihak yang berwenang.
+11. Semua perubahan penting dapat ditelusuri.
+12. Validasi keuangan dilakukan di database/backend, bukan hanya frontend.
+
+**PENTING: Jangan langsung melakukan refactor besar-besaran. Audit dahulu seluruh implementasi aktual. Saya ingin mengetahui akar masalah dan risiko integritas keuangan sebelum menyetujui perbaikan. Berikan laporan berdasarkan kode dan database yang benar-benar ditemukan di repository, bukan asumsi.**

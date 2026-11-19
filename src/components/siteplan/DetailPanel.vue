@@ -279,7 +279,7 @@
       </div>
 
       <!-- FOOTER ACTION -->
-      <footer v-if="variant !== 'admin'" class="detail-footer">
+      <footer v-if="props.variant !== 'admin'" class="detail-footer">
         <div class="action-grid">
           <!-- SURVEI -->
           <AppButton
@@ -330,7 +330,7 @@
     <!-- ================================================= -->
 
     <ion-modal
-      v-if="variant !== 'admin'"
+      v-if="props.variant !== 'admin'"
       :is-open="showSurveyModal"
       class="survey-modal"
       @didDismiss="closeSurveyModal"
@@ -402,7 +402,7 @@
     </ion-modal>
 
     <ion-modal
-  v-if="variant !== 'admin'"
+  v-if="props.variant !== 'admin'"
   :is-open="showPurchaseModal"
   class="purchase-modal"
   @didDismiss="closePurchaseModal"
@@ -569,11 +569,15 @@ const defaultThumb =
 const props = defineProps({
   lot: {
     type: Object,
-    default: null,
+    default: null, 
   },
   clientMode: {
     type: Boolean,
     default: false,
+  },
+  variant: {
+    type: String,
+    default: 'public',
   },
 })
 

@@ -10,6 +10,13 @@ export type ClientSpkStatus =
   | 'Rejected'
   | 'Cancelled'
 
+export type ClientSpkNotaryStatus =
+  | 'Menunggu Diproses'
+  | 'Diproses'
+  | 'Proses Notaris'
+  | 'Penandatanganan Notaris'
+  | 'Selesai'
+
 export interface ClientSpkDocument {
   id: number
   document_type: 'KTP' | 'KK' | 'NPWP' | 'Payment Proof'
@@ -19,12 +26,25 @@ export interface ClientSpkDocument {
   file_size_bytes: number | null
 }
 
+export interface ClientInstallmentSchedule {
+  id: number
+  installmentNumber: number
+  dueDate: string | null
+  amount: number
+  status: string
+}
+
 export interface ClientSpkRecord {
   id: number
   spkNumber: string
   createdAt: string
   status: ClientSpkStatus
+  notaryStatus: ClientSpkNotaryStatus
+  notaryNote: string | null
   rejectionReason: string | null
+  rejectionCategory: 'Administrative Error' | 'Buyer Cancellation' | 'Other' | null
+  bookingFeeReuse: AvailableBookingFeeReuse | null
+  schedules: ClientInstallmentSchedule[]
   lot: {
     id: number
     name: string
@@ -71,7 +91,7 @@ export interface CreateClientSpkInput {
   }
   payment: {
     scheme: 'Cash' | 'Installment'
-    method: 'Transfer Bank' | 'Tunai'
+    method: 'Transfer Bank'
     planId: number | null
     tenorMonths: number | null
     monthlyPayment: number | null
@@ -83,10 +103,14 @@ export interface CreateClientSpkInput {
 
 interface SpkRequestRow {
   id: number
+  transaction_id: number | null
   spk_number: string
   submitted_at: string
   status: ClientSpkStatus
+  notary_status: ClientSpkNotaryStatus | null
+  notary_note: string | null
   rejection_reason: string | null
+  rejection_category: 'Administrative Error' | 'Buyer Cancellation' | 'Other' | null
   admin_note: string | null
   lot_id: number
   lot_price_snapshot: number | string
@@ -126,6 +150,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024
 const FILE_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
+  'image/webp': 'webp',
   'application/pdf': 'pdf',
 }
 
@@ -181,6 +206,18 @@ async function getAuthenticatedUser() {
   return data.user
 }
 
+export async function getClientSpkDocumentUrl(
+  filePath: string,
+): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrl(filePath, 300)
+
+  if (error) throw error
+  if (!data?.signedUrl) throw new Error('Tautan dokumen tidak tersedia.')
+  return data.signedUrl
+}
+
 function validateInput(input: CreateClientSpkInput) {
   if (!Number.isInteger(input.lot.id) || input.lot.id <= 0) {
     throw new Error('ID kavling tidak valid.')
@@ -190,23 +227,25 @@ function validateInput(input: CreateClientSpkInput) {
     throw new Error('Skema pembayaran tidak valid.')
   }
 
-  if (!['Transfer Bank', 'Tunai'].includes(input.payment.method)) {
-    throw new Error('Metode pembayaran tidak valid.')
+  // RPC create_client_spk_initial_payment saat ini mencatat metode Booking sebagai Transfer Bank.
+  if (input.payment.method !== 'Transfer Bank') {
+    throw new Error('Booking Fee Client saat ini hanya dapat dibayar melalui Transfer Bank.')
   }
 
-  if (input.payment.scheme === 'Installment') {
-    if (!input.payment.planId || input.payment.planId <= 0) {
-      throw new Error('Pilih rencana tenor cicilan sebelum menyimpan SPK.')
-    }
+  if (input.payment.scheme === 'Cash' || input.payment.scheme === 'Installment') {
+    if (input.payment.scheme === 'Installment') {
+      if (!input.payment.planId || input.payment.planId <= 0) {
+        throw new Error('Pilih rencana tenor cicilan sebelum menyimpan SPK.')
+      }
 
-    if (
-      !Number.isSafeInteger(input.payment.downPaymentAmount)
-      || input.payment.downPaymentAmount <= 0
-      || (input.lot.price !== null && input.payment.downPaymentAmount >= input.lot.price)
-    ) {
-      throw new Error('Nominal DP harus lebih dari Rp 0 dan lebih kecil dari harga kavling.')
+      if (
+        !Number.isSafeInteger(input.payment.downPaymentAmount)
+        || input.payment.downPaymentAmount <= 0
+        || (input.lot.price !== null && input.payment.downPaymentAmount >= input.lot.price)
+      ) {
+        throw new Error('Nominal DP harus lebih dari Rp 0 dan lebih kecil dari harga kavling.')
+      }
     }
-
     if (
       input.payment.tenorMonths !== null
       && (!Number.isInteger(input.payment.tenorMonths)
@@ -308,6 +347,9 @@ export async function createClientSpk(
 
   const user = await getAuthenticatedUser()
 
+  // Customer tidak di-upsert dari frontend. RPC akan mencari dan menghubungkan
+  // customer yang sudah ada berdasarkan user_id/email tanpa membuat duplikat.
+
   // ---------------------------------------------------------
   // 1. BUAT SPK MELALUI RPC
   // ---------------------------------------------------------
@@ -334,9 +376,7 @@ export async function createClientSpk(
           : null,
 
       p_down_payment_amount:
-        input.payment.scheme === 'Installment'
-          ? input.payment.downPaymentAmount
-          : 0,
+        input.payment.downPaymentAmount,
 
       p_months: input.payment.tenorMonths,
       p_monthly_payment: input.payment.monthlyPayment,
@@ -363,6 +403,8 @@ export async function createClientSpk(
     const documentRows: Array<Omit<SpkRequestDocumentRow, 'id'>> = []
 
     for (const { key, type } of DOCUMENTS) {
+      if (key === 'paymentProof' && input.reuseBookingPaymentId) continue
+
       const file = input.documents[key]
 
       if (!file) continue
@@ -408,16 +450,17 @@ export async function createClientSpk(
     if (documentsError) throw documentsError
 
     // -------------------------------------------------------
-    // 4. CATAT PEMBAYARAN AWAL: HARGA PENUH ATAU DP
+    // 4. CATAT PEMBAYARAN AWAL: BOOKING FEE
     // -------------------------------------------------------
 
     // RPC mengambil:
     // - Customer ID dari SPK
     // - Lot ID dari SPK
-    // - Nominal harga penuh atau DP dari data SPK
+    // - Nominal Booking Fee dari booking_fee_snapshot SPK
     // - Bukti dari spk_request_documents
     //
     // Client tidak melakukan INSERT langsung ke payments.
+    // Default Booking Fee saat ini: Rp1.000.000.
 
     const { error: paymentError } = input.reuseBookingPaymentId
       ? await supabase.rpc('client_reuse_spk_booking_fee', {
@@ -470,6 +513,7 @@ function getFirstRelation<T>(
 function toClientRecord(
   row: SpkRequestRow,
   documents: Partial<Record<ClientSpkDocumentKey, ClientSpkDocument>>,
+  schedules: ClientInstallmentSchedule[],
 ): ClientSpkRecord {
   const lot = getFirstRelation(row.lot)
 
@@ -490,8 +534,13 @@ function toClientRecord(
     spkNumber: row.spk_number,
     createdAt: row.submitted_at,
     status: row.status,
+    notaryStatus: row.notary_status || 'Menunggu Diproses',
+    notaryNote: row.notary_note?.trim() || null,
     rejectionReason:
       row.rejection_reason?.trim() || row.admin_note?.trim() || null,
+    rejectionCategory: row.rejection_category ?? null,
+    bookingFeeReuse: null,
+    schedules,
 
     lot: {
       id: row.lot_id,
@@ -542,10 +591,14 @@ export async function getClientSpks(): Promise<ClientSpkRecord[]> {
     .from('spk_requests')
     .select(`
       id,
+      transaction_id,
       spk_number,
       submitted_at,
       status,
+      notary_status,
+      notary_note,
       rejection_reason,
+      rejection_category,
       admin_note,
       lot_id,
       lot_price_snapshot,
@@ -574,6 +627,13 @@ export async function getClientSpks(): Promise<ClientSpkRecord[]> {
   const requests = (data ?? []) as SpkRequestRow[]
 
   if (!requests.length) return []
+
+  // Daftar Booking Fee yang sudah diverifikasi dan tersedia untuk SPK pengganti.
+  // Hanya dipakai untuk menampilkan status pada SPK asal yang ditolak.
+  const availableReuseFees = await getAvailableClientSpkBookingFees()
+  const reuseBySourceSpk = new Map(
+    availableReuseFees.map((fee) => [fee.sourceSpkRequestId, fee]),
+  )
 
   const requestIds = requests.map((request) => request.id)
 
@@ -612,12 +672,50 @@ export async function getClientSpks(): Promise<ClientSpkRecord[]> {
     documentsByRequest.set(document.spk_request_id, documents)
   }
 
-  return requests.map((request) =>
-    toClientRecord(
+  // Jadwal hanya diambil untuk transaksi yang terkait dengan SPK milik user ini.
+  const transactionIds = [...new Set(
+    requests
+      .map((request) => request.transaction_id)
+      .filter((id): id is number => id !== null),
+  )]
+
+  const schedulesByTransaction = new Map<number, ClientInstallmentSchedule[]>()
+
+  if (transactionIds.length) {
+    const { data: scheduleRows, error: schedulesError } = await supabase
+      .from('installment_schedules')
+      .select('id, transaction_id, installment_number, due_date, amount, status')
+      .in('transaction_id', transactionIds)
+      .order('installment_number', { ascending: true })
+
+    if (schedulesError) throw schedulesError
+
+    for (const item of scheduleRows ?? []) {
+      const transactionId = Number(item.transaction_id)
+      const list = schedulesByTransaction.get(transactionId) ?? []
+
+      list.push({
+        id: Number(item.id),
+        installmentNumber: Number(item.installment_number),
+        dueDate: item.due_date,
+        amount: Number(item.amount),
+        status: item.status,
+      })
+
+      schedulesByTransaction.set(transactionId, list)
+    }
+  }
+
+  return requests.map((request) => ({
+    ...toClientRecord(
       request,
       documentsByRequest.get(request.id) ?? {},
+      request.transaction_id
+        ? schedulesByTransaction.get(request.transaction_id) ?? []
+        : [],
     ),
-  )
+    bookingFeeReuse: reuseBySourceSpk.get(request.id) ?? null,
+  }))
 }
 
 /**

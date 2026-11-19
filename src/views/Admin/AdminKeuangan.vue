@@ -1487,11 +1487,15 @@ async function loadSelectedPaymentProof(paymentId?: number) {
     const detail = await paymentService.getPaymentDetail(id)
     selectedProofPayment.value = detail
 
-    // Prioritaskan path yang tersimpan langsung pada payments.
+    // Bukti dari form pembayaran Client disimpan langsung ke bucket
+    // `payment-proofs`, termasuk pembayaran DP yang juga memiliki spk_request_id.
+    // Jangan menentukan bucket dari keberadaan spk_request_id karena RPC
+    // submit_client_payment mengisi kolom tersebut untuk mengaitkan pembayaran ke SPK.
     let proofPath = detail.payment.proof_path?.trim() || ''
+    let proofBucket = proofPath ? 'payment-proofs' : ''
 
-    // Fallback untuk SPK Client: bukti pembayaran tersimpan sebagai
-    // metadata dokumen pada spk_request_documents.
+    // Fallback hanya untuk data SPK lama yang belum memiliki payments.proof_path.
+    // Dokumen lama tersebut disimpan di bucket privat khusus dokumen SPK.
     if (!proofPath && detail.payment.spk_request_id) {
       const { data: proofDocument, error: documentError } = await supabase
         .from('spk_request_documents')
@@ -1502,16 +1506,45 @@ async function loadSelectedPaymentProof(paymentId?: number) {
 
       if (documentError) throw documentError
       proofPath = proofDocument?.file_path?.trim() || ''
+      if (proofPath) proofBucket = 'spk-client-private-documents'
     }
 
     proofFilePath.value = proofPath
-    proofSignedUrl.value = proofPath
-      ? await paymentService.getProofUrl(
+
+    if (!proofPath) {
+      proofSignedUrl.value = ''
+      throw new Error('Path bukti pembayaran tidak ditemukan pada data pembayaran maupun dokumen SPK.')
+    }
+
+    // Buat signed URL dari bucket yang sesuai dengan lokasi upload file.
+    // Jika data lama memakai bucket SPK, coba bucket legacy terlebih dahulu.
+    try {
+      proofSignedUrl.value = await paymentService.getProofUrl(
+        proofPath,
+        detail.payment.spk_request_id,
+        proofBucket,
+      )
+    } catch (primaryError) {
+      if (proofBucket !== 'payment-proofs' || !detail.payment.spk_request_id) {
+        throw primaryError
+      }
+
+      // Kompatibilitas untuk data lama yang proof_path-nya mungkin tersimpan
+      // di bucket dokumen SPK, bukan bucket pembayaran baru.
+      try {
+        proofSignedUrl.value = await paymentService.getProofUrl(
           proofPath,
           detail.payment.spk_request_id,
-          detail.payment.spk_request_id ? 'spk-client-private-documents' : undefined,
+          'spk-client-private-documents',
         )
-      : ''
+      } catch {
+        throw primaryError
+      }
+    }
+
+    if (!proofSignedUrl.value) {
+      throw new Error(`Bukti pembayaran ditemukan (${proofBucket}), tetapi URL akses tidak berhasil dibuat. Periksa Storage policy Admin.`)
+    }
   } catch (error) {
     proofError.value = error instanceof Error ? error.message : 'Gagal mengambil data bukti pembayaran.'
   } finally {

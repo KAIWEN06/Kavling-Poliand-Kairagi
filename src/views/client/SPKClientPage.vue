@@ -34,6 +34,8 @@ import {
   type AvailableBookingFeeReuse,
 } from '@/services/clientSpkService'
 import { lotService, type LotRecord } from '@/services/lotService'
+import { supabase } from '@/services/config/supabase'
+import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
 
 type DocumentKey = 'ktp' | 'kk' | 'npwp' | 'paymentProof'
 
@@ -46,7 +48,7 @@ const paymentPlans = ref<Awaited<ReturnType<typeof lotService.getLotInstallments
 const paymentPlansLoading = ref(false)
 const paymentPlansError = ref('')
 const paymentScheme = ref<'Cash' | 'Installment' | ''>('')
-const paymentMethod = ref<'' | 'Transfer Bank' | 'Tunai'>('')
+const paymentMethod = ref<'Transfer Bank'>('Transfer Bank')
 const selectedPlanId = ref<number | null>(null)
 const downPaymentInput = ref('')
 const downPaymentManual = ref(false)
@@ -136,19 +138,14 @@ const installmentEstimate = computed(() => {
   }
 })
 
-const transferAmount = computed(() => {
-  if (paymentScheme.value === 'Cash') return lotPrice.value
-  if (paymentScheme.value === 'Installment') return downPaymentAmount.value
-  return null
-})
+// Pembayaran saat pengajuan selalu Booking Fee, bukan harga penuh atau DP.
+const transferAmount = computed(() => DEFAULT_SPK_BOOKING_FEE)
 
-const showTransferAccount = computed(() => {
-  if (paymentMethod.value !== 'Transfer Bank') return false
-  if (paymentScheme.value === 'Cash') return lotPrice.value !== null
-  return paymentScheme.value === 'Installment'
-    && installmentEstimate.value !== null
-    && downPaymentAmount.value > 0
-})
+const showTransferAccount = computed(() =>
+  paymentScheme.value !== ''
+  && paymentMethod.value === 'Transfer Bank'
+  && !selectedReusePaymentId.value,
+)
 
 const lotPrice = computed(() => {
   if (!lot.value) return null
@@ -267,6 +264,20 @@ async function loadBuyerProfile() {
     form.whatsappPhone ||= firstText(metadata.whatsapp_phone, metadata.whatsapp)
     form.email ||= firstText(user.email)
     form.address ||= firstText(metadata.address)
+
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .select('full_name, phone, whatsapp_phone, email, address')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (customerError) throw customerError
+    if (customer) {
+      form.fullName = customer.full_name || form.fullName
+      form.phone = customer.phone || customer.whatsapp_phone || form.phone
+      form.whatsappPhone = customer.whatsapp_phone || customer.phone || ''
+      form.email = customer.email || user.email || ''
+      form.address = customer.address || ''
+    }
   } catch (error) {
     // Profile prefill is optional; missing metadata should leave fields editable and blank.
     console.warn('[SPK Client] Data profil pembeli tidak dapat dimuat untuk pengisian otomatis.', error)
@@ -326,6 +337,23 @@ async function copyBankAccount() {
   }
 }
 
+async function loadBookingFeesWithTimeout() {
+  let timeoutId: number | undefined
+  try {
+    return await Promise.race([
+      getAvailableClientSpkBookingFees(),
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(
+          () => reject(new Error('Pemeriksaan Booking Fee melewati batas waktu. Periksa koneksi lalu muat ulang halaman.')),
+          15000,
+        )
+      }),
+    ])
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+  }
+}
+
 async function loadAvailableBookingFees() {
   bookingFeesLoading.value = true
   bookingFeesError.value = ''
@@ -381,8 +409,8 @@ async function saveSpk() {
     return
   }
 
-  if (method !== 'Transfer Bank' && method !== 'Tunai') {
-    saveError.value = 'Pilih metode pembayaran yang valid.'
+  if (method !== 'Transfer Bank') {
+    saveError.value = 'Booking Fee saat ini hanya dapat dibayar melalui Transfer Bank.'
     return
   }
 
@@ -625,7 +653,7 @@ onMounted(() => {
               </span>
               <div>
                 <h2 id="payment-confirmation-title">Konfirmasi Pembayaran</h2>
-                <p>Pilih pembayaran penuh atau cicilan untuk kavling ini.</p>
+                <p>Pilih skema pembelian. Pembayaran saat pengajuan adalah Booking Fee.</p>
               </div>
             </div>
 
@@ -652,14 +680,10 @@ onMounted(() => {
               </div>
 
               <div class="spk-field spk-payment-method-field">
-                <label for="spk-method">Metode Pembayaran <span>*</span></label>
-                <div class="spk-input-wrap spk-select-wrap">
+                <label>Metode Pembayaran</label>
+                <div class="spk-input-wrap">
                   <ion-icon :icon="walletOutline" aria-hidden="true" />
-                  <select id="spk-method" v-model="paymentMethod">
-                    <option disabled value="">Pilih metode pembayaran</option>
-                    <option value="Transfer Bank">Transfer Bank</option>
-                    <option value="Tunai">Tunai</option>
-                  </select>
+                  <span>Transfer Bank</span>
                 </div>
               </div>
 
@@ -670,7 +694,7 @@ onMounted(() => {
               <div v-if="paymentScheme === 'Cash'" class="spk-payment-lot-card">
                 <div class="spk-payment-lot-title">
                   <strong>{{ lot?.lot_number }} · {{ formatCurrency(lotPrice) }}</strong>
-                  <span>Pembayaran penuh</span>
+                  <span>Pelunasan setelah SPK disetujui</span>
                 </div>
                 <div class="spk-payment-summary-line">
                   <span>Total harga kavling</span>
@@ -767,6 +791,8 @@ onMounted(() => {
                 </div>
 
                 <div v-if="installmentEstimate && selectedPlan" class="spk-installment-estimate">
+                  <span>Total DP</span>
+                  <strong>{{ formatCurrency(downPaymentAmount) }}</strong>
                   <span>Sisa harga setelah DP</span>
                   <strong>{{ formatCurrency(installmentEstimate.principal) }}</strong>
                   <span>Estimasi cicilan {{ selectedPlan.months }} bulan</span>
@@ -799,18 +825,15 @@ onMounted(() => {
                 </div>
 
                 <div class="spk-transfer-breakdown">
-                  <div v-if="paymentScheme === 'Installment' && installmentEstimate && selectedPlan">
-                    <span>Estimasi cicilan ({{ selectedPlan.months }} × {{ formatCurrency(installmentEstimate.monthlyPayment) }})</span>
-                    <strong>{{ formatCurrency(installmentEstimate.installmentTotal) }}</strong>
-                  </div>
                   <div>
-                    <span>{{ paymentScheme === 'Cash' ? 'Pembayaran penuh' : 'DP yang harus dibayar' }}</span>
+                    <span>Booking Fee (wajib saat pengajuan SPK)</span>
                     <strong>{{ formatCurrency(transferAmount) }}</strong>
                   </div>
                   <div class="spk-transfer-total">
-                    <span>Total Wajib Ditransfer</span>
+                    <span>Total Wajib Ditransfer Sekarang</span>
                     <strong>{{ formatCurrency(transferAmount) }}</strong>
                   </div>
+                  <small>Booking Fee terpisah dari DP. DP atau pelunasan dilakukan setelah SPK disetujui.</small>
                 </div>
               </section>
             </div>
@@ -883,7 +906,7 @@ onMounted(() => {
               </span>
               <div>
                 <h2 id="documents-title">Dokumen Pendukung</h2>
-                <p>KTP dan KK wajib. NPWP opsional. Bukti pembayaran wajib kecuali menggunakan Booking Fee sebelumnya.</p>
+                <p>KTP dan KK wajib. NPWP opsional. Bukti transfer Booking Fee wajib kecuali menggunakan Booking Fee sebelumnya.</p>
               </div>
             </div>
 

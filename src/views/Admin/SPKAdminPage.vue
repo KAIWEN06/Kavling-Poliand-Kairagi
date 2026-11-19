@@ -281,6 +281,7 @@
                   </select>
                 </label>
                 <div v-if="lotPaymentSummary(lot.id)" class="spk-payment-result">
+                  <div><span>Total DP</span><strong>{{ formatCurrency(dpAmounts[lot.id] || 0) }}</strong></div>
                   <div><span>Cicilan per bulan</span><strong>{{ formatCurrency(lotPaymentSummary(lot.id)!.monthly) }}</strong></div>
                   <div><span>Total cicilan</span><strong>{{ formatCurrency(lotPaymentSummary(lot.id)!.installments) }}</strong></div>
                   <div class="spk-total-row"><span>Total pembayaran SPK</span><strong>{{ formatCurrency(lotPaymentSummary(lot.id)!.total) }}</strong></div>

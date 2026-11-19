@@ -365,7 +365,7 @@ import {
   IonPage, IonContent, IonIcon, IonSpinner, IonToast, onIonViewWillEnter,
 } from '@ionic/vue'
 import {
-  alertCircleOutline, arrowBackOutline, expandOutline, syncOutline, createOutline,
+  alertCircleOutline, arrowBackOutline, expandOutline, imageOutline, syncOutline, createOutline,
   trashOutline, addOutline, settingsOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'

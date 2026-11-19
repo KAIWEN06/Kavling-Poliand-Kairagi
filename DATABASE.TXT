@@ -211,6 +211,8 @@ CREATE TABLE public.faqs (
   answer text NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
   CONSTRAINT faqs_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.customer_followups (
@@ -380,7 +382,7 @@ CREATE TABLE public.spk_requests (
   down_payment_snapshot numeric NOT NULL DEFAULT 0,
   total_payment_snapshot numeric,
   booking_fee_snapshot bigint NOT NULL DEFAULT 1000000 CHECK (booking_fee_snapshot > 0),
-  notary_status text NOT NULL DEFAULT 'Diproses'::text CHECK (notary_status = ANY (ARRAY['Diproses'::text, 'Proses Notaris'::text, 'Penandatanganan Notaris'::text, 'Selesai'::text])),
+  notary_status text NOT NULL DEFAULT 'Menunggu Diproses'::text CHECK (notary_status IS NULL OR (notary_status = ANY (ARRAY['Menunggu Diproses'::text, 'Diproses'::text, 'Proses Notaris'::text, 'Penandatanganan Notaris'::text, 'Selesai'::text]))),
   notary_note text,
   rejection_category text CHECK (rejection_category IS NULL OR (rejection_category = ANY (ARRAY['Administrative Error'::text, 'Buyer Cancellation'::text, 'Other'::text]))),
   down_payment_amount numeric NOT NULL DEFAULT 0,
@@ -494,4 +496,27 @@ CREATE TABLE public.spk_booking_fee_reuse_history (
   CONSTRAINT spk_booking_fee_reuse_history_from_spk_request_id_fkey FOREIGN KEY (from_spk_request_id) REFERENCES public.spk_requests(id),
   CONSTRAINT spk_booking_fee_reuse_history_to_spk_request_id_fkey FOREIGN KEY (to_spk_request_id) REFERENCES public.spk_requests(id),
   CONSTRAINT spk_booking_fee_reuse_history_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.home_hero (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL DEFAULT ''::text,
+  subtitle text NOT NULL DEFAULT ''::text,
+  description text NOT NULL DEFAULT ''::text,
+  image_url text,
+  cta_text text NOT NULL DEFAULT 'Hubungi Kami'::text,
+  cta_url text NOT NULL DEFAULT '/contact'::text,
+  is_active boolean NOT NULL DEFAULT true,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT home_hero_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.home_features (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  icon text NOT NULL DEFAULT 'leaf'::text,
+  title text NOT NULL,
+  description text NOT NULL,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT home_features_pkey PRIMARY KEY (id)
 );

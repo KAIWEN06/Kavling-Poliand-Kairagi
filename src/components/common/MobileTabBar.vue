@@ -94,7 +94,7 @@
     @click="goTo('/client/dokumen')"
   >
     <span class="icon-wrap"><ion-icon :icon="documentsOutline" /></span>
-    <span class="nav-label">Dokumen</span>
+    <span class="nav-label">SPK</span>
   </button>
 
   <button
