@@ -4,11 +4,12 @@ import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import type { ID } from '@/types/common'
 
-export type UserRole = 'owner' | 'admin' | 'marketing' | 'client'
+export type UserRole = 'owner' | 'admin' | 'marketing_head' | 'marketing' | 'client'
 
 const ROLE_HOME: Record<UserRole, string> = {
   owner: '/beranda-owner',
   admin: '/beranda-admin',
+  marketing_head: '/beranda-kepala-marketing',
   marketing: '/beranda-marketing',
   client: '/beranda-client',
 }
@@ -24,6 +25,7 @@ function normalizeRole(value: unknown): UserRole | null {
   if (
     role === 'owner' ||
     role === 'admin' ||
+    role === 'marketing_head' ||
     role === 'marketing' ||
     role === 'client'
   ) {

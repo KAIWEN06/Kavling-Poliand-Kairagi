@@ -190,7 +190,13 @@ import {
   settingsOutline, closeOutline 
 } from 'ionicons/icons'
 import { supabase } from '@/services/config/supabase'
-import { contactService, ContactItem } from '@/services/contactService'
+import { contactsService } from '@/services/contactService'
+
+type ContactItem = {
+  key: string
+  value: string
+  label?: string
+}
 
 const contacts = ref<ContactItem[]>([])
 const isAdmin = ref(false)
@@ -237,7 +243,7 @@ async function checkAdminRole() {
 const loadContacts = async () => {
   try {
     loading.value = true
-    contacts.value = await contactService.getContacts()
+    contacts.value = await contactsService.getAll()
   } catch (error) {
     console.error('Gagal mengambil data kontak:', error)
   } finally {
@@ -251,7 +257,7 @@ const addressText = computed(() => {
 })
 
 const phoneText = computed(() => {
-  const item = contacts.value.find(c => c.key === 'phone' || c.key === 'telepon')
+  const item = contacts.value.find((c: ContactItem) => c.key === 'phone' || c.key === 'telepon')
   return item?.value || 'Hubungi Kami'
 })
 
@@ -314,11 +320,15 @@ const handleSave = async () => {
     }
 
     for (const [key, value] of Object.entries(updatedData)) {
-      await contactService.upsertContact({
-        key,
-        label: labelMap[key] || key,
-        value: value || ''
-      })
+      const { error } = await supabase
+        .from('contacts')
+        .upsert({
+          key,
+          label: labelMap[key] || key,
+          value: value || ''
+        }, { onConflict: 'key' })
+
+      if (error) throw error
     }
 
     message.text = 'Informasi kontak berhasil diperbarui!'

@@ -21,7 +21,7 @@ export function calculateFinanceBalance(
     .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount ?? 0)), 0)
   const obligation = Math.max(0, Number(
     transaction.payment_type === 'Installment'
-      ? transaction.installment_total ?? transaction.final_price ?? transaction.principal_amount ?? 0
+      ? transaction.final_price ?? transaction.principal_amount ?? 0
       : transaction.final_price ?? transaction.principal_amount ?? 0,
   ))
   const remaining = Math.max(0, obligation - principalPaid)

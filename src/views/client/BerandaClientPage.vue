@@ -23,6 +23,8 @@ import {
 } from 'ionicons/icons'
 
 import { authService } from '@/services/auth/authService'
+import { lotService } from '@/services/lotService'
+import { surveyService, type ClientSurveyRequest } from '@/services/surveyService'
 import {
   getClientSpks,
   type ClientSpkDocumentKey,
@@ -35,6 +37,8 @@ const router = useRouter()
 const clientName = ref('Pembeli')
 const clientSpks = ref<ClientSpkRecord[]>([])
 const documentsLoaded = ref(false)
+const scheduledSurveyLots = ref<Array<{ id: number; lotNumber: string; scheduledAt: string; status: ClientSurveyRequest['status'] }>>([])
+const surveysLoaded = ref(false)
 
 const documentFields: Array<{ key: ClientSpkDocumentKey; label: string }> = [
   { key: 'ktp', label: 'KTP' },
@@ -87,12 +91,43 @@ async function loadClientName() {
   }
 }
 
+async function loadScheduledSurveys() {
+  try {
+    const [lots, requests] = await Promise.all([
+      lotService.getClientLots(),
+      surveyService.getClientRequests(),
+    ])
+    const lotNames = new Map(lots.map((lot) => [lot.id, lot.lot_number]))
+    scheduledSurveyLots.value = requests
+      .filter((request) => request.status === 'pending' || request.status === 'confirmed')
+      .map((request) => ({
+        id: request.lot_id,
+        lotNumber: lotNames.get(request.lot_id) ?? `Kavling #${request.lot_id}`,
+        scheduledAt: request.scheduled_at,
+        status: request.status,
+      }))
+      .filter((item, index, rows) => rows.findIndex((candidate) => candidate.id === item.id) === index)
+  } catch (error) {
+    console.error('[Beranda Client] Gagal memuat jadwal survei:', error)
+    scheduledSurveyLots.value = []
+  } finally {
+    surveysLoaded.value = true
+  }
+}
+
+function formatSurveyDate(value: string) {
+  return new Date(value).toLocaleString('id-ID', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
 onMounted(() => {
   void loadClientName()
 })
 
 onIonViewWillEnter(() => {
   void loadClientDocuments()
+  void loadScheduledSurveys()
 })
 
 async function logout() {
@@ -143,6 +178,25 @@ function goTo(path: string) {
             Lihat Kavling
             <ion-icon slot="end" :icon="chevronForward" />
           </ion-button>
+        </section>
+
+        <section v-if="surveysLoaded && scheduledSurveyLots.length" class="dashboard-card survey-reminder-card" aria-labelledby="survey-reminder-title">
+          <div class="section-heading">
+            <div class="heading-title">
+              <span class="heading-icon success-icon"><ion-icon :icon="calendarOutline" /></span>
+              <h2 id="survey-reminder-title">Jadwal Survei Kavling</h2>
+            </div>
+            <span class="survey-count">{{ scheduledSurveyLots.length }}</span>
+          </div>
+          <div class="survey-reminder-list">
+            <button v-for="survey in scheduledSurveyLots" :key="survey.id" type="button" class="survey-reminder-item" @click="goTo(`/client/kavling/${survey.id}`)">
+              <span>
+                <strong>{{ survey.lotNumber }}</strong>
+                <small>{{ formatSurveyDate(survey.scheduledAt) }}</small>
+              </span>
+              <span class="survey-status-label">{{ survey.status === 'confirmed' ? 'Dikonfirmasi' : 'Menunggu' }}</span>
+            </button>
+          </div>
         </section>
 
         <!-- Status pembelian -->
@@ -475,6 +529,58 @@ function goTo(path: string) {
   border-radius: var(--radius-panel, 20px);
   background: var(--surface-primary, #fff);
   box-shadow: 0 2px 4px rgb(37 37 37 / 5%);
+}
+
+.survey-reminder-card {
+  border-color: color-mix(in srgb, var(--poliland-green, #355a2c) 28%, var(--border-default, #eae7e0));
+}
+
+.survey-count,
+.survey-status-label {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--status-success-bg, #eef5ec);
+  color: var(--poliland-green, #355a2c);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.survey-reminder-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.survey-reminder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 12px;
+  background: var(--surface-muted, #f5f3ee);
+  color: var(--text-primary, #252525);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.survey-reminder-item:hover,
+.survey-reminder-item:focus-visible {
+  border-color: var(--poliland-green, #355a2c);
+}
+
+.survey-reminder-item > span:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.survey-reminder-item small {
+  color: var(--text-secondary, #63636a);
+  font-size: 11px;
 }
 
 .section-heading,

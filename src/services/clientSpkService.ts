@@ -44,6 +44,14 @@ export interface ClientSpkRecord {
   rejectionReason: string | null
   rejectionCategory: 'Administrative Error' | 'Buyer Cancellation' | 'Other' | null
   bookingFeeReuse: AvailableBookingFeeReuse | null
+  bookingFeeRefund: {
+    status: 'Pending Refund' | 'Refunded'
+    amount: number
+    proofPath: string | null
+    refundMethod: string | null
+    refundNote: string | null
+    refundedAt: string | null
+  } | null
   schedules: ClientInstallmentSchedule[]
   lot: {
     id: number
@@ -64,6 +72,10 @@ export interface ClientSpkRecord {
     downPaymentAmount: number | null
     tenorMonths: number | null
     monthlyPayment: number | null
+    bookingPaymentId: number | null
+    bookingPaymentStatus: 'Pending' | 'Confirmed' | 'Rejected' | 'Needs Reupload' | null
+    bookingPaymentReviewNote: string | null
+    bookingPaymentProofPath: string | null
   }
   documents: Partial<Record<ClientSpkDocumentKey, ClientSpkDocument>>
 }
@@ -514,6 +526,12 @@ function toClientRecord(
   row: SpkRequestRow,
   documents: Partial<Record<ClientSpkDocumentKey, ClientSpkDocument>>,
   schedules: ClientInstallmentSchedule[],
+  bookingPayment: {
+    id: number
+    status: 'Pending' | 'Confirmed' | 'Rejected' | 'Needs Reupload'
+    review_note: string | null
+    proof_path: string | null
+  } | null = null,
 ): ClientSpkRecord {
   const lot = getFirstRelation(row.lot)
 
@@ -540,6 +558,7 @@ function toClientRecord(
       row.rejection_reason?.trim() || row.admin_note?.trim() || null,
     rejectionCategory: row.rejection_category ?? null,
     bookingFeeReuse: null,
+    bookingFeeRefund: null,
     schedules,
 
     lot: {
@@ -575,6 +594,11 @@ function toClientRecord(
         row.monthly_payment === null
           ? null
           : Number(row.monthly_payment),
+
+      bookingPaymentId: bookingPayment?.id ?? null,
+      bookingPaymentStatus: bookingPayment?.status ?? null,
+      bookingPaymentReviewNote: bookingPayment?.review_note ?? null,
+      bookingPaymentProofPath: bookingPayment?.proof_path ?? null,
     },
 
     documents,
@@ -706,6 +730,73 @@ export async function getClientSpks(): Promise<ClientSpkRecord[]> {
     }
   }
 
+  const { data: bookingPaymentRows, error: bookingPaymentsError } = await supabase
+    .from('payments')
+    .select('id, spk_request_id, status, review_note, proof_path')
+    .in('spk_request_id', requestIds)
+    .eq('payment_category', 'Booking')
+    .order('created_at', { ascending: false })
+
+  if (bookingPaymentsError) throw bookingPaymentsError
+
+  const bookingPaymentByRequest = new Map<
+    number,
+    {
+      id: number
+      status: 'Pending' | 'Confirmed' | 'Rejected' | 'Needs Reupload'
+      review_note: string | null
+      proof_path: string | null
+    }
+  >()
+
+  for (const payment of bookingPaymentRows ?? []) {
+    const requestId = Number(payment.spk_request_id)
+    if (!requestId || bookingPaymentByRequest.has(requestId)) continue
+
+    bookingPaymentByRequest.set(requestId, {
+      id: Number(payment.id),
+      status: payment.status,
+      review_note: payment.review_note ?? null,
+      proof_path: payment.proof_path ?? null,
+    })
+  }
+
+  const { data: refundRows, error: refundError } = await supabase
+    .from('booking_fee_refunds')
+    .select('spk_request_id, status, amount, proof_path, refund_method, refund_note, refunded_at')
+    .in('spk_request_id', requestIds)
+
+  if (
+    refundError
+    && refundError.code !== '42P01'
+    && refundError.code !== 'PGRST205'
+  ) {
+    throw refundError
+  }
+
+  const refundByRequest = new Map<
+    number,
+    {
+      status: 'Pending Refund' | 'Refunded'
+      amount: number
+      proofPath: string | null
+      refundMethod: string | null
+      refundNote: string | null
+      refundedAt: string | null
+    }
+  >()
+
+  for (const refund of refundRows ?? []) {
+    refundByRequest.set(Number(refund.spk_request_id), {
+      status: refund.status,
+      amount: Number(refund.amount),
+      proofPath: refund.proof_path ?? null,
+      refundMethod: refund.refund_method ?? null,
+      refundNote: refund.refund_note ?? null,
+      refundedAt: refund.refunded_at ?? null,
+    })
+  }
+
   return requests.map((request) => ({
     ...toClientRecord(
       request,
@@ -713,8 +804,10 @@ export async function getClientSpks(): Promise<ClientSpkRecord[]> {
       request.transaction_id
         ? schedulesByTransaction.get(request.transaction_id) ?? []
         : [],
+      bookingPaymentByRequest.get(request.id) ?? null,
     ),
     bookingFeeReuse: reuseBySourceSpk.get(request.id) ?? null,
+    bookingFeeRefund: refundByRequest.get(request.id) ?? null,
   }))
 }
 

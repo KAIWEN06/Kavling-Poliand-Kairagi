@@ -26,6 +26,16 @@ export interface SPKBookingPaymentSummary {
   }>
 }
 
+export interface SPKBookingFeeRefund {
+  status: 'Pending Refund' | 'Refunded'
+  amount: number
+  proofPath: string | null
+  refundMethod: string | null
+  refundNote: string | null
+  bankReference: string | null
+  refundedAt: string | null
+}
+
 export interface SPKDocument {
   id: number
   spk_request_id: number
@@ -76,6 +86,7 @@ export interface AdminSPKRequest {
   lot_status?: string | null
   documents: SPKDocument[]
   booking_payment: SPKBookingPaymentSummary
+  booking_fee_refund: SPKBookingFeeRefund | null
 }
 
 export interface SPKAdminStats {
@@ -177,7 +188,7 @@ export async function getAdminSPKRequests(): Promise<AdminSPKRequest[]> {
   const lotIds = [...new Set(rows.map((row: any) => Number(row.lot_id)).filter(Number.isFinite))] as number[]
   const requestIds = rows.map((row: any) => Number(row.id))
 
-  const [profilesResult, lotsResult, documentsResult, bookingPaymentsResult] = await Promise.all([
+  const [profilesResult, lotsResult, documentsResult, bookingPaymentsResult, refundsResult] = await Promise.all([
     marketingIds.length
       ? supabase.from('profiles').select('id, full_name').in('id', marketingIds)
       : Promise.resolve({ data: [], error: null } as any),
@@ -190,12 +201,23 @@ export async function getAdminSPKRequests(): Promise<AdminSPKRequest[]> {
       .in('spk_request_id', requestIds)
       .eq('payment_category', 'Booking')
       .order('created_at', { ascending: false }),
+    supabase
+      .from('booking_fee_refunds')
+      .select('spk_request_id, status, amount, proof_path, refund_method, refund_note, bank_reference, refunded_at')
+      .in('spk_request_id', requestIds),
   ])
 
   throwIfError(profilesResult.error)
   throwIfError(lotsResult.error)
   throwIfError(documentsResult.error)
   throwIfError(bookingPaymentsResult.error)
+  if (
+    refundsResult.error
+    && refundsResult.error.code !== '42P01'
+    && refundsResult.error.code !== 'PGRST205'
+  ) {
+    throwIfError(refundsResult.error)
+  }
 
   const profileMap = new Map<string, string | null>(
     (profilesResult.data || []).map((profile: any) => [profile.id, profile.full_name ?? null]),
@@ -265,6 +287,19 @@ export async function getAdminSPKRequests(): Promise<AdminSPKRequest[]> {
     }
   }
 
+  const refundMap = new Map<number, SPKBookingFeeRefund>()
+  for (const refund of refundsResult.data || []) {
+    refundMap.set(Number(refund.spk_request_id), {
+      status: refund.status,
+      amount: Number(refund.amount),
+      proofPath: refund.proof_path ?? null,
+      refundMethod: refund.refund_method ?? null,
+      refundNote: refund.refund_note ?? null,
+      bankReference: refund.bank_reference ?? null,
+      refundedAt: refund.refunded_at ?? null,
+    })
+  }
+
   return rows.map((row: any) => {
     const lot = lotMap.get(Number(row.lot_id))
     const source = normalizeSource(row)
@@ -303,6 +338,7 @@ export async function getAdminSPKRequests(): Promise<AdminSPKRequest[]> {
         requiredAmount: Number(row.booking_fee_snapshot ?? DEFAULT_SPK_BOOKING_FEE),
         isSatisfied: (bookingPaymentMap.get(requestId)?.confirmedAmount || 0) >= Number(row.booking_fee_snapshot ?? DEFAULT_SPK_BOOKING_FEE),
       },
+      booking_fee_refund: refundMap.get(requestId) ?? null,
     } as AdminSPKRequest
   })
 }
@@ -632,6 +668,55 @@ export async function rejectSPKRequest(
     p_request_id: requestId,
     p_rejection_reason: trimmedReason,
     p_rejection_category: category,
+  })
+  throwIfError(error)
+}
+
+export async function uploadBookingFeeRefundProof(
+  spkRequestId: number,
+  file: File,
+): Promise<string> {
+  if (!Number.isInteger(spkRequestId) || spkRequestId <= 0) {
+    throw new Error('ID SPK tidak valid.')
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('Ukuran bukti pengembalian maksimal 5 MB.')
+  }
+  if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+    throw new Error('Format bukti pengembalian harus JPG, PNG, WEBP, atau PDF.')
+  }
+
+  const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const safeExtension = /^[a-z0-9]{2,5}$/.test(extension) ? extension : 'jpg'
+  const path = `refund/${spkRequestId}/${Date.now()}-${crypto.randomUUID()}.${safeExtension}`
+
+  const { error } = await supabase.storage
+    .from('payment-proofs')
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type,
+    })
+
+  throwIfError(error)
+  return path
+}
+
+export async function recordBookingFeeRefund(
+  paymentId: number,
+  proofPath: string,
+  refundMethod: string,
+  refundNote: string,
+  bankReference: string | null,
+  refundedAt: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('record_booking_fee_refund', {
+    p_payment_id: paymentId,
+    p_proof_path: proofPath,
+    p_refund_method: refundMethod,
+    p_refund_note: refundNote,
+    p_bank_reference: bankReference,
+    p_refunded_at: refundedAt,
   })
   throwIfError(error)
 }

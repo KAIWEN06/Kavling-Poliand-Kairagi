@@ -38,6 +38,53 @@ export interface TransactionPayment {
   payment_category: string;
 }
 
+export interface LatePenaltyCalculation {
+  lateDays: number;
+  dailyPenalty: number;
+  maximumPenalty: number;
+  amount: number;
+  defaultReviewRequired: boolean;
+}
+
+const PENALTY_PER_DAY = 20_000;
+const MAXIMUM_PENALTY = 1_800_000;
+const DEFAULT_REVIEW_DAYS = 90;
+
+/**
+ * Menghitung estimasi denda per tagihan memakai tanggal kalender YYYY-MM-DD.
+ * Tanggal bayar yang diberikan harus sudah divalidasi terhadap mutasi bank.
+ * Denda dimulai H+1, jadi pembayaran pada tanggal jatuh tempo tidak didenda.
+ */
+export function calculateLatePenalty(
+  dueDate: string,
+  validatedTransferDate: string,
+): LatePenaltyCalculation {
+  const due = parseCalendarDate(dueDate, 'Tanggal jatuh tempo');
+  const transfer = parseCalendarDate(validatedTransferDate, 'Tanggal transfer');
+  const lateDays = Math.max(0, Math.floor((transfer - due) / 86_400_000));
+
+  return {
+    lateDays,
+    dailyPenalty: PENALTY_PER_DAY,
+    maximumPenalty: MAXIMUM_PENALTY,
+    amount: Math.min(lateDays * PENALTY_PER_DAY, MAXIMUM_PENALTY),
+    defaultReviewRequired: lateDays >= DEFAULT_REVIEW_DAYS,
+  };
+}
+
+function parseCalendarDate(value: string, label: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`${label} harus berformat YYYY-MM-DD.`);
+  }
+
+  const timestamp = Date.parse(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== value) {
+    throw new Error(`${label} tidak valid.`);
+  }
+
+  return timestamp;
+}
+
 function toNonNegativeInteger(value: number, label: string): number {
   if (!Number.isFinite(value) || value < 0) {
     throw new Error(`${label} harus berupa angka valid dan tidak boleh negatif.`);

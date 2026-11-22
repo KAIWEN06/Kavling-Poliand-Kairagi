@@ -1,14 +1,290 @@
+# PoliLand Kairagi — Design System & Implementation Specification
+
+Dokumen terpadu ini menggabungkan dua dokumen sumber:
+
+1. **Design System** — prinsip desain, arah visual, token, ergonomi, komponen, dan standar UX.
+2. **Implementation Specification** — kondisi implementasi yang tercatat, API komponen, aturan migrasi, temuan audit, dan persyaratan integritas data.
+
+> **Catatan penggunaan:** Jika terdapat perbedaan antara rekomendasi desain dan kondisi implementasi aktual, keduanya dipertahankan sesuai konteksnya. Bagian Design System menjelaskan standar/pedoman desain, sedangkan bagian Implementation Specification menjelaskan kondisi dan kontrak implementasi yang tercatat. Jangan menganggap rekomendasi sebagai fitur yang sudah diterapkan.
+
+---
+
+# BAGIAN I — DESIGN SYSTEM
+
 # PoliLand Kairagi Design System
 
 ## 1. Project Overview
 
-PoliLand Mobile is a Vue 3 and Ionic Vue application built with TypeScript, Tailwind CSS 4, Supabase, and Capacitor. The application serves five role contexts:
+**PoliLand Mobile** adalah aplikasi properti dan manajemen kavling berbasis Vue 3 dan Ionic Vue (TypeScript, Tailwind CSS 4, Supabase, Capacitor) untuk kawasan **PoliLand Kairagi**. Aplikasi ini melayani enam konteks peran pengguna (_role_):
 
-- Public
-- Client
-- Marketing
-- Admin
-- Supervisor
+| Role          | Tanggung jawab utama                              |
+| ------------- | ------------------------------------------------- |
+| Public        | Melihat informasi proyek                          |
+| Client        | Memantau pembelian dan pembayaran                 |
+| Marketing     | Mengelola prospek dan calon pembeli               |
+| Admin         | Mengelola data operasional                        |
+| Kepala Bagian | Mengawasi operasional dan tim                     |
+| Owner         | Memantau bisnis dan mengambil keputusan strategis |
+
+Fondasi desain ini memastikan antarmuka terasa **rapi, modern, hangat (Modern-Natural), ergonomis di layar ponsel, dan tidak monoton**, sekaligus menjaga konsistensi teknis di seluruh komponen.
+
+---
+
+## 2. Core Design Principles & Laws of UX
+
+1. **Hirarki Visual & Whitespace Lega**: Gunakan kontras ukuran, ketebalan huruf, dan posisi untuk mengarahkan fokus mata ke aksi utama (CTA). Berikan ruang kosong (_whitespace_) yang cukup agar layar tidak terasa penuh.
+2. **Progressive Disclosure (Keringkasan Informasi)**: Tampilkan hanya metrik atau informasi terpenting di layar utama. Sembunyikan detail teknis (spesifikasi luas, rincian harga, riwayat perubahan) di balik tab, _accordion_, atau `AppModal` (`bottom-sheet`) untuk menekan _cognitive load_.
+3. **Variasi Layout Anti-Monoton**: Kombinasikan kartu ringkasan (_Bento Grid_ untuk statistik), _horizontal scroll_ (untuk kategori/galeri/filter cepat), dan daftar vertikal (_vertical list_) secara berirama agar halaman terasa dinamis namun tetap terstruktur.
+4. **Laws of UX**:
+   - **Hick’s Law**: Batasi maksimal 1 aksi primer (_Primary CTA_) per layar/kartu dan maksimal 5 item pada navigasi bawah (`MobileTabBar`) untuk mempercepat pengambilan keputusan.
+   - **Miller’s Law (Chunking)**: Kelompokkan informasi panjang (seperti rincian harga tunai, promo, luas, dan status kavling) ke dalam blok-blok kecil berisi 3–4 item informasi per kelompok.
+   - **Jakob’s Law**: Gunakan pola navigasi mobile standar iOS/Android (_bottom tab bar_, _pull-to-refresh_, _swipe_ galeri, _bottom sheet_) agar pengguna langsung paham tanpa kurva belajar baru.
+5. **Single Source of Truth**: Gunakan token semantik sebelum nilai _hardcoded_, dan jaga sinkronisasi antara Ionic CSS variables, Tailwind CSS 4, dan CSS aplikasi.
+
+### 2.1 Bahasa, Terminologi UI & Microcopy Humanis
+
+- Gunakan **Bahasa Indonesia** yang konsisten, ramah, jelas, dan berorientasi solusi.
+- Hindari istilah bahasa Inggris jika padanan Indonesia yang alami tersedia (kecuali nama field database, properti TypeScript, dan API internal).
+- **Terminologi Baku**:
+  - Gunakan **"Disematkan"** untuk status/filter catatan di bagian atas.
+  - Gunakan **"Sematkan"** untuk memasang catatan dan **"Lepas sematan"** untuk membatalkannya.
+- **Microcopy & Pencegahan Error**:
+  - Label tombol harus spesifik menggambarkan aksi (misal: _"Simpan Perubahan"_, _"Jadwalkan Survei"_, bukan sekadar _"OK"_ atau _"Submit"_).
+  - Pesan error wajib menjelaskan penyebab dan solusi perbaikan (misal: _"Nomor WhatsApp belum lengkap, masukkan minimal 10 digit angka"_).
+  - Aksi destruktif (hapus kavling/data) wajib melewati dialog konfirmasi eksplisit.
+- **Bebas Dark Patterns**: Semua informasi harga (tunai vs promo), status ketersediaan kavling, persetujuan syarat, dan opsi pembatalan ditampilkan secara jujur, transparan, dan mudah diakses tanpa trik manipulatif.
+
+---
+
+## 3. Visual Direction & Color System (Aturan 60-30-10)
+
+Arah visual PoliLand adalah **Modern-Natural** yang memadukan ketenangan hijau alam dengan aksen emas hangat di atas permukaan netral.
+
+### 3.1 Proporsi Warna 60-30-10
+
+- **60% Warna Dominan (Netral/Permukaan)**: Latar belakang hangat (`#FAF9F6` di Light Mode) dan permukaan kartu bersih (`#FFFFFF`) untuk kenyamanan baca jangka panjang.
+- **30% Warna Sekunder (Permukaan Lembut & Struktur)**: Permukaan sekunder (`#F5F3EE`), garis batas halus (`#EAE7E0`), dan teks sekunder (`#717178`) untuk membedakan hierarki kartu dan bento grid.
+- **10% Warna Aksen Tegas (Brand & CTA)**: Hijau PoliLand (`#355A2C`) untuk tombol aksi utama dan indikator aktif, serta Emas PoliLand (`#CBA044`) sebagai aksen visual/lencana (_badge_).
+
+### 3.2 Brand & Semantic Tokens (Light & Dark Mode)
+
+| Kategori            | Token                  | Light Mode | Dark Mode (Rekomendasi) | Penggunaan Utama                        |
+| :------------------ | :--------------------- | :--------- | :---------------------- | :-------------------------------------- |
+| **Brand Primary**   | `--poliland-green`     | `#355A2C`  | `#5C8D4E`               | Tombol utama (CTA), ikon aktif, fokus   |
+| **Brand Accent**    | `--poliland-gold`      | `#CBA044`  | `#DFB863`               | Aksen grafis, highlight promo, lencana  |
+| **Gold Soft**       | `--poliland-gold-soft` | `#F4D69A`  | `#3D3118`               | Latar lembut sorotan/badge              |
+| **Gold Text**       | `--poliland-gold-text` | `#966A12`  | `#F4D69A`               | Teks aksen emas (lolos kontras WCAG AA) |
+| **App Background**  | `--app-background`     | `#FAF9F6`  | `#121412`               | Latar belakang utama halaman            |
+| **Surface Primary** | `--surface-primary`    | `#FFFFFF`  | `#1C1F1C`               | Kartu utama, modal, bottom sheet        |
+| **Surface Muted**   | `--surface-muted`      | `#F5F3EE`  | `#262A26`               | Input field, kartu sekunder, bento tile |
+| **Text Primary**    | `--text-primary`       | `#252525`  | `#F3F4F2`               | Judul dan teks utama                    |
+| **Text Secondary**  | `--text-secondary`     | `#63636A`  | `#A3A6A0`               | Subjudul, metadata, placeholder         |
+| **Border Default**  | `--border-default`     | `#EAE7E0`  | `#323732`               | Garis pemisah dan tepi kartu            |
+| **Status Success**  | `--status-success`     | `#355A2C`  | `#5C8D4E`               | Status tersedia, berhasil disimpan      |
+| **Status Warning**  | `--status-warning`     | `#966A12`  | `#E5B95C`               | Status _booking_ / menunggu konfirmasi  |
+| **Status Danger**   | `--status-danger`      | `#D94B45`  | `#F06A65`               | Status terjual, error validasi, hapus   |
+
+> **Aturan Kontras & Warna**:
+>
+> - Teks normal wajib memenuhi rasio kontras minimal **4.5:1** (WCAG AA), dan teks besar/ikon interaktif minimal **3:1**.
+> - Jangan gunakan `--poliland-gold` (`#CBA044`) secara langsung untuk teks kecil di atas latar terang; gunakan `--poliland-gold-text` (`#966A12`).
+> - Status (Tersedia, Booking, Terjual, Error) **tidak boleh hanya mengandalkan warna**—wajib disertai teks label atau ikon pendukung.
+
+---
+
+## 4. Typography
+
+Jenis huruf utama adalah **Plus Jakarta Sans** (`--font-primary`, `--font-sans`, `--ion-font-family`) yang dirancang untuk keterbacaan optimal di layar ponsel.
+
+### Skala Tipografi Mobile
+
+| Peran Teks          | Ukuran        | Line-Height | Weight        | Penggunaan                                         |
+| :------------------ | :------------ | :---------- | :------------ | :------------------------------------------------- |
+| **Display / Hero**  | `24px – 28px` | `1.25`      | `700` / `800` | Judul halaman utama, ringkasan harga/metrik utama  |
+| **Section Title**   | `18px – 20px` | `1.35`      | `700`         | Judul bagian (_section_), judul modal/bottom-sheet |
+| **Card Title**      | `16px`        | `1.4`       | `600`         | Nomor kavling, nama pelanggan, judul kartu         |
+| **Body Primary**    | `14px – 16px` | `1.5`       | `400` / `500` | Paragraf deskripsi, isi formulir, catatan          |
+| **Caption / Label** | `12px – 13px` | `1.4`       | `500` / `600` | Label navigasi bawah, _badge_ status, timestamp    |
+
+---
+
+## 5. Spatial System (8pt Grid), Radius & Elevation
+
+### 5.1 Sistem Grid 8pt & Responsivitas
+
+Seluruh jarak (_margin_, _padding_, dan _gap_) menggunakan kelipatan **8px** (dengan mikro-spasi `4px` hanya untuk elemen rapat seperti ikon-ke-teks):
+
+| Token Spasi | Nilai  | Penggunaan Umum                                                |
+| :---------- | :----- | :------------------------------------------------------------- |
+| `--space-1` | `4px`  | Jarak ikon dengan label kecil, jarak elemen internal badge     |
+| `--space-2` | `8px`  | Jarak antar-elemen rapat dalam satu baris/chip                 |
+| `--space-3` | `12px` | Padding internal input, jarak antar-item daftar padat          |
+| `--space-4` | `16px` | Padding standar kartu, margin horizontal layar mobile (`16px`) |
+| `--space-6` | `24px` | Jarak antar-section utama di dalam halaman                     |
+| `--space-8` | `32px` | Ruang kosong pemisah blok besar / header ke konten             |
+
+- **Rentang Layar Responsif**: Tata letak diuji dan dijamin aman mulai dari layar kecil (**320px – 375px**, misal iPhone SE/Mini) hingga layar besar (**430px+**, misal Pro Max/Ultra).
+- **Safe Area Insets**: Wajib memperhitungkan `env(safe-area-inset-top)` untuk _notch/status bar_ dan `env(safe-area-inset-bottom)` untuk _home indicator_ serta `MobileTabBar`.
+
+### 5.2 Border Radius
+
+| Token              | Nilai  | Penggunaan                                                  |
+| :----------------- | :----- | :---------------------------------------------------------- |
+| `--radius-control` | `12px` | Tombol (`AppButton`), kolom input (`AppInput`), chip filter |
+| `--radius-card`    | `16px` | Kartu kavling, kartu statistik bento, kartu kontak          |
+| `--radius-panel`   | `20px` | Sudut atas `bottom-sheet` dan panel modal utama             |
+
+### 5.3 Elevation & Shadow System
+
+Bayangan digunakan secara halus untuk membedakan lapisan permukaan tanpa membuat tampilan berat:
+
+| Token         | Nilai                                | Penggunaan                                                 |
+| :------------ | :----------------------------------- | :--------------------------------------------------------- |
+| `--shadow-sm` | `0 2px 8px rgba(37, 37, 37, 0.04)`   | Kartu standar di atas `--app-background`                   |
+| `--shadow-md` | `0 8px 24px rgba(37, 37, 37, 0.08)`  | Kartu interaktif aktif, _floating action_, header melayang |
+| `--shadow-lg` | `0 -8px 32px rgba(37, 37, 37, 0.14)` | `AppModal` (`bottom-sheet`) dan dialog                     |
+
+---
+
+## 6. Mobile Ergonomics & Micro-Interactions
+
+1. **Thumb-Friendly Zone**:
+   - Navigasi utama (`MobileTabBar`) dan tombol aksi primer formulir ditempatkan di sepertiga bawah layar agar mudah dijangkau ibu jari satu tangan.
+   - Area atas (`AppHeader`) difokuskan untuk judul halaman, tombol kembali, dan indikator notifikasi.
+2. **Touch Target Minimal 44×44px**:
+   - Seluruh elemen interaktif (tombol, ikon header, item tab bar, tombol tutup modal, chip filter) wajib memiliki area sentuh minimal **44 × 44px** dengan jarak aman minimal **8px** antar-elemen klik agar tidak terjadi salah tekan (_mis-tap_).
+3. **Umpan Balik Instan & Skeleton Loading**:
+   - **Tactile Feedback**: Setiap penekanan tombol memberikan umpan balik visual instan (perubahan skala halus `scale(0.98)` / efek _ripple_ dan perubahan warna state).
+   - **Skeleton Screen**: Saat memuat data dari Supabase (daftar kavling, profil, riwayat), tampilkan kerangka _skeleton loading_ yang menyerupai bentuk kartu asli, **bukan** layar kosong atau sekadar _spinner_ di tengah layar.
+   - **Transisi Halus**: Gunakan durasi animasi `150ms–250ms` (_ease-out_) untuk _bottom sheet_ dan transisi tab, serta patuhi preferensi sistem `prefers-reduced-motion`.
+
+---
+
+## 7. User Flow, Edge Cases & Peak-End Rule
+
+### 7.1 Onboarding, Empty State & Permissions
+
+- **Onboarding Singkat & Skippable**: Untuk pengguna baru (terutama peran _Public_ dan _Marketing_), tampilkan maksimal 3 layar pengenalan fitur utama dengan tombol **"Lewati"** yang selalu terlihat jelas.
+- **Empty State yang Membantu**: Jika daftar kavling, pencarian, atau catatan masih kosong, tampilkan ilustrasi ramah, penjelasan singkat (misal: _"Belum ada kavling yang sesuai filter Anda"_), dan tombol aksi pertama (misal: _"Reset Filter"_ atau _"Tambah Kavling"_).
+- **Izin Akses Bertahap (Contextual Permissions)**: Jangan meminta izin lokasi, kamera, atau penyimpanan sekaligus saat aplikasi pertama dibuka. Minta izin hanya saat pengguna menekan fitur terkait (misal: izin kamera/galeri saat Admin mengunggah foto panorama 360°).
+
+### 7.2 Penanganan Edge Cases Mobile
+
+- **Kondisi Offline / Koneksi Lambat**: Tampilkan banner informasi non-intrusif di bagian atas saat perangkat kehilangan koneksi internet, pertahankan data terakhir yang tersimpan di cache lokal bila tersedia, dan nonaktifkan tombol mutasi data dengan keterangan jelas.
+- **Teks & Nama Panjang**: Nama pelanggan, catatan alamat, atau nomor kavling yang panjang wajib ditangani dengan `text-overflow: ellipsis` (1 baris) atau `line-clamp: 2` pada kartu, tanpa merusak tata letak atau mendorong tombol keluar layar.
+- **Keyboard Virtual Mobile**: Saat kolom input di dalam `AppModal` aktif, pastikan kontainer dapat digulir (_scrollable_) sehingga tombol simpan tidak tertutup keyboard ponsel.
+
+### 7.3 Peak-End Rule (Momen Apresiasi)
+
+Berikan umpan balik visual yang menyenangkan dan meyakinkan saat pengguna menyelesaikan alur utama yang bernilai tinggi:
+
+- Saat pengguna publik berhasil mengirim permintaan survei/konsultasi atau Admin menyelesaikan transaksi penjualan kavling, tampilkan kartu/modal konfirmasi sukses dengan animasi centang halus, ringkasan langkah berikutnya, dan opsi aksi lanjutan yang jelas.
+
+---
+
+## 8. Shared Components Architecture
+
+Komponen bersama terletak di `src/components/ui/` dan wajib digunakan di seluruh halaman agar konsisten.
+
+### 8.1 `AppButton`
+
+Membungkus `ion-button` dengan dukungan prop semantik `variant` (`primary | secondary | success | danger | neutral`), `fill` (`solid | outline | clear`), `size` (`small | medium | large`), `expand`, dan `loading`.
+
+- Tinggi minimal: `small` = `44px`, `medium` = `44px`, `large` = `48px` (menjamin _touch target_ ergonomis).
+- Saat `loading="true"`, tampilkan spinner, pertahankan teks tombol, kunci klik ganda, dan atur `aria-busy="true"`.
+
+### 8.2 `AppInput`
+
+Komponen input standar untuk teks, email, telepon, dan kata sandi.
+
+- Menggunakan `--radius-control` (`12px`), tinggi area sentuh minimal `44px`, dan label eksplisit yang terhubung melalui `inputId`.
+- Mendukung `errorMessage` yang otomatis menampilkan pesan merah (`--status-danger`) dengan `role="alert"` dan `aria-invalid="true"`.
+
+### 8.3 `AppHeader` & `MobileTabBar`
+
+- **`AppHeader`**: Mendukung varian `default`, `marketing`, dan `admin`. Tombol aksi (kembali, notifikasi) wajib berukuran minimal `44 × 44px`.
+- **`MobileTabBar`**:
+  - **Public**: Beranda, Siteplan, Progres, Galeri, Kontak.
+  - **Marketing**: Beranda, Kavling, Prospek, Follow-up, Lainnya.
+  - **Admin**: Beranda, Kavling, Pembeli, Keuangan, Lainnya.
+  - Indikator tab aktif memadukan warna `--poliland-green`, latar ikon lembut, dan ketebalan teks `600` (tidak hanya mengandalkan animasi).
+
+### 8.4 `AppModal` & `AppFormSheet`
+
+`src/components/ui/AppModal.vue` adalah fondasi modal bersama (menggunakan Vue fixed overlay, bukan `ion-modal`):
+
+- **`bottom-sheet`**: Standar untuk formulir tambah/edit/ubah data (_AppFormSheet_) dan filter lanjutan. Di mobile menempel di bawah layar dengan sudut atas `--radius-panel` (`20px`) dan area aman `env(safe-area-inset-bottom)`. Di desktop tampil terpusat dengan `max-width: 560px`.
+- **`dialog`**: Untuk konfirmasi singkat dan pencegahan error sebelum aksi berisiko (misal: konfirmasi hapus data).
+- **`fullscreen`**: Untuk tampilan imersif seperti penampil Siteplan interaktif atau Panorama 360°.
+- **Aksesibilitas Modal**: Mengunci _scroll_ latar belakang, memindahkan dan menjebak fokus (_focus trap_) di dalam dialog, mendukung tombol `Escape`, serta mencegah penutupan tidak sengaja saat `loading="true"`.
+
+---
+
+## 9. Role-Specific UI & Page Implementation Rules
+
+- Keenam peran (_Public, Client, Marketing, Admin, Kepala Bagian, Owner_) berbagi tipografi, token warna, sistem grid 8pt, standar aksesibilitas, dan API komponen bersama.
+- Struktur menu, kepadatan informasi (_information density_), dan alur kerja tetap dibedakan sesuai tanggung jawab masing-masing peran.
+- **Owner** berfokus pada pemantauan tingkat perusahaan: ringkasan penjualan, pendapatan, pembayaran, komisi, performa marketing, perkembangan proyek, dan laporan. Akses utamanya bersifat pemantauan dan pengambilan keputusan strategis; hak mutasi data operasional diberikan hanya jika memang dibutuhkan dan disetujui.
+- **Kepala Bagian** berfokus pada pengawasan operasional harian: memantau pekerjaan Admin dan Marketing, meninjau calon client, memantau transaksi dan pembayaran, mengevaluasi performa tim, serta melakukan persetujuan operasional sesuai kewenangannya.
+- **Admin** berfokus pada pelaksanaan dan pengelolaan data operasional sesuai hak akses yang diberikan.
+- **ContactPage (`ContactPage.vue`)**: Mengambil data terverifikasi dari tabel `contacts` di Supabase (`whatsapp`, `phone`, `email`, `address`, `maps_url`, dan tautan media sosial HTTP/HTTPS). Jangan menampilkan nilai placeholder atau tombol lokasi mati jika data belum tersedia di database.
+- **Legacy Tokens**: Pertahankan alias lama (`--pl-charcoal`, `--pl-gray`, `--pl-background`, `--pl-surface`, `--pl-success`) hingga seluruh referensi selesai dimigrasi.
+
+---
+
+## 10. Data Integrity & Activity Audit Rules
+
+Setiap mutasi data yang berhasil pada entitas yang diaudit wajib tercatat secara akurat dan transparan.
+
+### 10.1 Lot Activity Audit (`public.lot_activity_logs`)
+
+- Setiap operasi **INSERT**, **UPDATE**, dan **DELETE** pada tabel `public.lots` wajib dicatat secara otomatis melalui **PostgreSQL Triggers** dalam transaksi database yang sama (_atomic_).
+- **INSERT**: Mencatat aksi `INSERT`, `auth.uid()`, `lot_id`, `lot_number`, dan seluruh data baru di `new_value`.
+- **UPDATE**: Mendeteksi perubahan aktual per kolom menggunakan `IS DISTINCT FROM` untuk kolom yang dipantau (`lot_number`, `polygon_id`, `block_id`, `dimension`, `area`, `cash_price`, `promo_price`, `status`, `payment_type`, `customer_id`, `booking_date`, `sold_date`, `color`, `description`, `panorama_url`, `panorama_boundary`). Abaikan kolom yang nilainya tidak berubah.
+- **DELETE**: Menyimpan seluruh data terakhir di `old_value` dan informasi kavling di `metadata`. Gunakan `ON DELETE SET NULL` pada `lot_id` agar riwayat audit tetap utuh meskipun kavling dihapus.
+
+### 10.2 Atribusi Pengguna & Pemisahan Riwayat Transaksi
+
+- Gunakan `auth.uid()` dari Supabase Auth sebagai sumber kebenaran aktor (`user_id`), jangan pernah menerima ID aktor dari payload frontend.
+- Peristiwa transaksi (pembuatan/pembatalan booking, pembayaran cicilan, pelunasan) dicatat pada riwayat transaksi masing-masing dan tidak boleh diduplikasi sebagai perubahan data administratif biasa di `Riwayat Perubahan`.
+
+### 10.3 Audit Panorama 360° & Storage
+
+- Operasi unggah, penggantian, penghapusan, dan perubahan batas (_boundary_) panorama 360° wajib menggunakan path unik di Supabase Storage, memperbarui `lots.panorama_url` secara konsisten, dan mencatat referensi lama serta baru. Jangan menghapus file lama sebelum pembaruan database berhasil.
+
+### 10.4 Tampilan Riwayat Perubahan & Perlindungan Data
+
+- Halaman detail kavling Admin menampilkan tab **`Riwayat Perubahan`** yang diurutkan dari terbaru (`created_at DESC`) dengan bahasa manusiawi (contoh: _"Harga tunai diubah dari Rp250.000.000 menjadi Rp275.000.000"_), tanpa menampilkan JSON mentah atau nama kolom internal.
+- Tabel audit bersifat _append-only_ (tidak dapat diubah atau dihapus melalui aplikasi) dan dilindungi oleh Supabase Row Level Security (RLS).
+
+---
+
+## 11. Verification Checklist Before Release
+
+Sebelum menyelesaikan pembaruan UI/UX maupun fitur data:
+
+1. **Responsivitas & Ergonomi**: Uji tampilan pada lebar **375px** dan **430px**, pastikan tidak ada _horizontal overflow_, tombol minimal **44×44px**, dan _safe area_ bawah tidak menutupi aksi.
+2. **Kontras & Aksesibilitas**: Pastikan rasio kontras teks minimal **4.5:1**, `:focus-visible` terlihat jelas, dan state _loading/empty/error_ informatif.
+3. **Integritas Audit & Build**: Pastikan trigger audit berjalan akurat tanpa duplikasi, lalu jalankan validasi TypeScript (`vue-tsc`), _production build_, dan `git diff --check`.
+
+---
+
+# BAGIAN II — IMPLEMENTATION SPECIFICATION & AUDIT
+
+# PoliLand Kairagi Design System
+
+## 1. Project Overview
+
+PoliLand Mobile is a Vue 3 and Ionic Vue application built with TypeScript, Tailwind CSS 4, Supabase, and Capacitor. The application serves six role contexts:
+
+| Role          | Main responsibility                               |
+| ------------- | ------------------------------------------------- |
+| Public        | Melihat informasi proyek                          |
+| Client        | Memantau pembelian dan pembayaran                 |
+| Marketing     | Mengelola prospek dan calon pembeli               |
+| Admin         | Mengelola data operasional                        |
+| Kepala Bagian | Mengawasi operasional dan tim                     |
+| Owner         | Memantau bisnis dan mengambil keputusan strategis |
 
 The shared foundation provides consistent typography, colors, and interaction patterns. It does not require each role to use the same layout or navigation structure.
 
@@ -401,7 +677,18 @@ Use `AppModal` for new modal work. Migrate existing modals incrementally after c
 
 ## 15. Role-specific UI Rules
 
-The five roles share:
+### Daftar Role Resmi
+
+| Role          | Tanggung jawab utama                              |
+| ------------- | ------------------------------------------------- |
+| Public        | Melihat informasi proyek                          |
+| Client        | Memantau pembelian dan pembayaran                 |
+| Marketing     | Mengelola prospek dan calon pembeli               |
+| Admin         | Mengelola data operasional                        |
+| Kepala Bagian | Mengawasi operasional dan tim                     |
+| Owner         | Memantau bisnis dan mengambil keputusan strategis |
+
+The six roles share:
 
 - Typography.
 - Semantic tokens.
@@ -416,7 +703,26 @@ The roles do not share:
 - All role-specific workflows.
 - All action density or administrative data views.
 
-Public, marketing, admin, client, and supervisor differences must remain intentional and content-driven.
+Public, client, marketing, admin, kepala bagian, and owner differences must remain intentional and content-driven.
+
+### Role Responsibilities and Access Boundaries
+
+| Role          | Fokus utama                                                                                   | Batas akses yang perlu dijaga                                                                                             |
+| ------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Public        | Melihat informasi proyek, siteplan, galeri, progres, dan kontak                               | Tidak memiliki akses ke data internal, transaksi, atau dashboard operasional                                              |
+| Client        | Memantau kavling yang dibeli, transaksi, jadwal/riwayat pembayaran, dan notifikasi            | Hanya dapat melihat data pembelian miliknya; tidak dapat mengubah transaksi atau pembayaran                               |
+| Marketing     | Mengelola prospek, mencatat calon client, melakukan tindak lanjut, dan melihat komisi sendiri | Tidak dapat mengubah harga final, pembayaran, komisi yang telah ditetapkan, atau data milik Marketing lain                |
+| Admin         | Menjalankan pengelolaan data operasional sesuai penugasan                                     | Hak tambah, ubah, hapus, dan persetujuan dibatasi berdasarkan kebijakan perusahaan                                        |
+| Kepala Bagian | Mengawasi operasional, tim Admin dan Marketing, serta meninjau proses penjualan               | Memiliki akses pengawasan dan persetujuan operasional sesuai kewenangan; tidak otomatis memiliki seluruh hak Owner        |
+| Owner         | Memantau kinerja dan kondisi perusahaan secara menyeluruh serta mengambil keputusan strategis | Secara default berfokus pada laporan dan pemantauan; perubahan data operasional harus mengikuti kebijakan dan jejak audit |
+
+**Aturan implementasi role:**
+
+- Owner dan Kepala Bagian harus menjadi role tersendiri, bukan sekadar label tampilan dari Admin.
+- Terapkan pemeriksaan hak akses di routing, komponen/aksi UI, service, dan terutama kebijakan Supabase Row Level Security (RLS). Menyembunyikan tombol saja tidak cukup untuk mengamankan data.
+- Pisahkan izin berdasarkan tindakan, misalnya `view_reports`, `manage_lots`, `review_leads`, `approve_transactions`, `manage_payments`, `manage_commissions`, dan `manage_users`. Nama izin ini merupakan usulan konseptual; sesuaikan dengan skema otorisasi proyek yang sebenarnya.
+- Setiap tindakan perubahan atau persetujuan penting harus mencatat aktor, waktu, dan perubahan melalui mekanisme audit yang sesuai.
+- Jangan memberikan akses Owner atau Kepala Bagian secara otomatis kepada akun Admin lama. Penetapan role harus dilakukan secara eksplisit oleh pihak yang berwenang.
 
 ## 16. Responsive Rules
 
@@ -502,13 +808,15 @@ Recommended token mapping:
 
 ### MobileTabBar
 
-The three variants remain separate:
+The existing implemented variants remain separate. Role-specific navigation for Kepala Bagian and Owner must follow their distinct responsibilities:
 
-| Variant   | Current menu purpose                             |
-| --------- | ------------------------------------------------ |
-| Public    | Home, siteplan, progress, gallery, contact       |
-| Marketing | Home, kavling, potential buyers, follow-up, more |
-| Admin     | Home, kavling, buyers, finance, more             |
+| Variant       | Current menu purpose                             |
+| ------------- | ------------------------------------------------ |
+| Public        | Home, siteplan, progress, gallery, contact       |
+| Marketing     | Home, kavling, potential buyers, follow-up, more |
+| Admin         | Home, kavling, buyers, finance, more             |
+| Kepala Bagian | Ringkasan operasional, persetujuan, tim, laporan |
+| Owner         | Ringkasan bisnis, penjualan, keuangan, laporan   |
 
 Shared recommendations are semantic colors, identical icon sizing, consistent labels, 44px minimum interaction targets, visible active state, visible focus, safe-area handling, and Plus Jakarta Sans.
 

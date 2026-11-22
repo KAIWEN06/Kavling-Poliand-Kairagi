@@ -1,0 +1,8 @@
+{
+	"mcpServers": {
+		"supabase-poliland": {
+			"url": "https://mcp.supabase.com/mcp?project_ref=ewiundofcsxghkkhremp&read_only=true",
+			"type": "http"
+		}
+	}
+}

@@ -1,471 +1,887 @@
-# AUDIT MENYELURUH MODUL KEUANGAN POLILAND KAIRAGI
+# IMPLEMENTASI ROLE KEPALA BAGIAN MARKETING DAN MARKETING — POLILAND KAIRAGI
 
-Bertindaklah sebagai **Senior Full-Stack Developer, Database Architect, dan Financial System Auditor** yang berpengalaman dalam Vue 3, Ionic, TypeScript, Supabase PostgreSQL, Supabase Storage, RLS, RPC, dan sistem pencatatan transaksi keuangan.
+Bertindaklah sebagai Senior Full-Stack Developer, Software Architect, Database Engineer, dan UI/UX Engineer yang bertanggung jawab menyempurnakan aplikasi PoliLand Kairagi.
 
-Saya ingin kamu melakukan audit menyeluruh terhadap modul keuangan aplikasi PoliLand Kairagi.
+Saya ingin mengembangkan dua role dalam aplikasi:
 
-**Tujuan utama:** memastikan seluruh pembayaran Client tercatat dengan benar, tidak terjadi pembayaran ganda, status pembayaran konsisten antara Client dan Admin, serta seluruh perhitungan uang masuk, jumlah yang sudah dibayar, dan sisa kewajiban sesuai dengan kesepakatan SPK.
+1. **Kepala Bagian — Departemen Marketing**
+2. **Marketing**
 
-## A. ATURAN KERJA
+Kondisi proyek saat ini:
 
-1. Periksa struktur proyek dan pahami arsitektur yang sudah digunakan.
-2. Periksa seluruh file yang berkaitan dengan pembayaran, keuangan, SPK, transaksi, dan jadwal cicilan.
-3. Periksa implementasi frontend, service, database, SQL function/RPC, trigger, RLS, serta Supabase Storage.
-4. Jangan membuat asumsi tentang nama kolom, relasi tabel, status, atau fungsi yang belum diverifikasi.
-5. Jangan menghapus atau mengganti implementasi yang masih berfungsi tanpa alasan teknis yang jelas.
-6. Jangan membuat data dummy untuk menutupi data yang tidak tersedia.
-7. Jangan mengubah struktur database atau kode sebelum menyelesaikan audit dan menyampaikan laporan temuan.
-8. Pertahankan desain UI/UX yang sudah ada. Fokus utama adalah ketepatan logika dan konsistensi data.
+- Halaman Admin sudah memiliki implementasi dan menjadi salah satu acuan utama sistem.
+- Halaman Client sudah memiliki implementasi dan menjadi acuan alur pengajuan serta transaksi pembelian.
+- Halaman Marketing sudah memiliki kode, tetapi belum selesai dan belum sinkron dengan perubahan sistem terbaru.
+- Halaman Kepala Bagian untuk Departemen Marketing belum dibuat sama sekali.
+- Aplikasi menggunakan React.js, Vite, Tailwind CSS, dan Supabase.
+- Supabase sudah digunakan sebagai database utama.
+- Tersedia MCP Server untuk mengakses database. Gunakan MCP tersebut untuk memeriksa struktur database dan melakukan perubahan yang diperlukan, sesuai kemampuan serta izin yang tersedia.
 
-Pada tahap pertama, lakukan pemeriksaan dan berikan laporan. Jangan langsung melakukan perubahan kode.
+## A. ATURAN UTAMA SEBELUM IMPLEMENTASI
 
----
+JANGAN langsung menulis kode.
 
-## B. AUDIT BUG UNGGAH ULANG BUKTI PEMBAYARAN
+Lakukan audit menyeluruh terlebih dahulu.
 
-Saya menemukan bug berikut:
-
-1. Client mengirim bukti pembayaran.
-2. Admin memeriksa bukti.
-3. Admin meminta Client mengunggah ulang karena bukti kurang jelas atau tidak sesuai.
-4. Client membuka halaman pembayaran dan mengunggah bukti baru.
-5. Setelah diunggah, muncul transaksi pembayaran baru.
-6. Akibatnya, terdapat dua data pembayaran untuk kewajiban yang sama.
-
-Periksa seluruh proses ini.
-
-### Hal yang harus diperiksa
-
-- Bagaimana Admin mengubah status menjadi `Needs Reupload`.
-- Bagaimana status tersebut dikirim dan ditampilkan kepada Client.
-- Bagaimana Client mengidentifikasi pembayaran yang harus diunggah ulang.
-- Apakah Client menggunakan ID pembayaran sebelumnya atau membuat ID pembayaran baru.
-- Apakah proses unggah ulang menjalankan INSERT atau UPDATE.
-- Apakah alokasi cicilan lama ikut dibuat kembali.
-- Apakah bukti lama dan bukti baru memiliki relasi yang benar.
-- Apakah pembayaran lama masih dapat diverifikasi setelah bukti diganti.
-- Apakah terdapat kemungkinan dua request bersamaan membuat pembayaran ganda.
-
-### Perilaku yang diharapkan
-
-Ketika status pembayaran `Needs Reupload`:
-
-- Client harus membuka pengajuan pembayaran yang sama.
-- Client mengganti bukti pembayaran pada pengajuan tersebut.
-- Sistem memperbarui bukti dan mengembalikan status sesuai alur verifikasi, biasanya `Pending`.
-- ID pembayaran, nominal, kategori pembayaran, transaksi, dan alokasi cicilan tetap terhubung ke pengajuan awal.
-- Sistem tidak membuat pembayaran baru.
-- Admin dapat melihat bukti terbaru dan riwayat perubahan bukti.
-
-Untuk status `Rejected`, periksa aturan yang sudah digunakan. Pastikan penolakan tidak menyebabkan nominal pembayaran atau alokasi cicilan terhitung sebagai pembayaran berhasil.
-
-Jangan menyamakan `Rejected` dan `Needs Reupload` tanpa memeriksa kebutuhan bisnis dan implementasi yang ada.
-
----
-
-## C. AUDIT STATUS DAN SIKLUS HIDUP PEMBAYARAN
-
-Periksa apakah transisi status pembayaran konsisten.
-
-Status yang digunakan pada database antara lain:
-
-- `Pending`
-- `Confirmed`
-- `Rejected`
-- `Needs Reupload`
-
-Periksa apakah semua komponen menggunakan arti status yang sama.
-
-Buat pemetaan alur:
-
-Client mengirim bukti → Pending → Admin memeriksa → Confirmed / Rejected / Needs Reupload.
-
-Periksa juga:
-
-1. Apakah pembayaran yang `Pending` sudah mencegah pengajuan ganda?
-2. Apakah pembayaran `Confirmed` tidak dapat dibayar atau dialokasikan kembali?
-3. Apakah pembayaran `Rejected` tidak masuk perhitungan uang diterima?
-4. Apakah pembayaran `Needs Reupload` tetap mempertahankan identitas pengajuan awal?
-5. Apakah Client menerima informasi alasan penolakan atau unggah ulang?
-6. Apakah Admin dapat melihat status terbaru tanpa data yang tertinggal akibat cache?
-7. Apakah dua Admin dapat memproses pembayaran yang sama secara bersamaan?
-8. Apakah status jadwal cicilan berubah hanya setelah pembayaran benar-benar dikonfirmasi?
-
-Periksa semua kemungkinan transisi status yang tidak valid.
-
----
-
-## D. AUDIT PERHITUNGAN KEUANGAN
-
-Ini bagian paling penting.
-
-Sistem harus dapat mengetahui secara akurat:
-
-- Harga final kavling sesuai SPK.
-- Total DP yang diwajibkan.
-- Total cicilan sesuai jadwal.
-- Total pembayaran yang dikirim Client.
-- Total pembayaran yang sudah dikonfirmasi.
-- Total pembayaran yang masih menunggu verifikasi.
-- Total pembayaran yang ditolak.
-- Total pembayaran yang perlu diunggah ulang.
-- Total uang yang benar-benar diterima perusahaan.
-- Sisa kewajiban pembayaran Client.
-- Persentase pembayaran yang sudah diselesaikan.
-
-### Aturan perhitungan
-
-Jangan menjumlahkan seluruh data pada tabel `payments` secara sembarangan.
-
-Pisahkan dengan jelas:
-
-**1. Total pembayaran diajukan**
-
-Pembayaran yang pernah dikirim Client, termasuk yang masih menunggu verifikasi.
-
-**2. Total pembayaran terkonfirmasi**
-
-Hanya pembayaran dengan status `Confirmed` yang dihitung sebagai uang diterima.
-
-**3. Total pembayaran tertunda**
-
-Pembayaran dengan status `Pending` yang belum boleh dianggap sebagai uang diterima.
-
-**4. Total pembayaran ditolak**
-
-Pembayaran `Rejected` tidak boleh dihitung sebagai uang diterima.
-
-**5. Total kewajiban tersisa**
-
-Harus dihitung berdasarkan harga final dan pembayaran terkonfirmasi yang benar-benar dialokasikan ke kewajiban transaksi.
-
-Pastikan tidak terjadi penghitungan ganda antara DP, booking fee, pembayaran tunai, dan cicilan.
-
-Periksa juga apakah Booking Fee merupakan bagian dari harga final atau kewajiban terpisah berdasarkan struktur transaksi yang berlaku. Jangan mengurangi atau menambah harga final secara otomatis tanpa memastikan aturan SPK.
-
-### Contoh validasi
-
-Harga final: Rp450.000.000
-
-DP: Rp45.000.000
-
-Cicilan: 12 × Rp33.750.000
-
-Jika DP sudah dikonfirmasi dan Client membayar dua cicilan:
-
-- DP terkonfirmasi: Rp45.000.000
-- Cicilan terkonfirmasi: Rp67.500.000
-- Total diterima: Rp112.500.000
-- Total kewajiban tersisa: Rp337.500.000
-- Persentase pembayaran: 25%
-
-Jika pembayaran cicilan berikutnya masih `Pending`, uang tersebut tidak boleh ditambahkan ke total diterima.
-
-Gunakan contoh ini untuk memeriksa ketepatan rumus, bukan untuk mengganti data transaksi yang ada.
-
----
-
-## E. AUDIT TIGA SKEMA PEMBAYARAN
-
-Pastikan ketiga skema ini berjalan sesuai kesepakatan SPK.
-
-### 1. Cash
-
-- Client hanya dapat membayar pelunasan harga final.
-- Tidak ada pilihan cicilan.
-- Tidak ada DP terpisah.
-- Pembayaran harus sesuai harga final.
-- Setelah dikonfirmasi, transaksi dinyatakan lunas.
-- Tidak boleh ada pengajuan pembayaran tunai ganda.
-
-### 2. Cicilan dengan DP
-
-- Client wajib membayar DP terlebih dahulu.
-- Cicilan belum dapat dibayar sebelum DP dikonfirmasi.
-- Setelah DP dikonfirmasi, Client dapat membayar cicilan.
-- Client boleh membayar satu atau beberapa cicilan sekaligus.
-- Satu pengajuan pembayaran dapat memiliki satu bukti pembayaran dan beberapa alokasi cicilan.
-
-### 3. Pure Cicilan tanpa DP
-
-- Tidak ada kewajiban DP.
-- Client dapat langsung membayar cicilan pertama.
-- Tidak boleh muncul kewajiban DP yang sebenarnya tidak ada dalam SPK.
-- Jadwal cicilan harus tetap sesuai kesepakatan final.
-
-Periksa apakah sistem membedakan DP wajib dengan transaksi yang nominal DP-nya nol.
-
----
-
-## F. AUDIT URUTAN CICILAN
-
-Aturan yang sudah disepakati:
-
-Client hanya boleh membayar cicilan secara berurutan.
-
-Contoh:
-
-Jika cicilan 1–3 sudah lunas, pilihan berikutnya:
-
-- Cicilan 4
-- Cicilan 4–5
-- Cicilan 4–6
-- Sampai cicilan 4–12.
-
-Tidak boleh memilih cicilan 4 dan 6 tanpa cicilan 5.
+### 1. Audit source code
 
 Periksa:
 
-1. Apakah frontend membatasi pilihan cicilan?
-2. Apakah backend/RPC juga melakukan validasi?
-3. Apakah cicilan yang sedang menunggu verifikasi mengunci pembayaran berikutnya?
-4. Apakah pembayaran beberapa cicilan sekaligus menghasilkan satu payment dan beberapa payment_allocations?
-5. Apakah nominal pembayaran sama dengan jumlah seluruh cicilan yang dipilih?
-6. Apakah satu cicilan dapat memiliki alokasi pembayaran lebih dari satu kali?
-7. Apakah pembatalan atau penolakan pembayaran mengembalikan hak pembayaran Client dengan benar?
-8. Apakah status cicilan baru berubah menjadi Paid setelah Admin mengonfirmasi pembayaran?
+- Struktur folder proyek.
+- Routing dan protected routes.
+- Sistem autentikasi.
+- Sistem role dan department.
+- Halaman Admin.
+- Halaman Client.
+- Halaman Marketing yang sudah ada.
+- Komponen UI yang sudah tersedia.
+- Hooks dan services.
+- Context atau state management.
+- Sistem notifikasi.
+- Integrasi Supabase.
+- Komponen siteplan dan pencarian kavling.
+- Sistem SPK dan pembayaran.
+- Sistem jadwal cicilan.
+- Sistem komisi jika sudah tersedia.
 
-Periksa juga konsistensi antara `installment_schedules.status`, `payments.status`, dan `payment_allocations`.
+Identifikasi kode Marketing yang:
+
+- Sudah benar dan dapat digunakan.
+- Sudah tersedia tetapi belum selesai.
+- Tidak sinkron dengan database.
+- Tidak sinkron dengan sistem Admin dan Client.
+- Mengandung duplikasi atau implementasi yang perlu diperbaiki.
+
+Pertahankan implementasi yang masih relevan. Jangan menghapus fitur yang sudah berfungsi hanya karena ingin membuat struktur baru.
+
+### 2. Audit database menggunakan MCP Server
+
+Periksa database Supabase secara langsung.
+
+Identifikasi:
+
+- Tabel profiles dan relasi pengguna.
+- Role dan department.
+- Data client.
+- Data marketing.
+- Relasi marketing dengan client.
+- Data kavling.
+- SPK dan dokumennya.
+- Pembayaran.
+- Alokasi pembayaran.
+- Jadwal cicilan.
+- Denda keterlambatan.
+- Pembatalan transaksi.
+- Refund.
+- Komisi.
+- Notifikasi.
+- Activity logs.
+- RLS policies.
+- RPC dan database functions.
+- Trigger dan constraint.
+- Storage buckets yang berkaitan dengan dokumen dan bukti pembayaran.
+
+Jangan mengasumsikan nama tabel atau kolom. Gunakan struktur database yang benar-benar ditemukan.
+
+Jangan membuat tabel duplikat jika fungsi yang sama sudah tersedia.
+
+Jika ada kebutuhan database yang belum terpenuhi, jelaskan terlebih dahulu perubahan yang diperlukan dan buat migration yang aman.
+
+Jangan melakukan reset database, menghapus data produksi, atau mengganti struktur penting tanpa alasan dan rencana migrasi.
+
+Jika MCP tidak dapat mengakses atau mengubah database, laporkan keterbatasannya. Jangan mengklaim perubahan database sudah dilakukan.
+
+### 3. Pahami alur Admin dan Client
+
+Semua fitur Marketing harus mengikuti proses yang sudah diterapkan pada Admin dan Client.
+
+Contohnya:
+
+- Marketing melihat status SPK dari transaksi yang sama dengan Admin dan Client.
+- Marketing melihat pembayaran dari data pembayaran yang sama.
+- Marketing melihat jadwal cicilan resmi yang digunakan Client.
+- Kepala Bagian Marketing melihat agregasi data dari seluruh anggota tim marketing.
+- Perubahan yang dilakukan Admin harus langsung tercermin pada halaman Marketing dan Kepala Bagian.
+- Perubahan perkembangan client oleh Marketing harus terlihat oleh Kepala Bagian.
+
+Jangan membuat sistem transaksi terpisah untuk Marketing.
 
 ---
 
-## G. AUDIT ADMIN KEUANGAN
+# B. STRUKTUR ROLE DAN HAK AKSES
 
-Periksa halaman Admin Keuangan secara menyeluruh.
+PENTING: Kepala Marketing bukan role baru.
 
-Periksa:
+Gunakan struktur organisasi yang sudah ada:
 
-- Daftar pembayaran masuk.
+- Admin.
+- Kepala Bagian dengan department Marketing.
+- Marketing.
+- Client.
+
+Kepala Bagian merupakan jabatan, sedangkan Marketing merupakan department/bagian yang diawasi.
+
+Gunakan struktur role dan department yang sudah tersedia di database. Jangan membuat role `kepala_marketing` jika sistem sebenarnya menggunakan kombinasi `role = kepala_bagian` dan `department = marketing`.
+
+Jika struktur database berbeda, sesuaikan implementasi dengan struktur aktual dan jangan mengubah role secara sembarangan.
+
+## 1. Kepala Bagian — Departemen Marketing
+
+Memiliki akses untuk:
+
+- Melihat seluruh client yang ditangani tim Marketing.
+- Melihat seluruh perkembangan client.
+- Melihat seluruh pengajuan SPK tim Marketing.
+- Melihat status pembayaran client.
+- Melihat jadwal pembayaran client.
+- Melihat statistik penjualan tim.
+- Melihat analisis asal konsumen.
+- Melihat performa setiap Marketing.
+- Melihat komisi tim.
+- Menambahkan client jika memang diizinkan kebijakan sistem.
+- Memberikan arahan dan catatan kepada Marketing.
+- Mengelola perkembangan client dalam lingkup departemennya.
+
+Tidak memiliki kewenangan untuk:
+
+- Mengonfirmasi SPK.
+- Menolak SPK.
+- Mengonfirmasi pembayaran.
+- Menolak pembayaran.
+- Mengubah nominal transaksi.
+- Mengubah jadwal pembayaran resmi.
+- Menyetujui atau mengeksekusi refund.
+- Mengubah transaksi keuangan.
+- Mengubah status kavling secara langsung melalui transaksi.
+
+Semua tindakan tersebut tetap mengikuti kewenangan Admin.
+
+## 2. Marketing
+
+Memiliki akses untuk:
+
+- Mencari dan melihat kavling.
+- Menambahkan calon client.
+- Melihat client yang menjadi tanggung jawabnya.
+- Mengelola perkembangan client sendiri.
+- Menambahkan catatan follow-up.
+- Melihat status pengajuan SPK.
+- Melihat status pembayaran client sendiri.
+- Melihat jadwal cicilan client sendiri.
+- Mendapatkan notifikasi pembayaran client sendiri.
+- Menghubungi client melalui WhatsApp.
+- Melihat komisi sendiri.
+
+Tidak memiliki akses untuk:
+
+- Melihat client milik Marketing lain.
+- Mengubah kepemilikan client secara sembarangan.
+- Mengonfirmasi SPK.
+- Mengonfirmasi pembayaran.
+- Mengubah nominal pembayaran.
+- Mengubah jadwal cicilan resmi.
+- Mengelola transaksi keuangan.
+- Melihat komisi Marketing lain.
+
+Pastikan pembatasan ini diterapkan melalui RLS Supabase dan validasi server-side, bukan hanya menyembunyikan menu di frontend.
+
+---
+
+# C. IMPLEMENTASI HALAMAN KEPALA BAGIAN MARKETING
+
+Halaman ini BELUM ADA. Buat implementasi baru menggunakan desain dan komponen yang konsisten dengan aplikasi yang sudah berjalan.
+
+## 1. Dashboard Kepala Bagian
+
+Buat dashboard pengawasan tim Marketing.
+
+Tampilkan statistik:
+
+- Total client seluruh tim.
+- Client baru.
+- Client belum dihubungi.
+- Client dalam proses follow-up.
+- Client berminat.
+- Client dalam proses pengajuan.
+- Total SPK terkonfirmasi.
+- Total kavling terjual.
+- Total nilai penjualan.
+- Total pembayaran terkonfirmasi.
+- Total komisi tim.
+- Aktivitas Marketing terbaru.
+
+Tambahkan grafik:
+
+- Perkembangan client.
+- Penjualan per periode.
+- Jumlah SPK.
+- Performa Marketing.
+- Perbandingan hasil penjualan.
+
+Sediakan filter:
+
+- Hari ini.
+- Minggu ini.
+- Bulan ini.
+- Tahun ini.
+- Rentang tanggal.
+- Marketing tertentu.
+
+Setiap statistik yang memungkinkan harus dapat diklik untuk membuka data detail.
+
+Jangan mencampurkan nilai penjualan dengan uang yang benar-benar sudah diterima perusahaan.
+
+## 2. Data Client
+
+Buat halaman untuk mencari dan melihat seluruh client yang dikelola tim Marketing.
+
+Kolom informasi:
+
+- Nama client.
+- Nomor WhatsApp.
+- Nomor Telepon
+- Email.
+- Alamat.
+- Wilayah asal konsumen.
+- Marketing penanggung jawab.
+- Minat kavling.
+- Metode pembayaran.
+- Rencana tenor.
+- Status perkembangan.
+- Status SPK.
+- Status pembayaran.
+- Tanggal terakhir follow-up.
+
+Fitur:
+
+- Search.
+- Filter Marketing.
+- Filter status perkembangan.
+- Filter status SPK.
 - Filter status pembayaran.
-- Pencarian nama Client.
-- Pencarian nomor kavling.
-- Detail pembayaran.
-- Bukti transfer.
-- Verifikasi pembayaran.
-- Penolakan pembayaran.
-- Permintaan unggah ulang.
-- Riwayat verifikasi.
-- Informasi nominal.
-- Kategori pembayaran.
-- Alokasi cicilan.
-- Status transaksi.
+- Filter tanggal.
+- Pagination.
+- Detail client.
 
-Pastikan Admin dapat mengetahui apakah pembayaran tersebut merupakan:
+## 3. Detail Client
 
-- Booking Fee.
-- DP.
-- Cicilan keberapa.
-- Gabungan beberapa cicilan.
-- Pelunasan tunai.
+Buat halaman detail client dengan tab atau section:
 
-Jangan hanya menampilkan tulisan `Installment` tanpa nomor cicilan.
+A. Informasi Client
 
-### Pemeriksaan bukti pembayaran
+- Identitas.
+- Kontak.
+- Alamat.
+- Wilayah asal.
+- Marketing penanggung jawab.
 
-Periksa:
+B. Minat Kavling
 
-- `proof_path`.
-- Nama bucket.
-- Path file.
-- Signed URL.
-- Storage policy.
-- Hak akses Admin.
-- Hak akses Client.
-- Masa berlaku signed URL.
-- Mekanisme fallback untuk dokumen lama.
+- Nomor kavling.
+- Blok.
+- Luas.
+- Harga.
+- Status kavling.
+- Informasi panorama jika tersedia.
 
-Pastikan bukti pembayaran yang diunggah Client benar-benar dapat dibuka oleh Admin.
+C. Perkembangan Client
 
-Jangan menganggap semua bukti yang memiliki `spk_request_id` berada di bucket dokumen SPK. Periksa lokasi file sebenarnya.
+- Status terkini.
+- Riwayat perubahan status.
+- Catatan follow-up.
+- Tanggal aktivitas.
+- Pengguna yang melakukan perubahan.
+
+D. SPK
+
+- Nomor atau identitas SPK.
+- Tanggal pengajuan.
+- Nominal SPK.
+- Status.
+- Riwayat pemeriksaan.
+- Alasan penolakan.
+
+E. Pembayaran
+
+- Harga transaksi.
+- Uang muka.
+- Total pembayaran terkonfirmasi.
+- Sisa kewajiban.
+- Status pembayaran.
+- Riwayat pembayaran.
+
+F. Jadwal Pembayaran
+
+- Tenor.
+- Nominal cicilan.
+- Tanggal jatuh tempo.
+- Status pembayaran.
+- Denda jika ada.
+- Sisa kewajiban.
+
+G. Catatan
+
+- Catatan Marketing.
+- Catatan Kepala Bagian.
+- Riwayat tindak lanjut.
+
+H. Komisi
+
+- Marketing yang memperoleh komisi.
+- Nilai komisi.
+- Status komisi.
+- Riwayat pencairan.
+
+Kepala Bagian hanya melihat informasi pembayaran dan komisi. Jangan memberikan kewenangan verifikasi transaksi.
+
+## 4. Monitoring Perkembangan Client
+
+Gunakan status CRM yang terpisah dari status SPK dan pembayaran.
+
+Status perkembangan yang disarankan:
+
+- Baru.
+- Belum Dihubungi.
+- Sudah Dihubungi.
+- Follow-up.
+- Berminat.
+- Survey Lokasi.
+- Negosiasi.
+- Pengajuan.
+- Berhasil.
+- Tidak Lanjut.
+
+Sesuaikan dengan status yang sudah ada di database jika tersedia. Hindari membuat nilai status duplikat.
+
+Fitur:
+
+- Melihat seluruh client berdasarkan status.
+- Filter berdasarkan Marketing.
+- Melihat riwayat perubahan.
+- Melihat client yang tidak mendapatkan follow-up.
+- Mengubah status perkembangan.
+- Menambahkan catatan atau arahan.
+- Melihat aktivitas setiap Marketing.
+
+Setiap perubahan wajib mencatat siapa yang mengubah dan kapan perubahan dilakukan.
+
+## 5. Pengajuan Client
+
+Tampilkan pengajuan SPK seluruh tim Marketing.
+
+Kolom:
+
+- Nama client.
+- Marketing.
+- Kavling.
+- Tanggal pengajuan.
+- Nominal SPK.
+- Status SPK.
+- Status pembayaran.
+- Catatan Admin.
+
+Status SPK harus mengikuti sistem transaksi:
+
+- Menunggu.
+- Ditolak.
+- Terkonfirmasi.
+
+Jangan membuat sistem status SPK baru.
+
+## 6. Pembayaran dan Jadwal Cicilan
+
+Kepala Bagian dapat memantau:
+
+- Pembayaran menunggu verifikasi.
+- Pembayaran terkonfirmasi.
+- Pembayaran ditolak.
+- Cicilan mendekati jatuh tempo.
+- Cicilan terlambat.
+- Total pembayaran client.
+- Sisa kewajiban client.
+
+Jadwal cicilan harus berasal dari data jadwal resmi yang digunakan Client dan Admin.
+
+Jangan menghitung atau membuat jadwal pembayaran baru hanya berdasarkan rencana tenor awal.
+
+## 7. Statistik Penjualan
+
+Buat laporan:
+
+- Total prospek.
+- Total SPK terkonfirmasi.
+- Total kavling terjual.
+- Total nilai penjualan.
+- Total pembayaran terkonfirmasi.
+- Penjualan cash.
+- Penjualan cicilan.
+- Penjualan berdasarkan periode.
+- Penjualan berdasarkan Marketing.
+
+Pisahkan nilai kontrak, penerimaan kas, dan komisi.
+
+## 8. Analisis Asal Konsumen
+
+Buat visualisasi berdasarkan wilayah asal client.
+
+Tampilkan:
+
+- Jumlah client per wilayah.
+- Jumlah pembeli per wilayah.
+- Persentase konversi.
+- Perbandingan wilayah.
+- Filter periode.
+
+Gunakan data wilayah yang tersedia. Jika data wilayah belum terstruktur, identifikasi kebutuhan penyesuaian database dan jangan membuat analisis geografis berdasarkan asumsi dari teks alamat.
+
+## 9. Performa Marketing
+
+Buat tabel dan visualisasi performa setiap Marketing.
+
+Metrik:
+
+- Total client.
+- Client baru.
+- Client dihubungi.
+- Client follow-up.
+- Client berminat.
+- Client dalam negosiasi.
+- SPK terkonfirmasi.
+- Kavling terjual.
+- Nilai penjualan.
+- Total komisi.
+- Client tidak lanjut.
+
+Sediakan ranking berdasarkan periode dengan kriteria yang jelas.
+
+Jangan menilai performa hanya berdasarkan jumlah client yang dimasukkan.
+
+## 10. Komisi Tim
+
+Kepala Bagian dapat melihat:
+
+- Nama Marketing.
+- Jumlah transaksi yang menghasilkan komisi.
+- Total komisi.
+- Komisi menunggu.
+- Komisi disetujui.
+- Komisi dibayarkan.
+
+Jangan mengubah aturan perhitungan komisi yang sudah berlaku tanpa audit dan persetujuan.
+
+Jika aturan komisi belum tersedia atau belum jelas, dokumentasikan kekurangannya dan jangan membuat persentase atau nominal sendiri.
 
 ---
 
-## H. AUDIT DATABASE DAN SUPABASE
+# D. PERBAIKAN DAN PENYELESAIAN HALAMAN MARKETING
 
-Periksa tabel dan relasi yang sudah tersedia, terutama:
+Halaman Marketing SUDAH MEMILIKI KODE.
 
-- `customers`
-- `profiles`
-- `lots`
-- `lot_transactions`
-- `payments`
-- `payment_plans`
-- `lot_installments`
-- `installment_schedules`
-- `payment_allocations`
-- `spk_requests`
-- `spk_request_documents`
+Jangan langsung membuat ulang halaman tersebut.
 
-Periksa:
+Lakukan audit terhadap implementasi yang tersedia, lalu pertahankan dan sempurnakan fitur yang masih relevan.
 
-1. Foreign key dan relasi antar tabel.
-2. Kolom yang digunakan untuk menghubungkan pembayaran dengan transaksi.
-3. Kolom yang menghubungkan pembayaran dengan SPK.
-4. Constraint status.
-5. Constraint nominal.
-6. Unique constraint.
-7. Trigger pembaruan status.
-8. RPC pengiriman pembayaran.
-9. RPC verifikasi pembayaran.
-10. RLS untuk seluruh tabel terkait.
-11. Storage policies untuk bucket bukti pembayaran.
-12. Potensi race condition.
-13. Potensi data yatim/orphan.
-14. Potensi duplikasi alokasi pembayaran.
+## 1. Dashboard Marketing
 
-Periksa apakah operasi berikut berjalan secara atomik:
+Tampilkan:
 
-- Konfirmasi pembayaran.
-- Pembuatan alokasi cicilan.
-- Perubahan status jadwal cicilan.
-- Pembaruan status transaksi.
-- Pencatatan waktu dan Admin yang melakukan verifikasi.
+- Total client saya.
+- Client baru.
+- Client belum dihubungi.
+- Client follow-up.
+- Client berminat.
+- Client dalam pengajuan.
+- Client berhasil.
+- Client tidak lanjut.
+- Total komisi.
+- Komisi menunggu.
+- Komisi sudah dibayarkan.
+- Notifikasi tenggat pembayaran.
+- Aktivitas terbaru.
 
-Jika ada bagian yang dapat berhasil sebagian tetapi gagal sebagian, catat sebagai risiko integritas data.
+Semua data harus terbatas pada Marketing yang sedang login.
+
+## 2. Pencarian Kavling
+
+Integrasikan dengan sistem siteplan yang sudah ada.
+
+Fitur:
+
+- Melihat siteplan.
+- Mencari nomor kavling.
+- Filter blok.
+- Melihat luas dan dimensi.
+- Melihat harga.
+- Melihat status.
+- Melihat panorama 360° jika tersedia.
+
+Gunakan sumber data kavling yang sama dengan Admin dan Client.
+
+Marketing hanya dapat melihat informasi kavling. Jangan memberikan kewenangan mengubah status kavling secara langsung.
+
+## 3. Data Client Saya
+
+Buat atau sempurnakan halaman pengelolaan client.
+
+Fitur:
+
+- Daftar client milik Marketing.
+- Search client.
+- Filter status.
+- Detail client.
+- Tambah client.
+- Edit informasi yang diizinkan.
+- Tambah catatan follow-up.
+- Riwayat perkembangan client.
+
+Saat menambahkan client, ambil identitas Marketing otomatis dari akun login.
+
+Jangan izinkan Marketing menentukan marketing_id secara bebas.
+
+Informasi yang dimasukkan:
+
+- Nama client.
+- Nomor WhatsApp.
+-
+- Email.
+- Alamat.
+- Wilayah asal.
+- Minat kavling.
+- Metode pembayaran.
+- Rencana tenor.
+- Catatan.
+
+Rencana tenor merupakan preferensi awal, bukan jadwal pembayaran resmi.
+
+Jika ada potensi duplikasi client, berikan validasi berdasarkan nomor kontak atau mekanisme identifikasi yang sesuai dengan database.
+
+## 4. Pengelolaan Perkembangan Client
+
+Marketing dapat mengubah status perkembangan client sendiri.
+
+Gunakan status CRM yang sama dengan Kepala Bagian.
+
+Fitur:
+
+- Mengubah status.
+- Menambahkan catatan.
+- Mencatat aktivitas follow-up.
+- Melihat riwayat aktivitas.
+- Melihat tanggal terakhir dihubungi.
+- Menambahkan informasi hasil komunikasi.
+
+Jangan mencampur status perkembangan client dengan status SPK atau pembayaran.
+
+## 5. Pengajuan SPK
+
+Marketing dapat melihat status SPK client miliknya.
+
+Tampilkan:
+
+- Nama client.
+- Kavling.
+- Tanggal pengajuan.
+- Nominal SPK.
+- Status.
+- Alasan penolakan jika ada.
+- Riwayat pengajuan.
+
+Status:
+
+- Menunggu.
+- Ditolak.
+- Terkonfirmasi.
+
+Marketing tidak dapat mengonfirmasi atau menolak SPK.
+
+Jika SPK ditolak, tampilkan alasan penolakan agar Marketing dapat membantu client melakukan perbaikan.
+
+## 6. Pembayaran Client
+
+Marketing dapat melihat:
+
+- Daftar pembayaran client.
+- Nominal pembayaran.
+- Jenis pembayaran.
+- Tanggal transfer.
+- Status verifikasi.
+- Informasi pembayaran terkonfirmasi.
+- Informasi pembayaran ditolak.
+
+Status pembayaran harus mengambil data yang sama dengan Admin dan Client.
+
+Marketing tidak dapat melakukan verifikasi pembayaran.
+
+## 7. Jadwal Pembayaran
+
+Tampilkan jadwal pembayaran resmi:
+
+- Nama client.
+- Kavling.
+- Harga transaksi.
+- Uang muka.
+- Tenor.
+- Nominal cicilan.
+- Tanggal jatuh tempo.
+- Status pembayaran.
+- Jumlah cicilan terbayar.
+- Sisa kewajiban.
+- Informasi denda.
+
+Gunakan jadwal yang sama dengan halaman Client dan Admin.
+
+Jangan membuat jadwal sendiri berdasarkan input rencana tenor.
+
+## 8. Notifikasi
+
+Marketing menerima notifikasi untuk client yang menjadi tanggung jawabnya:
+
+- SPK diajukan.
+- SPK terkonfirmasi.
+- SPK ditolak.
+- Pembayaran diajukan.
+- Pembayaran terkonfirmasi.
+- Pembayaran ditolak.
+- Cicilan mendekati jatuh tempo.
+- Cicilan terlambat.
+- Pembatalan transaksi diajukan.
+- Perubahan status transaksi.
+
+Gunakan sistem notifikasi yang sudah tersedia.
+
+Jangan membuat sistem notifikasi terpisah jika sistem yang ada dapat digunakan.
+
+## 9. WhatsApp
+
+Sediakan tombol WhatsApp pada daftar dan detail client.
+
+Gunakan nomor kontak client dari database.
+
+Pastikan:
+
+- Format nomor internasional benar.
+- Nomor tidak kosong.
+- Pesan awal dapat disesuaikan.
+- WhatsApp dibuka melalui link yang valid.
+
+Pengiriman pesan tetap dilakukan oleh Marketing melalui WhatsApp.
+
+## 10. Komisi Saya
+
+Marketing hanya dapat melihat komisinya sendiri.
+
+Tampilkan:
+
+- Jenis komisi.
+- Nilai transaksi.
+- Persentase atau nominal komisi sesuai aturan yang berlaku.
+- Total komisi.
+- Status komisi.
+- Tanggal pencairan.
+- Riwayat komisi.
+
+Jangan mengarang perhitungan komisi.
+
+Gunakan mekanisme perhitungan yang sudah berlaku atau identifikasi kebutuhan aturan bisnis yang belum tersedia.
 
 ---
 
-## I. AUDIT REKONSILIASI KEUANGAN
+# E. INTEGRASI DENGAN SISTEM SPK DAN KEUANGAN
 
-Pastikan terdapat sumber data yang dapat dipercaya untuk menjawab:
+Semua halaman harus mengikuti alur transaksi yang sudah dibangun pada Admin dan Client.
 
-- Berapa total harga transaksi?
-- Berapa DP yang harus dibayar?
-- Berapa uang yang sudah diterima perusahaan?
-- Berapa uang yang masih menunggu verifikasi?
-- Berapa cicilan yang sudah lunas?
-- Berapa cicilan yang belum lunas?
-- Berapa sisa kewajiban Client?
-- Apakah transaksi sudah lunas?
-- Apakah terdapat pembayaran ganda?
-- Apakah ada pembayaran yang sudah dikonfirmasi tetapi tidak memiliki alokasi yang benar?
-- Apakah ada cicilan berstatus Paid tanpa pembayaran terkonfirmasi?
-- Apakah ada pembayaran terkonfirmasi yang belum mengubah jadwal cicilan?
+Aturan penting:
 
-Buat pemeriksaan silang antara data transaksi, pembayaran, dan jadwal cicilan.
+1. SPK bernilai Rp1.000.000.
+2. Status SPK: Menunggu, Ditolak, Terkonfirmasi.
+3. SPK terkonfirmasi menyebabkan status kavling menjadi Dipesan sesuai mekanisme Admin.
+4. Pembayaran memiliki jenis SPK, Uang Muka, dan Cicilan.
+5. Pembayaran yang menunggu verifikasi bukan penerimaan kas.
+6. Penerimaan kas hanya dicatat setelah pembayaran dikonfirmasi dan diverifikasi.
+7. Jadwal cicilan berasal dari kesepakatan transaksi resmi.
+8. Denda keterlambatan Rp20.000 per hari per cicilan, maksimal Rp1.800.000 per cicilan.
+9. Hari ke-90 keterlambatan memicu pemeriksaan wanprestasi oleh Admin, bukan pembatalan otomatis.
+10. Pembatalan sukarela dan wanprestasi mengikuti prosedur yang sudah ditetapkan.
+11. Refund sebesar 50% dari uang muka dan cicilan pokok yang telah dikonfirmasi, tidak termasuk SPK dan denda.
+12. Komisi Marketing harus mengikuti kebijakan perusahaan yang tersedia.
 
-Jangan hanya mempercayai angka ringkasan yang ditampilkan di frontend.
+Kepala Bagian dan Marketing hanya membaca informasi transaksi sesuai hak akses.
 
----
-
-## J. AUDIT RIWAYAT DAN JEJAK PERUBAHAN
-
-Periksa apakah sistem menyimpan riwayat:
-
-- Pengiriman bukti pembayaran pertama.
-- Permintaan unggah ulang.
-- Pengiriman bukti pengganti.
-- Penolakan pembayaran.
-- Konfirmasi pembayaran.
-- Admin yang melakukan verifikasi.
-- Waktu perubahan status.
-- Catatan alasan penolakan.
-- Perubahan alokasi pembayaran.
-
-Riwayat harus dapat ditelusuri tanpa menghilangkan identitas transaksi pembayaran sebelumnya.
-
-Jika sistem belum mempunyai audit log yang memadai, berikan rekomendasi struktur yang sesuai. Jangan langsung menghapus atau menimpa informasi penting.
+Jangan mengubah mekanisme keuangan hanya demi memenuhi kebutuhan halaman Marketing.
 
 ---
 
-## K. SKENARIO PENGUJIAN WAJIB
+# F. DATABASE, SECURITY, DAN RLS
 
-Buat test case untuk skenario berikut:
+Implementasikan pembatasan data di Supabase.
 
-1. Pembayaran Cash berhasil.
-2. Pembayaran Cash ditolak.
-3. Pembayaran Cash diminta unggah ulang.
-4. Client mengunggah ulang bukti Cash.
-5. Client mencoba mengirim Cash dua kali.
-6. Pembayaran DP berhasil.
-7. Pembayaran DP ditolak.
-8. Pembayaran DP diminta unggah ulang.
-9. Client mengunggah ulang bukti DP.
-10. Client mencoba membayar cicilan sebelum DP dikonfirmasi.
-11. Pure cicilan tanpa DP.
-12. Membayar satu cicilan.
-13. Membayar dua cicilan sekaligus.
-14. Membayar cicilan secara tidak berurutan.
-15. Mengirim ulang pembayaran saat status masih Pending.
-16. Membayar cicilan yang sudah lunas.
-17. Membayar cicilan yang sedang menunggu verifikasi.
-18. Admin mengonfirmasi pembayaran.
-19. Admin menolak pembayaran.
-20. Dua Admin memproses pembayaran yang sama.
-21. Dua request pembayaran dikirim hampir bersamaan.
-22. Bukti pembayaran tidak ditemukan di Storage.
-23. Client mencoba mengakses pembayaran milik Client lain.
-24. Transaksi memiliki data pembayaran yang tidak cocok dengan jadwal cicilan.
-25. Total pembayaran sudah sama dengan harga final.
+Prinsip:
 
-Untuk setiap test case, tentukan:
-- Kondisi awal.
-- Tindakan.
-- Hasil yang diharapkan.
-- Hasil aktual jika dapat diuji.
-- Status PASS/FAIL/BLOCKED.
+1. Marketing hanya dapat membaca client yang menjadi tanggung jawabnya.
+2. Marketing hanya dapat mengubah perkembangan client miliknya sesuai izin.
+3. Marketing tidak dapat mengubah marketing_id untuk mengambil alih client lain.
+4. Kepala Bagian dengan department Marketing dapat membaca data seluruh tim Marketing.
+5. Kepala Bagian tidak boleh otomatis mendapatkan akses ke departemen lain.
+6. Kepala Bagian tidak dapat melakukan verifikasi transaksi keuangan.
+7. Admin tetap memiliki kewenangan operasional sesuai sistem yang berlaku.
+8. Client hanya dapat membaca data transaksinya sendiri.
 
-Jangan mengklaim PASS jika belum benar-benar dijalankan.
+Periksa seluruh RLS policy yang sudah ada sebelum mengubahnya.
+
+Hindari kebijakan RLS yang terlalu longgar seperti memberikan akses seluruh tabel kepada semua pengguna yang sudah login.
+
+Pastikan:
+
+- Query frontend tidak menjadi satu-satunya pengaman.
+- Operasi penting divalidasi di database.
+- Tidak ada kebocoran data antar-Marketing.
+- Tidak ada akses lintas departemen yang tidak diizinkan.
 
 ---
 
-## L. FORMAT LAPORAN AUDIT
+# G. UI/UX DAN KONSISTENSI DESAIN
 
-Setelah pemeriksaan, berikan laporan terstruktur:
+Gunakan desain yang sudah diterapkan pada aplikasi PoliLand.
 
-### 1. Ringkasan kondisi sistem
-Jelaskan bagian yang sudah benar dan bagian yang bermasalah.
+Jangan membuat desain baru yang tidak konsisten dengan halaman Admin dan Client.
 
-### 2. Daftar bug
-Gunakan tabel:
+Perhatikan:
 
-| No | Bug | Penyebab | Dampak keuangan | Prioritas |
-|---|---|---|---|---|
+- Tabbar.
+- Header.
+- Navigasi.
+- Dashboard cards.
+- Tabel.
+- Filter.
+- Search.
+- Modal.
+- Detail panel.
+- Badge status.
+- Empty state.
+- Loading state.
+- Error state.
+- Responsive layout.
 
-Gunakan prioritas:
-- Critical: dapat menyebabkan kehilangan atau duplikasi uang.
-- High: dapat menyebabkan salah hitung atau status transaksi salah.
-- Medium: mengganggu proses operasional.
-- Low: masalah tampilan atau kenyamanan.
+Halaman harus nyaman digunakan pada desktop dan mobile.
 
-### 3. Analisis alur pembayaran
-Jelaskan alur Client → Database → Admin → Database → Client.
+Untuk Kepala Bagian, utamakan tampilan monitoring, statistik, grafik, dan tabel.
 
-### 4. Analisis integritas data
-Jelaskan apakah seluruh nominal, pembayaran, dan alokasi cicilan sudah konsisten.
+Untuk Marketing, utamakan kemudahan input client, follow-up, pencarian kavling, dan pemantauan transaksi.
 
-### 5. Analisis keamanan
-Jelaskan masalah RLS, Storage, RPC, dan kemungkinan manipulasi request.
+Jangan membuat dashboard terlalu padat.
 
-### 6. Daftar file yang bermasalah
-Sebutkan path file dan fungsi yang harus diperbaiki.
-
-### 7. Rekomendasi perbaikan
-Urutkan berdasarkan prioritas dan jelaskan dampak setiap perbaikan.
-
-### 8. Rencana pengujian
-Berikan test case lengkap beserta hasil yang dapat dibuktikan.
-
-### 9. Rencana migrasi database
-Jika diperlukan, tampilkan perubahan SQL yang disarankan, tetapi jangan jalankan sebelum persetujuan.
+Gunakan komponen reusable jika memungkinkan.
 
 ---
 
-## M. KRITERIA SISTEM DIANGGAP SIAP
+# H. TESTING DAN VALIDASI
 
-Modul keuangan baru dapat dianggap stabil apabila:
+Setelah implementasi, lakukan pengujian berikut.
 
-1. Satu kewajiban pembayaran tidak dapat menghasilkan pembayaran ganda.
-2. Unggah ulang memperbarui pengajuan yang sama.
-3. Penolakan dan unggah ulang tidak membuat uang seolah-olah sudah diterima.
-4. Pembayaran terkonfirmasi tercatat secara permanen.
-5. Nominal diterima dan sisa kewajiban selalu konsisten.
-6. DP dan cicilan tidak dihitung dua kali.
-7. Cicilan hanya dapat dibayar berurutan.
-8. Pembayaran beberapa cicilan memiliki alokasi yang tepat.
-9. Client dan Admin melihat status serta nominal yang sama.
-10. Bukti pembayaran dapat diakses oleh pihak yang berwenang.
-11. Semua perubahan penting dapat ditelusuri.
-12. Validasi keuangan dilakukan di database/backend, bukan hanya frontend.
+### Role dan hak akses
 
-**PENTING: Jangan langsung melakukan refactor besar-besaran. Audit dahulu seluruh implementasi aktual. Saya ingin mengetahui akar masalah dan risiko integritas keuangan sebelum menyetujui perbaikan. Berikan laporan berdasarkan kode dan database yang benar-benar ditemukan di repository, bukan asumsi.**
+- Kepala Bagian Marketing hanya melihat data departemen Marketing.
+- Kepala Bagian dapat melihat seluruh client tim.
+- Marketing hanya melihat client sendiri.
+- Marketing tidak dapat mengambil alih client Marketing lain.
+- Client tidak dapat mengakses halaman internal.
+- Admin tetap memiliki hak akses sesuai sistem.
+
+### Sinkronisasi data
+
+- Client baru yang dimasukkan Marketing muncul pada halaman Kepala Bagian.
+- Perubahan perkembangan client terlihat pada kedua halaman.
+- Perubahan SPK oleh Admin terlihat pada Marketing dan Kepala Bagian.
+- Pembayaran yang dikonfirmasi Admin terlihat pada kedua halaman.
+- Jadwal cicilan konsisten pada Admin, Client, Marketing, dan Kepala Bagian.
+- Data komisi konsisten dengan transaksi.
+
+### Fungsionalitas
+
+- Pencarian client.
+- Filter.
+- Pagination.
+- Tambah client.
+- Edit client.
+- Update perkembangan.
+- Tambah catatan.
+- WhatsApp.
+- Notifikasi.
+- Statistik.
+- Grafik.
+- Komisi.
+
+### Keamanan
+
+- Uji RLS.
+- Uji akses langsung melalui API.
+- Uji akses antar-Marketing.
+- Uji akses lintas departemen.
+- Pastikan tidak ada informasi sensitif yang bocor.
+
+Jangan menyatakan fitur berhasil hanya karena halaman dapat dibuka. Pastikan fungsi dan hak aksesnya benar-benar berjalan.
+
+---
+
+# I. HASIL AKHIR YANG WAJIB DIBERIKAN
+
+Setelah selesai, berikan laporan:
+
+1. Hasil audit kode Marketing lama.
+2. Fitur Marketing yang dipertahankan.
+3. Fitur Marketing yang diperbaiki.
+4. Fitur Marketing yang ditambahkan.
+5. Seluruh halaman Kepala Bagian yang berhasil dibuat.
+6. Daftar file baru.
+7. Daftar file yang diubah.
+8. Perubahan database dan migration.
+9. Perubahan RLS policies.
+10. Daftar RPC atau function baru jika diperlukan.
+11. Hasil pengujian setiap role.
+12. Masalah yang belum terselesaikan.
+13. Fitur yang masih membutuhkan keputusan bisnis.
+
+Buat dokumentasi:
+
+- `MARKETING_MODULE.md`
+- `HEAD_OF_DEPARTMENT_MARKETING.md`
+- `MARKETING_ROLE_ACCESS.md`
+- `MARKETING_DATABASE_INTEGRATION.md`
+- `MARKETING_TESTING_REPORT.md`
+
+## URUTAN PENGERJAAN
+
+Kerjakan dalam tahapan berikut:
+
+**Tahap 1 — Audit**
+Audit source code, database, role, RLS, Admin, Client, dan Marketing lama.
+
+**Tahap 2 — Perencanaan**
+Buat pemetaan fitur, komponen, tabel, relasi, hak akses, dan perubahan database.
+
+**Tahap 3 — Perbaikan Marketing**
+Selesaikan halaman Marketing yang sudah ada. Pertahankan kode yang benar.
+
+**Tahap 4 — Pembuatan Kepala Bagian Marketing**
+Buat seluruh halaman monitoring dan analisis dari awal dengan menggunakan komponen serta service yang konsisten.
+
+**Tahap 5 — Integrasi**
+Pastikan kedua role terhubung dengan Admin, Client, SPK, pembayaran, jadwal cicilan, notifikasi, dan komisi.
+
+**Tahap 6 — Testing**
+Uji seluruh fungsi, hak akses, RLS, dan sinkronisasi data.
+
+**Tahap 7 — Dokumentasi**
+Berikan laporan hasil implementasi dan daftar pekerjaan yang belum selesai.
+
+PENTING:
+
+- Jangan berhenti hanya pada pembuatan UI.
+- Jangan membuat data dummy sebagai pengganti database.
+- Jangan mengarang nama tabel, kolom, atau relasi.
+- Jangan merusak halaman Admin dan Client yang sudah berjalan.
+- Jangan mengganti arsitektur proyek tanpa alasan kuat.
+- Jangan membuat role baru `kepala_marketing` jika struktur yang benar adalah `kepala_bagian` dengan department `marketing`.
+- Jangan mengklaim berhasil jika belum diuji.
+
+Prioritas utama adalah menghasilkan dua role yang benar-benar berfungsi, aman, dan sinkron dengan keseluruhan sistem PoliLand Kairagi.

@@ -108,6 +108,12 @@
               class="client-notification-item"
             >
               <strong>SPK {{ notification.spkNumber }} ditolak</strong>
+              <span v-if="notification.refundStatus === 'Pending Refund'">
+                Booking Fee Rp{{ Number(notification.refundAmount || 0).toLocaleString('id-ID') }} sedang diproses pengembalian.
+              </span>
+              <span v-else-if="notification.refundStatus === 'Refunded'">
+                Pengembalian Booking Fee telah dicatat.
+              </span>
               <button type="button" @click="openRejectedSpk(notification.id)">
                 Lihat detail
               </button>
@@ -258,10 +264,12 @@ const rejectedSpks = ref<Awaited<ReturnType<typeof getClientSpks>>>([])
 let notificationRefreshTimer: number | undefined
 
 const rejectionNotifications = computed(() => rejectedSpks.value
-  .filter((record) => record.status === 'Rejected' && record.rejectionReason?.trim())
+  .filter((record) => record.status === 'Rejected')
   .map((record) => ({
     id: record.id,
     spkNumber: record.spkNumber,
+    refundStatus: record.bookingFeeRefund?.status ?? null,
+    refundAmount: record.bookingFeeRefund?.amount ?? null,
   })),
 )
 

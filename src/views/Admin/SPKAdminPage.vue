@@ -148,6 +148,135 @@
           </div>
         </section>
         <div v-if="selectedRequest.status === 'Rejected' && selectedRequest.rejection_reason" class="spk-rejection-full"><strong>Alasan penolakan</strong><p>{{ selectedRequest.rejection_reason }}</p></div>
+        <section
+          v-if="selectedRequest.status === 'Rejected' && selectedRequest.booking_payment.payments.length"
+          class="spk-detail-section spk-refund-section"
+        >
+          <div class="spk-refund-heading">
+            <div class="spk-refund-heading-icon"><ion-icon :icon="cardOutline" /></div>
+            <div>
+              <span class="spk-refund-eyebrow">PENYELESAIAN DANA</span>
+              <h3>Pengembalian Booking Fee</h3>
+              <p>Informasi dan bukti pengembalian dana kepada client.</p>
+            </div>
+          </div>
+
+          <div class="spk-refund-amount-card">
+            <div>
+              <span>Booking Fee terkonfirmasi</span>
+              <strong>{{ formatCurrency(selectedRequest.booking_payment.confirmedAmount) }}</strong>
+            </div>
+            <span
+              :class="[
+                'spk-refund-status',
+                selectedRequest.booking_fee_refund?.status === 'Refunded' ? 'is-refunded' : 'is-pending'
+              ]"
+            >
+              <ion-icon :icon="selectedRequest.booking_fee_refund?.status === 'Refunded' ? cardOutline : alertCircleOutline" />
+              {{ selectedRequest.booking_fee_refund?.status === 'Refunded' ? 'Sudah dikembalikan' : 'Belum dicatat' }}
+            </span>
+          </div>
+
+          <template v-if="selectedRequest.booking_fee_refund?.status === 'Refunded'">
+            <div class="spk-refund-success">
+              <div class="spk-refund-success-mark">✓</div>
+              <div>
+                <strong>Pengembalian berhasil dicatat</strong>
+                <p>Dana sebesar {{ formatCurrency(selectedRequest.booking_fee_refund.amount) }} telah ditandai sebagai sudah dikembalikan.</p>
+              </div>
+            </div>
+
+            <div class="spk-refund-info">
+              <div v-if="selectedRequest.booking_fee_refund.refundedAt">
+                <span>Waktu transfer (WITA)</span>
+                <strong>{{ formatMakassarDateTime(selectedRequest.booking_fee_refund.refundedAt) }}</strong>
+              </div>
+              <div><span>Referensi bank</span><strong>{{ selectedRequest.booking_fee_refund.bankReference || 'Belum dicatat; perlu rekonsiliasi bank' }}</strong></div>
+              <div v-if="selectedRequest.booking_fee_refund.refundMethod">
+                <span>Metode pengembalian</span>
+                <strong>{{ selectedRequest.booking_fee_refund.refundMethod }}</strong>
+              </div>
+              <div v-if="selectedRequest.booking_fee_refund.refundNote" class="spk-refund-note-row">
+                <span>Catatan / nomor referensi</span>
+                <p>{{ selectedRequest.booking_fee_refund.refundNote }}</p>
+              </div>
+            </div>
+
+            <button
+              v-if="selectedRequest.booking_fee_refund.proofPath"
+              type="button"
+              class="spk-refund-proof-button"
+              @click="openRefundProof(selectedRequest)"
+            >
+              <ion-icon :icon="eyeOutline" />
+              Lihat bukti pengembalian
+              <ion-icon :icon="chevronForwardOutline" />
+            </button>
+          </template>
+
+          <template v-else>
+            <div class="spk-refund-guidance">
+              <ion-icon :icon="alertCircleOutline" />
+              <p>Pastikan dana sudah benar-benar dikembalikan kepada client sebelum menyimpan catatan ini. Bukti pengembalian wajib dilampirkan.</p>
+            </div>
+
+            <div class="spk-refund-form">
+              <label>
+                <span>Metode pengembalian <b>*</b></span>
+                <input
+                  v-model.trim="refundMethod"
+                  type="text"
+                  placeholder="Contoh: Transfer Bank BCA"
+                  autocomplete="off"
+                />
+              </label>
+
+              <label>
+                <span>Waktu transfer (WITA) <b>*</b></span>
+                <input v-model="refundTransferAt" type="datetime-local" required />
+              </label>
+
+              <label>
+                <span>Referensi bank <small>(opsional, untuk rekonsiliasi)</small></span>
+                <input v-model.trim="refundBankReference" type="text" placeholder="Nomor referensi transfer" autocomplete="off" />
+              </label>
+
+              <label>
+                <span>Catatan / nomor referensi <small>(opsional)</small></span>
+                <textarea
+                  v-model.trim="refundNote"
+                  rows="3"
+                  placeholder="Masukkan nomor referensi transaksi atau keterangan tambahan"
+                />
+              </label>
+
+              <label class="spk-refund-upload">
+                <span>Bukti pengembalian <b>*</b></span>
+                <span class="spk-refund-file-picker">
+                  <span class="spk-refund-upload-icon"><ion-icon :icon="downloadOutline" /></span>
+                  <span class="spk-refund-file-copy">
+                    <strong>{{ refundFile?.name || 'Pilih file bukti pengembalian' }}</strong>
+                    <small>{{ refundFile ? 'File siap diunggah' : 'JPG, PNG, WEBP, atau PDF · Maksimal 5 MB' }}</small>
+                  </span>
+                  <span class="spk-refund-choose">{{ refundFile ? 'Ganti' : 'Pilih file' }}</span>
+                </span>
+                <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" @change="onRefundFileChange" />
+              </label>
+            </div>
+
+            <p v-if="refundError" class="spk-refund-error" role="alert">
+              <ion-icon :icon="alertCircleOutline" /> {{ refundError }}
+            </p>
+
+            <AppButton
+              :disabled="refundSubmitting || !refundFile || !refundMethod.trim() || !refundTransferAt"
+              @click="submitRefundProof(selectedRequest)"
+            >
+              {{ refundSubmitting ? 'Menyimpan...' : 'Simpan pengembalian' }}
+            </AppButton>
+            <p class="spk-refund-footnote">Dengan menyimpan, Admin menyatakan pengembalian Booking Fee telah dilakukan dan bukti yang dilampirkan sesuai.</p>
+          </template>
+        </section>
         <div v-if="isPending(selectedRequest)" class="spk-detail-actions">
           <AppButton color="danger" @click="openReject(selectedRequest)">Tolak SPK</AppButton>
           <AppButton :disabled="!canApproveSPK(selectedRequest)" @click="openApprove(selectedRequest)">Setujui SPK</AppButton>
@@ -364,9 +493,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { IonContent, IonIcon, IonModal, IonPage, IonSpinner } from '@ionic/vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   addOutline, alertCircleOutline, cardOutline, chevronBackOutline, chevronForwardOutline,
   closeOutline, documentTextOutline, downloadOutline, eyeOutline, searchOutline, removeOutline, scanOutline,
@@ -376,17 +505,20 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import mascotImage from '@/assets/mascot/Curious Mascot Investigates Handshake Files.png'
+import { currentMakassarDateTimeLocal, makassarDateTimeLocalToIso } from '@/utils/financialCashflow'
 import {
   approveSPKRequest, getAdminSPKRequests, getAdminSPKStats,
   getSPKDocumentUrl, rejectSPKRequest,
   createAdminSPKRequest, getAvailableLotsForAdmin, getLotInstallmentOptionsForAdmin,
   getCustomersForAdminSPK, createCustomerForAdminSPK,
+  uploadBookingFeeRefundProof, recordBookingFeeRefund,
   type AdminLotInstallmentOption, type AdminSPKRequest, type SPKDocument, type SPKStatus, type CreateAdminSPKInput, type CustomerSource, type SPKDocumentType,
 } from '@/services/Admin/spkAdminService'
 type AdminAvailableLot = Awaited<ReturnType<typeof getAvailableLotsForAdmin>>[number]
 type AdminSPKCustomer = Awaited<ReturnType<typeof getCustomersForAdminSPK>>[number]
 const requests = ref<AdminSPKRequest[]>([])
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
@@ -407,6 +539,13 @@ const previewLoading = ref(false)
 const previewError = ref('')
 const previewZoom = ref(1)
 const downloadingDocument = ref(false)
+const refundFile = ref<File | null>(null)
+const refundMethod = ref('')
+const refundNote = ref('')
+const refundBankReference = ref('')
+const refundTransferAt = ref(currentMakassarDateTimeLocal())
+const refundSubmitting = ref(false)
+const refundError = ref('')
 const isPreviewImage = computed(() => {
   const mime = (previewDocument.value?.mime_type || '').toLowerCase()
   const name = (previewDocument.value?.file_name || '').toLowerCase()
@@ -623,6 +762,9 @@ function formatCurrency(value: number) {
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
+function formatMakassarDateTime(value: string) {
+  return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(value))
+}
 function openDetail(row: AdminSPKRequest) { selectedRequest.value = row; detailOpen.value = true }
 function goToReview(row: AdminSPKRequest) {
   if (row.status !== 'Approved' || !row.transaction_id) return
@@ -709,6 +851,96 @@ async function confirmReject() {
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'SPK gagal ditolak.'
   } finally { saving.value = false }
+}
+
+function onRefundFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+  refundError.value = ''
+
+  if (!file) {
+    refundFile.value = null
+    return
+  }
+  if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+    refundFile.value = null
+    input.value = ''
+    refundError.value = 'Format bukti harus JPG, PNG, WEBP, atau PDF.'
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    refundFile.value = null
+    input.value = ''
+    refundError.value = 'Ukuran bukti maksimal 5 MB.'
+    return
+  }
+  refundFile.value = file
+}
+
+async function submitRefundProof(row: AdminSPKRequest) {
+  if (!refundFile.value || refundSubmitting.value) return
+  const payment = row.booking_payment.payments
+    .find(item => item.status === 'Confirmed')
+    || row.booking_payment.payments[0]
+
+  if (!payment) {
+    refundError.value = 'Payment Booking Fee untuk SPK ini tidak ditemukan.'
+    return
+  }
+
+  refundSubmitting.value = true
+  refundError.value = ''
+
+  try {
+    const proofPath = await uploadBookingFeeRefundProof(row.id, refundFile.value)
+    await recordBookingFeeRefund(
+      payment.id,
+      proofPath,
+      refundMethod.value,
+      refundNote.value,
+      refundBankReference.value.trim() || null,
+      makassarDateTimeLocalToIso(refundTransferAt.value),
+    )
+    refundFile.value = null
+    refundMethod.value = ''
+    refundNote.value = ''
+    refundBankReference.value = ''
+    refundTransferAt.value = currentMakassarDateTimeLocal()
+    await loadRequests()
+    selectedRequest.value = requests.value.find(item => item.id === row.id) ?? null
+  } catch (error) {
+    refundError.value = error instanceof Error ? error.message : 'Bukti pengembalian gagal disimpan.'
+  } finally {
+    refundSubmitting.value = false
+  }
+}
+
+async function openRefundProof(row: AdminSPKRequest) {
+  const proofPath = row.booking_fee_refund?.proofPath
+  if (!proofPath) return
+
+  previewDocument.value = {
+    id: -1,
+    spk_request_id: row.id,
+    document_type: 'Payment Proof',
+    file_name: proofPath.split('/').pop() || 'Bukti pengembalian',
+    file_path: proofPath,
+    mime_type: null,
+    file_size_bytes: null,
+    created_at: row.booking_fee_refund?.refundedAt ?? null,
+  }
+  documentPreviewOpen.value = true
+  previewLoading.value = true
+  previewError.value = ''
+  previewUrl.value = ''
+
+  try {
+    previewUrl.value = await getSPKDocumentUrl(proofPath, 'payment-proofs')
+  } catch (error) {
+    previewError.value = error instanceof Error ? error.message : 'Bukti pengembalian gagal dibuka.'
+  } finally {
+    previewLoading.value = false
+  }
 }
 function sourceLabel(source?: string | null) {
   if (source === 'Admin' || source === 'Client' || source === 'Marketing') return source
@@ -922,7 +1154,38 @@ async function submitAdminSPK() {
       : error instanceof Error ? error.message : 'Pengajuan SPK gagal disimpan.'
   } finally { creating.value = false }
 }
-onMounted(loadRequests)
+async function openRequestedSPKDetail() {
+  await loadRequests()
+
+  const requestedSpkId = Array.isArray(route.query.spkId)
+    ? route.query.spkId[0]
+    : route.query.spkId
+  const spkId = Number(requestedSpkId)
+
+  if (!Number.isInteger(spkId) || spkId <= 0) return
+
+  const requestedRequest = requests.value.find((request) => request.id === spkId)
+  if (!requestedRequest) return
+
+  openDetail(requestedRequest)
+
+  if (route.query.refund === '1') {
+    await nextTick()
+    document.querySelector('.spk-refund-section')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }
+}
+
+onMounted(openRequestedSPKDetail)
+
+watch(
+  () => [route.query.spkId, route.query.refund],
+  () => {
+    if (route.query.spkId) void openRequestedSPKDetail()
+  },
+)
 </script>
 
 <style scoped>
@@ -1140,4 +1403,78 @@ onMounted(loadRequests)
 .spk-lot-payment-card>strong { font-size:12px; color:#355a2c; }
 .spk-lot-payment-card label { display:grid; gap:5px; font-size:10px; }
 .spk-lot-payment-card input,.spk-lot-payment-card select { width:100%; min-height:40px; border:1px solid #dfe5dc; border-radius:9px; padding:9px; background:#fff; color:#263329; }
+
+/* Pengembalian Booking Fee — mengikuti design system Modern-Natural */
+.spk-refund-section {
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #eae7e0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(37, 37, 37, .04);
+}
+.spk-refund-heading { display:flex; align-items:center; gap:12px; }
+.spk-refund-heading-icon {
+  display:grid; place-items:center; flex:0 0 44px; width:44px; height:44px;
+  border-radius:14px; background:#f4f3ec; color:#355a2c; font-size:21px;
+}
+.spk-refund-heading>div:last-child { min-width:0; }
+.spk-refund-eyebrow { display:block; margin-bottom:3px; color:#966a12; font-size:9px; font-weight:800; letter-spacing:.09em; }
+.spk-refund-heading h3 { color:#252525; font-size:15px; }
+.spk-refund-heading p { margin:4px 0 0; color:#717178; font-size:11px; line-height:1.45; }
+.spk-refund-amount-card {
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  padding:14px; border:1px solid #eae7e0; border-radius:13px; background:#f5f3ee;
+}
+.spk-refund-amount-card>div { display:grid; gap:5px; }
+.spk-refund-amount-card>div span { color:#717178; font-size:10px; }
+.spk-refund-amount-card>div strong { color:#252525; font-size:20px; font-weight:800; letter-spacing:-.03em; }
+.spk-refund-status { display:inline-flex; align-items:center; gap:5px; min-height:28px; padding:5px 9px; border-radius:999px; font-size:10px; font-weight:750; }
+.spk-refund-status.is-refunded { background:#eaf2e7; color:#355a2c; }
+.spk-refund-status.is-pending { background:#fbf1d9; color:#966a12; }
+.spk-refund-success { display:flex; align-items:flex-start; gap:10px; padding:12px; border:1px solid #dce9d7; border-radius:12px; background:#f2f7ef; }
+.spk-refund-success-mark { display:grid; place-items:center; flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#355a2c; color:#fff; font-size:15px; font-weight:800; }
+.spk-refund-success strong { color:#355a2c; font-size:12px; }
+.spk-refund-success p { margin:4px 0 0; color:#596b54; font-size:11px; line-height:1.5; }
+.spk-refund-info { display:grid; gap:0; padding:0 12px; border:1px solid #eae7e0; border-radius:12px; }
+.spk-refund-info>div { display:grid; grid-template-columns:minmax(105px,.8fr) 1.2fr; gap:12px; padding:11px 0; border-bottom:1px solid #eeece6; }
+.spk-refund-info>div:last-child { border-bottom:0; }
+.spk-refund-info span { color:#717178; font-size:10px; }
+.spk-refund-info strong,.spk-refund-info p { margin:0; color:#252525; font-size:11px; font-weight:650; overflow-wrap:anywhere; }
+.spk-refund-proof-button {
+  display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:46px;
+  padding:10px 12px; border:1px solid #355a2c; border-radius:12px; background:#fff; color:#355a2c;
+  font:inherit; font-size:12px; font-weight:750; cursor:pointer;
+}
+.spk-refund-proof-button ion-icon:last-child { margin-left:auto; }
+.spk-refund-guidance { display:flex; align-items:flex-start; gap:9px; padding:11px; border:1px solid #eadfbd; border-radius:11px; background:#fbf6e9; color:#805d19; }
+.spk-refund-guidance ion-icon { flex:0 0 17px; margin-top:1px; font-size:17px; }
+.spk-refund-guidance p { margin:0; font-size:10px; line-height:1.55; }
+.spk-refund-form { display:grid; gap:13px; }
+.spk-refund-form>label { display:grid; gap:7px; color:#252525; font-size:11px; font-weight:700; }
+.spk-refund-form label>span:first-child b { color:#d94b45; }
+.spk-refund-form label>span:first-child small { color:#717178; font-weight:400; }
+.spk-refund-form input[type="text"],.spk-refund-form input[type="datetime-local"],.spk-refund-form textarea {
+  width:100%; min-height:46px; border:1px solid #e0ddd5; border-radius:12px; padding:11px 12px;
+  background:#fff; color:#252525; font:inherit; font-size:12px; font-weight:400; outline:none;
+}
+.spk-refund-form textarea { min-height:82px; resize:vertical; }
+.spk-refund-form input:focus,.spk-refund-form textarea:focus { border-color:#355a2c; box-shadow:0 0 0 3px rgba(53,90,44,.12); }
+.spk-refund-upload>input[type="file"] { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.spk-refund-file-picker { display:flex; align-items:center; gap:10px; min-height:68px; padding:10px; border:1px dashed #c9d2c2; border-radius:12px; background:#fafbf8; }
+.spk-refund-upload-icon { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; border-radius:10px; background:#edf3e9; color:#355a2c; font-size:18px; }
+.spk-refund-file-copy { display:grid; flex:1; min-width:0; gap:4px; }
+.spk-refund-file-copy strong { overflow:hidden; color:#303b31; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+.spk-refund-file-copy small { color:#717178; font-size:9px; font-weight:400; }
+.spk-refund-choose { display:grid; place-items:center; min-height:36px; padding:0 10px; border-radius:9px; background:#355a2c; color:#fff; font-size:10px; font-weight:750; }
+.spk-refund-error { display:flex; align-items:flex-start; gap:7px; margin:0; padding:10px; border-radius:10px; background:#fcebea; color:#b43f39; font-size:10px; line-height:1.5; }
+.spk-refund-error ion-icon { flex:0 0 15px; margin-top:1px; font-size:15px; }
+.spk-refund-footnote { margin:-5px 0 0; color:#717178; font-size:9px; line-height:1.5; }
+.spk-refund-proof-button:focus-visible,.spk-refund-file-picker:focus-within { outline:3px solid rgba(53,90,44,.25); outline-offset:2px; }
+@media (max-width:360px) {
+  .spk-refund-section { padding:12px; }
+  .spk-refund-amount-card>div strong { font-size:18px; }
+  .spk-refund-info>div { grid-template-columns:1fr; gap:5px; }
+}
+
 </style>

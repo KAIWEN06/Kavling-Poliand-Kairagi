@@ -39,6 +39,27 @@
           <button
             type="button"
             class="shortcut-card"
+            :class="{ 'shortcut-card--active': activeView === 'cancellations' }"
+            :aria-current="activeView === 'cancellations' ? 'page' : undefined"
+            @click="openCancellationReview"
+          >
+            <span class="shortcut-icon"><ion-icon :icon="closeCircleOutline" aria-hidden="true" /></span>
+            <strong>Pembatalan<br />Pembelian</strong>
+            <span v-if="pendingCancellationCount" class="shortcut-count">{{ pendingCancellationCount }}</span>
+          </button>
+          <button
+            type="button"
+            class="shortcut-card"
+            :class="{ 'shortcut-card--active': activeView === 'ledger' }"
+            :aria-current="activeView === 'ledger' ? 'page' : undefined"
+            @click="openFinancialLedger"
+          >
+            <span class="shortcut-icon"><ion-icon :icon="walletOutline" aria-hidden="true" /></span>
+            <strong>Buku Kas<br />& Jurnal</strong>
+          </button>
+          <button
+            type="button"
+            class="shortcut-card"
             :class="{ 'shortcut-card--active': activeView === 'plans' }"
             :aria-current="activeView === 'plans' ? 'page' : undefined"
             @click="activeView = 'plans'"
@@ -97,6 +118,66 @@
                 </button>
                 <div v-else class="proof-no-file">Bukti transfer tidak dilampirkan pada transaksi ini.</div>
                 <a v-if="proofSignedUrl" class="proof-download" :href="proofSignedUrl" target="_blank" rel="noopener noreferrer" :download="`bukti-${paymentReference(selectedProofPayment.payment)}`"><ion-icon :icon="downloadOutline" /> Unduh File</a>
+              </section>
+              <section
+                v-if="selectedProofPayment.payment.status === 'Rejected'
+                  && selectedProofPayment.payment.payment_category === 'Booking'"
+                id="booking-refund-proof"
+                class="proof-refund-section"
+              >
+                <div class="proof-refund-heading">
+                  <div>
+                    <span>Pengembalian Booking Fee</span>
+                    <strong>{{ refundStatus === 'Refunded' ? 'Sudah dikembalikan' : 'Menunggu pengembalian' }}</strong>
+                  </div>
+                  <span :class="['refund-status-badge', refundStatus === 'Refunded' ? 'refund-status-badge--done' : '']">
+                    {{ refundStatus === 'Refunded' ? 'Dikembalikan' : 'Proses' }}
+                  </span>
+                </div>
+
+                <template v-if="refundStatus === 'Refunded'">
+                  <dl class="proof-refund-details">
+                    <div><dt>Nominal</dt><dd>{{ formatCurrency(refundAmount || Number(selectedProofPayment.payment.amount || 0)) }}</dd></div>
+                    <div v-if="refundTransferAt"><dt>Waktu transfer (WITA)</dt><dd>{{ formatMakassarDateTime(refundTransferAt) }}</dd></div>
+                    <div v-if="refundMethod"><dt>Metode</dt><dd>{{ refundMethod }}</dd></div>
+                    <div><dt>Referensi bank</dt><dd>{{ refundBankReference || 'Belum dicatat; perlu rekonsiliasi bank' }}</dd></div>
+                    <div v-if="refundNote"><dt>Catatan</dt><dd>{{ refundNote }}</dd></div>
+                  </dl>
+                  <a v-if="refundProofSignedUrl" class="proof-download" :href="refundProofSignedUrl" target="_blank" rel="noopener noreferrer">
+                    <ion-icon :icon="downloadOutline" /> Lihat bukti pengembalian
+                  </a>
+                  <p v-if="refundProofError" class="proof-refund-error" role="alert">{{ refundProofError }}</p>
+                  <button v-if="refundProofError" type="button" class="quiet-action" @click="loadSelectedPaymentProof()">Coba muat bukti lagi</button>
+                </template>
+
+                <template v-else>
+                  <label class="refund-field">
+                    Metode pengembalian
+                    <input v-model.trim="refundMethod" type="text" placeholder="Contoh: Transfer Bank BCA" />
+                  </label>
+                  <label class="refund-field">
+                    Waktu transfer (WITA)
+                    <input v-model="refundTransferAt" type="datetime-local" required />
+                  </label>
+                  <label class="refund-field">
+                    Referensi bank <span>(opsional, untuk rekonsiliasi)</span>
+                    <input v-model.trim="refundBankReference" type="text" placeholder="Nomor referensi transfer" />
+                  </label>
+                  <label class="refund-field">
+                    Catatan
+                    <textarea v-model.trim="refundNote" rows="3" placeholder="Catatan tambahan pengembalian" />
+                  </label>
+                  <label class="refund-upload">
+                    Bukti pengembalian
+                    <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" :disabled="refundSubmitting" @change="onRefundProofSelected" />
+                    <span>{{ refundFile?.name || 'JPG, PNG, WEBP, atau PDF. Maksimal 5 MB.' }}</span>
+                  </label>
+                  <p v-if="refundError" class="proof-refund-error" role="alert">{{ refundError }}</p>
+                  <button type="button" class="proof-refund-submit" :disabled="refundSubmitting || !refundFile" @click="submitRefundProof">
+                    <ion-spinner v-if="refundSubmitting" name="crescent" />
+                    {{ refundSubmitting ? 'Menyimpan...' : 'Simpan bukti pengembalian' }}
+                  </button>
+                </template>
               </section>
               <div v-if="selectedProofPayment.payment.status === 'Pending'" class="proof-review-actions">
                 <button type="button" class="proof-verify-button" :disabled="reviewSaving || !proofSignedUrl" @click="reviewPayment('Confirmed')">
@@ -468,7 +549,10 @@
               <article v-for="payment in selectedReportLot.payments" :key="payment.id" class="report-payment-history-card">
                 <div class="report-payment-history-top">
                   <div><strong>{{ payment.reference }}</strong><small>{{ formatDate(payment.date) }}</small></div>
+                <div class="report-payment-status-group">
                   <span class="report-payment-status" :class="`report-payment-status--${payment.statusTone}`">{{ payment.statusLabel }}</span>
+                  <span v-if="payment.refundStatus === 'Refunded'" class="report-payment-status report-payment-status--refunded">Sudah dikembalikan</span>
+                </div>
                 </div>
                 <div class="report-payment-history-amount">{{ formatCurrency(payment.amount) }}</div>
                 <div class="report-payment-history-meta">
@@ -476,7 +560,7 @@
                   <span>{{ payment.method }}</span>
                 </div>
                 <p v-if="payment.note">{{ payment.note }}</p>
-                <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" /> Lihat Bukti Pembayaran</button>
+                <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" /> {{ payment.refundStatus === 'Refunded' ? 'Lihat Bukti Refund' : 'Lihat Bukti Pembayaran' }}</button>
               </article>
               <div v-if="!selectedReportLot.payments.length" class="report-empty-inline">Belum ada riwayat pembayaran untuk kavling ini.</div>
             </section>
@@ -513,60 +597,68 @@
               </button>
             </div>
 
-            <div v-if="loading" class="finance-state" role="status">
+            <div v-if="loading || (activeReportTab === 'summary' && reportLedgerLoading)" class="finance-state" role="status">
               <ion-spinner name="crescent" />
-              <p>Memuat laporan keuangan...</p>
+              <p>{{ reportLedgerLoading ? 'Memuat arus kas...' : 'Memuat laporan keuangan...' }}</p>
             </div>
-            <div v-else-if="errorMessage" class="finance-state" role="alert">
+            <div v-else-if="errorMessage || (activeReportTab === 'summary' && reportLedgerError)" class="finance-state" role="alert">
               <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
               <strong>Laporan keuangan gagal dimuat</strong>
-              <p>{{ errorMessage }}</p>
-              <AppButton size="small" @click="loadTransactions">Coba lagi</AppButton>
+              <p>{{ reportLedgerError || errorMessage }}</p>
+              <AppButton size="small" @click="retryFinanceReport">Coba lagi</AppButton>
             </div>
 
             <template v-else>
               <template v-if="activeReportTab === 'summary'">
                 <section class="report-total-card report-total-card--monthly">
                   <div class="report-total-top">
-                    <span><ion-icon :icon="walletOutline" aria-hidden="true" /> TOTAL PEMASUKAN ({{ selectedMonthLabel.toUpperCase() }})</span>
+                    <span><ion-icon :icon="walletOutline" aria-hidden="true" /> PEMASUKAN BRUTO ({{ selectedMonthLabel.toUpperCase() }})</span>
                     <span v-if="monthComparison !== null" class="report-growth" :class="{ 'report-growth--down': monthComparison < 0 }">
                       {{ monthComparison >= 0 ? '↑' : '↓' }} {{ Math.abs(monthComparison).toFixed(1) }}% vs bulan lalu
                     </span>
                   </div>
                   <strong>{{ formatCurrency(monthlyIncome) }}</strong>
+                  <p>Penerimaan kas yang sudah dibukukan satu kali. Nilai ini tetap bruto meskipun sebagian dana dikembalikan.</p>
                   <div class="report-income-sources">
                     <div>
-                      <span><i class="report-dot report-dot--gold" /> Booking Fee</span>
+                      <span><i class="report-dot report-dot--gold" /> Booking Fee masuk</span>
                       <strong>{{ formatCurrency(monthlyBookingIncome) }}</strong>
                       <small>{{ monthlyBookingCount }} transaksi</small>
                     </div>
                     <div>
                       <span><i class="report-dot report-dot--green" /> Pembayaran Lain</span>
                       <strong>{{ formatCurrency(monthlyOtherIncome) }}</strong>
-                      <small>{{ monthlyOtherCount }} transaksi terkonfirmasi</small>
+                      <small>{{ monthlyOtherCount }} transaksi kas masuk</small>
                     </div>
                   </div>
                 </section>
 
+                <section class="report-summary report-cashflow-metrics" aria-label="Metrik arus kas">
+                  <article class="report-metric-card"><span>Total pengeluaran</span><strong>{{ formatCurrency(monthlyTotalExpenses) }}</strong><small>Semua transaksi kas keluar pada periode ini</small></article>
+                  <article class="report-metric-card"><span>Pengeluaran refund</span><strong>{{ formatCurrency(monthlyRefundExpenses) }}</strong><small>Refund Booking Fee yang sudah ditransfer</small></article>
+                  <article class="report-metric-card"><span>Arus kas bersih</span><strong>{{ formatCurrency(monthlyNetCashFlow) }}</strong><small>Pemasukan bruto dikurangi total pengeluaran; bukan laba</small></article>
+                </section>
+
                 <section class="report-panel report-trend-panel">
                   <div class="panel-heading">
-                    <div><h2>Tren Pendapatan</h2><p>Realisasi pembayaran 6 bulan terakhir</p></div>
-                    <span class="panel-period">Puncak: {{ peakMonthLabel }}</span>
+                    <div><h2>Tren arus kas</h2><p>Pemasukan bruto, pengeluaran, dan nilai bersih per bulan</p></div>
+                    <span class="panel-period">Pemasukan bruto tertinggi: {{ peakMonthLabel }}</span>
                   </div>
                   <div class="monthly-chart monthly-chart--six" role="img" :aria-label="monthlyChartDescription">
                     <div v-for="month in monthlyReport" :key="month.key" class="chart-column">
-                      <strong class="chart-value">{{ formatCompactCurrency(month.total) }}</strong>
-                      <div class="chart-track"><span class="chart-bar" :class="{ 'chart-bar--peak': month.key === peakMonthKey }" :style="{ height: `${Math.max((month.total / monthlyMax) * 100, month.total > 0 ? 5 : 0)}%` }" /></div>
+                      <strong class="chart-value">Masuk {{ formatCompactCurrency(month.grossIncome) }}</strong>
+                      <div class="chart-track"><span class="chart-bar chart-bar--income" :class="{ 'chart-bar--peak': month.key === peakMonthKey }" :style="{ height: `${Math.max((month.grossIncome / monthlyMax) * 100, month.grossIncome > 0 ? 5 : 0)}%` }" /><span class="chart-bar chart-bar--expense" :style="{ height: `${Math.max((month.totalExpenses / monthlyMax) * 100, month.totalExpenses > 0 ? 5 : 0)}%` }" /></div>
                       <span class="chart-label">{{ month.label }}</span>
+                      <small class="chart-cashflow-label">Keluar {{ formatCompactCurrency(month.totalExpenses) }} · Refund {{ formatCompactCurrency(month.refundExpenses) }} · Bersih {{ formatCompactCurrency(month.netCashFlow) }}</small>
                     </div>
                   </div>
                 </section>
 
                 <section class="report-recent-section">
-                  <div class="report-section-heading"><h2>Transaksi Terkini</h2><span>{{ recentReportPayments.length }} transaksi</span></div>
+                  <div class="report-section-heading"><h2>Transaksi kas</h2><span>{{ recentReportPayments.length }} transaksi</span></div>
                   <article v-for="payment in recentReportPayments" :key="payment.id" class="report-recent-card">
-                    <div class="report-recent-icon" :class="payment.statusTone === 'confirmed' ? 'is-confirmed' : 'is-pending'">
-                      <ion-icon :icon="payment.statusTone === 'confirmed' ? checkmarkCircleOutline : timeOutline" aria-hidden="true" />
+                    <div class="report-recent-icon" :class="payment.flowDirection === 'inflow' ? 'is-confirmed' : 'is-outflow'">
+                      <ion-icon :icon="payment.flowDirection === 'inflow' ? checkmarkCircleOutline : closeCircleOutline" aria-hidden="true" />
                     </div>
                     <div class="report-recent-main">
                       <strong>{{ payment.customerName }}</strong>
@@ -574,7 +666,7 @@
                       <small>{{ formatShortDate(payment.date) }}</small>
                     </div>
                     <div class="report-recent-amount">
-                      <strong>+{{ formatCompactCurrency(payment.amount) }}</strong>
+                      <strong>{{ payment.flowDirection === 'inflow' ? '+' : '−' }}{{ formatCompactCurrency(payment.amount) }}</strong>
                       <small :class="`report-text-${payment.statusTone}`">{{ payment.statusLabel }}</small>
                     </div>
                   </article>
@@ -644,6 +736,86 @@
               </template>
             </template>
           </template>
+        </template>
+
+        <template v-else-if="activeView === 'cancellations'">
+          <section class="cancellation-review-page" aria-labelledby="cancellation-review-heading">
+            <div class="ledger-heading">
+              <div><h1 id="cancellation-review-heading">Pengajuan Pembatalan</h1><p>Persetujuan melepaskan kavling dan menyiapkan pengembalian 50% dari uang muka serta cicilan terkonfirmasi.</p></div>
+              <button type="button" class="ledger-refresh" :disabled="cancellationLoading" @click="loadCancellationRequests">
+                <ion-spinner v-if="cancellationLoading" name="crescent" /><ion-icon v-else :icon="refreshOutline" aria-hidden="true" /> Muat ulang
+              </button>
+            </div>
+            <div class="ledger-policy-note" role="note">Booking Fee dan denda tidak termasuk dasar pengembalian. Transfer refund harus dicatat terpisah dengan referensi bank dan bukti transfer.</div>
+            <div v-if="cancellationLoading" class="finance-state" role="status"><ion-spinner name="crescent" /><p>Memuat pengajuan...</p></div>
+            <div v-else-if="cancellationError" class="finance-state" role="alert"><ion-icon :icon="alertCircleOutline" /><strong>Pengajuan tidak dapat dimuat</strong><p>{{ cancellationError }}</p><AppButton size="small" @click="loadCancellationRequests">Coba lagi</AppButton></div>
+            <div v-else-if="!cancellationRequests.length" class="finance-state ledger-empty"><strong>Tidak ada pengajuan menunggu</strong><p>Pengajuan pembatalan baru akan muncul di sini.</p></div>
+            <div v-else class="cancellation-request-list">
+              <article v-for="request in cancellationRequests" :key="request.id" class="cancellation-review-card">
+                <div class="cancellation-review-card__top"><div><span>Pengajuan #{{ request.id }} · {{ formatShortDate(request.created_at) }}</span><h2>{{ request.customer_name }}</h2><small>{{ request.customer_phone || 'Nomor kontak tidak tersedia' }}</small></div><strong>{{ request.lot_number }}<small>{{ request.block_name || 'Blok belum tersedia' }}</small></strong></div>
+                <p class="cancellation-review-reason">{{ request.reason }}</p>
+                <div class="cancellation-review-actions">
+                  <button type="button" class="proof-reject-button" @click="openCancellationDecision(request, 'Rejected')">Tolak Pengajuan</button>
+                  <button type="button" class="proof-verify-button" @click="openCancellationDecision(request, 'Approved')">Setujui Pembatalan</button>
+                </div>
+              </article>
+            </div>
+          </section>
+        </template>
+
+        <template v-else-if="activeView === 'ledger'">
+          <section class="ledger-page" aria-labelledby="ledger-heading">
+            <div class="ledger-heading">
+              <div>
+                <h1 id="ledger-heading">Buku Kas & Jurnal</h1>
+                <p>Penerimaan yang sudah dikonfirmasi, dibukukan satu kali, dan memiliki jurnal seimbang.</p>
+              </div>
+              <button type="button" class="ledger-refresh" :disabled="ledgerLoading" @click="loadFinancialLedger">
+                <ion-spinner v-if="ledgerLoading" name="crescent" />
+                <ion-icon v-else :icon="refreshOutline" aria-hidden="true" />
+                Muat ulang
+              </button>
+            </div>
+
+            <div class="ledger-policy-note" role="note">
+              Jurnal sementara mengkredit akun penerimaan yang belum diklasifikasikan. Admin/akuntan perlu memetakan akun sesuai kebijakan perusahaan.
+            </div>
+
+            <div v-if="ledgerLoading" class="finance-state" role="status"><ion-spinner name="crescent" /><p>Memuat buku kas...</p></div>
+            <div v-else-if="ledgerError" class="finance-state" role="alert">
+              <ion-icon :icon="alertCircleOutline" /><strong>Buku kas belum tersedia</strong><p>{{ ledgerError }}</p>
+              <AppButton size="small" @click="loadFinancialLedger">Coba lagi</AppButton>
+            </div>
+            <template v-else>
+              <div class="ledger-totals" aria-label="Ringkasan arus kas tercatat">
+                <p class="ledger-count">Menampilkan {{ ledgerEntries.length }} pembukuan terbaru, maksimal 200 entri.</p>
+                <article><span>Penerimaan pada daftar</span><strong>{{ formatCurrency(ledgerInflow) }}</strong></article>
+                <article><span>Pengeluaran pada daftar</span><strong>{{ formatCurrency(ledgerOutflow) }}</strong></article>
+                <article><span>Arus kas bersih pada daftar</span><strong>{{ formatCurrency(ledgerInflow - ledgerOutflow) }}</strong></article>
+              </div>
+
+              <div v-if="ledgerEntries.length" class="report-table-wrap">
+                <table class="report-table ledger-table">
+                  <caption class="visually-hidden">Daftar pembukuan penerimaan dan jurnal</caption>
+                  <thead><tr><th>Tanggal</th><th>Transaksi</th><th>Referensi bank</th><th>Akun jurnal</th><th class="amount-cell">Nominal</th></tr></thead>
+                  <tbody>
+                    <tr v-for="entry in ledgerEntries" :key="entry.id">
+                      <td data-label="Tanggal">{{ formatShortDate(entry.occurred_on) }}</td>
+                      <td data-label="Transaksi"><strong>{{ paymentCategoryLabel(entry.category) }}</strong><small>{{ entry.source_table }} #{{ entry.source_id }}</small></td>
+                      <td data-label="Referensi bank">{{ entry.bank_reference || 'Belum dicantumkan' }}</td>
+                      <td data-label="Akun jurnal">
+                        <span v-for="line in entry.journal?.lines ?? []" :key="`${entry.id}-${line.accountCode}`" class="ledger-account-line">
+                          {{ line.accountCode }} · {{ line.accountName }}<small>Debit {{ formatCurrency(line.debit) }} / Kredit {{ formatCurrency(line.credit) }}</small>
+                        </span>
+                      </td>
+                      <td data-label="Nominal" class="amount-cell">{{ entry.flow_direction === 'inflow' ? '+' : '−' }}{{ formatCurrency(entry.amount) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="finance-state ledger-empty"><strong>Belum ada pembukuan</strong><p>Pembayaran baru akan muncul setelah Admin mengonfirmasinya.</p></div>
+            </template>
+          </section>
         </template>
 
         <template v-else-if="activeView === 'plans'">
@@ -734,10 +906,34 @@
                 <div class="transaction-head">
                   <div class="customer-mark" :class="`customer-mark--${transaction.status}`">{{ initials(transaction.customerName) }}</div>
                   <div class="transaction-customer"><h2>{{ transaction.customerName }}</h2><p>{{ transaction.lotCode }} · {{ transaction.paymentType }}</p></div>
-                  <span class="status-badge" :class="`status-badge--${transaction.status}`">{{ transaction.reviewStatus === 'Needs Reupload' ? 'Perlu Upload Ulang' : transaction.reviewStatus === 'Rejected' ? 'Ditolak' : statusLabel(transaction.status) }}</span>
+                  <span class="status-badge" :class="`status-badge--${transaction.status}`">
+                    {{ transaction.refundStatus === 'Refunded'
+                      ? 'Sudah dikembalikan'
+                      : transaction.refundStatus === 'Pending Refund'
+                        ? 'Menunggu Pengembalian'
+                        : transaction.reviewStatus === 'Needs Reupload'
+                          ? 'Perlu Upload Ulang'
+                          : transaction.reviewStatus === 'Rejected'
+                            ? 'Ditolak'
+                            : statusLabel(transaction.status) }}
+                  </span>
                 </div>
                 <div class="transaction-details"><div><span>Nominal pembayaran</span><strong>{{ formatCurrency(transaction.amount) }}</strong></div><div><span>{{ transaction.method }}</span><time :datetime="transaction.date">{{ formatDate(transaction.date) }}</time></div></div>
-                <div class="transaction-actions"><button type="button" class="primary-action" @click="openPaymentProof(Number(transaction.id))"><ion-icon :icon="transaction.status === 'pending' ? checkmarkCircleOutline : documentTextOutline" aria-hidden="true" /> {{ transaction.reviewStatus === 'Needs Reupload' ? 'Lihat Bukti' : transaction.status === 'pending' ? 'Verifikasi' : 'Lihat Bukti' }}</button><button type="button" class="quiet-action" @click="openReportForTransaction(transaction.id)">Detail Keuangan</button></div>
+                <div class="transaction-actions">
+                  <button type="button" class="primary-action" @click="handleFinanceTransactionAction(transaction)">
+                    <ion-icon :icon="transaction.status === 'pending' ? checkmarkCircleOutline : documentTextOutline" aria-hidden="true" />
+                    {{ transaction.reviewStatus === 'Needs Reupload'
+                      ? 'Lihat Bukti'
+                      : transaction.status === 'pending'
+                        ? 'Verifikasi'
+                        : transaction.refundStatus === 'Refunded'
+                          ? 'Lihat Bukti Pengembalian'
+                          : transaction.refundStatus === 'Pending Refund'
+                            ? 'Unggah Bukti Pengembalian'
+                            : 'Lihat Bukti' }}
+                  </button>
+                  <button type="button" class="quiet-action" @click="openReportForTransaction(transaction.id)">Detail Keuangan</button>
+                </div>
               </article>
             </section>
             <nav v-if="filteredTransactions.length > 0 && totalPages > 1" class="finance-pager" aria-label="Halaman transaksi pembayaran">
@@ -892,12 +1088,29 @@
       </main>
     </ion-content>
     <MobileTabBar variant="admin" />
+    <AppModal
+      v-model="cancellationDecisionOpen"
+      :title="cancellationDecision === 'Approved' ? 'Setujui Pembatalan' : 'Tolak Pengajuan Pembatalan'"
+      :confirm-text="cancellationDecision === 'Approved' ? 'Setujui dan Lepaskan Kavling' : 'Tolak Pengajuan'"
+      :confirm-variant="cancellationDecision === 'Approved' ? 'danger' : 'neutral'"
+      :loading="cancellationDecisionSaving"
+      :confirm-disabled="cancellationDecisionNote.trim().length < 3"
+      @confirm="saveCancellationDecision"
+    >
+      <div class="cancellation-decision-form">
+        <p v-if="cancellationDecision === 'Approved'">Kavling akan dilepaskan. Hak refund dihitung dari uang muka dan cicilan yang sudah terkonfirmasi, tanpa Booking Fee dan denda.</p>
+        <p v-else>Pengajuan ditolak dan transaksi serta kavling tetap berjalan seperti semula.</p>
+        <label for="cancellation-decision-note">Catatan keputusan Admin</label>
+        <textarea id="cancellation-decision-note" v-model="cancellationDecisionNote" rows="3" maxlength="1000" placeholder="Tulis alasan dan tindak lanjut (minimal 3 karakter)." />
+        <p v-if="cancellationDecisionError" class="bank-form-error" role="alert">{{ cancellationDecisionError }}</p>
+      </div>
+    </AppModal>
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import { addCircleOutline, addOutline, alertCircleOutline, businessOutline, calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, closeCircleOutline, closeOutline, copyOutline, createOutline, documentTextOutline, downloadOutline, imageOutline, informationCircleOutline, peopleOutline, pieChartOutline, refreshOutline, saveOutline, searchOutline, shieldCheckmarkOutline, starOutline, timeOutline, trashOutline, walletOutline } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
@@ -908,6 +1121,9 @@ import { customerService } from '@/services/marketing/customerService'
 import { paymentInstructionService } from '@/services/Finance/paymentInstructionService'
 import { bankAccountService, type BankAccountRecord } from '@/services/Finance/bankAccountService'
 import { paymentPlanService, type PaymentPlanRecord } from '@/services/Finance/paymentPlanService'
+import { financialLedgerService, type FinancialLedgerEntry } from '@/services/Finance/financialLedgerService'
+import { cashflowCsvRows, currentMakassarDateTimeLocal, isoToMakassarDateTimeLocal, makassarDateTimeLocalToIso, monthlyCashflowTrend, monthlyTrendRange, postedCashflowForMonth, summarizeCashflow } from '@/utils/financialCashflow'
+import { purchaseCancellationService, type PurchaseCancellationRequest } from '@/services/Finance/purchaseCancellationService'
 import { paymentService, type InstallmentScheduleRecord, type PaymentDetail } from '@/services/Finance/paymentService'
 import { supabase } from '@/services/config/supabase'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -917,7 +1133,21 @@ import FinanceAmountBreakdown from '@/components/Admin/finance/FinanceAmountBrea
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
 type FinanceStatus = 'pending' | 'verified' | 'overdue'
-type FinanceTransaction = { id: string; customerName: string; lotCode: string; paymentType: string; amount: number; method: string; date: string; status: FinanceStatus; reviewStatus: string; spkNumber: string; spkRequestId: string }
+type FinanceTransaction = {
+  id: string
+  customerName: string
+  lotCode: string
+  paymentType: string
+  amount: number
+  method: string
+  date: string
+  status: FinanceStatus
+  reviewStatus: string
+  spkNumber: string
+  spkRequestId: string
+  refundStatus: 'Pending Refund' | 'Refunded' | null
+  refundProofPath: string | null
+}
 
 type InstructionStepDraft = { key: string; text: string }
 type PaymentInstructionDraft = {
@@ -1021,11 +1251,31 @@ const loading = ref(true)
 const errorMessage = ref('')
 const actionMessage = ref('')
 const route = useRoute()
+const router = useRouter()
 const targetPaymentId = ref('')
 const targetSpkRequestId = ref('')
 const PAGE_SIZE = 10
 const currentPage = ref(1)
-const activeView = ref<'verification' | 'instructions' | 'reports' | 'plans'>('verification')
+const activeView = ref<'verification' | 'instructions' | 'reports' | 'ledger' | 'cancellations' | 'plans'>('verification')
+const ledgerEntries = ref<FinancialLedgerEntry[]>([])
+const ledgerLoading = ref(false)
+const ledgerError = ref('')
+const reportLedgerEntries = ref<FinancialLedgerEntry[]>([])
+const reportLedgerLoading = ref(false)
+const reportLedgerError = ref('')
+let reportLedgerRequestId = 0
+const ledgerInflow = computed(() => ledgerEntries.value.filter(item => item.flow_direction === 'inflow').reduce((sum, item) => sum + item.amount, 0))
+const ledgerOutflow = computed(() => ledgerEntries.value.filter(item => item.flow_direction === 'outflow').reduce((sum, item) => sum + item.amount, 0))
+const cancellationRequests = ref<PurchaseCancellationRequest[]>([])
+const cancellationLoading = ref(false)
+const cancellationError = ref('')
+const cancellationDecisionOpen = ref(false)
+const cancellationDecisionSaving = ref(false)
+const cancellationDecisionError = ref('')
+const cancellationDecisionNote = ref('')
+const cancellationDecision = ref<'Approved' | 'Rejected'>('Approved')
+const cancellationDecisionTarget = ref<PurchaseCancellationRequest | null>(null)
+const pendingCancellationCount = computed(() => cancellationRequests.value.length)
 type ReportTab = 'summary' | 'lots' | 'buyers'
 type ReportPayment = {
   id: string
@@ -1044,6 +1294,7 @@ type ReportPayment = {
   status: string
   statusLabel: string
   statusTone: 'confirmed' | 'pending' | 'rejected' | 'reupload'
+  refundStatus: 'Pending Refund' | 'Refunded' | null
   note: string
   proofPath: string | null
   spkRequestId: string
@@ -1091,7 +1342,7 @@ type ReportBuyer = {
   lots: ReportLot[]
 }
 const activeReportTab = ref<ReportTab>('summary')
-const reportMonth = ref(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
+const reportMonth = ref(currentMakassarDateTimeLocal().slice(0, 7))
 const reportQuery = ref('')
 const rawCustomers = ref<FinanceCustomerRecord[]>([])
 const directPaymentRecords = ref<FinanceAdminPaymentRecord[]>([])
@@ -1128,6 +1379,18 @@ const reviewDialogOpen = ref(false)
 const reviewSaving = ref(false)
 const reviewReason = ref('')
 const reviewTargetStatus = ref<'Confirmed' | 'Rejected' | 'Needs Reupload'>('Confirmed')
+const refundFile = ref<File | null>(null)
+const refundMethod = ref('')
+const refundNote = ref('')
+const refundBankReference = ref('')
+const refundTransferAt = ref(currentMakassarDateTimeLocal())
+const refundSubmitting = ref(false)
+const refundError = ref('')
+const refundStatus = ref<'Pending Refund' | 'Refunded' | null>(null)
+const refundProofPath = ref('')
+const refundProofSignedUrl = ref('')
+const refundProofError = ref('')
+const refundAmount = ref(0)
 const selectableSchedules = computed(() => installmentSchedules.value.filter((item) => item.status !== 'Paid' && !item.pending_payment))
 const selectedSchedules = computed(() => selectableSchedules.value.filter((item) => selectedScheduleIds.value.includes(item.id)))
 const selectedSchedulesLabel = computed(() => selectedSchedules.value.map((item) => item.installment_number).join(' & '))
@@ -1181,6 +1444,7 @@ function normalizeReportPayment(payment: FinancePaymentRecord, customer: Finance
     status,
     statusLabel: status === 'Confirmed' ? 'Terverifikasi' : status === 'Rejected' ? 'Ditolak' : status === 'Needs Reupload' ? 'Perlu Upload Ulang' : 'Menunggu',
     statusTone,
+    refundStatus: null,
     note: payment.note || '',
     proofPath: payment.proof_path || null,
     spkRequestId: String(payment.spk_request_id ?? ''),
@@ -1202,7 +1466,9 @@ const allReportPayments = computed<ReportPayment[]>(() => {
     const transaction = payment.transaction_id
       ? (reportCustomer.lot_transactions || []).find((item) => String(item.id) === String(payment.transaction_id))
       : undefined
-    return normalizeReportPayment(payment, reportCustomer, lot || transaction?.lots || null, transaction)
+    const normalized = normalizeReportPayment(payment, reportCustomer, lot || transaction?.lots || null, transaction)
+    const verificationRow = transactions.value.find((item) => item.id === normalized.id)
+    return { ...normalized, refundStatus: verificationRow?.refundStatus ?? null }
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 })
 
@@ -1284,17 +1550,16 @@ const reportBuyers = computed<ReportBuyer[]>(() => {
     .sort((a, b) => b.remaining - a.remaining)
 })
 
-const selectedMonthPayments = computed(() => allReportPayments.value.filter((payment) => {
-  const date = new Date(payment.date)
-  return Number.isFinite(date.getTime()) &&
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` === reportMonth.value
-}))
-const confirmedMonthPayments = computed(() => selectedMonthPayments.value.filter((payment) => payment.statusTone === 'confirmed'))
-const monthlyIncome = computed(() => confirmedMonthPayments.value.reduce((sum, payment) => sum + payment.amount, 0))
-const monthlyBookingPayments = computed(() => confirmedMonthPayments.value.filter((payment) => payment.category === 'Booking'))
-const monthlyOtherPayments = computed(() => confirmedMonthPayments.value.filter((payment) => payment.category !== 'Booking'))
-const monthlyBookingIncome = computed(() => monthlyBookingPayments.value.reduce((sum, payment) => sum + payment.amount, 0))
-const monthlyOtherIncome = computed(() => monthlyOtherPayments.value.reduce((sum, payment) => sum + payment.amount, 0))
+const selectedMonthCashflowEntries = computed(() => postedCashflowForMonth(reportLedgerEntries.value, reportMonth.value))
+const monthlyCashflowTotals = computed(() => summarizeCashflow(selectedMonthCashflowEntries.value))
+const monthlyIncome = computed(() => monthlyCashflowTotals.value.grossIncome)
+const monthlyTotalExpenses = computed(() => monthlyCashflowTotals.value.totalExpenses)
+const monthlyRefundExpenses = computed(() => monthlyCashflowTotals.value.refundExpenses)
+const monthlyNetCashFlow = computed(() => monthlyCashflowTotals.value.netCashFlow)
+const monthlyBookingPayments = computed(() => selectedMonthCashflowEntries.value.filter((entry) => entry.flow_direction === 'inflow' && entry.category === 'Booking'))
+const monthlyOtherPayments = computed(() => selectedMonthCashflowEntries.value.filter((entry) => entry.flow_direction === 'inflow' && entry.category !== 'Booking'))
+const monthlyBookingIncome = computed(() => monthlyBookingPayments.value.reduce((sum, entry) => sum + entry.amount, 0))
+const monthlyOtherIncome = computed(() => monthlyOtherPayments.value.reduce((sum, entry) => sum + entry.amount, 0))
 const monthlyBookingCount = computed(() => monthlyBookingPayments.value.length)
 const monthlyOtherCount = computed(() => monthlyOtherPayments.value.length)
 const selectedMonthLabel = computed(() => {
@@ -1307,31 +1572,29 @@ const previousMonthKey = computed(() => {
   const date = new Date(year, month - 2, 1)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 })
-const previousMonthIncome = computed(() => allReportPayments.value
-  .filter((payment) => payment.statusTone === 'confirmed' && payment.date.slice(0, 7) === previousMonthKey.value)
-  .reduce((sum, payment) => sum + payment.amount, 0))
+const previousMonthIncome = computed(() => summarizeCashflow(postedCashflowForMonth(reportLedgerEntries.value, previousMonthKey.value)).grossIncome)
 const monthComparison = computed<number | null>(() => {
   if (previousMonthIncome.value === 0) return null
   return ((monthlyIncome.value - previousMonthIncome.value) / previousMonthIncome.value) * 100
 })
-const monthlyReport = computed(() => {
-  const [year, month] = (reportMonth.value || `${new Date().getFullYear()}-${new Date().getMonth() + 1}`).split('-').map(Number)
-  const start = new Date(year, month - 6, 1)
-  return Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(start.getFullYear(), start.getMonth() + index, 1)
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    const total = allReportPayments.value
-      .filter((payment) => payment.statusTone === 'confirmed' && payment.date.slice(0, 7) === key)
-      .reduce((sum, payment) => sum + payment.amount, 0)
-    return { key, label: new Intl.DateTimeFormat('id-ID', { month: 'short' }).format(date), total }
-  })
-})
-const monthlyMax = computed(() => Math.max(...monthlyReport.value.map((month) => month.total), 1))
-const peakMonth = computed(() => monthlyReport.value.reduce((peak, month) => month.total > peak.total ? month : peak, monthlyReport.value[0] || { key: '', label: '-', total: 0 }))
+const monthlyReport = computed(() => monthlyCashflowTrend(reportLedgerEntries.value, reportMonth.value, 6))
+const monthlyMax = computed(() => Math.max(...monthlyReport.value.flatMap((month) => [month.grossIncome, month.totalExpenses]), 1))
+const peakMonth = computed(() => monthlyReport.value.reduce((peak, month) => month.grossIncome > peak.grossIncome ? month : peak, monthlyReport.value[0] || { key: '', label: '-', grossIncome: 0, totalExpenses: 0, refundExpenses: 0, netCashFlow: 0 }))
 const peakMonthKey = computed(() => peakMonth.value.key)
 const peakMonthLabel = computed(() => peakMonth.value.label)
-const monthlyChartDescription = computed(() => monthlyReport.value.map((month) => `${month.label}: ${formatCurrency(month.total)}`).join(', '))
-const recentReportPayments = computed(() => selectedMonthPayments.value.slice(0, 5))
+const monthlyChartDescription = computed(() => monthlyReport.value.map((month) => `${month.label}: pemasukan bruto ${formatCurrency(month.grossIncome)}, pengeluaran ${formatCurrency(month.totalExpenses)}, refund ${formatCurrency(month.refundExpenses)}, arus kas bersih ${formatCurrency(month.netCashFlow)}`).join('. '))
+const recentReportPayments = computed(() => selectedMonthCashflowEntries.value.slice(0, 5).map((entry) => ({
+  id: String(entry.id),
+  customerName: entry.source_table === 'booking_fee_refunds' ? 'Refund Booking Fee' : paymentCategoryLabel(entry.category),
+  lotCode: `${ledgerSourceLabel(entry)} · #${entry.source_id}`,
+  categoryLabel: entry.category,
+  method: entry.bank_reference || 'Referensi bank belum dicantumkan',
+  date: entry.occurred_on,
+  amount: entry.amount,
+  statusTone: entry.flow_direction === 'inflow' ? 'confirmed' : 'rejected',
+  statusLabel: entry.flow_direction === 'inflow' ? 'Pemasukan bruto' : entry.source_table === 'booking_fee_refunds' ? 'Pengeluaran refund' : 'Pengeluaran',
+  flowDirection: entry.flow_direction,
+})))
 const filteredReportLots = computed(() => {
   const term = reportQuery.value.trim().toLowerCase()
   return reportLots.value.filter((lot) => !term || `${lot.lotCode} ${lot.blockName} ${lot.customerName}`.toLowerCase().includes(term))
@@ -1341,20 +1604,120 @@ const filteredReportBuyers = computed(() => {
   return reportBuyers.value.filter((buyer) => !term || `${buyer.name} ${buyer.phone} ${buyer.lots.map((lot) => lot.lotCode).join(' ')}`.toLowerCase().includes(term))
 })
 const reportExportRows = computed(() => {
+  if (activeReportTab.value === 'summary') {
+    return selectedMonthCashflowEntries.value.map((entry) => [
+      entry.occurred_on,
+      entry.flow_direction === 'inflow' ? 'Pemasukan' : 'Pengeluaran',
+      entry.category,
+      entry.source_table,
+      String(entry.source_id),
+      entry.bank_reference ?? '',
+      String(entry.amount),
+    ])
+  }
   if (activeReportTab.value === 'lots') {
     return filteredReportLots.value.map((lot) => [lot.lotCode, lot.blockName, lot.customerName, String(lot.finalPrice), String(lot.paid), String(lot.remaining), lot.statusLabel])
   }
   if (activeReportTab.value === 'buyers') {
     return filteredReportBuyers.value.map((buyer) => [buyer.name, buyer.phone, String(buyer.lotCount), String(buyer.paid), String(buyer.remaining)])
   }
-  return selectedMonthPayments.value.map((payment) => [formatShortDate(payment.date), payment.customerName, payment.lotCode, payment.categoryLabel, payment.method, String(payment.amount), payment.statusLabel])
+  return []
 })
 
 watch(activeReportTab, () => { reportQuery.value = '' })
 watch(activeView, (view: typeof activeView.value) => {
   if (view !== 'reports') selectedReportLot.value = null
   if (view !== 'reports') paymentPage.value = 'none'
+  if (view === 'reports') void loadReportLedger()
 })
+watch(reportMonth, () => {
+  if (activeView.value === 'reports') void loadReportLedger()
+})
+
+async function loadReportLedger() {
+  const requestId = ++reportLedgerRequestId
+  reportLedgerLoading.value = true
+  reportLedgerError.value = ''
+  try {
+    const range = monthlyTrendRange(reportMonth.value, 7)
+    const entries = await financialLedgerService.listBetween(range.startDate, range.endDate)
+    if (requestId === reportLedgerRequestId) reportLedgerEntries.value = entries
+  } catch (error: any) {
+    if (requestId === reportLedgerRequestId) {
+      reportLedgerError.value = error?.message || 'Data arus kas gagal dimuat. Periksa koneksi lalu coba lagi.'
+    }
+  } finally {
+    if (requestId === reportLedgerRequestId) reportLedgerLoading.value = false
+  }
+}
+
+function retryFinanceReport() {
+  void Promise.all([loadTransactions(), loadReportLedger()])
+}
+
+async function loadFinancialLedger() {
+  if (ledgerLoading.value) return
+  ledgerLoading.value = true
+  ledgerError.value = ''
+  try {
+    ledgerEntries.value = await financialLedgerService.listRecent()
+  } catch (error: any) {
+    ledgerError.value = error?.message || 'Buku kas tidak dapat dimuat. Periksa koneksi atau jalankan migrasi SQL.'
+  } finally {
+    ledgerLoading.value = false
+  }
+}
+
+function openFinancialLedger() {
+  activeView.value = 'ledger'
+  void loadFinancialLedger()
+}
+
+async function loadCancellationRequests() {
+  if (cancellationLoading.value) return
+  cancellationLoading.value = true
+  cancellationError.value = ''
+  try {
+    cancellationRequests.value = await purchaseCancellationService.listPending()
+  } catch (error: any) {
+    cancellationError.value = error?.message || 'Daftar pengajuan pembatalan tidak dapat dimuat.'
+  } finally {
+    cancellationLoading.value = false
+  }
+}
+
+function openCancellationReview() {
+  activeView.value = 'cancellations'
+  void loadCancellationRequests()
+}
+
+function openCancellationDecision(request: PurchaseCancellationRequest, decision: 'Approved' | 'Rejected') {
+  cancellationDecisionTarget.value = request
+  cancellationDecision.value = decision
+  cancellationDecisionNote.value = ''
+  cancellationDecisionError.value = ''
+  cancellationDecisionOpen.value = true
+}
+
+async function saveCancellationDecision() {
+  const target = cancellationDecisionTarget.value
+  const note = cancellationDecisionNote.value.trim()
+  if (!target || note.length < 3 || cancellationDecisionSaving.value) return
+  cancellationDecisionSaving.value = true
+  cancellationDecisionError.value = ''
+  try {
+    const refundId = await purchaseCancellationService.review(target.id, cancellationDecision.value, note)
+    cancellationDecisionOpen.value = false
+    showMessage(cancellationDecision.value === 'Approved'
+      ? `Pembatalan disetujui. ${refundId ? `Pengajuan refund #${refundId} dibuat.` : 'Refund tidak diperlukan.'}`
+      : 'Pengajuan pembatalan ditolak.')
+    await loadCancellationRequests()
+  } catch (error: any) {
+    cancellationDecisionError.value = error?.message || 'Keputusan pembatalan gagal disimpan.'
+  } finally {
+    cancellationDecisionSaving.value = false
+  }
+}
 
 const statusCounts = computed(() => ({ pending: transactions.value.filter((item) => item.status === 'pending').length, verified: transactions.value.filter((item) => item.status === 'verified').length, overdue: transactions.value.filter((item) => item.status === 'overdue').length }))
 function isTargetTransaction(item: FinanceTransaction) {
@@ -1402,7 +1765,32 @@ async function goToPage(page: number) {
 }
 
 function formatCurrency(value: number) { return `Rp ${value.toLocaleString('id-ID')}` }
-function formatDate(value: string) { return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) }
+function paymentCategoryLabel(category: string) {
+  const labels: Record<string, string> = {
+    Booking: 'SPK / Booking Fee',
+    'Booking Fee Refund': 'Refund Booking Fee',
+    'Down Payment': 'Uang Muka',
+    Installment: 'Cicilan',
+    'Cash Purchase': 'Pembelian Tunai',
+    Other: 'Lainnya',
+    Unclassified: 'Belum Diklasifikasikan',
+  }
+  return labels[category] ?? category
+}
+function ledgerSourceLabel(entry: Pick<FinancialLedgerEntry, 'source_table' | 'source_id'>) {
+  if (entry.source_table === 'payments') return `Pembayaran #${entry.source_id}`
+  if (entry.source_table === 'booking_fee_refunds') return `Refund Booking Fee #${entry.source_id}`
+  if (entry.source_table === 'purchase_refunds') return `Refund pembelian #${entry.source_id}`
+  if (entry.source_table === 'financial_reversal') return `Reversal #${entry.source_id}`
+  return `${entry.source_table} #${entry.source_id}`
+}
+function formatDate(value: string) { return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }).format(new Date(value)) }
+function formatMakassarDateTime(value: string) {
+  const date = new Date(value)
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(date)
+    : value
+}
 function formatCompactCurrency(value: number) {
   if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} M`
   if (value >= 1_000_000) return `Rp ${(value / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} jt`
@@ -1410,15 +1798,18 @@ function formatCompactCurrency(value: number) {
   return formatCurrency(value)
 }
 function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value))
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00+08:00`) : new Date(value)
+  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Makassar' }).format(date)
 }
 function exportReport() {
-  const headers = activeReportTab.value === 'lots'
-    ? ['Kode Kavling', 'Blok', 'Pembeli', 'Harga Transaksi', 'Total Dibayar', 'Sisa Tagihan', 'Status']
-    : activeReportTab.value === 'buyers'
-      ? ['Nama Pembeli', 'Telepon', 'Jumlah Kavling', 'Total Terbayar', 'Sisa Tagihan']
-      : ['Tanggal', 'Nama Pembeli', 'Kode Kavling', 'Kategori', 'Metode Pembayaran', 'Nominal', 'Status']
-  const rows = [headers, ...reportExportRows.value]
+  const rows = activeReportTab.value === 'summary'
+    ? cashflowCsvRows(reportLedgerEntries.value, reportMonth.value)
+    : [
+        activeReportTab.value === 'lots'
+          ? ['Kode Kavling', 'Blok', 'Pembeli', 'Harga Transaksi', 'Total Dibayar', 'Sisa Tagihan', 'Status']
+          : ['Nama Pembeli', 'Telepon', 'Jumlah Kavling', 'Total Terbayar', 'Sisa Tagihan'],
+        ...reportExportRows.value,
+      ]
   const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(';')).join('\r\n')
   const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -1468,7 +1859,7 @@ function closePaymentPage() {
   paymentCreateError.value = ''
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
-async function openPaymentProof(paymentId: number) {
+async function openPaymentProof(paymentId: number, focusRefund = false) {
   paymentPage.value = 'proof'
   proofLoading.value = true
   proofError.value = ''
@@ -1477,6 +1868,30 @@ async function openPaymentProof(paymentId: number) {
   proofFilePath.value = ''
   window.scrollTo({ top: 0, behavior: 'smooth' })
   await loadSelectedPaymentProof(paymentId)
+  if (focusRefund) {
+    await nextTick()
+    document.querySelector('.proof-refund-section')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }
+}
+function handleFinanceTransactionAction(transaction: FinanceTransaction) {
+  if (
+    transaction.refundStatus
+    && transaction.spkRequestId
+  ) {
+    void router.push({
+      name: 'AdminSPK',
+      query: {
+        spkId: transaction.spkRequestId,
+        refund: '1',
+      },
+    })
+    return
+  }
+
+  void openPaymentProof(Number(transaction.id))
 }
 async function loadSelectedPaymentProof(paymentId?: number) {
   const id = paymentId ?? selectedProofPayment.value?.payment.id
@@ -1486,6 +1901,51 @@ async function loadSelectedPaymentProof(paymentId?: number) {
   try {
     const detail = await paymentService.getPaymentDetail(id)
     selectedProofPayment.value = detail
+    refundStatus.value = null
+    refundProofPath.value = ''
+    refundProofSignedUrl.value = ''
+    refundProofError.value = ''
+    refundAmount.value = Number(detail.payment.amount || 0)
+    refundFile.value = null
+    refundMethod.value = ''
+    refundNote.value = ''
+    refundBankReference.value = ''
+    refundTransferAt.value = currentMakassarDateTimeLocal()
+    refundError.value = ''
+
+    if (
+      detail.payment.payment_category === 'Booking'
+      && detail.payment.spk_request_id
+    ) {
+      const { data: refund, error: refundQueryError } = await supabase
+        .from('booking_fee_refunds')
+        .select('status,proof_path,refund_method,refund_note,bank_reference,refunded_at,amount')
+        .eq('payment_id', detail.payment.id)
+        .maybeSingle()
+
+      if (refundQueryError) throw refundQueryError
+      if (refund) {
+        refundStatus.value = refund.status
+        refundAmount.value = Number(refund.amount || detail.payment.amount || 0)
+        refundProofPath.value = refund.proof_path ?? ''
+        refundMethod.value = refund.refund_method ?? ''
+        refundNote.value = refund.refund_note ?? ''
+        refundBankReference.value = refund.bank_reference ?? ''
+        refundTransferAt.value = refund.refunded_at
+          ? isoToMakassarDateTimeLocal(refund.refunded_at)
+          : currentMakassarDateTimeLocal()
+
+        if (refund.proof_path) {
+          const { data: refundUrl, error: refundUrlError } =
+            await supabase.storage
+              .from('payment-proofs')
+              .createSignedUrl(refund.proof_path, 300)
+
+          if (refundUrlError) refundProofError.value = 'Bukti refund tercatat, tetapi gagal dimuat. Periksa koneksi lalu coba lagi.'
+          else refundProofSignedUrl.value = refundUrl?.signedUrl ?? ''
+        }
+      }
+    }
 
     // Bukti dari form pembayaran Client disimpan langsung ke bucket
     // `payment-proofs`, termasuk pembayaran DP yang juga memiliki spk_request_id.
@@ -1598,6 +2058,118 @@ async function submitPaymentReview() {
     showMessage(error instanceof Error ? error.message : 'Tindakan review gagal.')
   } finally {
     reviewSaving.value = false
+  }
+}
+function onRefundProofSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+  refundError.value = ''
+
+  if (!file) {
+    refundFile.value = null
+    return
+  }
+  if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+    refundFile.value = null
+    input.value = ''
+    refundError.value = 'Format bukti harus JPG, PNG, WEBP, atau PDF.'
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    refundFile.value = null
+    input.value = ''
+    refundError.value = 'Ukuran bukti maksimal 5 MB.'
+    return
+  }
+  refundFile.value = file
+}
+
+async function submitRefundProof() {
+  if (
+    !selectedProofPayment.value
+    || !refundFile.value
+    || refundSubmitting.value
+  ) return
+
+  const payment = selectedProofPayment.value.payment
+  if (
+    payment.payment_category !== 'Booking'
+    || !payment.spk_request_id
+  ) {
+    refundError.value = 'Pengembalian hanya tersedia untuk pembayaran Booking Fee SPK.'
+    return
+  }
+
+  refundSubmitting.value = true
+  refundError.value = ''
+  let uploadedPath = ''
+
+  try {
+    const extension = refundFile.value.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const safeExtension = /^[a-z0-9]{2,5}$/.test(extension) ? extension : 'jpg'
+    uploadedPath = `refund/${payment.spk_request_id}/${Date.now()}-${crypto.randomUUID()}.${safeExtension}`
+
+    let uploadError: { message: string; statusCode?: string; status?: number } | null = null
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const { error } = await supabase.storage
+        .from('payment-proofs')
+        .upload(uploadedPath, refundFile.value, {
+          cacheControl: '3600',
+          upsert: attempt > 1,
+          contentType: refundFile.value.type,
+        })
+
+      if (!error) {
+        uploadError = null
+        break
+      }
+
+      uploadError = error as { message: string; statusCode?: string; status?: number }
+      const retryable =
+        String(uploadError.statusCode || '').includes('520')
+        || uploadError.status === 520
+        || /520|timeout|timed out|network/i.test(uploadError.message)
+
+      if (!retryable || attempt === 3) break
+      await new Promise((resolve) => window.setTimeout(resolve, attempt * 700))
+    }
+
+    if (uploadError) {
+      if (/520|timeout|timed out|network/i.test(uploadError.message)) {
+        throw new Error(
+          'Server Storage tidak merespons (HTTP 520). Bukti belum disimpan. Tunggu beberapa saat lalu coba lagi.',
+        )
+      }
+      throw uploadError
+    }
+
+    const { error: rpcError } = await supabase.rpc('record_booking_fee_refund', {
+      p_payment_id: payment.id,
+      p_proof_path: uploadedPath,
+      p_refund_method: refundMethod.value,
+      p_refund_note: refundNote.value,
+      p_bank_reference: refundBankReference.value.trim() || null,
+      p_refunded_at: makassarDateTimeLocalToIso(refundTransferAt.value),
+    })
+
+    if (rpcError) {
+      await supabase.storage.from('payment-proofs').remove([uploadedPath])
+      throw rpcError
+    }
+
+    refundStatus.value = 'Refunded'
+    refundProofPath.value = uploadedPath
+    refundFile.value = null
+    showMessage('Bukti pengembalian berhasil dicatat.')
+    await loadSelectedPaymentProof(payment.id)
+    await loadTransactions()
+  } catch (error) {
+    refundError.value = error instanceof Error
+      ? error.message
+      : 'Bukti pengembalian gagal disimpan.'
+  } finally {
+    refundSubmitting.value = false
   }
 }
 async function loadSchedulesForSelectedLot() {
@@ -2015,6 +2587,25 @@ async function loadTransactions() {
     const directPayments = await customerService.getAdminPaymentVerificationRecords()
     rawCustomers.value = customers ?? []
     directPaymentRecords.value = directPayments
+
+    const paymentIds = [
+      ...new Set(directPayments.map(({ payment }) => Number(payment.id)).filter(Number.isInteger)),
+    ]
+    const refundResult = paymentIds.length
+      ? await supabase
+          .from('booking_fee_refunds')
+          .select('payment_id,status,proof_path')
+          .in('payment_id', paymentIds)
+      : { data: [] as any[], error: null }
+    if (refundResult.error) throw refundResult.error
+    const refundMap = new Map<number, { status: 'Pending Refund' | 'Refunded'; proofPath: string | null }>()
+    for (const refund of refundResult.data ?? []) {
+      refundMap.set(Number(refund.payment_id), {
+        status: refund.status,
+        proofPath: refund.proof_path ?? null,
+      })
+    }
+
     transactions.value = directPayments.map(({ payment, customer, lot, spk }) => {
       const date = payment.payment_date || payment.created_at || customer?.created_at || new Date().toISOString()
       const status: FinanceStatus = payment.status === 'Confirmed' ? 'verified' : payment.status === 'Rejected' ? 'overdue' : 'pending'
@@ -2034,6 +2625,12 @@ async function loadTransactions() {
         reviewStatus: String(payment.status || 'Pending'),
         spkNumber: spk?.spk_number || '',
         spkRequestId: String(payment.spk_request_id ?? spk?.id ?? ''),
+        refundStatus: payment.payment_category === 'Booking'
+          ? refundMap.get(Number(payment.id))?.status ?? null
+          : null,
+        refundProofPath: payment.payment_category === 'Booking'
+          ? refundMap.get(Number(payment.id))?.proofPath ?? null
+          : null,
       } as FinanceTransaction
     })
   } catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.' } finally { loading.value = false }
@@ -2071,6 +2668,58 @@ onMounted(async () => {
 <style scoped>
 .admin-finance-page { color: var(--text-primary); font-family: var(--font-primary); }
 .finance-shell { max-width: 1120px; margin: 0 auto; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); }
+.ledger-page { display: grid; gap: 16px; }
+.ledger-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.ledger-heading h1 { margin: 0; color: var(--text-primary); font-size: 21px; }
+.ledger-heading p { margin: 6px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.ledger-refresh { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }
+.ledger-refresh:disabled { opacity: .65; cursor: wait; }
+.ledger-refresh:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+.ledger-policy-note { padding: 12px; border-left: 3px solid var(--poliland-gold-text); border-radius: 4px var(--radius-control) var(--radius-control) 4px; background: var(--poliland-gold-soft); color: var(--text-primary); font-size: 11px; line-height: 1.55; }
+.ledger-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ledger-totals article { display: grid; gap: 7px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+.ledger-count { grid-column: 1 / -1; margin: 0; color: var(--text-secondary); font-size: 11px; }
+.ledger-totals span { color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
+.ledger-totals strong { color: var(--text-primary); font-size: 16px; overflow-wrap: anywhere; }
+.ledger-table { min-width: 760px; }
+.ledger-account-line { display: block; margin: 2px 0 6px; white-space: nowrap; }
+.ledger-account-line small { display: block; }
+.ledger-empty { min-height: 160px; }
+.cancellation-review-page { display: grid; gap: 16px; }
+.cancellation-request-list { display: grid; gap: 12px; }
+.cancellation-review-card { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+.cancellation-review-card__top { display: flex; justify-content: space-between; gap: 14px; }
+.cancellation-review-card__top div, .cancellation-review-card__top > strong { display: grid; gap: 4px; }
+.cancellation-review-card__top span, .cancellation-review-card__top small { color: var(--text-secondary); font-size: 11px; }
+.cancellation-review-card__top h2 { margin: 2px 0 0; color: var(--text-primary); font-size: 16px; }
+.cancellation-review-card__top > strong { flex: 0 0 auto; text-align: right; font-size: 14px; }
+.cancellation-review-reason { margin: 0; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cancellation-review-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.cancellation-review-actions button { min-height: 42px; }
+.cancellation-decision-form { display: grid; gap: 12px; color: var(--text-primary); font-size: 12px; line-height: 1.55; }
+.cancellation-decision-form p { margin: 0; }
+.cancellation-decision-form label { font-weight: var(--font-weight-semibold); }
+.cancellation-decision-form textarea { width: 100%; min-height: 92px; padding: 11px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); font: inherit; resize: vertical; }
+.cancellation-decision-form textarea:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .ledger-heading { flex-direction: column; }
+  .ledger-totals { grid-template-columns: 1fr; }
+  .ledger-totals article { grid-template-columns: 1fr auto; align-items: center; }
+  .ledger-totals strong { text-align: right; font-size: 14px; }
+  .ledger-table { display: block; min-width: 0; }
+  .ledger-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .ledger-table tbody { display: grid; gap: 10px; }
+  .ledger-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+  .ledger-table td { display: grid; align-content: start; gap: 4px; min-width: 0; padding: 10px; border-bottom: 0; font-size: 10px; overflow-wrap: anywhere; }
+  .ledger-table td::before { color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); content: attr(data-label); }
+  .ledger-table td:nth-child(4) { grid-column: 1 / -1; border-top: 1px solid var(--border-default); }
+  .ledger-table .ledger-account-line { white-space: normal; }
+  .ledger-table td.amount-cell { text-align: left; }
+  .cancellation-review-card__top { flex-direction: column; }
+  .cancellation-review-card__top > strong { text-align: left; }
+  .cancellation-review-actions { flex-direction: column-reverse; }
+  .cancellation-review-actions button { width: 100%; }
+}
 .transaction-card--target { border-color: var(--poliland-gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--poliland-gold) 22%, transparent); }
 
 .report-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 24px 0 18px; }
@@ -2099,10 +2748,13 @@ onMounted(async () => {
 .panel-heading p { margin: 5px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
 .panel-period { flex: 0 0 auto; padding: 5px 8px; border-radius: 8px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); }
 .monthly-chart { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-height: 176px; margin-top: 18px; padding-top: 8px; }
-.chart-column { display: grid; grid-template-rows: 20px minmax(86px, 1fr) 20px; justify-items: center; gap: 7px; min-width: 0; }
+.chart-column { display: grid; grid-template-rows: 20px minmax(70px, 1fr) 16px auto; justify-items: center; gap: 6px; min-width: 0; }
 .chart-value { max-width: 100%; overflow: hidden; color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); text-overflow: ellipsis; white-space: nowrap; }
-.chart-track { display: flex; width: min(100%, 48px); height: 100%; align-items: flex-end; overflow: hidden; border-radius: 8px 8px 3px 3px; background: var(--surface-muted); }
+.chart-track { display: flex; width: min(100%, 48px); height: 100%; align-items: flex-end; gap: 2px; overflow: hidden; border-radius: 8px 8px 3px 3px; background: var(--surface-muted); }
 .chart-bar { display: block; width: 100%; min-height: 0; border-radius: 7px 7px 2px 2px; background: var(--poliland-green); transition: height .25s ease; }
+.chart-bar--income, .chart-bar--expense { width: calc(50% - 1px); flex: 0 0 calc(50% - 1px); }
+.chart-bar--expense { background: var(--status-danger); }
+.chart-cashflow-label { color: var(--text-secondary); font-size: 8px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
 .chart-label { color: var(--text-secondary); font-size: 10px; text-transform: capitalize; }
 .report-empty-inline { padding: 22px 10px; color: var(--text-secondary); font-size: 12px; text-align: center; }
 .method-list { display: grid; gap: 16px; margin-top: 18px; }
@@ -2310,6 +2962,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-recent-icon { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: var(--surface-muted); color: var(--text-secondary); font-size: 19px; }
 .report-recent-icon.is-confirmed { background: var(--status-success-bg); color: var(--poliland-green); }
 .report-recent-icon.is-pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
+.report-recent-icon.is-outflow { background: color-mix(in srgb, var(--status-danger) 12%, var(--surface-primary)); color: var(--status-danger); }
 .report-recent-main { flex: 1; min-width: 0; }
 .report-recent-main strong { display: block; font-size: 12px; }
 .report-recent-main p { margin: 3px 0; color: var(--text-secondary); font-size: 10px; overflow-wrap: anywhere; }
@@ -2390,6 +3043,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-detail-history { display: grid; gap: 10px; margin: 20px 0; }
 .report-payment-history-card { padding: 13px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .report-payment-history-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.report-payment-status-group { display: grid; justify-items: end; gap: 4px; }
 .report-payment-history-top strong, .report-payment-history-top small { display: block; }
 .report-payment-history-top strong { color: var(--poliland-gold-text); font-size: 10px; }
 .report-payment-history-top small { margin-top: 3px; color: var(--text-secondary); font-size: 9px; }
@@ -2397,6 +3051,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-payment-status--confirmed { background: var(--status-success-bg); color: var(--poliland-green); }
 .report-payment-status--pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
 .report-payment-status--rejected { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
+.report-payment-status--refunded { background: color-mix(in srgb, var(--poliland-gold) 16%, var(--surface-primary)); color: var(--poliland-gold-text); }
 .report-payment-history-amount { margin: 10px 0 6px; font-size: 20px; font-weight: var(--font-weight-bold); }
 .report-payment-history-meta { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 9px; border-bottom: 1px solid var(--border-default); color: var(--text-secondary); font-size: 10px; }
 .report-payment-history-card p { margin: 9px 0 0; color: var(--text-secondary); font-size: 10px; }
@@ -2421,7 +3076,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 
 
 /* Menu keuangan empat modul: mobile horizontal scroll, desktop four columns. */
-.finance-shortcuts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.finance-shortcuts { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .payment-plans-page { padding-top: 30px; }
 .payment-plans-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 14px 2px 14px; }
 .payment-plans-eyebrow { margin: 0 0 6px; color: var(--poliland-gold-text); font-size: 9px; font-weight: var(--font-weight-bold); letter-spacing: .08em; }
@@ -2460,6 +3115,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
   .payment-plans-page { padding-top: 28px; }
   .payment-plans-heading { align-items: flex-start; }
   .payment-plan-card { min-height: 106px; }
+  .proof-refund-details { grid-template-columns: 1fr; }
 }
 @media (min-width: 601px) {
   .payment-plan-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2510,6 +3166,27 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .proof-back-button, .payment-cancel-button { background: var(--surface-muted); color: var(--text-primary); }
 .proof-review-note { padding: 13px; border-radius: var(--radius-control); background: var(--surface-muted); font-size: 12px; }
 .proof-review-note p { margin: 5px 0 0; color: var(--text-secondary); line-height: 1.5; }
+.proof-refund-section { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+.proof-refund-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.proof-refund-heading div { display: grid; gap: 3px; }
+.proof-refund-heading span, .proof-refund-details dt { color: var(--text-secondary); font-size: 11px; }
+.proof-refund-heading strong { font-size: 14px; }
+.refund-status-badge { min-height: 28px; padding: 6px 9px; border-radius: var(--radius-control); background: var(--poliland-gold-soft); color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-semibold); }
+.refund-status-badge--done { background: var(--status-success-bg); color: var(--poliland-green); }
+.proof-refund-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.proof-refund-details div { display: grid; gap: 3px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-muted); }
+.proof-refund-details dd { margin: 0; overflow-wrap: anywhere; font-size: 11px; font-weight: var(--font-weight-semibold); }
+.refund-field { display: grid; gap: 6px; color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }
+.refund-field input, .refund-field textarea { width: 100%; min-height: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); font: inherit; padding: 10px 12px; }
+.refund-field:focus-within { color: var(--text-primary); }
+.refund-field input:focus-visible, .refund-field textarea:focus-visible { outline: 3px solid color-mix(in srgb, var(--poliland-green) 35%, transparent); outline-offset: 2px; }
+.refund-field textarea { resize: vertical; }
+.refund-upload { display: grid; gap: 6px; min-height: 44px; padding: 10px 12px; border: 1px dashed var(--border-default); border-radius: var(--radius-control); font-size: 11px; }
+.refund-upload input { min-height: 44px; font-size: 10px; }
+.refund-upload span { color: var(--text-secondary); }
+.proof-refund-error { margin: 0; color: var(--status-danger); font-size: 11px; }
+.proof-refund-submit { min-height: 46px; border: 0; border-radius: var(--radius-control); background: var(--poliland-green); color: #fff; font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
+.proof-refund-submit:disabled { opacity: .55; cursor: not-allowed; }
 .proof-zoom-content { display: grid; min-height: 65dvh; place-items: center; }
 .proof-zoom-content img { max-width: 100%; max-height: 75dvh; object-fit: contain; }
 .proof-zoom-content iframe { width: 100%; height: 75dvh; border: 0; }

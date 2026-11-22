@@ -141,7 +141,7 @@ import {
 } from '@ionic/vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import ContactSkeleton from '@/components/ui/skeletons/ContactSkeleton.vue'
-import { contactService, type ContactItem as ServiceContactItem } from '@/services/contactService'
+import { contactsService } from '@/services/contactService'
 
 import {
   arrowForwardOutline,
@@ -156,7 +156,13 @@ import {
 
 const isLoading = ref(true)
 const loadError = ref(false)
-const contacts = ref<ServiceContactItem[]>([])
+
+interface ContactRecord {
+  key: string
+  value: string
+}
+
+const contacts = ref<ContactRecord[]>([])
 
 interface ContactItem {
   label: string
@@ -277,7 +283,7 @@ async function loadContacts() {
   isLoading.value = true
   loadError.value = false
   try {
-    contacts.value = await contactService.getContacts()
+    contacts.value = await contactsService.getAll()
   } catch {
     contacts.value = []
     loadError.value = true

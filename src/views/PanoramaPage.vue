@@ -87,24 +87,27 @@ async function loadPanorama() {
       lotId
     )
 
-    /*
-     * =====================================================
-     * 1. Coba cari berdasarkan lot_number
-     * =====================================================
-     */
+    const selectFields = `
+      id,
+      lot_number,
+      polygon_id,
+      panorama_url,
+      status,
+      color
+    `
 
-    let { data, error } = await supabase
-      .from('lots')
-      .select(`
-        id,
-        lot_number,
-        polygon_id,
-        panorama_url,
-        status,
-        color
-      `)
-      .eq('lot_number', lotId)
-      .maybeSingle()
+    /* Prioritaskan ID internal karena detail admin/client mengirim ID ini. */
+    let data: any = null
+    let error: any = null
+    if (Number.isInteger(Number(lotId))) {
+      const result = await supabase
+        .from('lots')
+        .select(selectFields)
+        .eq('id', Number(lotId))
+        .maybeSingle()
+      data = result.data
+      error = result.error
+    }
 
     if (error) {
       throw error
@@ -112,22 +115,28 @@ async function loadPanorama() {
 
     /*
      * =====================================================
-     * 2. Jika tidak ditemukan,
-     *    coba polygon_id
+     * Jika bukan ID internal, coba lot_number lalu polygon_id.
      * =====================================================
      */
 
     if (!data) {
       const result = await supabase
         .from('lots')
-        .select(`
-          id,
-          lot_number,
-          polygon_id,
-          panorama_url,
-          status,
-          color
-        `)
+        .select(selectFields)
+        .eq('lot_number', lotId)
+        .maybeSingle()
+
+      if (result.error) {
+        throw result.error
+      }
+
+      data = result.data
+    }
+
+    if (!data) {
+      const result = await supabase
+        .from('lots')
+        .select(selectFields)
         .eq('polygon_id', lotId)
         .maybeSingle()
 

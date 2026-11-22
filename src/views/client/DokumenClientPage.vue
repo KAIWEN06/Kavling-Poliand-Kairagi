@@ -18,7 +18,7 @@ import { supabase } from '@/services/config/supabase'
 import { lotService, type LotRecord } from '@/services/lotService'
 import { bankAccountService, type BankAccountRecord } from '@/services/Finance/bankAccountService'
 import { paymentInstructionService, type PaymentInstructionRecord } from '@/services/Finance/paymentInstructionService'
-import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
+import { DEFAULT_SPK_BOOKING_FEE, paymentService } from '@/services/Finance/paymentService'
 import {
   createClientSpk,
   getClientSpkDocumentUrl,
@@ -86,6 +86,11 @@ const previewDocument = ref<{ file_name: string; file_path: string; mime_type: s
 const previewUrl = ref('')
 const previewLoading = ref(false)
 const previewError = ref('')
+const reuploadProof = ref<File | null>(null)
+const reuploadSubmitting = ref(false)
+const reuploadError = ref('')
+const refundProofSubmitting = ref(false)
+const refundProofError = ref('')
 
 const documentFields: Array<{ key: ClientSpkDocumentKey; label: string }> = [
   { key: 'ktp', label: 'KTP' },
@@ -320,7 +325,7 @@ async function loadBookingFeesWithTimeout() {
   }
 }
 
-async function openCreateForm() {
+async function openCreateForm(preferredLotId: number | null = null) {
   createOpen.value = true
   createError.value = ''
   selectedReusePaymentId.value = null
@@ -395,6 +400,10 @@ async function openCreateForm() {
       const status = (lot.status || '').toLocaleLowerCase('id-ID')
       return status === 'available' || status === 'tersedia'
     })
+    const preferredLot = preferredLotId === null
+      ? null
+      : availableLots.value.find(lot => lot.id === preferredLotId)
+    if (preferredLot) await selectCreateLot(preferredLot)
   } catch (error) {
     availableLots.value = []
     createError.value = getClientSpkErrorMessage(error, 'Daftar kavling gagal dimuat.')
@@ -502,6 +511,37 @@ function closeDocumentPreview() {
   previewError.value = ''
 }
 
+async function openRefundProof() {
+  const proofPath = selectedRecord.value?.bookingFeeRefund?.proofPath
+  if (!proofPath) return
+
+  previewDocument.value = {
+    file_name: proofPath.split('/').pop() || 'Bukti pengembalian',
+    file_path: proofPath,
+    mime_type: null,
+  }
+  documentPreviewOpen.value = true
+  previewLoading.value = true
+  previewError.value = ''
+  previewUrl.value = ''
+
+  try {
+    const { data, error } = await supabase.storage
+      .from('payment-proofs')
+      .createSignedUrl(proofPath, 300)
+    if (error) throw error
+    if (!data?.signedUrl) throw new Error('Tautan bukti pengembalian tidak tersedia.')
+    previewUrl.value = data.signedUrl
+  } catch (error) {
+    previewError.value = getClientSpkErrorMessage(
+      error,
+      'Bukti pengembalian gagal dibuka.',
+    )
+  } finally {
+    previewLoading.value = false
+  }
+}
+
 function handleCreateFile(type: 'ktp' | 'kk' | 'npwp' | 'paymentProof', event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0] || null
@@ -558,12 +598,73 @@ function documentCount(record: ClientSpkRecord) {
 
 function openDetail(record: ClientSpkRecord) {
   selectedRecord.value = record
+  reuploadProof.value = null
+  reuploadError.value = ''
   detailOpen.value = true
 }
 
 function closeDetail() {
   detailOpen.value = false
   selectedRecord.value = null
+  reuploadProof.value = null
+  reuploadError.value = ''
+}
+
+function onReuploadProofChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+  reuploadError.value = ''
+
+  if (!file) {
+    reuploadProof.value = null
+    return
+  }
+  if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+    reuploadProof.value = null
+    input.value = ''
+    reuploadError.value = 'Format bukti harus JPG, PNG, WEBP, atau PDF.'
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    reuploadProof.value = null
+    input.value = ''
+    reuploadError.value = 'Ukuran bukti maksimal 5 MB.'
+    return
+  }
+  reuploadProof.value = file
+}
+
+async function submitBookingFeeReupload() {
+  if (!selectedRecord.value || reuploadSubmitting.value) return
+
+  const paymentId = selectedRecord.value.payment.bookingPaymentId
+  if (!paymentId || selectedRecord.value.payment.bookingPaymentStatus !== 'Needs Reupload') {
+    reuploadError.value = 'Pengajuan pembayaran ini tidak sedang meminta upload ulang.'
+    return
+  }
+  if (!reuploadProof.value) {
+    reuploadError.value = 'Pilih bukti pembayaran pengganti terlebih dahulu.'
+    return
+  }
+
+  reuploadSubmitting.value = true
+  reuploadError.value = ''
+
+  try {
+    await paymentService.replacePaymentProof(paymentId, reuploadProof.value)
+    reuploadProof.value = null
+    await loadSpkRecords()
+    selectedRecord.value = spkRecords.value.find(
+      (record) => record.id === selectedRecord.value?.id,
+    ) ?? null
+  } catch (error) {
+    reuploadError.value = getClientSpkErrorMessage(
+      error,
+      'Bukti pengganti gagal dikirim.',
+    )
+  } finally {
+    reuploadSubmitting.value = false
+  }
 }
 
 function openRejectionReason(record: ClientSpkRecord) {
@@ -594,7 +695,21 @@ async function goToPage(page: number) {
   document.querySelector('#client-spk-list-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-onIonViewWillEnter(loadSpkRecords)
+async function handleRouteIntent() {
+  await loadSpkRecords()
+  const createRequested = String(route.query.create || '') === '1'
+  if (!createRequested) return
+
+  const rawLotId = Array.isArray(route.query.lot_id) ? route.query.lot_id[0] : route.query.lot_id
+  const lotId = Number(rawLotId)
+  await openCreateForm(Number.isInteger(lotId) && lotId > 0 ? lotId : null)
+  await router.replace({
+    path: route.path,
+    query: { ...route.query, create: undefined, lot_id: undefined },
+  })
+}
+
+onIonViewWillEnter(handleRouteIntent)
 </script>
 <template>
   <ion-page class="client-spk-page">
@@ -660,6 +775,16 @@ onIonViewWillEnter(loadSpkRecords)
                 <p v-if="record.notaryNote" class="spk-notary-note">{{ record.notaryNote }}</p>
               </div>
 
+              <div
+                v-if="record.payment.bookingPaymentStatus === 'Needs Reupload'"
+                class="spk-reupload-alert"
+                role="alert"
+              >
+                <strong>Bukti pembayaran SPK perlu diunggah ulang</strong>
+                <p>{{ record.payment.bookingPaymentReviewNote || 'Admin meminta bukti pembayaran yang lebih jelas.' }}</p>
+                <button type="button" @click.stop="openDetail(record)">Unggah bukti sekarang</button>
+              </div>
+
               <div class="spk-person">
                 <div class="spk-avatar"><ion-icon :icon="peopleOutline" /></div>
                 <div class="spk-person-info">
@@ -688,9 +813,14 @@ onIonViewWillEnter(loadSpkRecords)
               </div>
 
               <div v-if="record.status === 'Rejected'" class="spk-rejection-preview">
-                <strong>Pengajuan ditolak</strong>
-                <span v-if="record.rejectionCategory">Kategori: {{ rejectionCategoryLabel(record.rejectionCategory) }}</span>
-                <p v-if="record.rejectionReason">{{ record.rejectionReason }}</p>
+                <template v-if="record.bookingFeeRefund">
+                  <p v-if="record.bookingFeeRefund.status === 'Pending Refund'" class="spk-refund-status">
+                    Booking Fee Rp{{ record.bookingFeeRefund.amount.toLocaleString('id-ID') }} akan dikembalikan kepada Anda. Pengembalian sedang diproses.
+                  </p>
+                  <p v-else class="spk-refund-status spk-refund-status--done">
+                    Booking Fee Rp{{ record.bookingFeeRefund.amount.toLocaleString('id-ID') }} telah dicatat sebagai sudah dikembalikan.
+                  </p>
+                </template>
                 <p v-if="record.rejectionCategory === 'Administrative Error' && record.bookingFeeReuse" class="spk-reuse-success">
                   Booking Fee {{ formatCurrency(record.bookingFeeReuse.amount) }} tersedia untuk SPK pengganti.
                 </p>
@@ -737,7 +867,7 @@ onIonViewWillEnter(loadSpkRecords)
           </div>
         </template>
       </main>
-      <button class="spk-create-btn spk-create-fab" type="button" aria-label="Buat SPK" title="Buat SPK" @click="openCreateForm">
+      <button class="spk-create-btn spk-create-fab" type="button" aria-label="Buat SPK" title="Buat SPK" @click="() => openCreateForm()">
         <ion-icon :icon="addOutline" />
       </button>
     </ion-content>
@@ -945,10 +1075,70 @@ onIonViewWillEnter(loadSpkRecords)
           <dl>
             <div><dt>Skema</dt><dd>{{ selectedRecord.payment.scheme === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div>
             <div><dt>Metode pembayaran</dt><dd>{{ selectedRecord.payment.method || '-' }}</dd></div>
+            <div v-if="selectedRecord.payment.bookingPaymentStatus">
+              <dt>Status bukti Booking Fee</dt>
+              <dd>{{ selectedRecord.payment.bookingPaymentStatus === 'Needs Reupload'
+                ? 'Perlu unggah ulang'
+                : selectedRecord.payment.bookingPaymentStatus === 'Confirmed'
+                  ? 'Terverifikasi'
+                  : selectedRecord.payment.bookingPaymentStatus === 'Rejected'
+                    ? 'Ditolak'
+                    : 'Menunggu verifikasi' }}</dd>
+            </div>
             <div v-if="selectedRecord.payment.scheme === 'Installment'"><dt>Skema DP</dt><dd>{{ (selectedRecord.payment.downPaymentAmount ?? 0) > 0 ? formatCurrency(selectedRecord.payment.downPaymentAmount ?? 0) : 'Tanpa DP (Pure Cicilan)' }}</dd></div>
             <div v-if="selectedRecord.payment.tenorMonths"><dt>Tenor</dt><dd>{{ selectedRecord.payment.tenorMonths }} bulan</dd></div>
             <div v-if="selectedRecord.payment.monthlyPayment"><dt>Cicilan per bulan</dt><dd>{{ formatCurrency(selectedRecord.payment.monthlyPayment) }}</dd></div>
           </dl>
+        </section>
+
+        <section
+          v-if="selectedRecord.status === 'Rejected' && selectedRecord.bookingFeeRefund"
+          class="spk-detail-section spk-refund-detail"
+        >
+          <h3>Pengembalian Booking Fee</h3>
+          <dl>
+            <div><dt>Nominal</dt><dd>{{ formatCurrency(selectedRecord.bookingFeeRefund.amount) }}</dd></div>
+            <div><dt>Status</dt><dd>{{ selectedRecord.bookingFeeRefund.status === 'Refunded' ? 'Sudah dikembalikan' : 'Pengembalian sedang diproses' }}</dd></div>
+            <div v-if="selectedRecord.bookingFeeRefund.refundMethod"><dt>Metode</dt><dd>{{ selectedRecord.bookingFeeRefund.refundMethod }}</dd></div>
+            <div v-if="selectedRecord.bookingFeeRefund.refundNote"><dt>Catatan</dt><dd>{{ selectedRecord.bookingFeeRefund.refundNote }}</dd></div>
+          </dl>
+          <button
+            v-if="selectedRecord.bookingFeeRefund.status === 'Refunded' && selectedRecord.bookingFeeRefund.proofPath"
+            type="button"
+            class="spk-refund-proof-button"
+            @click="openRefundProof"
+          >
+            Lihat bukti pengembalian
+          </button>
+        </section>
+
+        <section
+          v-if="selectedRecord.payment.bookingPaymentStatus === 'Needs Reupload'"
+          class="spk-detail-section spk-reupload-section"
+          role="alert"
+        >
+          <h3>Unggah ulang bukti Booking Fee</h3>
+          <p>{{ selectedRecord.payment.bookingPaymentReviewNote || 'Admin meminta bukti pembayaran yang lebih jelas.' }}</p>
+          <label class="spk-upload-field">
+            Bukti pengganti
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              :disabled="reuploadSubmitting"
+              @change="onReuploadProofChange"
+            />
+            <small>{{ reuploadProof?.name || 'JPG, PNG, WEBP, atau PDF. Maksimal 5 MB.' }}</small>
+          </label>
+          <button
+            type="button"
+            class="spk-reupload-submit"
+            :disabled="reuploadSubmitting || !reuploadProof"
+            @click="submitBookingFeeReupload"
+          >
+            <ion-spinner v-if="reuploadSubmitting" name="crescent" />
+            {{ reuploadSubmitting ? 'Mengirim bukti...' : 'Kirim bukti pengganti' }}
+          </button>
+          <p v-if="reuploadError" class="spk-reupload-error" role="alert">{{ reuploadError }}</p>
         </section>
 
         <section
@@ -1215,8 +1405,52 @@ onIonViewWillEnter(loadSpkRecords)
 .spk-doc-state.is-missing { color:var(--text-secondary,#899188); }
 .spk-rejection-full { border-radius:12px; background:var(--status-danger-bg,#fff3f2); padding:12px; color:var(--status-danger-text,#8d3d37); font-size:11px; }
 .spk-rejection-full p { margin:6px 0 0; line-height:1.5; }
+.spk-refund-detail,
+.spk-refund-status {
+  border:1px solid #d9ae62;
+  border-radius:11px;
+  background:#fff8e9;
+  color:#5f4a20;
+  padding:12px;
+}
+.spk-refund-status--done { color:#355a2c; background:#eef6ea; }
+.spk-refund-proof-button {
+  min-height:44px;
+  width:100%;
+  border:1px solid #355a2c;
+  border-radius:9px;
+  background:#fff;
+  color:#355a2c;
+  font-weight:800;
+  cursor:pointer;
+}
 .spk-progress-card { display:grid; gap:8px; border:1px solid var(--border-default,#edf0eb); border-radius:12px; padding:12px; }
 .spk-progress-card p { margin:0; color:var(--text-secondary,#737d72); font-size:11px; line-height:1.5; }
+.spk-reupload-alert,
+.spk-reupload-section {
+  display:grid;
+  gap:8px;
+  border:1px solid #d9ae62;
+  border-radius:11px;
+  background:#fff8e9;
+  color:#5f4a20;
+  padding:12px;
+}
+.spk-reupload-alert p,
+.spk-reupload-section p { margin:0; line-height:1.5; font-size:11px; }
+.spk-reupload-alert button,
+.spk-reupload-submit {
+  min-height:44px;
+  border:0;
+  border-radius:9px;
+  background:#355a2c;
+  color:#fff;
+  font-weight:800;
+  cursor:pointer;
+}
+.spk-reupload-alert button { width:100%; }
+.spk-reupload-submit:disabled { cursor:not-allowed; opacity:.55; }
+.spk-reupload-error { color:#8d3d37; }
 .spk-detail-footer { display:flex; justify-content:flex-end; gap:8px; padding-top:5px; }
 .spk-modal-close { border:1px solid var(--border-default); border-radius:9px; background:var(--surface-primary); color:var(--text-primary); padding:10px 15px; font-size:11px; font-weight:800; }
 .spk-reason-modal { --width:min(92vw,390px); --height:auto; --border-radius:18px; --backdrop-opacity:.42; }

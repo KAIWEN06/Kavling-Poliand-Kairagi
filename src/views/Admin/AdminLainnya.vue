@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { documentTextOutline, gridOutline, mapOutline, peopleOutline, settingsOutline, walletOutline } from 'ionicons/icons'
+import { calendarOutline, documentTextOutline, gridOutline, mapOutline, peopleOutline, settingsOutline, walletOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -38,6 +38,7 @@ const actions: QuickAction[] = [
   { label: 'Tambah client', icon: peopleOutline, tone: 'neutral', route: '/admin/pembeli' },
   { label: 'Pembayaran', icon: walletOutline, tone: 'gold', route: '/admin/keuangan' },
   { label: 'Kelola konten', icon: gridOutline, tone: 'neutral', route: '/admin/konten' },
+  { label: 'Permintaan survei', icon: calendarOutline, tone: 'green', route: '/admin/konten?tab=surveys' },
   { label: 'Akses tim', icon: settingsOutline, tone: 'green', route: '/admin/akses-tim' },
   { label: 'SPK', icon: documentTextOutline, tone: 'gold', route: '/admin/spk' },
 ]

@@ -155,6 +155,35 @@ export const lotService = {
     return (data ?? []) as unknown as LotRecord[];
   },
 
+  /** Public/client-safe lot projection: never selects customer identity or transaction metadata. */
+  async getClientLots(): Promise<LotRecord[]> {
+    const { data, error } = await supabase
+      .from("lots")
+      .select("id, polygon_id, lot_number, block_id, dimension, area, cash_price, promo_price, status, color, description, panorama_url, panorama_boundary, block:blocks(code, name)")
+      .order("lot_number", { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map((lot) => {
+      // Client tetap dapat melihat harga kavling Available dan Booked.
+      // Harga hanya disembunyikan untuk kavling yang sudah terjual.
+      const normalizedStatus = String(lot.status ?? "").trim().toLowerCase();
+      const isSold = ["sold", "terjual"].includes(normalizedStatus);
+
+      return {
+        ...lot,
+        cash_price: isSold ? null : lot.cash_price,
+        promo_price: isSold ? null : lot.promo_price,
+        payment_type: null,
+        customer_id: null,
+        booking_date: null,
+        sold_date: null,
+        created_at: null,
+        updated_at: null,
+        customer: null,
+      };
+    }) as unknown as LotRecord[];
+  },
+
   async getLotById(id: number): Promise<LotRecord> {
     const { data, error } = await supabase
       .from("lots")

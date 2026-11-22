@@ -436,101 +436,59 @@ export const paymentService = {
       : 'jpg'
 
     const isClientSpkPayment = Boolean(payment.spk_request_id)
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser()
+
+    if (authError) throw authError
+
+    const userId = authData.user?.id
+
+    if (!userId) {
+      throw new Error('Sesi login tidak ditemukan.')
+    }
 
     const targetBucket = isClientSpkPayment
       ? CLIENT_SPK_PROOF_BUCKET
       : PROOF_BUCKET
 
     const folder = isClientSpkPayment
-      ? `${payment.spk_request_id}`
+      ? `${userId}/${payment.spk_request_id}`
       : payment.transaction_id
         ? `transaction/${payment.transaction_id}`
         : `spk/${paymentId}`
 
     const newPath = isClientSpkPayment
-      ? `${folder}/paymentProof.${safeExtension}`
+      ? `${folder}/reupload-${Date.now()}-${crypto.randomUUID()}.${safeExtension}`
       : `${folder}/${Date.now()}-${crypto.randomUUID()}.${safeExtension}`
 
     const { error: uploadError } = await supabase.storage
       .from(targetBucket)
       .upload(newPath, file, {
         cacheControl: '3600',
-        upsert: true,
+        upsert: false,
         contentType: file.type,
       })
 
     if (uploadError) throw uploadError
 
-    // -------------------------------------------------------
-    // UPDATE PAYMENT
-    // -------------------------------------------------------
-
-    const { error: updateError } = await supabase
-      .from(PAYMENTS)
-      .update({
-        proof_path: newPath,
-        status: 'Pending',
-        verified_at: null,
-        verified_by: null,
+    const { data: replacedPayment, error: replaceError } =
+      await supabase.rpc('replace_payment_proof_atomically', {
+        p_payment_id: paymentId,
+        p_new_proof_path: newPath,
+        p_file_name: file.name,
+        p_mime_type: file.type,
+        p_file_size_bytes: file.size,
       })
-      .eq('id', paymentId)
-      .eq('status', 'Needs Reupload')
 
-    if (updateError) {
-      // File lama tidak dihapus.
-      // File baru dibersihkan jika update database gagal.
+    if (replaceError || !replacedPayment) {
       await supabase.storage
         .from(targetBucket)
         .remove([newPath])
-
-      throw updateError
+      throw replaceError ?? new Error('Pembayaran gagal dikembalikan ke status Pending.')
     }
 
-    // -------------------------------------------------------
-    // UPDATE METADATA DOKUMEN CLIENT
-    // -------------------------------------------------------
-
-    if (isClientSpkPayment) {
-      const { error: documentUpdateError } = await supabase
-        .from('spk_request_documents')
-        .update({
-          file_path: newPath,
-          file_name: file.name,
-          mime_type: file.type,
-          file_size_bytes: file.size,
-        })
-        .eq('spk_request_id', payment.spk_request_id)
-        .eq('document_type', 'Payment Proof')
-
-      if (documentUpdateError) {
-        console.error(
-          '[Payment] Bukti pembayaran sudah diperbarui, tetapi metadata dokumen SPK gagal diperbarui:',
-          documentUpdateError,
-        )
-
-        throw new Error(
-          'Bukti pembayaran diperbarui, tetapi metadata dokumen SPK gagal disinkronkan.',
-          { cause: documentUpdateError },
-        )
-      }
-    }
-
-    // -------------------------------------------------------
-    // CLEANUP FILE LAMA
-    // -------------------------------------------------------
-
-    if (payment.proof_path && payment.proof_path !== newPath) {
-      const { error: cleanupError } = await supabase.storage
-        .from(targetBucket)
-        .remove([payment.proof_path])
-
-      if (cleanupError) {
-        console.error(
-          '[Payment] Gagal menghapus bukti pembayaran lama:',
-          cleanupError,
-        )
-      }
-    }
+    // Bukti lama tetap disimpan di Storage dan dicatat pada
+    // payment_proof_history untuk audit.
   },
 
   // =========================================================
@@ -634,47 +592,29 @@ export const paymentService = {
     note: string | null
     allocations: PaymentAllocationInput[]
   }): Promise<PaymentRecord> {
-    const { allocations, ...paymentPayload } = input
-
-    const { data, error } = await supabase
-      .from(PAYMENTS)
-      .insert({
-        ...paymentPayload,
-        status: 'Pending',
-      })
-      .select('*')
-      .single()
-
-    if (error) {
-      await supabase.storage
-        .from(PROOF_BUCKET)
-        .remove([input.proof_path])
-
-      throw error
+    const allocations: PaymentAllocationInput[] = input.allocations
+    const scheduleIds = allocations.map((allocation) => allocation.installment_schedule_id)
+    if (new Set(scheduleIds).size !== scheduleIds.length) {
+      throw new Error('Satu cicilan tidak boleh dialokasikan lebih dari sekali.')
     }
 
-    if (allocations.length) {
-      const rows = allocations.map((allocation) => ({
-        payment_id: data.id,
-        ...allocation,
-      }))
+    const { data, error } = await supabase.rpc('create_admin_payment_with_allocations', {
+      p_customer_id: input.customer_id,
+      p_lot_id: input.lot_id,
+      p_transaction_id: input.transaction_id,
+      p_payment_date: input.payment_date,
+      p_amount: input.amount,
+      p_payment_method: input.payment_method,
+      p_payment_category: input.payment_category,
+      p_reference_number: input.reference_number,
+      p_proof_path: input.proof_path,
+      p_note: input.note,
+      p_allocations: allocations,
+    })
 
-      const { error: allocationError } = await supabase
-        .from(ALLOCATIONS)
-        .insert(rows)
-
-      if (allocationError) {
-        await supabase
-          .from(PAYMENTS)
-          .delete()
-          .eq('id', data.id)
-
-        await supabase.storage
-          .from(PROOF_BUCKET)
-          .remove([input.proof_path])
-
-        throw allocationError
-      }
+    if (error) {
+      await supabase.storage.from(PROOF_BUCKET).remove([input.proof_path])
+      throw error
     }
 
     return data as PaymentRecord
@@ -694,26 +634,12 @@ export const paymentService = {
 
     if (authError) throw authError
 
-    const { data, error } = await supabase
-      .from(PAYMENTS)
-      .update({
-        status,
-        review_note: note,
-
-        verified_by:
-          status === 'Confirmed'
-            ? authData.user?.id ?? null
-            : null,
-
-        verified_at:
-          status === 'Confirmed'
-            ? new Date().toISOString()
-            : null,
-      })
-      .eq('id', paymentId)
-      .eq('status', 'Pending')
-      .select('id')
-      .maybeSingle()
+    const { data, error } = await supabase.rpc('review_payment_atomically', {
+      p_payment_id: paymentId,
+      p_status: status,
+      p_review_note: note,
+      p_verified_by: authData.user?.id ?? null,
+    })
 
     if (error) throw error
 

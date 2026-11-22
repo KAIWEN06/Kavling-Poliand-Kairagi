@@ -14,7 +14,10 @@ import {
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 import { supabase } from '@/services/config/supabase'
+import { paymentService } from '@/services/Finance/paymentService'
+import { purchaseCancellationService } from '@/services/Finance/purchaseCancellationService'
 
 /**
  * PENTING:
@@ -27,7 +30,7 @@ const PAYMENT_PROOF_BUCKET = 'payment-proofs'
 const MAX_PROOF_SIZE = 5 * 1024 * 1024
 const ALLOWED_PROOF_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
-type PaymentStatus = 'verified' | 'pending' | 'rejected'
+type PaymentStatus = 'verified' | 'pending' | 'rejected' | 'refunded'
 type FilterStatus = 'all' | PaymentStatus
 type PaymentCategory = 'Cash Purchase' | 'Down Payment' | 'Installment'
 
@@ -90,12 +93,23 @@ const submitting = ref(false)
 const loadError = ref('')
 const submitError = ref('')
 const submitSuccess = ref('')
+const reuploadPaymentId = ref<number | null>(null)
+const reuploadProof = ref<File | null>(null)
+const reuploadSubmitting = ref(false)
+const reuploadError = ref('')
+const cancellationModalOpen = ref(false)
+const cancellationReason = ref('')
+const cancellationSubmitting = ref(false)
+const cancellationError = ref('')
+const cancellationSuccess = ref('')
+const latestCancellation = ref<any>(null)
 
 const filters: Array<{ label: string; value: FilterStatus }> = [
   { label: 'Semua', value: 'all' },
   { label: 'Terverifikasi', value: 'verified' },
   { label: 'Menunggu Verifikasi', value: 'pending' },
   { label: 'Ditolak / Unggah Ulang', value: 'rejected' },
+  { label: 'Dikembalikan Admin', value: 'refunded' },
 ]
 
 const selectedTransaction = computed(() =>
@@ -129,14 +143,16 @@ const dpPayments = computed(() =>
   selectedTransaction.value?.payments.filter(item => item.payment_category === 'Down Payment') ?? [],
 )
 const dpConfirmed = computed(() => dpPayments.value.some(item => item.status === 'Confirmed'))
-const dpPending = computed(() => dpPayments.value.some(item => item.status === 'Pending'))
+const dpPending = computed(() => dpPayments.value.some(item =>
+  item.status === 'Pending' || item.status === 'Needs Reupload'))
 const cashPayments = computed(() =>
   selectedTransaction.value?.payments.filter(item => item.payment_category === 'Cash Purchase') ?? [],
 )
 const cashPaid = computed(() => cashPayments.value
   .filter(item => item.status === 'Confirmed')
   .reduce((sum, item) => sum + Number(item.amount || 0), 0))
-const cashPending = computed(() => cashPayments.value.some(item => item.status === 'Pending'))
+const cashPending = computed(() => cashPayments.value.some(item =>
+  item.status === 'Pending' || item.status === 'Needs Reupload'))
 
 const nextInstallmentIndex = computed(() => {
   const schedules = selectedTransaction.value?.schedules ?? []
@@ -252,16 +268,26 @@ function formatDateParts(value: string | null) {
   }
 }
 function mapPaymentStatus(status: string): PaymentStatus {
-  if (status === 'Confirmed') return 'verified'
-  if (status === 'Pending') return 'pending'
+  const normalized = String(status ?? '').trim().toLocaleLowerCase('id-ID')
+
+  if (['confirmed', 'verified', 'approved', 'dik konfirmasi', 'dikonfirmasi'].includes(normalized)) {
+    return 'verified'
+  }
+  if (['pending', 'waiting', 'menunggu'].includes(normalized)) return 'pending'
+  if ([
+    'refunded', 'returned', 'returned by admin', 'refunded by admin',
+    'dikembalikan', 'sudah dikembalikan', 'dikembalikan admin',
+  ].includes(normalized)) return 'refunded'
   return 'rejected'
 }
 function getStatusLabel(status: PaymentStatus, rawStatus?: string) {
-  if (rawStatus === 'Needs Reupload') return 'Perlu Unggah Ulang'
+  const normalized = String(rawStatus ?? '').trim().toLocaleLowerCase('id-ID')
+  if (normalized === 'needs reupload') return 'Perlu Unggah Ulang'
   const labels: Record<PaymentStatus, string> = {
-    verified: 'Terverifikasi',
+    verified: 'Dikonfirmasi Admin',
     pending: 'Menunggu Verifikasi',
-    rejected: 'Ditolak',
+    rejected: 'Ditolak Admin',
+    refunded: 'Dikembalikan Admin',
   }
   return labels[status]
 }
@@ -414,7 +440,8 @@ async function loadPaymentData() {
         amount: Number(row.amount ?? 0),
         status: row.status,
         hasPendingPayment: (row.payment_allocations ?? []).some((allocation: any) =>
-          allocation.payments?.status === 'Pending',
+          allocation.payments?.status === 'Pending'
+            || allocation.payments?.status === 'Needs Reupload',
         ),
       })))
     }
@@ -483,6 +510,39 @@ async function loadPaymentData() {
   }
 }
 
+async function openCancellationForm() {
+  cancellationError.value = ''
+  cancellationSuccess.value = ''
+  cancellationReason.value = ''
+  latestCancellation.value = null
+  const transaction = selectedTransaction.value
+  if (!transaction || transaction.transactionStatus === 'Cancelled') return
+  try {
+    latestCancellation.value = await purchaseCancellationService.getLatest(transaction.id)
+  } catch (error) {
+    console.warn('Riwayat pembatalan belum tersedia. Jalankan migrasi keuangan untuk mengaktifkan fitur ini.', error)
+  }
+  cancellationModalOpen.value = true
+}
+
+async function submitCancellationRequest() {
+  const transaction = selectedTransaction.value
+  const reason = cancellationReason.value.trim()
+  if (!transaction || reason.length < 5 || cancellationSubmitting.value) return
+  cancellationSubmitting.value = true
+  cancellationError.value = ''
+  try {
+    const requestId = await purchaseCancellationService.request(transaction.id, reason)
+    cancellationSuccess.value = `Pengajuan pembatalan #${requestId} sudah dikirim. Admin akan memeriksa permintaan dan riwayat pembayaran Anda.`
+    latestCancellation.value = await purchaseCancellationService.getLatest(transaction.id).catch(() => null)
+    cancellationModalOpen.value = false
+  } catch (error: any) {
+    cancellationError.value = error?.message || 'Pengajuan pembatalan belum dapat dikirim.'
+  } finally {
+    cancellationSubmitting.value = false
+  }
+}
+
 async function submitPayment() {
   if (!canSubmitPayment.value || !selectedTransaction.value || !selectedProof.value || !paymentCategory.value) return
   submitting.value = true
@@ -545,8 +605,54 @@ function selectTransaction(value: string | number) {
   resetPaymentForm()
 }
 function openTransaction(item: PaymentHistoryItem) {
-  const text = detailMessage(item)
-  window.alert(text)
+  reuploadError.value = ''
+  reuploadProof.value = null
+  reuploadPaymentId.value = item.rawStatus === 'Needs Reupload' ? item.id : null
+  if (item.rawStatus !== 'Needs Reupload') {
+    window.alert(detailMessage(item))
+  }
+}
+
+function onReuploadProofChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0] ?? null
+  reuploadError.value = ''
+
+  if (!file) {
+    reuploadProof.value = null
+    return
+  }
+  if (!ALLOWED_PROOF_TYPES.includes(file.type)) {
+    reuploadProof.value = null
+    target.value = ''
+    reuploadError.value = 'Format bukti pembayaran harus JPG, PNG, WEBP, atau PDF.'
+    return
+  }
+  if (file.size > MAX_PROOF_SIZE) {
+    reuploadProof.value = null
+    target.value = ''
+    reuploadError.value = 'Ukuran bukti pembayaran maksimal 5 MB.'
+    return
+  }
+  reuploadProof.value = file
+}
+
+async function submitReupload() {
+  if (!reuploadPaymentId.value || !reuploadProof.value || reuploadSubmitting.value) return
+  reuploadSubmitting.value = true
+  reuploadError.value = ''
+
+  try {
+    await paymentService.replacePaymentProof(reuploadPaymentId.value, reuploadProof.value)
+    reuploadPaymentId.value = null
+    reuploadProof.value = null
+    submitSuccess.value = 'Bukti pengganti berhasil dikirim. Pengajuan lama kembali berstatus menunggu verifikasi.'
+    await loadPaymentData()
+  } catch (error: any) {
+    reuploadError.value = error?.message || 'Bukti pengganti gagal dikirim.'
+  } finally {
+    reuploadSubmitting.value = false
+  }
 }
 
 onMounted(loadPaymentData)
@@ -575,6 +681,23 @@ onMounted(loadPaymentData)
               </span>
             </span>
             <ion-icon class="lot-chevron" :icon="chevronForward" />
+          </div>
+          <div v-if="selectedTransaction" class="cancellation-action">
+            <div v-if="cancellationSuccess" class="payment-notice" role="status">{{ cancellationSuccess }}</div>
+            <div v-if="latestCancellation" class="payment-notice" :class="latestCancellation.status === 'Rejected' ? 'warning' : ''">
+              <strong>Status pembatalan: {{ latestCancellation.status === 'Pending' ? 'Menunggu pemeriksaan' : latestCancellation.status === 'Approved' ? 'Disetujui' : 'Ditolak' }}</strong>
+              <span v-if="latestCancellation.decision_note">{{ latestCancellation.decision_note }}</span>
+              <span v-if="latestCancellation.purchase_refunds?.[0]">Nilai pengembalian {{ formatCurrency(Number(latestCancellation.purchase_refunds[0].amount)) }}. Batas transfer {{ formatDate(latestCancellation.purchase_refunds[0].due_date) }}.</span>
+            </div>
+            <button
+              v-if="selectedTransaction.transactionStatus !== 'Cancelled'"
+              class="cancellation-request-button"
+              type="button"
+              :disabled="latestCancellation?.status === 'Pending'"
+              @click="openCancellationForm"
+            >
+              {{ latestCancellation?.status === 'Pending' ? 'Pengajuan menunggu Admin' : 'Ajukan Pembatalan Pembelian' }}
+            </button>
           </div>
           <div v-else class="empty-inline">Belum ada transaksi kavling pada akun ini.</div>
         </section>
@@ -843,6 +966,40 @@ onMounted(loadPaymentData)
                 <span>{{ paymentHistory.length === 0 ? 'Riwayat akan muncul setelah bukti pembayaran dikirim.' : 'Coba ubah kata pencarian atau filter status.' }}</span>
               </div>
             </section>
+
+            <div v-if="reuploadPaymentId" class="payment-notice warning">
+              <strong>Unggah bukti pengganti</strong>
+              <p>Pengajuan pembayaran lama akan dipertahankan. Bukti baru mengembalikan status ke Menunggu Verifikasi.</p>
+              <label class="proof-input">
+                <strong>Pilih bukti pengganti</strong>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  :disabled="reuploadSubmitting"
+                  @change="onReuploadProofChange"
+                />
+                <span class="proof-name">{{ reuploadProof ? reuploadProof.name : 'JPG, PNG, WEBP, atau PDF. Maksimal 5 MB.' }}</span>
+              </label>
+              <button
+                class="submit-payment-button"
+                type="button"
+                :disabled="!reuploadProof || reuploadSubmitting"
+                @click="submitReupload"
+              >
+                <ion-spinner v-if="reuploadSubmitting" name="crescent" />
+                <ion-icon v-else :icon="cloudUploadOutline" />
+                {{ reuploadSubmitting ? 'Mengirim bukti...' : 'Kirim Bukti Pengganti' }}
+              </button>
+              <button
+                type="button"
+                class="filter-chip"
+                :disabled="reuploadSubmitting"
+                @click="reuploadPaymentId = null"
+              >
+                Batal
+              </button>
+              <p v-if="reuploadError" class="payment-notice error" role="alert">{{ reuploadError }}</p>
+            </div>
           </section>
         </template>
 
@@ -853,6 +1010,22 @@ onMounted(loadPaymentData)
       </main>
     </ion-content>
     <MobileTabBar variant="client" />
+    <AppModal
+      v-model="cancellationModalOpen"
+      title="Ajukan Pembatalan Pembelian"
+      confirm-text="Kirim Pengajuan"
+      :loading="cancellationSubmitting"
+      :confirm-disabled="cancellationReason.trim().length < 5"
+      @confirm="submitCancellationRequest"
+    >
+      <div class="cancellation-modal-copy">
+        <p>Permintaan akan diperiksa Admin. Jika disetujui, kavling dilepaskan dan pengembalian dihitung sebesar 50% dari uang muka serta cicilan yang sudah dikonfirmasi. Booking Fee tidak dikembalikan.</p>
+        <label for="purchase-cancellation-reason">Alasan pembatalan</label>
+        <textarea id="purchase-cancellation-reason" v-model="cancellationReason" rows="4" maxlength="2000" placeholder="Jelaskan alasan pengajuan pembatalan (minimal 5 karakter)." />
+        <small>{{ cancellationReason.trim().length }}/2000 karakter</small>
+        <p v-if="cancellationError" class="payment-notice error" role="alert">{{ cancellationError }}</p>
+      </div>
+    </AppModal>
   </ion-page>
 </template>
 
@@ -1418,6 +1591,16 @@ onMounted(loadPaymentData)
 .payment-notice { padding:12px 14px; border-radius:12px; background:#f4f6f1; color:#41553b; font-size:12px; line-height:1.55; }
 .payment-notice.warning { background:#fff6e8; color:#925713; }
 .payment-notice.error { background:#fff0ef; color:#a63e38; }
+.cancellation-action { display: grid; gap: 9px; margin-top: 14px; }
+.cancellation-request-button { min-height: 44px; padding: 10px 14px; border: 1px solid var(--status-danger, #a63e38); border-radius: var(--radius-control, 12px); background: var(--surface-primary, #fff); color: var(--status-danger, #a63e38); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.cancellation-request-button:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 2px; }
+.cancellation-request-button:disabled { opacity: .65; cursor: not-allowed; }
+.cancellation-modal-copy { display: grid; gap: 10px; color: var(--text-primary, #252525); font-size: 13px; line-height: 1.55; }
+.cancellation-modal-copy p { margin: 0; }
+.cancellation-modal-copy label { font-weight: 600; }
+.cancellation-modal-copy textarea { width: 100%; min-height: 110px; padding: 11px; border: 1px solid var(--border-default, #eae7e0); border-radius: var(--radius-control, 12px); background: var(--surface-primary, #fff); color: var(--text-primary, #252525); font: inherit; resize: vertical; }
+.cancellation-modal-copy textarea:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 2px; }
+.cancellation-modal-copy small { color: var(--text-secondary, #63636a); text-align: right; }
 .schedule-picker { display:grid; gap:8px; }
 .schedule-picker-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 .schedule-row {
@@ -1456,3 +1639,4 @@ onMounted(loadPaymentData)
   .payment-info-grid { grid-template-columns:1fr 1fr; }
 }
 </style>
++

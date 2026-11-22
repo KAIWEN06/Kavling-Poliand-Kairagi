@@ -32,7 +32,7 @@ import { ref, onMounted } from 'vue'
 import { IonButton, IonIcon } from '@ionic/vue'
 import { arrowForwardOutline } from 'ionicons/icons'
 import Skeleton from '@/components/ui/Skeleton.vue'
-import { contactService } from '@/services/contactService'
+import { contactsService } from '@/services/contactService'
 import { cmsService, type CmsHero } from '@/services/cmsService'
 import heroFallback from '@/assets/images/hero4.jpg'
 
@@ -56,9 +56,9 @@ const contactWhatsapp = () => {
 const loadHeroData = async () => {
   try {
     loading.value = true
-    const [savedHero, contacts] = await Promise.all([cmsService.getHero(), contactService.getContacts()])
+    const [savedHero, contacts] = await Promise.all([cmsService.getHero(), contactsService.getAll()])
     if (savedHero) hero.value = savedHero
-    const whatsapp = contacts?.find(item => item.key === 'whatsapp')
+    const whatsapp = contacts?.find((item: { key: string; value?: string }) => item.key === 'whatsapp')
     whatsappNumber.value = whatsapp?.value || ''
   } catch (error) {
     console.error('Gagal mengambil data Hero:', error)

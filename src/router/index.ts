@@ -38,11 +38,13 @@ import SPKMarketingPage from '@/views/marketing/SPKMarketingPage.vue'
 import TindakLanjutPage from '@/views/marketing/TindakLanjutPage.vue'
 import LainnyaPage from '@/views/marketing/LainnyaPage.vue'
 import MarketingInfoPage from '@/views/marketing/MarketingInfoPage.vue'
+import MarketingHeadDashboardPage from '@/views/marketing/MarketingHeadDashboardPage.vue'
 import BerandaClientPage from '@/views/client/BerandaClientPage.vue'
 import PembayaranClientPage from '@/views/client/PembayaranClientPage.vue' 
 import AkunClientPage from '@/views/client/AkunClientPage.vue'
 import DokumenClientPage from '@/views/client/DokumenClientPage.vue'
 import KavlingClientPage from '@/views/client/KavlingClientPage.vue'
+import KavlingClientDetailPage from '@/views/client/KavlingClientDetailPage.vue'
 import SPKClientPage from '@/views/client/SPKClientPage.vue'
 import { setupAuthGuards } from '@/router/guards'
 
@@ -177,6 +179,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'marketing' },
   },
   {
+    path: '/beranda-kepala-marketing',
+    name: 'BerandaKepalaMarketing',
+    component: MarketingHeadDashboardPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
     path: '/kavling',
     name: 'KavlingMarketing',
     component: KavlingMarketingPage,
@@ -278,6 +286,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/client/kavling',
     name: 'KavlingClient',
     component: KavlingClientPage,
+  },
+  {
+    path: '/client/kavling/:id',
+    name: 'KavlingClientDetail',
+    component: KavlingClientDetailPage,
   },
   {
     path: '/client/spk',
