@@ -31,6 +31,7 @@ import '@fontsource/plus-jakarta-sans/800.css'
 
 // Tailwind CSS
 import './styles/main.css'
+import './styles/marketing-module.css'
 
 // Global Theme
 import './theme/variables.css'

@@ -38,7 +38,18 @@ import SPKMarketingPage from '@/views/marketing/SPKMarketingPage.vue'
 import TindakLanjutPage from '@/views/marketing/TindakLanjutPage.vue'
 import LainnyaPage from '@/views/marketing/LainnyaPage.vue'
 import MarketingInfoPage from '@/views/marketing/MarketingInfoPage.vue'
-import MarketingHeadDashboardPage from '@/views/marketing/MarketingHeadDashboardPage.vue'
+import MarketingSpkStatusPage from '@/views/marketing/MarketingSpkStatusPage.vue'
+import MarketingPaymentsPage from '@/views/marketing/MarketingPaymentsPage.vue'
+import MarketingCommissionPage from '@/views/marketing/MarketingCommissionPage.vue'
+import HeadDashboardPage from '@/views/marketing-head/HeadDashboardPage.vue'
+import HeadClientsPage from '@/views/marketing-head/HeadClientsPage.vue'
+import HeadClientDetailPage from '@/views/marketing-head/HeadClientDetailPage.vue'
+import HeadCrmPage from '@/views/marketing-head/HeadCrmPage.vue'
+import HeadSpkPage from '@/views/marketing-head/HeadSpkPage.vue'
+import HeadPaymentsPage from '@/views/marketing-head/HeadPaymentsPage.vue'
+import HeadReportsPage from '@/views/marketing-head/HeadReportsPage.vue'
+import HeadCommissionPage from '@/views/marketing-head/HeadCommissionPage.vue'
+import HeadMorePage from '@/views/marketing-head/HeadMorePage.vue'
 import BerandaClientPage from '@/views/client/BerandaClientPage.vue'
 import PembayaranClientPage from '@/views/client/PembayaranClientPage.vue' 
 import AkunClientPage from '@/views/client/AkunClientPage.vue'
@@ -178,11 +189,93 @@ const routes: Array<RouteRecordRaw> = [
     component: BerandaMarketingPage,
     meta: { requiresAuth: true, role: 'marketing' },
   },
+  // ---------------------------------------------------------------
+  // Kepala Bagian — Departemen Marketing (profiles.role = 'marketing_head')
+  // ---------------------------------------------------------------
   {
     path: '/beranda-kepala-marketing',
     name: 'BerandaKepalaMarketing',
-    component: MarketingHeadDashboardPage,
+    component: HeadDashboardPage,
     meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  { path: '/kepala-marketing', redirect: '/beranda-kepala-marketing' },
+  {
+    path: '/kepala-marketing/clients',
+    name: 'HeadClients',
+    component: HeadClientsPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/clients/new',
+    name: 'HeadAddClient',
+    component: TambahCalonPembeliPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/clients/:id',
+    name: 'HeadClientDetail',
+    component: HeadClientDetailPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/perkembangan',
+    name: 'HeadCrm',
+    component: HeadCrmPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/spk',
+    name: 'HeadSpk',
+    component: HeadSpkPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/pembayaran',
+    name: 'HeadPayments',
+    component: HeadPaymentsPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/laporan',
+    name: 'HeadReports',
+    component: HeadReportsPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/komisi',
+    name: 'HeadCommission',
+    component: HeadCommissionPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/lainnya',
+    name: 'HeadMore',
+    component: HeadMorePage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/kepala-marketing/siteplan',
+    name: 'HeadSiteplan',
+    component: SiteplanPage,
+    meta: { requiresAuth: true, role: 'marketing_head' },
+  },
+  {
+    path: '/marketing/pengajuan',
+    name: 'MarketingSpkStatus',
+    component: MarketingSpkStatusPage,
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
+    path: '/marketing/pembayaran',
+    name: 'MarketingPayments',
+    component: MarketingPaymentsPage,
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
+    path: '/marketing/komisi',
+    name: 'MarketingCommission',
+    component: MarketingCommissionPage,
+    meta: { requiresAuth: true, role: 'marketing' },
   },
   {
     path: '/kavling',
@@ -343,11 +436,11 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/marketing/commission',
-    redirect: '/beranda-marketing',
+    redirect: '/marketing/komisi',
   },
   {
     path: '/marketing/riwayat-pembayaran',
-    redirect: '/marketing/clients',
+    redirect: '/marketing/pembayaran',
   },
 
   // Maintenance page

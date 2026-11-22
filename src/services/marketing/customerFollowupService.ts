@@ -1,17 +1,22 @@
 import { supabase } from '@/services/config/supabase'
 
+// Harus sama dengan CHECK constraint customer_followups.method / .status di database.
+// Nilai lama 'Kunjungan' dan 'Terjual' ditolak database sehingga simpan follow-up selalu gagal.
 export const FOLLOWUP_METHODS = [
   'WhatsApp',
   'Telepon',
+  'Pertemuan',
   'Email',
-  'Kunjungan',
+  'Lainnya',
 ]
 
 export const FOLLOWUP_STATUSES = [
+  'Follow Up',
   'Tertarik',
   'Negosiasi',
+  'Menunggu',
   'Tidak Tertarik',
-  'Terjual',
+  'Selesai',
 ]
 
 export async function getCurrentMarketingUser() {
@@ -38,7 +43,7 @@ export async function getCurrentMarketingUser() {
     throw profileError
   }
 
-  if (!profile || profile.role !== 'marketing') {
+  if (!profile || (profile.role !== 'marketing' && profile.role !== 'marketing_head')) {
     throw new Error('Akun tidak memiliki akses Marketing.')
   }
 
@@ -51,7 +56,9 @@ export async function getCurrentMarketingUser() {
 export async function getMarketingCustomers() {
   const { data, error } = await supabase
     .from('customers')
-    .select('id, full_name, phone')
+    // RLS membatasi baris ke client milik Marketing yang login.
+    .select('id, full_name, phone, whatsapp_phone, crm_status')
+    .not('marketing_id', 'is', null)
     .order('created_at', {
       ascending: false,
     })

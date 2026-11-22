@@ -39,17 +39,52 @@
 
           
           <!-- NOTIFICATION -->
-          <button
-            v-if="variant === 'marketing'"
-            type="button"
-            class="notification-button"
-            aria-label="Notifikasi"
-            @click="goNotifications"
-          >
-            <ion-icon :icon="notificationsOutline" />
+          <div v-if="variant === 'marketing'" class="client-notification-wrap">
+            <button
+              type="button"
+              class="notification-button client-notification-button"
+              aria-label="Notifikasi client"
+              :aria-expanded="showStaffNotifications"
+              @click="toggleStaffNotifications($event)"
+            >
+              <ion-icon :icon="notificationsOutline" aria-hidden="true" />
+              <span v-if="staffAlertCount" class="notification-count">
+                {{ staffAlertCount > 9 ? '9+' : staffAlertCount }}
+              </span>
+            </button>
 
-            <span class="notification-dot"></span>
-          </button>
+            <ion-popover
+              v-if="showStaffNotifications"
+              :is-open="showStaffNotifications"
+              :event="notificationEvent"
+              class="client-notification-popover"
+              :show-backdrop="false"
+              @did-dismiss="showStaffNotifications = false"
+            >
+              <section class="client-notification-panel" aria-label="Notifikasi client">
+                <header>
+                  <strong>Notifikasi</strong>
+                  <span v-if="staffNotifications.length">{{ staffNotifications.length }}</span>
+                </header>
+                <p v-if="notificationLoading" class="client-notification-empty" role="status">Memuat notifikasi...</p>
+                <p v-else-if="staffNotificationError" class="client-notification-empty">{{ staffNotificationError }}</p>
+                <p v-else-if="!staffNotifications.length" class="client-notification-empty">
+                  Belum ada notifikasi dalam 30 hari terakhir.
+                </p>
+                <article
+                  v-for="(notification, index) in staffNotifications"
+                  :key="index"
+                  class="client-notification-item"
+                >
+                  <strong :class="`staff-notif--${notification.severity}`">{{ notification.title }}</strong>
+                  <span>{{ notification.customer_name || 'Client' }}<template v-if="notification.body"> · {{ notification.body }}</template></span>
+                  <button v-if="notification.customer_id" type="button" @click="openStaffClient(notification.customer_id)">
+                    Lihat client
+                  </button>
+                </article>
+              </section>
+            </ion-popover>
+          </div>
 
         </div>
 
@@ -221,6 +256,7 @@ import {
   IonToolbar,
   IonButton,
   IonIcon,
+  IonPopover,
   IonSpinner,
   useIonRouter,
 } from '@ionic/vue'
@@ -234,6 +270,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import AppButton from '@/components/ui/AppButton.vue'
 import { getClientSpks } from '@/services/clientSpkService'
+import { getMarketingNotifications, type MarketingNotification } from '@/services/marketing/marketingCrmService'
+import { useRoute } from 'vue-router'
 
 
 const props = withDefaults(
@@ -296,12 +334,61 @@ function openRejectedSpk(id: number) {
   ionRouter.push(`/client/dokumen?spk_id=${id}`)
 }
 
+/* =====================================================
+   NOTIFIKASI MARKETING / KEPALA BAGIAN
+   Diturunkan dari data SPK, pembayaran, jadwal cicilan, dan
+   pembatalan (RPC get_marketing_notifications) — tanpa tabel baru.
+   ===================================================== */
+
+const route = useRoute()
+const showStaffNotifications = ref(false)
+const staffNotifications = ref<MarketingNotification[]>([])
+const staffNotificationError = ref('')
+// Badge hanya menghitung yang perlu tindakan, bukan semua riwayat.
+const staffAlertCount = computed(() =>
+  staffNotifications.value.filter((n) => n.severity === 'danger' || n.severity === 'warning').length,
+)
+
+async function loadStaffNotifications() {
+  if (props.variant !== 'marketing') return
+  notificationLoading.value = true
+  staffNotificationError.value = ''
+  try {
+    staffNotifications.value = await getMarketingNotifications(40)
+  } catch (error) {
+    console.error('[Marketing Header] Gagal memuat notifikasi:', error)
+    staffNotificationError.value = 'Notifikasi belum dapat dimuat.'
+  } finally {
+    notificationLoading.value = false
+  }
+}
+
+function toggleStaffNotifications(event: Event) {
+  notificationEvent.value = event
+  showStaffNotifications.value = !showStaffNotifications.value
+  if (showStaffNotifications.value) void loadStaffNotifications()
+}
+
+function openStaffClient(customerId: number) {
+  showStaffNotifications.value = false
+  const base = route.path.startsWith('/kepala-marketing') || route.path === '/beranda-kepala-marketing'
+    ? '/kepala-marketing/clients'
+    : '/marketing/clients'
+  ionRouter.push(`${base}/${customerId}`)
+}
+
 onMounted(() => {
   if (props.variant === 'client') {
     void loadClientNotifications()
     notificationRefreshTimer = window.setInterval(() => {
       void loadClientNotifications()
     }, 30_000)
+  }
+  if (props.variant === 'marketing') {
+    void loadStaffNotifications()
+    notificationRefreshTimer = window.setInterval(() => {
+      void loadStaffNotifications()
+    }, 60_000)
   }
 })
 
@@ -555,6 +642,10 @@ function goBack() {
   font-weight: 700;
   line-height: 1;
 }
+
+.staff-notif--danger { color: var(--status-danger, #d94b45); }
+.staff-notif--success { color: var(--poliland-green, #355a2c); }
+.staff-notif--warning { color: var(--poliland-gold-text, #966a12); }
 
 .client-notification-panel {
   display: grid;

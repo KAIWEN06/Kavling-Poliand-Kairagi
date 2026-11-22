@@ -107,6 +107,28 @@
 
           <div class="card-body">
 
+            <div class="field-group">
+              <label for="customer-select">
+                Klien <span>*</span>
+              </label>
+              <div class="field-shell" :class="{ filled: form.customerId }">
+                <ion-icon :icon="personOutline" />
+                <select
+                  id="customer-select"
+                  v-model.number="form.customerId"
+                  @change="applySelectedCustomer"
+                >
+                  <option :value="null" disabled>Pilih klien Anda</option>
+                  <option v-for="c in myCustomers" :key="c.id" :value="c.id">
+                    {{ c.full_name }}{{ c.phone ? ' · ' + c.phone : '' }}
+                  </option>
+                </select>
+              </div>
+              <p v-if="!myCustomers.length" class="required-note">
+                Belum ada klien. Daftarkan klien Anda terlebih dahulu di menu Calon Pembeli.
+              </p>
+            </div>
+
             <div class="form-grid">
 
               <div class="field-group">
@@ -122,6 +144,7 @@
 
                   <input
                     id="full-name"
+                    readonly
                     v-model.trim="form.fullName"
                     type="text"
                     placeholder="Masukkan nama lengkap"
@@ -144,6 +167,7 @@
 
                   <input
                     id="phone"
+                    readonly
                     v-model.trim="form.phone"
                     type="tel"
                     inputmode="tel"
@@ -167,6 +191,7 @@
 
                   <input
                     id="email"
+                    readonly
                     v-model.trim="form.email"
                     type="email"
                     placeholder="contoh@email.com"
@@ -195,6 +220,7 @@
 
                   <textarea
                     id="address"
+                    readonly
                     v-model.trim="form.address"
                     maxlength="200"
                     rows="3"
@@ -407,6 +433,22 @@
               v-if="form.paymentMethod === 'Installment'"
               class="tenor-section"
             >
+              <div class="field-group">
+                <label for="down-payment">
+                  Nominal DP (Rp) <span>*</span>
+                </label>
+                <div class="field-shell" :class="{ filled: form.downPayment }">
+                  <input
+                    id="down-payment"
+                    v-model="form.downPayment"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    placeholder="Contoh: 20000000"
+                  />
+                </div>
+              </div>
+
               <div class="tenor-heading">
                 <div>
                   <label>
@@ -839,9 +881,11 @@ import {
   getLotById,
   getLotByNumber,
   getLotInstallments,
+  getMyCustomersForSpk,
   getPaymentPlans,
   submitSPKRequest,
   type Lot,
+  type MarketingSpkCustomer,
   type LotInstallment,
   type PaymentPlan,
   type SPKDocumentFile,
@@ -870,7 +914,11 @@ const lotNumber = getRouteValue('lot_number')
    FORM
    ========================================================= */
 
+const myCustomers = ref<MarketingSpkCustomer[]>([])
+
 const form = reactive({
+  customerId: (Number(getRouteValue('customer_id')) || null) as number | null,
+  downPayment: '',
   fullName: getRouteValue('name'),
   phone: getRouteValue('phone'),
   email: getRouteValue('email'),
@@ -1051,6 +1099,9 @@ const currentStep = computed(() => {
 
 
 const canSubmit = computed(() => {
+  if (!form.customerId) return false
+  if (form.paymentMethod === 'Installment' && !(Number(form.downPayment) > 0)) return false
+
   const basicValid =
     Boolean(form.fullName) &&
     Boolean(form.phone) &&
@@ -1314,34 +1365,17 @@ async function submitSPK() {
   try {
     const result = await submitSPKRequest(
       {
-        customer_full_name: form.fullName.trim(),
-        customer_phone: form.phone.trim(),
-        customer_email: form.email.trim() || null,
-        customer_address: form.address.trim(),
-
+        customer_id: Number(form.customerId),
         lot_id: Number(lot.id),
-        lot_price_snapshot: Number(selectedPrice.value),
-
         payment_method: form.paymentMethod,
+        down_payment_amount:
+          form.paymentMethod === 'Installment'
+            ? Number(form.downPayment)
+            : 0,
 
         payment_plan_id:
           form.paymentMethod === 'Installment'
             ? form.paymentPlanId
-            : null,
-
-        months:
-          form.paymentMethod === 'Installment'
-            ? selectedPlan.value?.months ?? null
-            : null,
-
-        monthly_payment:
-          form.paymentMethod === 'Installment'
-            ? selectedInstallment.value?.monthly_payment ?? null
-            : null,
-
-        margin_percent_snapshot:
-          form.paymentMethod === 'Installment'
-            ? selectedPlan.value?.margin_percent ?? null
             : null,
 
         notes: form.notes.trim() || null,
@@ -1375,11 +1409,24 @@ async function submitSPK() {
    INIT
    ========================================================= */
 
+function applySelectedCustomer() {
+  const customer = myCustomers.value.find(c => c.id === form.customerId)
+  if (!customer) return
+  form.fullName = customer.full_name ?? ''
+  form.phone = customer.phone ?? ''
+  form.email = customer.email ?? ''
+  form.address = customer.address ?? ''
+}
+
 onMounted(async () => {
   await Promise.all([
     loadLot(),
     loadPaymentPlans(),
+    getMyCustomersForSpk()
+      .then(list => { myCustomers.value = list })
+      .catch(error => { console.error(error); submitError.value = 'Gagal memuat daftar klien Anda.' }),
   ])
+  applySelectedCustomer()
 })
 </script>
 

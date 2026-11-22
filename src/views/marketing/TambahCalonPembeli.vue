@@ -49,6 +49,22 @@
           </label>
 
           <label class="field">
+            <span>Nomor WhatsApp <em>(jika berbeda)</em></span>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.1L4 20Z" />
+              </svg>
+              <input
+                v-model="form.whatsapp_phone"
+                type="tel"
+                inputmode="tel"
+                placeholder="Kosongkan jika sama dengan nomor kontak"
+                maxlength="20"
+              />
+            </div>
+          </label>
+
+          <label class="field">
             <span>Email <em>(Opsional)</em></span>
             <div class="input-wrap">
               <svg viewBox="0 0 24 24">
@@ -80,6 +96,20 @@
               <small>{{ form.address.length }}/200</small>
             </div>
           </label>
+
+          <div class="field">
+            <span>Wilayah Asal Konsumen <b>*</b></span>
+            <RegionSelect v-model="region" />
+          </div>
+
+          <label v-if="isHead" class="field">
+            <span>Marketing Penanggung Jawab <b>*</b></span>
+            <select v-model="form.marketing_id" class="mk-input">
+              <option value="">Pilih anggota tim</option>
+              <option v-for="m in teamMembers" :key="m.id" :value="m.id">{{ m.full_name }}</option>
+            </select>
+          </label>
+          <p v-else class="owner-note">Client otomatis tercatat atas nama akun Marketing Anda.</p>
         </div>
       </section>
 
@@ -362,8 +392,18 @@ import {
   getPaymentPlans,
 } from '@/services/marketing/customerService'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
+import RegionSelect from '@/components/marketing/shared/RegionSelect.vue'
+import {
+  contactAlreadyRegistered,
+  getTeamMembers,
+} from '@/services/marketing/marketingCrmService'
 
 const ionRouter = useIonRouter()
+
+const region = ref({ province_code: null, province_name: null, city_code: null, city_name: null })
+const teamMembers = ref([])
+const isHead = computed(() => currentProfile.value?.role === 'marketing_head')
+const listPath = computed(() => (isHead.value ? '/kepala-marketing/clients' : '/marketing/clients'))
 
 const loadingLots = ref(true)
 const loadingPlans = ref(true)
@@ -384,6 +424,8 @@ const selectedLots = ref([])
 const form = reactive({
   full_name: '',
   phone: '',
+  whatsapp_phone: '',
+  marketing_id: '',
   email: '',
   address: '',
   payment_type: 'Cash',
@@ -467,8 +509,24 @@ function validate() {
     return false
   }
 
+  const digits = form.phone.replace(/\D/g, '')
+  if (digits.length < 9 || digits.length > 15) {
+    errorMessage.value = 'Nomor kontak belum lengkap, masukkan 9–15 digit angka.'
+    return false
+  }
+
   if (!form.address.trim()) {
     errorMessage.value = 'Alamat lengkap wajib diisi.'
+    return false
+  }
+
+  if (!region.value.province_code || !region.value.city_code) {
+    errorMessage.value = 'Pilih provinsi dan kabupaten/kota asal konsumen.'
+    return false
+  }
+
+  if (isHead.value && !form.marketing_id) {
+    errorMessage.value = 'Pilih Marketing penanggung jawab.'
     return false
   }
 
@@ -514,13 +572,23 @@ async function submit() {
   errorMessage.value = ''
 
   try {
+    // Validasi awal duplikasi; database tetap memvalidasi ulang saat INSERT.
+    if (await contactAlreadyRegistered(form.phone, form.whatsapp_phone || null)) {
+      errorMessage.value =
+        'Nomor kontak ini sudah terdaftar sebagai client. Hubungi Kepala Bagian Marketing atau Admin agar tidak terjadi duplikasi.'
+      return
+    }
+
     await createProspectiveCustomer({
       customer: {
         full_name: form.full_name,
         phone: form.phone,
+        whatsapp_phone: form.whatsapp_phone || form.phone,
         email: form.email,
         address: form.address,
         notes: form.notes,
+        marketing_id: isHead.value ? form.marketing_id : null,
+        ...region.value,
       },
 
       interests: selectedLots.value.map((lot) => ({
@@ -535,7 +603,7 @@ async function submit() {
      * Setelah berhasil, kembali ke halaman daftar calon pembeli.
      * Ubah route jika route project kamu berbeda.
      */
-    await ionRouter.push('/marketing/clients')
+    await ionRouter.push(listPath.value)
   } catch (error) {
     console.error('Gagal menyimpan calon pembeli:', error)
 
@@ -576,6 +644,10 @@ onMounted(async () => {
 
     currentUser.value = session.user
     currentProfile.value = session.profile
+
+    if (session.profile.role === 'marketing_head') {
+      teamMembers.value = (await getTeamMembers()).filter((m) => m.role === 'marketing')
+    }
 
     await loadData()
   } catch (error) {
@@ -700,6 +772,12 @@ button {
 .fields {
   display: grid;
   gap: 7px;
+}
+
+.owner-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .field {

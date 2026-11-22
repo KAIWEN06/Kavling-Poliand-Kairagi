@@ -54,17 +54,11 @@ export interface SPKDocumentFile {
 }
 
 export interface CreateSPKRequestInput {
-  customer_full_name: string
-  customer_phone: string
-  customer_email: string | null
-  customer_address: string
+  customer_id: number
   lot_id: number
-  lot_price_snapshot: number
   payment_method: 'Cash' | 'Installment'
   payment_plan_id: number | null
-  months: number | null
-  monthly_payment: number | null
-  margin_percent_snapshot: number | null
+  down_payment_amount?: number | null
   notes: string | null
 }
 
@@ -160,6 +154,31 @@ export async function getLotInstallments(
 // SUBMIT SPK
 // =========================================================
 
+export interface MarketingSpkCustomer {
+  id: number
+  full_name: string
+  phone: string | null
+  email: string | null
+  address: string | null
+}
+
+// Klien milik Marketing yang login (RLS + filter marketing_id; klien mandiri tidak muncul).
+export async function getMyCustomersForSpk(): Promise<MarketingSpkCustomer[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sesi login tidak ditemukan.')
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, full_name, phone, email, address')
+    .eq('marketing_id', user.id)
+    .order('full_name', { ascending: true })
+
+  if (error) throw error
+  return (data ?? []) as MarketingSpkCustomer[]
+}
+
+const SPK_BUCKET = 'spk-client-private-documents'
+
 export async function submitSPKRequest(
   input: CreateSPKRequestInput,
   documents: SPKDocumentFile[],
@@ -173,60 +192,58 @@ export async function submitSPKRequest(
     throw new Error('Sesi login tidak ditemukan.')
   }
 
-  const requiredTypes: SPKDocumentType[] = [
-    'KTP',
-    'KK',
-    'Payment Proof',
-  ]
+  if (!input.customer_id) {
+    throw new Error('Pilih klien terlebih dahulu.')
+  }
 
-  for (const type of requiredTypes) {
+  for (const type of ['KTP', 'KK', 'Payment Proof'] as SPKDocumentType[]) {
     if (!documents.some(document => document.type === type)) {
       throw new Error(`Dokumen ${type} wajib diunggah.`)
     }
   }
 
   const maxFileSize = 5 * 1024 * 1024
-
   for (const document of documents) {
     if (document.file.size > maxFileSize) {
-      throw new Error(
-        `${document.file.name} melebihi batas 5 MB.`,
-      )
+      throw new Error(`${document.file.name} melebihi batas 5 MB.`)
     }
   }
 
+  // Server memvalidasi kepemilikan klien, kavling, dan harga.
+  const { data: requestId, error: requestError } = await supabase.rpc(
+    'create_marketing_spk_request',
+    {
+      p_customer_id: input.customer_id,
+      p_lot_id: input.lot_id,
+      p_payment_method: input.payment_method,
+      p_payment_plan_id: input.payment_plan_id,
+      p_down_payment_amount: input.down_payment_amount ?? 0,
+      p_notes: input.notes,
+    },
+  )
+
+  if (requestError) throw requestError
+  if (typeof requestId !== 'number') {
+    throw new Error('SPK tersimpan, tetapi nomor pengajuan tidak diterima.')
+  }
+
   const uploadedPaths: string[] = []
-  let requestId: number | null = null
 
   try {
-    // Membuat pengajuan SPK
-    const { data: request, error: requestError } = await supabase
-      .from('spk_requests')
-      .insert({
-        ...input,
-        marketing_id: user.id,
-      })
-      .select('id, spk_number')
-      .single()
+    const rows: Array<Record<string, unknown>> = []
 
-    if (requestError) throw requestError
-
-    requestId = Number(request.id)
-
-    // Upload dokumen
     for (const document of documents) {
-      const extension =
-        document.file.name.split('.').pop()?.toLowerCase() || 'bin'
-
-      const safeExtension = extension.replace(/[^a-z0-9]/g, '')
+      const extension = (document.file.name.split('.').pop() || 'bin')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '') || 'bin'
 
       const filePath =
         `${user.id}/${requestId}/` +
         `${document.type.toLowerCase().replace(/\s+/g, '-')}-` +
-        `${crypto.randomUUID()}.${safeExtension}`
+        `${crypto.randomUUID()}.${extension}`
 
       const { error: uploadError } = await supabase.storage
-        .from('spk-documents')
+        .from(SPK_BUCKET)
         .upload(filePath, document.file, {
           cacheControl: '3600',
           upsert: false,
@@ -234,52 +251,51 @@ export async function submitSPKRequest(
         })
 
       if (uploadError) throw uploadError
-
       uploadedPaths.push(filePath)
 
-      const { error: metadataError } = await supabase
-        .from('spk_request_documents')
-        .insert({
-          spk_request_id: requestId,
-          document_type: document.type,
-          file_name: document.file.name,
-          file_path: filePath,
-          mime_type: document.file.type || null,
-          file_size_bytes: document.file.size,
-          uploaded_by: user.id,
-        })
-
-      if (metadataError) throw metadataError
+      rows.push({
+        spk_request_id: requestId,
+        document_type: document.type,
+        file_name: document.file.name,
+        file_path: filePath,
+        mime_type: document.file.type || null,
+        file_size_bytes: document.file.size,
+        uploaded_by: user.id,
+      })
     }
 
-    return {
-      id: requestId,
-      spk_number: request.spk_number,
-    }
+    const { error: metadataError } = await supabase
+      .from('spk_request_documents')
+      .insert(rows)
+    if (metadataError) throw metadataError
 
+    // Booking Fee dicatat 'Pending' (menunggu verifikasi Admin), idempoten.
+    const { error: paymentError } = await supabase.rpc(
+      'create_marketing_spk_initial_payment',
+      { p_request_id: requestId },
+    )
+    if (paymentError) throw paymentError
+
+    const { data: spk } = await supabase
+      .from('spk_requests')
+      .select('spk_number')
+      .eq('id', requestId)
+      .maybeSingle()
+
+    return { id: requestId, spk_number: spk?.spk_number ?? `#${requestId}` }
   } catch (error) {
-    // Membersihkan file jika proses gagal
     if (uploadedPaths.length > 0) {
       const { error: cleanupError } = await supabase.storage
-        .from('spk-documents')
+        .from(SPK_BUCKET)
         .remove(uploadedPaths)
-
-      if (cleanupError) {
-        console.error('Gagal membersihkan file:', cleanupError)
-      }
+      if (cleanupError) console.error('Gagal membersihkan file:', cleanupError)
     }
 
-    // Menghapus pengajuan jika proses gagal
-    if (requestId !== null) {
-      const { error: deleteError } = await supabase
-        .from('spk_requests')
-        .delete()
-        .eq('id', requestId)
-
-      if (deleteError) {
-        console.error('Gagal membersihkan pengajuan:', deleteError)
-      }
-    }
+    const { error: discardError } = await supabase.rpc(
+      'discard_marketing_spk_request',
+      { p_request_id: requestId },
+    )
+    if (discardError) console.error('Gagal membersihkan pengajuan:', discardError)
 
     console.error('Submit SPK error:', error)
     throw error

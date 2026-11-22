@@ -8,8 +8,11 @@ export interface Customer {
   phone?: string | null
   whatsapp_phone?: string | null
   email?: string | null
-  nik?: string | null
   address?: string | null
+  province_code?: string | null
+  province_name?: string | null
+  city_code?: string | null
+  city_name?: string | null
   notes?: string | null
   marketing_id?: string | null
   created_at?: string
@@ -385,7 +388,11 @@ export const customerService = {
 
     if (profile.role === 'marketing') {
       // Jangan izinkan Marketing mengatribusikan pembeli ke akun Marketing lain.
+      // Database juga memaksa marketing_id = auth.uid() (trigger guard_customer_ownership).
       marketingId = profile.id
+    } else if (profile.role === 'marketing_head') {
+      // Kepala Bagian menugaskan client ke anggota tim; divalidasi ulang oleh RLS & trigger.
+      marketingId = payload.customer.marketing_id ?? profile.id
     } else if (profile.role === 'admin') {
       marketingId = payload.customer.marketing_id ?? null
 
@@ -409,14 +416,19 @@ export const customerService = {
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .insert({
-        full_name: payload.customer.full_name,
-        phone: payload.customer.phone ?? null,
-        email: payload.customer.email ?? null,
-        nik: payload.customer.nik ?? null,
-        address: payload.customer.address ?? null,
-        notes: payload.customer.notes ?? null,
+        full_name: payload.customer.full_name.trim(),
+        phone: payload.customer.phone?.trim() || null,
+        whatsapp_phone: payload.customer.whatsapp_phone?.trim() || null,
+        email: payload.customer.email?.trim() || null,
+        address: payload.customer.address?.trim() || null,
+        street_address: payload.customer.address?.trim() || null,
+        province_code: payload.customer.province_code ?? null,
+        province_name: payload.customer.province_name ?? null,
+        city_code: payload.customer.city_code ?? null,
+        city_name: payload.customer.city_name ?? null,
+        notes: payload.customer.notes?.trim() || null,
         marketing_id: marketingId,
-        registration_source: profile.role === 'marketing' || marketingId ? 'Marketing' : 'Admin',
+        registration_source: profile.role !== 'admin' || marketingId ? 'Marketing' : 'Admin',
       })
       .select()
       .single()
@@ -451,8 +463,8 @@ export const customerService = {
       .update({
         full_name: customer.full_name,
         phone: customer.phone ?? null,
+        whatsapp_phone: customer.whatsapp_phone ?? null,
         email: customer.email ?? null,
-        nik: customer.nik ?? null,
         address: customer.address ?? null,
         notes: customer.notes ?? null,
       })
@@ -649,7 +661,7 @@ export async function getCurrentMarketingProfile() {
     throw profileError
   }
 
-  if (!profile || profile.role !== 'marketing') {
+  if (!profile || (profile.role !== 'marketing' && profile.role !== 'marketing_head')) {
     throw new Error('Akun tidak memiliki akses Marketing.')
   }
 

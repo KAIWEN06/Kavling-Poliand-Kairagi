@@ -2,22 +2,7 @@
 <template>
   <ion-page>
     <!-- HEADER -->
-    <ion-header class="ion-no-border">
-      <ion-toolbar class="main-toolbar">
-        <div class="header-content">
-          <button class="back-button" @click="goBack">
-            <ion-icon :icon="arrowBackOutline" />
-          </button>
-
-          <h1>Lainnya</h1>
-
-          <button class="notification-button" @click="navigate('/marketing/notifikasi')">
-            <ion-icon :icon="notificationsOutline" />
-            <span v-if="hasNotification" class="notification-dot"></span>
-          </button>
-        </div>
-      </ion-toolbar>
-    </ion-header>
+    <AppHeader variant="marketing" title="Lainnya" back-route="/beranda-marketing" />
 
     <!-- CONTENT -->
     <ion-content :fullscreen="true" class="main-content">
@@ -52,6 +37,25 @@
 
         <!-- MENU LIST -->
         <div class="menu-list">
+
+          <!-- TRANSAKSI CLIENT (baca saja) -->
+          <button
+            v-for="item in transactionMenus"
+            :key="item.path"
+            class="menu-card"
+            @click="navigate(item.path)"
+          >
+            <div class="menu-icon">
+              <ion-icon :icon="item.icon" />
+            </div>
+
+            <div class="menu-information">
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.description }}</p>
+            </div>
+
+            <ion-icon :icon="chevronForward" class="menu-arrow" />
+          </button>
 
           <!-- INFORMASI PROYEK -->
           <button
@@ -178,18 +182,19 @@ import { useRouter } from 'vue-router'
 
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
   IonContent,
   IonIcon,
   alertController,
   toastController
 } from '@ionic/vue'
 
+import AppHeader from '@/components/common/AppHeader.vue'
+
 import {
-  arrowBackOutline,
-  notificationsOutline,
   chevronForward,
+  documentsOutline,
+  walletOutline,
+  cashOutline,
   business,
   call,
   person,
@@ -206,7 +211,12 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 const router = useRouter()
 
 const isLoggingOut = ref(false)
-const hasNotification = ref(true)
+
+const transactionMenus = [
+  { path: '/marketing/pengajuan', icon: documentsOutline, title: 'Status SPK Client', description: 'Pantau pengajuan SPK dan alasan penolakan.' },
+  { path: '/marketing/pembayaran', icon: walletOutline, title: 'Pembayaran & Jadwal Cicilan', description: 'Status verifikasi dan jatuh tempo client Anda.' },
+  { path: '/marketing/komisi', icon: cashOutline, title: 'Komisi Saya', description: 'Riwayat dan status komisi Anda.' },
+]
 
 const profile = ref({
   full_name: '',

@@ -111,6 +111,20 @@
           MARKETING
         ========================= -->
 
+      <!-- KEPALA BAGIAN MARKETING -->
+      <template v-else-if="variant === 'head'">
+        <button
+          v-for="item in headTabs"
+          :key="item.path"
+          type="button"
+          :class="['nav-item', { active: isActive(item.path) }]"
+          @click="goTo(item.path)"
+        >
+          <span class="icon-wrap"><ion-icon :icon="item.icon" /></span>
+          <span class="nav-label">{{ item.label }}</span>
+        </button>
+      </template>
+
       <template v-else-if="variant === 'marketing'">
 
         <!-- BERANDA -->
@@ -339,7 +353,18 @@ import {
   checkmarkDoneOutline,
   menuOutline,
   walletOutline,
+  peopleOutline,
+  pulseOutline,
+  barChartOutline,
 } from 'ionicons/icons'
+
+const headTabs = [
+  { path: '/beranda-kepala-marketing', label: 'Beranda', icon: homeOutline },
+  { path: '/kepala-marketing/clients', label: 'Client', icon: peopleOutline },
+  { path: '/kepala-marketing/perkembangan', label: 'Perkembangan', icon: pulseOutline },
+  { path: '/kepala-marketing/laporan', label: 'Laporan', icon: barChartOutline },
+  { path: '/kepala-marketing/lainnya', label: 'Lainnya', icon: menuOutline },
+]
 
 import { useRoute } from 'vue-router'
 import {
@@ -351,7 +376,7 @@ import {
 
 withDefaults(
   defineProps<{
-    variant?: 'public' | 'marketing' | 'admin' | 'client'
+    variant?: 'public' | 'marketing' | 'admin' | 'client' | 'head'
   }>(),
   {
     variant: 'public',

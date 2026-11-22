@@ -1,0 +1,345 @@
+/* =====================================================================
+   Modul Marketing & Kepala Bagian Marketing
+   Seluruh warna memakai token di theme/variables.css (prefix mk-).
+   ===================================================================== */
+
+.mk-page,
+.mk-content {
+  --background: var(--app-background);
+  color: var(--text-primary);
+}
+
+.mk-shell {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 20px 16px calc(104px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.mk-intro p {
+  margin: 0 0 4px;
+  color: var(--poliland-gold-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.mk-intro h1 {
+  margin: 0;
+  font-size: clamp(22px, 5.5vw, 28px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.mk-intro span {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.mk-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mk-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mk-section-head h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.mk-section-head p {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.mk-card {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+  padding: 14px;
+  min-width: 0;
+}
+
+.mk-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 720px) {
+  .mk-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mk-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* --- Tombol --- */
+.mk-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mk-btn--primary { background: var(--poliland-green); color: #fff; }
+.mk-btn--ghost { background: var(--surface-primary); border-color: var(--border-default); color: var(--text-primary); }
+.mk-btn--wa { background: #1f7a4a; color: #fff; }
+.mk-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.mk-btn:focus-visible,
+.mk-chip:focus-visible,
+.mk-link:focus-visible,
+.mk-input:focus-visible {
+  outline: 3px solid var(--poliland-gold);
+  outline-offset: 2px;
+}
+
+.mk-link {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  color: var(--poliland-green);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* --- Chip / segmented filter --- */
+.mk-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.mk-chips::-webkit-scrollbar { display: none; }
+
+.mk-chip {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.mk-chip[aria-pressed='true'] {
+  background: var(--poliland-green);
+  border-color: var(--poliland-green);
+  color: #fff;
+}
+
+/* --- Form --- */
+.mk-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mk-field > span {
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.mk-field small {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.mk-input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+textarea.mk-input { min-height: 96px; resize: vertical; }
+
+.mk-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+/* --- Tabel responsif: kartu di ponsel, tabel di desktop --- */
+.mk-table-wrap {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+  overflow: hidden;
+}
+
+.mk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.mk-table th {
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  background: var(--surface-muted);
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.mk-table td {
+  padding: 12px;
+  border-top: 1px solid var(--border-default);
+  vertical-align: top;
+}
+
+.mk-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.mk-table tr.mk-row-link { cursor: pointer; }
+.mk-table tr.mk-row-link:hover td { background: var(--surface-muted); }
+
+@media (max-width: 719px) {
+  .mk-table--stack thead { display: none; }
+  .mk-table--stack tr { display: grid; gap: 4px; padding: 12px 14px; border-top: 1px solid var(--border-default); }
+  .mk-table--stack tr:first-child { border-top: 0; }
+  .mk-table--stack td { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; border: 0; text-align: right; }
+  .mk-table--stack td::before { content: attr(data-label); color: var(--text-secondary); font-size: var(--font-size-xs); text-align: left; flex: 0 0 auto; }
+  .mk-table--stack td.mk-cell-main { display: block; text-align: left; font-weight: var(--font-weight-semibold); }
+  .mk-table--stack td.mk-cell-main::before { content: none; }
+  .mk-table--stack .num { text-align: right; }
+}
+
+.mk-muted { color: var(--text-secondary); font-size: var(--font-size-xs); }
+.mk-strong { font-weight: var(--font-weight-semibold); }
+.mk-danger-text { color: var(--status-danger); }
+
+/* --- State --- */
+.mk-state {
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.mk-state strong { color: var(--text-primary); }
+.mk-state--error strong { color: var(--status-danger); }
+
+/* --- Pagination --- */
+.mk-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* --- Tab detail --- */
+.mk-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-default);
+  scrollbar-width: none;
+}
+
+.mk-tabs::-webkit-scrollbar { display: none; }
+
+.mk-tabs button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.mk-tabs button[aria-selected='true'] {
+  color: var(--poliland-green);
+  border-bottom-color: var(--poliland-green);
+}
+
+.mk-dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+
+.mk-dl dt { color: var(--text-secondary); font-size: var(--font-size-xs); }
+.mk-dl dd { margin: 3px 0 0; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); overflow-wrap: anywhere; }
+
+.mk-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.mk-timeline li {
+  position: relative;
+  padding: 0 0 14px 18px;
+  border-left: 2px solid var(--border-default);
+  margin-left: 5px;
+}
+
+.mk-timeline li::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--poliland-gold);
+}
+
+.mk-timeline li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.mk-timeline strong { display: block; font-size: var(--font-size-sm); }
+.mk-timeline p { margin: 4px 0 0; font-size: 13px; color: var(--text-primary); white-space: pre-wrap; }

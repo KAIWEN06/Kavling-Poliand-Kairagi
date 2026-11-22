@@ -1,4 +1,3 @@
-```vue
 <template>
   <ion-page class="marketing-page">
     <!-- HEADER -->
@@ -43,6 +42,44 @@
           :total="totalCommission"
           @click="goToCommission"
         />
+
+        <p class="commission-split">
+          Menunggu {{ formatRupiahShort(s.commission_pending) }} ·
+          Dibayarkan {{ formatRupiahShort(s.commission_paid) }}
+        </p>
+
+
+        <!-- ==========================================
+             STATISTIK CLIENT (data nyata, khusus Marketing login)
+             ========================================== -->
+
+        <section class="mk-section dashboard-stats" aria-label="Ringkasan client saya">
+          <p v-if="reportError" class="mk-danger-text" role="alert">{{ reportError }}</p>
+          <div class="mk-grid">
+            <StatCard label="Total client saya" :value="s.total_clients ?? '–'" clickable @open="goTo('/marketing/clients')" />
+            <StatCard label="Client baru (bulan ini)" :value="s.new_clients ?? '–'" clickable @open="goTo('/marketing/clients?crm=Baru')" />
+            <StatCard label="Belum dihubungi" :value="crm('Baru') + crm('Belum Dihubungi')" clickable @open="goTo('/marketing/clients?crm=Belum%20Dihubungi')" />
+            <StatCard label="Follow-up" :value="crm('Sudah Dihubungi') + crm('Follow-up')" clickable @open="goTo('/marketing/clients?crm=Follow-up')" />
+            <StatCard label="Berminat" :value="crm('Berminat') + crm('Survey Lokasi') + crm('Negosiasi')" clickable @open="goTo('/marketing/clients?crm=Berminat')" />
+            <StatCard label="Dalam pengajuan" :value="crm('Pengajuan')" clickable @open="goTo('/marketing/clients?crm=Pengajuan')" />
+            <StatCard label="Berhasil" :value="crm('Berhasil')" accent clickable @open="goTo('/marketing/clients?crm=Berhasil')" />
+            <StatCard label="Tidak lanjut" :value="crm('Tidak Lanjut')" clickable @open="goTo('/marketing/clients?crm=Tidak%20Lanjut')" />
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TENGGAT PEMBAYARAN
+             ========================================== -->
+
+        <section v-if="dueNotices.length" class="mk-section dashboard-due" aria-label="Notifikasi tenggat pembayaran">
+          <div class="mk-section-head"><h2>Tenggat pembayaran client</h2>
+            <button type="button" class="mk-link" @click="goTo('/marketing/pembayaran?tab=schedules')">Lihat jadwal</button>
+          </div>
+          <article v-for="(n, index) in dueNotices" :key="index" class="mk-card due-item" :class="`due-item--${n.severity}`">
+            <strong>{{ n.title }} · {{ n.customer_name || 'Client' }}</strong>
+            <span class="mk-muted">{{ n.body }}</span>
+          </article>
+        </section>
 
 
         <!-- ==========================================
@@ -104,6 +141,7 @@ import {
 } from '@ionic/vue'
 
 import {
+  computed,
   onMounted,
   ref,
 } from 'vue'
@@ -127,6 +165,20 @@ import MarketingMenu
 
 import MarketingActivity
   from '@/components/marketing/MarketingActivity.vue'
+
+import StatCard from '@/components/marketing/shared/StatCard.vue'
+import { useMarketingReport } from '@/composables/useMarketingReport'
+import {
+  getMarketingActivity,
+  getMarketingNotifications,
+  type MarketingNotification,
+} from '@/services/marketing/marketingCrmService'
+import {
+  formatRelative,
+  formatRupiahShort,
+  initials,
+  periodRange,
+} from '@/utils/marketingStatus'
 
 
 /* =====================================================
@@ -187,67 +239,69 @@ async function loadMarketingName() {
    COMMISSION
    ===================================================== */
 
-const totalCommission = 2750000
+// Sebelumnya hardcoded (2.750.000 dan aktivitas contoh). Sekarang dari RPC
+// get_marketing_report / get_marketing_activity yang dibatasi ke Marketing login.
+const { load: loadReport, s, crm, error: reportError } = useMarketingReport()
+const totalCommission = computed(() => Number(s.value.commission_total ?? 0))
 
 
 /* =====================================================
    RECENT ACTIVITY
    ===================================================== */
 
-const activities = [
+const activities = ref<Array<{
+  id: number
+  initials: string
+  name: string
+  description: string
+  status: string
+  statusType: string
+  time: string
+}>>([])
 
-  {
-    id: 1,
+const KIND_LABEL: Record<string, { status: string; type: string }> = {
+  crm: { status: 'Perkembangan', type: 'prospect' },
+  followup: { status: 'Tindak Lanjut', type: 'followup' },
+  note: { status: 'Catatan', type: 'prospect' },
+  spk: { status: 'SPK', type: 'booking' },
+}
 
-    initials: 'BS',
+async function loadActivities() {
+  try {
+    const items = await getMarketingActivity(null, 5)
+    activities.value = items.map((item, index) => ({
+      id: index + 1,
+      initials: initials(item.customer_name),
+      name: item.customer_name || 'Client',
+      description: item.title,
+      status: KIND_LABEL[item.kind]?.status ?? 'Aktivitas',
+      statusType: KIND_LABEL[item.kind]?.type ?? 'prospect',
+      time: formatRelative(item.occurred_at),
+    }))
+  } catch (error) {
+    console.error('[Beranda Marketing] Gagal memuat aktivitas:', error)
+  }
+}
 
-    name: 'Budi Santoso',
+const dueNotices = ref<MarketingNotification[]>([])
 
-    description: 'Follow-up dilakukan',
-
-    status: 'Tindak Lanjut',
-
-    statusType: 'followup',
-
-    time: '2 jam',
-  },
-
-  {
-    id: 2,
-
-    initials: 'LO',
-
-    name: 'LOT-023',
-
-    description: 'Status berubah menjadi Booking',
-
-    status: 'Booking',
-
-    statusType: 'booking',
-
-    time: '5 jam',
-  },
-
-  {
-    id: 3,
-
-    initials: 'RM',
-
-    name: 'Rini Mandagi',
-
-    description: 'Calon pembeli baru',
-
-    status: 'Prospek',
-
-    statusType: 'prospect',
-
-    time: '1 hari',
-  },
-
-]
+async function loadDueNotices() {
+  try {
+    const notifications = await getMarketingNotifications(40)
+    dueNotices.value = notifications
+      .filter((n) => n.kind === 'installment_overdue' || n.kind === 'installment_due_soon')
+      .slice(0, 4)
+  } catch (error) {
+    console.error('[Beranda Marketing] Gagal memuat tenggat:', error)
+  }
+}
 
 onMounted(() => {
   loadMarketingName()
+  const range = periodRange('month')
+  void loadReport({ ...range, marketingId: null })
+  void loadActivities()
+  void loadDueNotices()
 })
 
 
@@ -265,7 +319,7 @@ function goTo(path: string) {
 function goToCommission() {
 
   ionRouter.push(
-    '/beranda-marketing'
+    '/marketing/komisi'
   )
 
 }
@@ -1166,5 +1220,30 @@ function goToCommission() {
 
 }
 
+.commission-split {
+  margin: -6px 2px 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.dashboard-stats,
+.dashboard-due {
+  margin-bottom: 18px;
+}
+
+.due-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--poliland-gold);
+}
+
+.due-item strong {
+  font-size: 13px;
+}
+
+.due-item--danger {
+  border-left-color: var(--status-danger);
+}
+
 </style>
-```
