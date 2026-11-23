@@ -480,9 +480,9 @@
     "semantic_hash": ""
   },
   "src/main.ts": {
-    "mtime": 1795392708.787668,
-    "seen": 1795394164.3482206,
-    "ast_hash": "1806f614d81b3357656e514b7ea0e443",
+    "mtime": 1795398376.9162574,
+    "seen": 1795398449.0527058,
+    "ast_hash": "5195b85922f3734e349dca6bc2229bff",
     "semantic_hash": ""
   },
   "src/router/guards.ts": {
@@ -576,9 +576,9 @@
     "semantic_hash": "4cb8c803412f5346c81ab87fd2eb1702"
   },
   "src/services/auth/authService.ts": {
-    "mtime": 1795392512.7115257,
-    "seen": 1795394164.3885634,
-    "ast_hash": "24b8a5cb70d20b5566e2cb5d42358d7e",
+    "mtime": 1795398377.1835606,
+    "seen": 1795398449.0598907,
+    "ast_hash": "3ce4877315135dfdc8808fce11663ad4",
     "semantic_hash": ""
   },
   "src/services/clientSpkService.ts": {
@@ -840,10 +840,10 @@
     "semantic_hash": "dcfa758cade7cf892c79af9cb3381b59"
   },
   "src/views/auth/AuthCallbackPage.vue": {
-    "mtime": 1791633773.3813522,
-    "seen": 1795360096.4257014,
-    "ast_hash": "8222914bdaa72e3432c74b97c004774f",
-    "semantic_hash": "8222914bdaa72e3432c74b97c004774f"
+    "mtime": 1795398115.889293,
+    "seen": 1795398192.9779177,
+    "ast_hash": "8d43c43532db4ca9d87771cf223ef5d7",
+    "semantic_hash": ""
   },
   "src/views/auth/ForgotPasswordPage.vue": {
     "mtime": 1791984628.3686545,
@@ -7362,9 +7362,9 @@
     "semantic_hash": ""
   },
   "src/services/auth/authUrlError.ts": {
-    "mtime": 1795392708.2479448,
-    "seen": 1795394164.3885634,
-    "ast_hash": "8d720eb3d2ac91b5ae215b6b88e4bfb9",
+    "mtime": 1795398115.603862,
+    "seen": 1795398192.9453921,
+    "ast_hash": "41a9a6a90ddc84d916ac7b53f8472344",
     "semantic_hash": ""
   },
   "src/views/account/AkunPage.vue": {

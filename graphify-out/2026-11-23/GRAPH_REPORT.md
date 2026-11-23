@@ -1,12 +1,12 @@
 # Graph Report - poliland-mobile  (2026-11-23)
 
 ## Corpus Check
-- 404 files · ~500,707 words
+- 404 files · ~500,774 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 86 file(s) not represented in the graph (top: .csv 53, .xml 10, (none) 7)
 
 ## Summary
-- 5970 nodes · 9034 edges · 317 communities (257 shown, 60 thin omitted)
+- 5970 nodes · 9033 edges · 317 communities (257 shown, 60 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 255 edges (avg confidence: 0.85)
 - Token cost: 314,439 input · 0 output
 
@@ -248,7 +248,7 @@
 - Prerequisites
 - BarChart.vue
 - ReviewForm.vue
-- SettingsPage.vue
+- profileService.ts
 - reviewService.ts
 - Common Rules for Professional UI
 - Example Workflow
@@ -489,7 +489,7 @@ Nodes (27): dependencies, @capacitor/android@^8.5.2, @capacitor/browser@^8.0.5, 
 
 ### Community 33 - "supabase.ts"
 Cohesion: 0.05
-Nodes (40): @fontsource/plus-jakarta-sans@^5.3.0, @fontsource-variable/fraunces@^5.3.0, @capacitor/browser, @capacitor/core, @fontsource/plus-jakarta-sans, @fontsource-variable/fraunces, CATEGORY_LABEL, OverviewPayment (+32 more)
+Nodes (39): @fontsource/plus-jakarta-sans@^5.3.0, @fontsource-variable/fraunces@^5.3.0, @capacitor/browser, @capacitor/core, @fontsource/plus-jakarta-sans, @fontsource-variable/fraunces, CATEGORY_LABEL, OverviewPayment (+31 more)
 
 ### Community 34 - "Home Gallery"
 Cohesion: 0.08
@@ -576,8 +576,8 @@ Cohesion: 0.05
 Nodes (3): main(), ShadcnInstaller, TestShadcnInstaller
 
 ### Community 55 - "MobileTabBar.vue"
-Cohesion: 0.07
-Nodes (22): @capacitor/keyboard@^8.0.6, @capacitor/keyboard, ionRouter, { profile }, detailOpen, handleInputBlur(), handleInputFocus(), headTabs (+14 more)
+Cohesion: 0.09
+Nodes (16): @capacitor/keyboard@^8.0.6, @capacitor/keyboard, detailOpen, handleInputBlur(), handleInputFocus(), headTabs, ionRouter, isTextEntry() (+8 more)
 
 ### Community 56 - "Progress Detail Page"
 Cohesion: 0.10
@@ -600,8 +600,8 @@ Cohesion: 0.13
 Nodes (13): CreateSPKRequestInput, formatLotNumber(), getMyCustomersForSpk(), getPaymentPlans(), Lot, LotInstallment, MarketingSpkCustomer, PaymentPlan (+5 more)
 
 ### Community 61 - "SiteplanPage Module"
-Cohesion: 0.16
-Nodes (15): selectLot(), currentRotation, handleLotSelection(), handleRefresh(), handleRetry(), loadingProgress, {
+Cohesion: 0.15
+Nodes (16): selectLot(), SiteplanLot, currentRotation, handleLotSelection(), handleRefresh(), handleRetry(), loadingProgress, {
   lots,
   loading,
   error,
@@ -611,7 +611,7 @@ Nodes (15): selectLot(), currentRotation, handleLotSelection(), handleRefresh(),
   hoverLot,
   clearHover,
   reload
-}, pendingLot (+7 more)
+} (+8 more)
 
 ### Community 62 - "PolygonLayer Module"
 Cohesion: 0.26
@@ -623,7 +623,7 @@ Nodes (10): parseNumber(), parsePrice(), areaTarget, maxPrice, minPrice, priceTa
 
 ### Community 64 - "ProfilePage.vue"
 Cohesion: 0.05
-Nodes (44): failed, initials, props, showImage, clear(), clearListeners, init(), loading (+36 more)
+Nodes (44): ionRouter, { profile }, { goBack: routerBack }, props, Crumb, clear(), clearListeners, init() (+36 more)
 
 ### Community 65 - "validate_data.py"
 Cohesion: 0.07
@@ -660,8 +660,8 @@ Cohesion: 0.17
 Nodes (8): categories, featuredProject, filteredProjects, isLoading, isRefreshing, projects, router, selectedCategory
 
 ### Community 71 - "siteplanService Module"
-Cohesion: 0.23
-Nodes (12): useSiteplan(), loadLots(), reload(), clearLotsCache(), fetchLotsFromSupabase(), getCachedLots(), getLots(), LotInstallment (+4 more)
+Cohesion: 0.24
+Nodes (11): useSiteplan(), loadLots(), reload(), clearLotsCache(), fetchLotsFromSupabase(), getCachedLots(), getLots(), LotInstallment (+3 more)
 
 ### Community 72 - "calculateFinanceBalance"
 Cohesion: 0.29
@@ -700,8 +700,8 @@ Cohesion: 0.14
 Nodes (13): compilerOptions, esModuleInterop, isolatedModules, jsx, lib, module, moduleResolution, resolveJsonModule (+5 more)
 
 ### Community 82 - "App Module"
-Cohesion: 0.19
-Nodes (12): @capacitor/app@^8.1.2, @capacitor/app, bootstrapApp(), dismissTopOverlay(), handleAndroidBackButton(), ionRouter, preloadApplicationData(), preloadCriticalAssets() (+4 more)
+Cohesion: 0.17
+Nodes (13): @capacitor/app@^8.1.2, @capacitor/app, bootstrapApp(), dismissTopOverlay(), handleAndroidBackButton(), ionRouter, preloadApplicationData(), preloadCriticalAssets() (+5 more)
 
 ### Community 83 - "SearchBox Module"
 Cohesion: 0.22
@@ -972,8 +972,8 @@ Cohesion: 0.11
 Nodes (19): $type, $value, background, foreground, muted-foreground, primary, primary-hover, secondary (+11 more)
 
 ### Community 184 - "MiniMap.vue"
-Cohesion: 0.25
-Nodes (6): container, emit, handleClick(), props, viewportBoxStyle, worldStyle
+Cohesion: 0.14
+Nodes (14): previewSvgContainer, props, renderPreviewLayers(), container, emit, handleClick(), props, updateColors() (+6 more)
 
 ### Community 185 - "3. Logo Usage"
 Cohesion: 0.11
@@ -1072,8 +1072,8 @@ Cohesion: 0.15
 Nodes (12): Available Styles, Color Psychology, Commands, Design Brief (Start Here), Detailed References, Generate Logo, Industry Defaults, Logo Design Reference (+4 more)
 
 ### Community 212 - "vue"
-Cohesion: 0.04
-Nodes (57): vue, vue-router, currentFrame, currentFrameIndex, finishSplash(), frames, router, startAnimation() (+49 more)
+Cohesion: 0.03
+Nodes (61): vue, vue-router, currentFrame, currentFrameIndex, finishSplash(), frames, router, startAnimation() (+53 more)
 
 ### Community 213 - "Token Architecture"
 Cohesion: 0.15
@@ -1207,9 +1207,9 @@ Nodes (5): BarItem, hover, max, props, showTable
 Cohesion: 0.12
 Nodes (19): addFiles(), agreed, content, dragging, emit, errors, onDrop(), onPick() (+11 more)
 
-### Community 256 - "SettingsPage.vue"
-Cohesion: 0.12
-Nodes (11): { goBack: routerBack }, props, Crumb, useSmartBack(), goBack(), resolveFallback(), ionRouter, loggingOut (+3 more)
+### Community 256 - "profileService.ts"
+Cohesion: 0.14
+Nodes (13): failed, initials, props, showImage, UserRole, AVATAR_BUCKET, AVATAR_MAX_BYTES, AVATAR_TYPES (+5 more)
 
 ### Community 257 - "reviewService.ts"
 Cohesion: 0.12
@@ -1240,8 +1240,8 @@ Cohesion: 0.50
 Nodes (4): Common Sticking Points, Pre-Delivery Checklist, Query Strategy, Tips for Better Results
 
 ### Community 264 - "PanoramaPage.vue"
-Cohesion: 0.09
-Nodes (26): previewSvgContainer, props, renderPreviewLayers(), clientLotAvailable, updateColors(), isTouchDevice, props, formatCurrency() (+18 more)
+Cohesion: 0.11
+Nodes (18): clientLotAvailable, isTouchDevice, props, formatCurrency(), formatDate(), getStatusLabel(), Lot, normalizeLotStatus() (+10 more)
 
 ### Community 265 - "LainnyaPage.vue"
 Cohesion: 0.20
@@ -1417,16 +1417,16 @@ Nodes (4): vitest@^4.0.0, @vue/test-utils@^2.3.0, vitest, @vue/test-utils
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vue` connect `vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `Admin Lot Detail`, `Client Lot Detail`, `Siteplan Map Gestures`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `HeadCrmPage.vue`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ClientListView.vue`, `Admin CMS Content`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `Home Landing Sections`, `Marketing SPK Submission`, `Siteplan Search Box`, `Home About Section`, `Login Mascot Animation`, `Capacitor Dependencies`, `supabase.ts`, `Home Gallery`, `Lot Stats & Pricing`, `Marketing Lot Browser`, `Dev Tooling Deps`, `Home Progress Updates`, `PaymentMonitorView.vue`, `Register Page`, `App Modal Component`, `Client SPK Modal`, `Login Page`, `Mascot Pull-to-Refresh`, `CMS CRUD Panel`, `Mascot Canvas`, `Home Contact Section`, `MobileTabBar.vue`, `Progress Detail Page`, `Contact Page`, `Panorama Viewer`, `SiteplanPage Module`, `PolygonLayer Module`, `ProfilePage.vue`, `AppButton.vue`, `useNotifications.ts`, `BerandaClientPage.vue`, `ProgressPage Module`, `siteplanService Module`, `App Module`, `AppInput.vue`, `HeadDashboardPage.vue`, `ClientDetailView.vue`, `surveyService.ts`, `AdminReviewsPage.vue`, `marketingStatus.ts`, `AppButton.vue`, `contactService.ts`, `BerandaMarketingPage.vue`, `GalleryPage.vue`, `SpkListView.vue`, `MiniMap.vue`, `CustomerReviewsSection.vue`, `RegionSelect.vue`, `BarChart.vue`, `ReviewForm.vue`, `SettingsPage.vue`, `PanoramaPage.vue`, `LainnyaPage.vue`, `ReviewReportDialog.vue`, `ReviewSummaryCard.vue`, `ReviewCard.vue`, `useToast.ts`, `AppVideo.vue`, `UserMenu.vue`?**
-  _High betweenness centrality (0.118) - this node is a cross-community bridge._
+- **Why does `vue` connect `vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `Admin Lot Detail`, `Client Lot Detail`, `Siteplan Map Gestures`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `HeadCrmPage.vue`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ClientListView.vue`, `Admin CMS Content`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `Home Landing Sections`, `Marketing SPK Submission`, `Siteplan Search Box`, `Home About Section`, `Login Mascot Animation`, `Capacitor Dependencies`, `supabase.ts`, `Home Gallery`, `Lot Stats & Pricing`, `Marketing Lot Browser`, `Dev Tooling Deps`, `Home Progress Updates`, `PaymentMonitorView.vue`, `Register Page`, `App Modal Component`, `Client SPK Modal`, `Login Page`, `Mascot Pull-to-Refresh`, `CMS CRUD Panel`, `Mascot Canvas`, `Home Contact Section`, `MobileTabBar.vue`, `Progress Detail Page`, `Contact Page`, `Panorama Viewer`, `SiteplanPage Module`, `PolygonLayer Module`, `ProfilePage.vue`, `AppButton.vue`, `useNotifications.ts`, `BerandaClientPage.vue`, `ProgressPage Module`, `siteplanService Module`, `App Module`, `AppInput.vue`, `HeadDashboardPage.vue`, `ClientDetailView.vue`, `surveyService.ts`, `AdminReviewsPage.vue`, `marketingStatus.ts`, `AppButton.vue`, `contactService.ts`, `BerandaMarketingPage.vue`, `GalleryPage.vue`, `SpkListView.vue`, `MiniMap.vue`, `CustomerReviewsSection.vue`, `RegionSelect.vue`, `BarChart.vue`, `ReviewForm.vue`, `profileService.ts`, `PanoramaPage.vue`, `LainnyaPage.vue`, `ReviewReportDialog.vue`, `ReviewSummaryCard.vue`, `ReviewCard.vue`, `useToast.ts`, `AppVideo.vue`, `UserMenu.vue`?**
+  _High betweenness centrality (0.130) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `TailwindConfigGenerator` (e.g. with `TestGeneratedConfigIsValidJs` and `TestTailwindConfigGenerator`) actually correct?**
   _`TailwindConfigGenerator` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `PackageDescription`, `npx`, `contacts Supabase Table` to the rest of the system?**
   _43 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Admin Finance Page` be split into smaller, more focused modules?**
   _Cohesion score 0.012048192771084338 - nodes in this community are weakly interconnected._
-- **Why does `@ionic/vue` connect `Home Landing Sections` to `SettingsPage.vue`, `Admin Finance Page`, `Admin SPK Page`, `Bank & Payment Instructions`, `Admin Lot Browser`, `Client Lot Browser`, `Admin Lot Detail`, `Client Lot Detail`, `PanoramaPage.vue`, `Client Payment Page`, `Client SPK Page`, `GalleryPage.vue`, `LainnyaPage.vue`, `Address & Client Account`, `HeadCrmPage.vue`, `Siteplan Detail Panel`, `ReviewSummaryCard.vue`, `Team Access & Roles`, `Admin Buyers List`, `ClientListView.vue`, `ReviewCard.vue`, `modalAnimation.ts`, `Customer Notes`, `Admin CMS Content`, `Admin Buyer Detail`, `Admin Dashboard`, `Marketing SPK Submission`, `Siteplan Search Box`, `Home About Section`, `Capacitor Dependencies`, `supabase.ts`, `Home Gallery`, `Lot Stats & Pricing`, `Marketing Lot Browser`, `Dev Tooling Deps`, `Home Progress Updates`, `Register Page`, `App Modal Component`, `Client SPK Modal`, `Login Page`, `UserMenu.vue`, `Mascot Canvas`, `Home Contact Section`, `MobileTabBar.vue`, `Finance Calc & Customers`, `Contact Page`, `Progress Detail Page`, `SiteplanPage Module`, `ProfilePage.vue`, `AppButton.vue`, `useNotifications.ts`, `BerandaClientPage.vue`, `ProgressPage Module`, `SPK Review & Notary`, `App Module`, `vue`, `AppInput.vue`, `HeadDashboardPage.vue`, `ClientDetailView.vue`, `surveyService.ts`, `CustomerReviewsSection.vue`, `AdminReviewsPage.vue`, `AppButton.vue`, `contactService.ts`, `BerandaMarketingPage.vue`, `ReviewForm.vue`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `@ionic/vue` connect `Home Landing Sections` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `Admin Lot Detail`, `Client Lot Detail`, `GalleryPage.vue`, `Client SPK Page`, `LainnyaPage.vue`, `Finance Calc & Customers`, `PanoramaPage.vue`, `Address & Client Account`, `HeadCrmPage.vue`, `Siteplan Detail Panel`, `ReviewSummaryCard.vue`, `Team Access & Roles`, `Admin Buyers List`, `ClientListView.vue`, `ReviewCard.vue`, `modalAnimation.ts`, `Customer Notes`, `Admin CMS Content`, `Admin Buyer Detail`, `Admin Dashboard`, `Marketing SPK Submission`, `Siteplan Search Box`, `Home About Section`, `Capacitor Dependencies`, `supabase.ts`, `Home Gallery`, `Lot Stats & Pricing`, `Marketing Lot Browser`, `Dev Tooling Deps`, `Home Progress Updates`, `Register Page`, `App Modal Component`, `Client SPK Modal`, `Login Page`, `UserMenu.vue`, `Mascot Canvas`, `Home Contact Section`, `MobileTabBar.vue`, `MiniMap.vue`, `Contact Page`, `Progress Detail Page`, `SiteplanPage Module`, `ProfilePage.vue`, `AppButton.vue`, `useNotifications.ts`, `BerandaClientPage.vue`, `ProgressPage Module`, `SPK Review & Notary`, `App Module`, `vue`, `AppInput.vue`, `HeadDashboardPage.vue`, `ClientDetailView.vue`, `surveyService.ts`, `CustomerReviewsSection.vue`, `AdminReviewsPage.vue`, `AppButton.vue`, `contactService.ts`, `BerandaMarketingPage.vue`, `ReviewForm.vue`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._
