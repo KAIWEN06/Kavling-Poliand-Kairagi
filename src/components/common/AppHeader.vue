@@ -39,7 +39,7 @@ import { useCurrentUser } from '@/composables/useCurrentUser'
  */
 withDefaults(
   defineProps<{
-    variant?: 'default' | 'marketing' | 'admin' | 'client'
+    variant?: 'default' | 'marketing' | 'admin' | 'client' | 'owner'
     title?: string
     showBack?: boolean
     backRoute?: string

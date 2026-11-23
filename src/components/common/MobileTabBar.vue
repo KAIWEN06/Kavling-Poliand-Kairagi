@@ -10,7 +10,25 @@
            ADMIN
            ========================= -->
 
-      <template v-if="variant === 'admin' || route.path.startsWith('/admin/')">
+      <template v-if="variant === 'owner' || route.path.startsWith('/owner/')">
+        <button type="button" :class="['nav-item', { active: isActive('/beranda-owner') }]" @click="goTo('/beranda-owner')">
+          <span class="icon-wrap"><ion-icon :icon="homeOutline" /></span><span class="nav-label">Beranda</span>
+        </button>
+        <button type="button" :class="['nav-item', { active: isActive('/owner/kavling') }]" @click="goTo('/owner/kavling')">
+          <span class="icon-wrap"><ion-icon :icon="mapOutline" /></span><span class="nav-label">Kavling</span>
+        </button>
+        <button type="button" :class="['nav-item', { active: isActive('/owner/statistik') }]" @click="goTo('/owner/statistik')">
+          <span class="icon-wrap"><ion-icon :icon="analyticsOutline" /></span><span class="nav-label">Statistik</span>
+        </button>
+        <button type="button" :class="['nav-item', { active: isActive('/owner/laporan') }]" @click="goTo('/owner/laporan')">
+          <span class="icon-wrap"><ion-icon :icon="documentTextOutline" /></span><span class="nav-label">Laporan</span>
+        </button>
+        <button type="button" :class="['nav-item', { active: isActive('/owner/lainnya') }]" @click="goTo('/owner/lainnya')">
+          <span class="icon-wrap"><ion-icon :icon="ellipsisHorizontal" /></span><span class="nav-label">Lainnya</span>
+        </button>
+      </template>
+
+      <template v-else-if="variant === 'admin' || route.path.startsWith('/admin/')">
 
         <button
           type="button"
@@ -460,7 +478,8 @@ const route = useRoute()
    ===================================================== */
 
 function goTo(path: string) {
-  if (route.path === path) {
+  const [targetPath, targetHash] = path.split('#')
+  if (route.path === targetPath && route.hash === (targetHash ? `#${targetHash}` : '')) {
     return
   }
 
@@ -473,6 +492,15 @@ function goTo(path: string) {
    ===================================================== */
 
 function isActive(path: string) {
+  if (path.includes('#')) {
+    const [targetPath, targetHash] = path.split('#')
+    return route.path === targetPath && route.hash === `#${targetHash}`
+  }
+
+  if (path === '/beranda-owner' || path.startsWith('/owner/')) {
+    if (path === '/owner/kavling') return route.path === path || route.path === '/owner/siteplan'
+    return route.path === path
+  }
 
   if (path === '/beranda-marketing') {
     return route.path === '/beranda-marketing' ||

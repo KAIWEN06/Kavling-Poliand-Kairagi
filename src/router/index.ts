@@ -99,7 +99,7 @@ const routes: Array<RouteRecordRaw> = [
     component: AuthCallbackPage,
   },
 
-  // Role-specific landing pages. These are new placeholders; dashboards are not yet implemented.
+  // Role-specific landing pages.
   {
     path: '/beranda-admin',
     name: 'BerandaAdmin',
@@ -377,6 +377,54 @@ const routes: Array<RouteRecordRaw> = [
   path: '/beranda-client',
   name: 'BerandaClient',
   component: BerandaClientPage,
+  },
+  {
+    path: '/beranda-owner',
+    name: 'BerandaOwner',
+    component: BerandaOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/kavling',
+    name: 'KavlingOwner',
+    component: KavlingOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/siteplan',
+    name: 'OwnerSiteplan',
+    component: OwnerSiteplanPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/statistik',
+    name: 'StatistikOwner',
+    component: StatistikOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/laporan',
+    name: 'LaporanOwner',
+    component: LaporanOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/lainnya',
+    name: 'LainnyaOwner',
+    component: LainnyaOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/profil',
+    name: 'OwnerProfile',
+    component: OwnerProfilePage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/data/:kind',
+    name: 'OwnerData',
+    component: OwnerDataPage,
+    meta: { requiresAuth: true, role: 'owner' },
   },
   {
     path: '/client/kavling',
