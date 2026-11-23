@@ -19,9 +19,7 @@
           </button>
         </div>
 
-        <div v-if="loadingCustomers" class="loading-box">
-          Memuat data calon pembeli...
-        </div>
+        <SkeletonCardList v-if="loadingCustomers" :count="4" :lines="3" label="Memuat data calon pembeli" />
 
         <div v-else-if="!customers.length" class="empty-box">
           <div class="empty-icon">
@@ -222,9 +220,7 @@
           </button>
         </div>
 
-        <div v-if="loadingHistory" class="loading-box">
-          Memuat riwayat...
-        </div>
+        <SkeletonCardList v-if="loadingHistory" :count="3" :lines="2" label="Memuat riwayat" />
 
         <div v-else-if="!followups.length" class="empty-box history-empty">
           <strong>Belum ada riwayat</strong>
@@ -297,6 +293,7 @@
 </template>
 
 <script setup>
+import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -477,7 +474,8 @@ async function loadCustomerLots(customerList) {
 }
 
 async function loadCustomers() {
-  loadingCustomers.value = true
+  // Skeleton hanya saat belum ada data; refresh mempertahankan daftar lama.
+  if (!customers.value.length) loadingCustomers.value = true
 
   try {
     customers.value = await getMarketingCustomers()
@@ -490,7 +488,7 @@ async function loadCustomers() {
 }
 
 async function loadHistory() {
-  loadingHistory.value = true
+  if (!followups.value.length) loadingHistory.value = true
 
   try {
     followups.value = await getMarketingFollowups(

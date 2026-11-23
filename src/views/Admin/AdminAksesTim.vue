@@ -49,7 +49,7 @@
               </select>
             </div>
 
-            <p v-if="detailLoading" class="state-card">Memuat data performa...</p>
+            <SkeletonStatGrid v-if="detailLoading" :count="4" label="Memuat data performa" />
             <p v-else-if="detailError" class="state-card state-card--error" role="alert">{{ detailError }}</p>
             <template v-else-if="marketingDetail">
               <div class="metric-grid">
@@ -85,7 +85,7 @@
 
           <section class="section-block">
             <div class="section-heading"><div><h2>Klien yang ditangani</h2></div><span class="count-pill">{{ marketingDetail?.clients.length || 0 }} klien</span></div>
-            <p v-if="detailLoading" class="state-card">Memuat daftar klien...</p>
+            <SkeletonCardList v-if="detailLoading" :count="3" :lines="3" label="Memuat daftar klien" />
             <p v-else-if="!marketingDetail?.clients.length" class="state-card">Belum ada klien yang terhubung dengan Marketing ini.</p>
             <div v-else class="client-list">
               <article v-for="client in marketingDetail.clients" :key="client.id" class="client-card">
@@ -147,7 +147,7 @@
             <label v-if="activeTab === 'marketing'"><span>Performa</span><select v-model="overviewPeriod" @change="loadOverview"><option value="30d">30 hari</option><option value="90d">3 bulan</option><option value="180d">6 bulan</option><option value="all">Semua waktu</option></select></label>
           </section>
 
-          <p v-if="loading" class="state-card">Memuat anggota tim...</p>
+          <SkeletonCardList v-if="loading" :count="5" :lines="3" label="Memuat anggota tim" />
           <div v-else-if="pageError" class="state-card state-card--error" role="alert"><p>{{ pageError }}</p><button type="button" @click="load">Coba lagi</button></div>
           <template v-else>
             <section v-if="activeTab === 'owner'" class="member-section">
@@ -264,6 +264,8 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
+import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { addOutline, arrowBackOutline, chevronForwardOutline, searchOutline } from 'ionicons/icons'

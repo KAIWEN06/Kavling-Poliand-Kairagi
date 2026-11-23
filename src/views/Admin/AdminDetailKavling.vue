@@ -6,10 +6,7 @@
       <div class="detail-page client-detail-page">
         <PageBackButton fallback="/admin/kavling" label="Daftar kaveling" />
 
-        <div v-if="loading" class="state-card" role="status">
-          <img :src="loadingMascot" alt="" class="loading-mascot" />
-          <strong>Memuat detail kaveling...</strong>
-        </div>
+        <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail kaveling" />
 
         <div v-else-if="loadError" class="state-card" role="alert">
           <ion-icon :icon="alertCircleOutline" />
@@ -389,6 +386,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -403,7 +401,6 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import loadingMascot from '@/assets/mascot/Mascot Examining Transaction History.png'
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
 import { lotService, type LotRecord } from '@/services/lotService'
 import { contactsService, type OperatingHoursConfig, type DayKey } from '@/services/contactService'

@@ -4,7 +4,7 @@
     <ion-content :fullscreen="true">
       <main class="buyer-detail-content">
         <PageBackButton fallback="/admin/pembeli" label="Daftar pembeli" />
-        <div v-if="loading" class="buyer-detail-state" role="status"><ion-spinner name="crescent" /><p>Memuat detail customer...</p></div>
+        <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail customer" />
         <div v-else-if="errorMessage" class="buyer-detail-state buyer-detail-error" role="alert">
           <img src="/src/assets/mascot/WorriedMascotwithFailedDetails.png" alt="Mascot PoliLand khawatir detail gagal dimuat" class="buyer-detail-error-mascot" />
           <strong>Detail gagal dimuat</strong>
@@ -369,6 +369,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'

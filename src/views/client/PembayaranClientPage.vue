@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, onMounted, ref } from 'vue'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import {
@@ -720,11 +721,7 @@ onMounted(loadPaymentData)
           </article>
         </section>
 
-        <div v-if="loading" class="empty-state" role="status">
-          <ion-spinner name="crescent" />
-          <strong>Memuat data pembayaran...</strong>
-          <span>Data transaksi dan jadwal sedang diambil dari database.</span>
-        </div>
+        <SkeletonDetailHeader v-if="loading" :sections="2" :rows="4" label="Memuat data pembayaran" />
         <div v-else-if="loadError" class="empty-state" role="alert">
           <strong>Data pembayaran belum dapat dimuat</strong>
           <span>{{ loadError }}</span>

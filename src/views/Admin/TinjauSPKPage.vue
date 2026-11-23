@@ -4,7 +4,7 @@
     <ion-content :fullscreen="true">
       <main class="review-shell">
         <PageBackButton fallback="/admin/spk" label="Daftar SPK" />
-        <div v-if="loading" class="review-state"><ion-spinner name="crescent" /><p>Memuat data SPK...</p></div>
+        <SkeletonDetailHeader v-if="loading" :sections="3" :rows="5" label="Memuat data SPK" />
         <div v-else-if="errorMessage" class="review-state review-error" role="alert"><strong>Data tidak dapat dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="load">Coba lagi</AppButton></div>
         <template v-else-if="data">
           <header class="review-heading"><div> <h1>{{ data.request.spk_number }}</h1><span class="status-chip">Disetujui</span></div><span class="review-id">SPK #{{ data.request.id }} · Transaksi #{{ data.transaction.id }}</span></header>
@@ -90,6 +90,7 @@
   </ion-page>
 </template>
 <script setup lang="ts">
+import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'

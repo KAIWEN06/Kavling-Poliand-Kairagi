@@ -76,7 +76,7 @@
             <button type="button" class="report-back-link" @click="closePaymentPage">
               <ion-icon :icon="chevronBackOutline" aria-hidden="true" /> Kembali
             </button>
-            <div v-if="proofLoading" class="finance-state" role="status"><ion-spinner name="crescent" /><p>Memuat bukti pembayaran...</p></div>
+            <SkeletonRowList v-if="proofLoading" :rows="2" :fields="3" :subtitle="false" label="Memuat bukti pembayaran" />
             <div v-else-if="proofError" class="finance-state" role="alert">
               <ion-icon :icon="alertCircleOutline" /><strong>Bukti pembayaran tidak dapat dimuat</strong><p>{{ proofError }}</p>
               <AppButton size="small" @click="() => loadSelectedPaymentProof()">Coba lagi</AppButton>
@@ -214,7 +214,7 @@
               <section class="payment-step-card">
                 <header><span>2</span><div><strong>{{ selectedReportLot.paymentType === 'Installment' ? 'Pilih Bulan Cicilan' : 'Nominal Pembayaran' }}</strong><small>{{ selectedReportLot.paymentType === 'Installment' ? 'Centang bulan tagihan' : 'Masukkan nominal pembayaran yang diterima' }}</small></div></header>
                 <div class="payment-step-body">
-                  <div v-if="selectedReportLot.paymentType === 'Installment' && schedulesLoading" class="finance-state"><ion-spinner name="crescent" /><p>Memuat jadwal cicilan...</p></div>
+                  <SkeletonRowList v-if="selectedReportLot.paymentType === 'Installment' && schedulesLoading" :rows="3" :fields="1" :badges="[1]" label="Memuat jadwal cicilan" />
                   <div v-else-if="selectedReportLot.paymentType === 'Installment' && schedulesError" class="finance-state" role="alert"><p>{{ schedulesError }}</p><AppButton size="small" @click="loadSchedulesForSelectedLot">Coba lagi</AppButton></div>
                   <template v-else-if="selectedReportLot.paymentType === 'Installment'">
                     <label v-for="schedule in selectableSchedules" :key="schedule.id" class="payment-schedule-option">
@@ -303,10 +303,7 @@
               </div>
             </div>
 
-            <div v-if="bankLoading" class="finance-state" role="status">
-              <ion-spinner name="crescent" />
-              <p>Memuat rekening bank...</p>
-            </div>
+            <SkeletonRowList v-if="bankLoading" :rows="2" :fields="2" label="Memuat rekening bank" />
 
             <div v-else-if="bankError" class="finance-state" role="alert">
               <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
@@ -372,10 +369,7 @@
             aria-labelledby="payment-instruction-tab"
             class="instruction-panel"
           >
-            <div v-if="instructionLoading" class="finance-state" role="status">
-              <ion-spinner name="crescent" />
-              <p>Memuat instruksi pembayaran...</p>
-            </div>
+            <SkeletonRowList v-if="instructionLoading" :rows="2" :fields="2" label="Memuat instruksi pembayaran" />
 
             <div v-else-if="instructionError" class="finance-state" role="alert">
               <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
@@ -533,7 +527,7 @@
 
             <section v-if="selectedReportLot.paymentType === 'Installment'" class="report-detail-history">
               <div class="report-detail-section-title"><h2>Jadwal Cicilan</h2><span>{{ installmentSchedules.length }} jadwal</span></div>
-              <div v-if="schedulesLoading" class="finance-state"><ion-spinner name="crescent" /><p>Memuat jadwal cicilan...</p></div>
+              <SkeletonRowList v-if="schedulesLoading" :rows="3" :fields="1" :badges="[1]" label="Memuat jadwal cicilan" />
               <div v-else-if="schedulesError" class="finance-state" role="alert"><p>{{ schedulesError }}</p><AppButton size="small" @click="loadSchedulesForSelectedLot">Coba lagi</AppButton></div>
               <article v-for="schedule in installmentSchedules" :key="schedule.id" class="installment-detail-row">
                 <span class="installment-detail-number">{{ schedule.installment_number }}</span>
@@ -767,7 +761,7 @@
               </button>
             </div>
             <div class="ledger-policy-note" role="note">Booking Fee dan denda tidak termasuk dasar pengembalian. Transfer refund harus dicatat terpisah dengan referensi bank dan bukti transfer.</div>
-            <div v-if="cancellationLoading" class="finance-state" role="status"><ion-spinner name="crescent" /><p>Memuat pengajuan...</p></div>
+            <SkeletonRowList v-if="cancellationLoading" :rows="2" :fields="3" :badges="[3]" label="Memuat pengajuan" />
             <div v-else-if="cancellationError" class="finance-state" role="alert"><ion-icon :icon="alertCircleOutline" /><strong>Pengajuan tidak dapat dimuat</strong><p>{{ cancellationError }}</p><AppButton size="small" @click="loadCancellationRequests">Coba lagi</AppButton></div>
             <div v-else-if="!cancellationRequests.length" class="finance-state ledger-empty"><strong>Tidak ada pengajuan menunggu</strong><p>Pengajuan pembatalan baru akan muncul di sini.</p></div>
             <div v-else class="cancellation-request-list">
@@ -801,7 +795,10 @@
               Jurnal sementara mengkredit akun penerimaan yang belum diklasifikasikan. Admin/akuntan perlu memetakan akun sesuai kebijakan perusahaan.
             </div>
 
-            <div v-if="ledgerLoading" class="finance-state" role="status"><ion-spinner name="crescent" /><p>Memuat buku kas...</p></div>
+            <div v-if="ledgerLoading" class="finance-skeleton">
+              <SkeletonStatGrid :count="4" label="Memuat buku kas" />
+              <SkeletonRowList :rows="4" :fields="2" />
+            </div>
             <div v-else-if="ledgerError" class="finance-state" role="alert">
               <ion-icon :icon="alertCircleOutline" /><strong>Buku kas belum tersedia</strong><p>{{ ledgerError }}</p>
               <AppButton size="small" @click="loadFinancialLedger">Coba lagi</AppButton>
@@ -848,10 +845,7 @@
               <span class="payment-plans-count">{{ paymentPlans.length }} skema</span>
             </div>
 
-            <div v-if="planLoading" class="finance-state" role="status">
-              <ion-spinner name="crescent" />
-              <p>Memuat skema cicilan...</p>
-            </div>
+            <SkeletonRowList v-if="planLoading" :rows="3" :fields="2" label="Memuat skema cicilan" />
 
             <div v-else-if="planError" class="finance-state" role="alert">
               <ion-icon :icon="alertCircleOutline" aria-hidden="true" />

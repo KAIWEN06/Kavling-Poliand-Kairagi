@@ -28,7 +28,7 @@
         <p v-if="loadError" class="state state--error" role="alert">
           {{ loadError }} <button type="button" class="link" @click="load">Coba lagi</button>
         </p>
-        <p v-else-if="loading && !items.length" class="state">Memuat ulasan…</p>
+        <SkeletonCardList v-else-if="loading && !items.length" :count="4" :lines="3" label="Memuat ulasan" />
         <p v-else-if="!items.length" class="state">Tidak ada ulasan pada tab ini.</p>
 
         <ul v-else class="list">
@@ -193,6 +193,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { computed, onMounted, ref } from 'vue'
 import { IonContent, IonPage } from '@ionic/vue'
 import AppHeader from '@/components/common/AppHeader.vue'

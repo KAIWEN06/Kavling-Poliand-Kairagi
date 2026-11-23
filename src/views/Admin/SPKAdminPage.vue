@@ -35,7 +35,7 @@
           </section>
         </Reveal>
 
-        <div v-if="loading" class="spk-state"><ion-spinner name="crescent" /><p>Memuat pengajuan SPK...</p></div>
+        <SkeletonCardList v-if="loading" :count="3" :lines="3" label="Memuat pengajuan SPK" />
         <div v-else-if="errorMessage" class="spk-state spk-error" role="alert">
           <ion-icon :icon="alertCircleOutline" /><strong>Data SPK gagal dimuat</strong><p>{{ errorMessage }}</p>
           <AppButton size="small" @click="loadRequests">Coba lagi</AppButton>
@@ -534,6 +534,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'

@@ -16,7 +16,7 @@
           {{ f.label }}<span class="survey-filter-count">{{ f.count }}</span>
         </button>
       </div>
-      <div v-if="surveysLoading" class="survey-empty" role="status" aria-live="polite">Memuat permintaan survei…</div>
+      <SkeletonRowList v-if="surveysLoading" :rows="3" :fields="2" :badges="[]" label="Memuat permintaan survei" />
       <div v-else-if="surveysError" class="survey-empty survey-error" role="alert">
         <strong>Permintaan survei gagal dimuat</strong>
         <p>{{ surveysError }}</p>
@@ -78,6 +78,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
