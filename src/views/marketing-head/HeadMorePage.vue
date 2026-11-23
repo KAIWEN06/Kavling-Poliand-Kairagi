@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Lainnya" tab-variant="head">
+  <MarketingPageLayout title="Lainnya" tab-variant="head" :refreshable="false">
     <section class="mk-intro">
       <p>Kepala Bagian · Departemen Marketing</p>
       <h1>{{ profile?.full_name || 'Kepala Bagian' }}</h1>

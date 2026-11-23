@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Detail Client" tab-variant="head" show-back back-route="/kepala-marketing/clients" @refresh="detail?.reload()">
+  <MarketingPageLayout title="Detail Client" tab-variant="head" :refreshable="false" show-back back-route="/kepala-marketing/clients" @refresh="detail?.reload()">
     <ClientDetailView v-if="customerId" ref="detail" :customer-id="customerId" role="head" :viewer-name="profileName" />
     <div v-else class="mk-state mk-state--error"><strong>ID client tidak valid</strong></div>
   </MarketingPageLayout>

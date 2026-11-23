@@ -1,7 +1,7 @@
 <template>
   <ion-page class="main-layout">
-    <!-- Mascot pull to refresh -->
-    <MascotPullRefresh />
+    <!-- Pull to refresh -->
+    <AppPullRefresh />
 
     <!-- Header umum: disembunyikan pada halaman Admin dan client -->
     <div v-if="!isRolePage" class="header-slot">
@@ -37,7 +37,7 @@ import { IonPage, IonRouterOutlet } from '@ionic/vue'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
-import MascotPullRefresh from '@/components/common/MascotPullRefresh.vue'
+import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 
 const route = useRoute()
 

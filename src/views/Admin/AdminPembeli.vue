@@ -2,6 +2,8 @@
   <ion-page class="admin-buyers-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
+    <AppPullRefresh scoped :refresh-handler="() => loadCustomers(true)" />
+
     <ion-content :fullscreen="true">
       <main class="buyers-content">
         <div class="buyers-filters" role="group" aria-label="Filter calon pembeli">
@@ -33,7 +35,7 @@
           <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
           <strong>Data calon pembeli gagal dimuat</strong>
           <p>{{ errorMessage }}</p>
-          <AppButton size="small" @click="loadCustomers">Coba lagi</AppButton>
+          <AppButton size="small" @click="loadCustomers()">Coba lagi</AppButton>
         </div>
 
         <template v-else>
@@ -300,6 +302,7 @@ import {
   personOutline,
   searchOutline,
 } from 'ionicons/icons'
+import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -437,8 +440,8 @@ function blockLabel(block: any) {
   return block?.name || block?.code || 'Blok belum tercatat'
 }
 
-async function loadCustomers() {
-  loading.value = true
+async function loadCustomers(silent = false) {
+  if (!silent) loading.value = true
   errorMessage.value = ''
   try {
     const rows = await customerService.getAdminCustomers()
@@ -725,7 +728,7 @@ function openCustomer(id: number) {
   router.push(`/admin/pembeli/${id}`)
 }
 
-onMounted(loadCustomers)
+onMounted(() => loadCustomers())
 </script>
 
 <style scoped>

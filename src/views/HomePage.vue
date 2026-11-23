@@ -86,7 +86,7 @@ const handleRefresh = () => {
     isLoading.value = false
     isRefreshing.value = false
 
-    // Beri tahu MascotPullRefresh bahwa refresh selesai.
+    // Beri tahu AppPullRefresh bahwa refresh selesai.
     window.dispatchEvent(
       new CustomEvent('poliland:refresh-complete')
     )

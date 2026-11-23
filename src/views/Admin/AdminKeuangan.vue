@@ -2,6 +2,8 @@
   <ion-page class="admin-finance-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
+    <AppPullRefresh scoped :refresh-handler="() => loadTransactions(true)" />
+
     <ion-content :fullscreen="true">
       <main class="finance-shell">
         <nav v-if="paymentPage === 'none'" class="finance-shortcuts" aria-label="Menu keuangan">
@@ -899,7 +901,7 @@
           </label>
 
           <div v-if="loading" class="finance-state" role="status"><ion-spinner name="crescent" /><p>Memuat transaksi...</p></div>
-          <div v-else-if="errorMessage" class="finance-state" role="alert"><ion-icon :icon="alertCircleOutline" aria-hidden="true" /><strong>Data keuangan gagal dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="loadTransactions">Coba lagi</AppButton></div>
+          <div v-else-if="errorMessage" class="finance-state" role="alert"><ion-icon :icon="alertCircleOutline" aria-hidden="true" /><strong>Data keuangan gagal dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="loadTransactions()">Coba lagi</AppButton></div>
           <template v-else>
             <section v-if="filteredTransactions.length" class="transaction-list" aria-label="Daftar transaksi pembayaran">
               <article v-for="transaction in pagedTransactions" :key="transaction.id" class="transaction-card" :class="{ 'transaction-card--target': isTargetTransaction(transaction) }">
@@ -1113,6 +1115,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import { addCircleOutline, addOutline, alertCircleOutline, businessOutline, calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, closeCircleOutline, closeOutline, copyOutline, createOutline, documentTextOutline, downloadOutline, imageOutline, informationCircleOutline, peopleOutline, pieChartOutline, refreshOutline, saveOutline, searchOutline, shieldCheckmarkOutline, starOutline, timeOutline, trashOutline, walletOutline } from 'ionicons/icons'
+import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -2579,8 +2582,8 @@ function initials(name: string) { return name.split(' ').filter(Boolean).slice(0
 function statusLabel(status: FinanceStatus) { return status === 'pending' ? 'Menunggu' : status === 'verified' ? 'Terverifikasi' : 'Ditolak / Terlambat' }
 function showMessage(message: string) { actionMessage.value = message; window.setTimeout(() => { actionMessage.value = '' }, 2800) }
 
-async function loadTransactions() {
-  loading.value = true
+async function loadTransactions(silent = false) {
+  if (!silent) loading.value = true
   errorMessage.value = ''
   try {
     const customers = await customerService.getAdminCustomers()

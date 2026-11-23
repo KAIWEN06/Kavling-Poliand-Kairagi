@@ -2,10 +2,9 @@
   <ion-page>
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
+    <AppPullRefresh scoped :refresh-handler="refreshAll" />
+
     <ion-content :fullscreen="true">
-      <ion-refresher slot="fixed" @ionRefresh="onRefresh">
-        <ion-refresher-content />
-      </ion-refresher>
 
       <div class="kv-page">
         
@@ -341,8 +340,6 @@ import {
   IonContent,
   IonIcon,
   IonSpinner,
-  IonRefresher,
-  IonRefresherContent,
   onIonViewWillEnter,
   useIonRouter,
 } from '@ionic/vue'
@@ -364,6 +361,7 @@ import {
   alertCircleOutline,
 } from 'ionicons/icons'
 
+import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -627,14 +625,13 @@ async function load(showSpinner: boolean) {
 /* muat saat halaman dibuka; kunjungan berikutnya memuat ulang tanpa spinner */
 onIonViewWillEnter(() => load(lots.value.length === 0))
 
-async function onRefresh(event: CustomEvent) {
+async function refreshAll() {
   await Promise.all([
     load(false),
     Promise.resolve(reloadSiteplan()).catch((error: unknown) => {
       console.error('Gagal refresh siteplan:', error)
     }),
   ])
-  ;(event.target as { complete?: () => void } | null)?.complete?.()
 }
 
 /* ---------- pencarian ---------- */
