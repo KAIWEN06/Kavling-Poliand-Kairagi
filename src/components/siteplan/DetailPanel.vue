@@ -329,7 +329,7 @@
     <!-- MODAL SURVEI LOKASI -->
     <!-- ================================================= -->
 
-    <ion-modal
+    <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation"
       v-if="props.variant !== 'admin'"
       :is-open="showSurveyModal"
       class="survey-modal"
@@ -401,7 +401,7 @@
       </ion-content>
     </ion-modal>
 
-    <ion-modal
+    <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation"
   v-if="props.variant !== 'admin'"
   :is-open="showPurchaseModal"
   class="purchase-modal"
@@ -462,6 +462,7 @@
 </template>
 
 <script setup lang="ts">
+import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import {
   computed,
   onBeforeUnmount,

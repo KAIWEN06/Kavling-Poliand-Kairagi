@@ -440,7 +440,7 @@
     </AppModal>
 
     <!-- Preview dokumen tetap di dalam aplikasi -->
-    <IonModal :is-open="documentPreviewOpen" class="spk-document-preview-modal" @didDismiss="closeDocumentPreview">
+    <IonModal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="documentPreviewOpen" class="spk-document-preview-modal" @didDismiss="closeDocumentPreview">
       <div class="spk-preview-shell">
         <header class="spk-preview-header">
           <div class="spk-preview-heading">
@@ -493,6 +493,7 @@
 </template>
 
 <script setup lang="ts">
+import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { IonContent, IonIcon, IonModal, IonPage, IonSpinner } from '@ionic/vue'
 import { useRoute, useRouter } from 'vue-router'

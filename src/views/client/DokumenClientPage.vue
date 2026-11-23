@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { modalEnterAnimation, modalLeaveAnimation, sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import {
   IonContent, IonIcon, IonModal, IonPage, IonSpinner,
@@ -1030,7 +1031,7 @@ onIonViewWillEnter(handleRouteIntent)
       </form>
     </AppModal>
 
-    <IonModal :is-open="detailOpen" class="client-spk-detail-modal" :breakpoints="[0, 0.75, 0.96]" :initial-breakpoint="0.96" @didDismiss="closeDetail">
+    <IonModal :enter-animation="sheetModalEnterAnimation" :leave-animation="sheetModalLeaveAnimation" :is-open="detailOpen" class="client-spk-detail-modal" :breakpoints="[0, 0.75, 0.96]" :initial-breakpoint="0.96" @didDismiss="closeDetail">
       <div v-if="selectedRecord" class="spk-detail">
         <header class="spk-detail-header">
           <div>
@@ -1215,7 +1216,7 @@ onIonViewWillEnter(handleRouteIntent)
       </div>
     </IonModal>
 
-    <IonModal :is-open="documentPreviewOpen" class="client-spk-document-preview-modal" @didDismiss="closeDocumentPreview">
+    <IonModal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="documentPreviewOpen" class="client-spk-document-preview-modal" @didDismiss="closeDocumentPreview">
       <section class="spk-document-preview">
         <header>
           <div>
@@ -1236,7 +1237,7 @@ onIonViewWillEnter(handleRouteIntent)
       </section>
     </IonModal>
 
-    <IonModal :is-open="showRejectionReason" class="spk-reason-modal" @didDismiss="closeRejectionReason">
+    <IonModal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="showRejectionReason" class="spk-reason-modal" @didDismiss="closeRejectionReason">
       <section class="spk-reason-dialog" role="dialog" aria-modal="true">
         <span class="spk-reason-icon"><ion-icon :icon="alertCircleOutline" /></span>
         <h2>Alasan Penolakan SPK</h2>

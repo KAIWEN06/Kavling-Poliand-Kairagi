@@ -8,6 +8,8 @@
           <PageHeader :title="`Halo, ${marketingName}`" :subtitle="`Marketing · ${today}`" />
         </Reveal>
 
+        <SurveyAgendaCard variant="marketing" />
+
         <div class="dash__grid">
           <!-- KOMISI -->
           <Reveal :order="1" class="area-commission">
@@ -165,6 +167,7 @@ import {
 } from 'ionicons/icons'
 
 import { computed, onMounted, ref } from 'vue'
+import SurveyAgendaCard from '@/components/common/SurveyAgendaCard.vue'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'

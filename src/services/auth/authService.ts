@@ -157,6 +157,9 @@ export const authService = {
   async logout() {
     const { error } = await supabase.auth.signOut()
 
+    // Bersihkan verifier PKCE agar login Google berikutnya memulai flow baru.
+    clearStalePkceVerifier()
+
     if (error) throw error
   },
 

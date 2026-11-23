@@ -150,7 +150,7 @@
         </section>
       </div>
 
-      <ion-modal
+      <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation"
         :is-open="!!selectedPhoto"
         class="gallery-modal"
         @didDismiss="closePhoto"
@@ -176,6 +176,7 @@
 </template>
 
 <script setup lang="ts">
+import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import {
   IonContent,

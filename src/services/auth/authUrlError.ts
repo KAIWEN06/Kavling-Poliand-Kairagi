@@ -35,6 +35,16 @@ export function consumeOAuthUrlError(): OAuthUrlError | null {
   const errorCode = get('error_code')
   if (!error && !errorCode) return null
 
+  // Cabut error dari URL seketika agar refresh/back tidak mengulang error yang sama.
+  try {
+    const clean = new URL(window.location.href)
+    ;['error', 'error_code', 'error_description', 'sb'].forEach((k) => clean.searchParams.delete(k))
+    clean.hash = ''
+    window.history.replaceState(window.history.state, '', clean.pathname + clean.search)
+  } catch {
+    // history tidak tersedia; abaikan.
+  }
+
   // Verifier sengaja tidak dihapus di sini: callback pertama yang sama bisa
   // saja masih menukar code-nya dan membutuhkan verifier tersebut.
   return errorCode === 'flow_state_already_used' || errorCode === 'flow_state_not_found'

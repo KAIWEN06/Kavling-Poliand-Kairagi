@@ -57,6 +57,9 @@ async function bootstrap() {
     // Callback OAuth yang sudah terpakai: bersihkan URL lalu arahkan ke login.
     const oauthError = consumeOAuthUrlError()
     if (oauthError) {
+      // Router harus siap dulu agar replace tidak bentrok dengan navigasi awal.
+      await router.isReady()
+
       // Callback ganda: login pertama biasanya sudah berhasil. Jika sesi ada,
       // langsung masuk ke beranda sesuai role, bukan menampilkan error.
       let destination: string | null = null
@@ -70,8 +73,29 @@ async function bootstrap() {
         // Lanjut ke halaman login.
       }
 
+      const RETRY_KEY = 'poliland_oauth_auto_retry'
+      let retried = false
+      try {
+        retried = sessionStorage.getItem(RETRY_KEY) === '1'
+        if (destination || retried) sessionStorage.removeItem(RETRY_KEY)
+      } catch {
+        // sessionStorage tidak tersedia; anggap sudah pernah dicoba.
+        retried = true
+      }
+
       if (destination) {
         await router.replace(destination)
+      } else if (oauthError === 'oauth_state_used' && !retried) {
+        // State OAuth terpakai/kedaluwarsa: mulai ulang login Google sekali
+        // dengan state baru. Sesi Google masih aktif sehingga berjalan mulus.
+        try {
+          sessionStorage.setItem(RETRY_KEY, '1')
+          await authService.signInWithGoogle()
+          return // browser sedang dialihkan ke Google
+        } catch {
+          sessionStorage.removeItem(RETRY_KEY)
+          await router.replace({ name: 'Login', query: { error: oauthError } })
+        }
       } else {
         await router.replace({ name: 'Login', query: { error: oauthError } })
       }

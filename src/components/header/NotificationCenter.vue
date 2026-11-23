@@ -1,5 +1,5 @@
 <template>
-  <ion-modal
+  <ion-modal :enter-animation="sheetModalEnterAnimation" :leave-animation="sheetModalLeaveAnimation"
     class="notif-sheet"
     :is-open="open"
     :initial-breakpoint="0.85"
@@ -61,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+import { sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
 import { IonIcon, IonModal, useIonRouter } from '@ionic/vue'
 import {
   alarmOutline,

@@ -101,7 +101,7 @@
   </ion-page>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'; import { IonContent, IonPage } from '@ionic/vue'; import { useRoute } from 'vue-router'; import AppHeader from '@/components/common/AppHeader.vue'; import MobileTabBar from '@/components/common/MobileTabBar.vue'; import CmsCrudPanel from '@/components/Admin/CmsCrudPanel.vue'; import { cmsService, type CmsFeature, type CmsHero } from '@/services/cmsService'; import { contactsService, DAY_OPTIONS, createDefaultOperatingHours, type OperatingHoursConfig } from '@/services/contactService'; import { surveyService, type AdminSurveyRequest } from '@/services/surveyService'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'; import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'; import { useRoute } from 'vue-router'; import AppHeader from '@/components/common/AppHeader.vue'; import MobileTabBar from '@/components/common/MobileTabBar.vue'; import CmsCrudPanel from '@/components/Admin/CmsCrudPanel.vue'; import { cmsService, type CmsFeature, type CmsHero } from '@/services/cmsService'; import { contactsService, DAY_OPTIONS, createDefaultOperatingHours, type OperatingHoursConfig } from '@/services/contactService'; import { surveyService, type AdminSurveyRequest } from '@/services/surveyService'
 import AppModal from '@/components/ui/AppModal.vue'
 const route = useRoute()
 const tabs = [{ key: 'home', label: 'Beranda' }, { key: 'gallery', label: 'Gallery' }, { key: 'progress', label: 'Progress' }, { key: 'faq', label: 'FAQ' }, { key: 'contact', label: 'Kontak' }, { key: 'hours', label: 'Jam Operasional' }] as const
@@ -113,9 +113,17 @@ const rejectionReason = ref('')
 function showNotice(message: string, type = 'success') { notice.value = message; noticeType.value = type; window.setTimeout(() => notice.value = '', 3500) }
 async function load() { try { const [savedHero, savedFeatures, savedHours] = await Promise.all([cmsService.getHero(true), cmsService.getFeatures(), contactsService.getOperatingHours()]); if (savedHero) Object.assign(hero, savedHero); features.value = savedFeatures; operatingHours.value = savedHours } catch (e) { showNotice(e instanceof Error ? e.message : 'Gagal memuat konten.', 'error') } finally { loading.value = false } }
 watch(current, (tab) => { if (tab === 'surveys') loadSurveyRequests() })
-watch(() => route.query.tab, (tab) => {
+const SURVEY_FILTER_KEYS = ['pending', 'confirmed', 'completed', 'rejected', 'cancelled'] as const
+/** Terapkan ?tab=surveys&status=pending|confirmed|... agar halaman langsung membuka tab/filter yang dituju. */
+function applyRouteQuery() {
+  const { tab, status } = route.query
   current.value = tab === 'surveys' ? 'surveys' : 'home'
-})
+  if (tab === 'surveys') {
+    surveyFilter.value = (SURVEY_FILTER_KEYS as readonly unknown[]).includes(status) ? (status as AdminSurveyRequest['status']) : 'all'
+  }
+}
+watch(() => [route.query.tab, route.query.status], applyRouteQuery)
+onIonViewWillEnter(applyRouteQuery)
 function requestLotNumber(request: AdminSurveyRequest) { const raw = request.lots; const lot = Array.isArray(raw) ? raw[0] : raw; return lot?.lot_number || `Kavling #${request.lot_id}` }
 function formatSurveyDate(value: string) { return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(value)) + ' WITA' }
 function surveyStatusLabel(status: AdminSurveyRequest['status']) { return ({ pending: 'Menunggu', confirmed: 'Dikonfirmasi', rejected: 'Ditolak', cancelled: 'Dibatalkan', completed: 'Selesai' })[status] }
@@ -217,7 +225,7 @@ async function saveHours() { for (const day of DAY_OPTIONS) { const item = opera
 async function saveHome() { if (!hero.title.trim()) return showNotice('Judul utama wajib diisi.', 'error'); saving.value = true; try { if (selectedImage.value) hero.image_url = await cmsService.uploadImage(selectedImage.value); await cmsService.saveHero(hero); await Promise.all(features.value.map((feature) => cmsService.saveFeature(feature))); showNotice('Konten beranda berhasil disimpan.') } catch (e) { showNotice(e instanceof Error ? e.message : 'Gagal menyimpan konten.', 'error') } finally { saving.value = false } }
 onMounted(() => {
   load()
-  current.value = route.query.tab === 'surveys' ? 'surveys' : 'home'
+  applyRouteQuery()
 })
 </script>
 <style scoped>

@@ -241,7 +241,12 @@
                   </span>
                 </div>
 
-                <LotSurveyMarker v-if="surveyByLot.get(lot.id)" :info="surveyByLot.get(lot.id)!" />
+                <LotSurveyMarker
+                  v-if="surveyByLot.get(lot.id)"
+                  :info="surveyByLot.get(lot.id)!"
+                  :action-hint="surveyByLot.get(lot.id)!.status === 'pending' ? 'Ketuk untuk konfirmasi' : 'Ketuk untuk tandai selesai'"
+                  @open="openSurveyRequests(surveyByLot.get(lot.id)!.status)"
+                />
 
                 <div class="kv-lot-bottom">
                   <!-- HARGA: baris sendiri, tidak berbagi ruang dengan tombol -->
@@ -956,6 +961,10 @@ async function shareLot(lot: Lot) {
 
 function openFullMap() {
   ionRouter.push('/admin/siteplan')
+}
+
+function openSurveyRequests(status: 'pending' | 'confirmed') {
+  ionRouter.push(`/admin/konten?tab=surveys&status=${status}`)
 }
 
 function openDetail(id: number) {

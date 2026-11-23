@@ -1,5 +1,5 @@
 <template>
-  <ion-modal
+  <ion-modal :enter-animation="sheetModalEnterAnimation" :leave-animation="sheetModalLeaveAnimation"
     class="user-menu-sheet"
     :is-open="open"
     :initial-breakpoint="1"
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import { sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
 import { ref } from 'vue'
 import { IonIcon, IonModal, alertController, useIonRouter } from '@ionic/vue'
 import { chevronForwardOutline, logOutOutline, personOutline, settingsOutline } from 'ionicons/icons'

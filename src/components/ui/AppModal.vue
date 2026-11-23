@@ -337,42 +337,6 @@ onBeforeUnmount(() => {
   gap: 12px;
   min-height: 70px;
   padding: 12px 16px;
-  animation: app-modal-header-slide 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
-@keyframes app-modal-header-slide {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.app-modal__body {
-  animation: app-modal-body-fade 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards 60ms;
-  opacity: 0;
-  transform: translateY(8px);
-}
-
-@keyframes app-modal-body-fade {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.app-modal__footer {
-  animation: app-modal-footer-fade 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards 100ms;
-  opacity: 0;
-  transform: translateY(8px);
-}
-
-@keyframes app-modal-footer-fade {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .app-modal__title {
@@ -479,14 +443,39 @@ onBeforeUnmount(() => {
   padding-bottom: calc(18px + env(safe-area-inset-bottom));
 }
 
-.app-modal-enter-active,
-.app-modal-leave-active {
-  transition: background-color 400ms cubic-bezier(0.16, 1, 0.3, 1);
+.app-modal {
+  --modal-ease-in: cubic-bezier(0.32, 0.72, 0, 1);
+  --modal-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  /* jarak awal: selalu dari tepi bawah layar, juga untuk dialog di tengah */
+  --modal-offscreen: translateY(max(100%, 60dvh));
 }
 
+.app-modal-enter-active,
+.app-modal-leave-active {
+  transition: background-color var(--modal-dur) var(--modal-ease);
+}
+
+.app-modal-enter-active {
+  --modal-dur: 520ms;
+  --modal-ease: var(--modal-ease-in);
+}
+
+.app-modal-leave-active {
+  --modal-dur: 340ms;
+  --modal-ease: var(--modal-ease-out);
+}
+
+/* opacity selesai lebih cepat dari gerakan supaya panel sudah terlihat saat naik */
 .app-modal-enter-active .app-modal__panel,
 .app-modal-leave-active .app-modal__panel {
-  transition: transform 450ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform var(--modal-dur) var(--modal-ease),
+    opacity calc(var(--modal-dur) * 0.45) linear;
+  will-change: transform, opacity;
+}
+
+.app-modal-leave-active .app-modal__panel {
+  transition-delay: 0s, calc(var(--modal-dur) * 0.55);
 }
 
 .app-modal-enter-from,
@@ -494,40 +483,17 @@ onBeforeUnmount(() => {
   background: rgb(37 37 37 / 0%);
 }
 
+.app-modal-enter-from .app-modal__panel,
+.app-modal-leave-to .app-modal__panel {
+  transform: var(--modal-offscreen);
+  opacity: 0;
+}
+
 .app-modal--bottom-sheet.app-modal-enter-from .app-modal__panel,
-.app-modal--bottom-sheet.app-modal-leave-to .app-modal__panel {
-  transform: translateY(110%);
-  opacity: 0;
-}
-
-.app-modal--bottom-sheet.app-modal-enter-to .app-modal__panel,
-.app-modal--bottom-sheet.app-modal-leave-from .app-modal__panel {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.app-modal--dialog.app-modal-enter-from .app-modal__panel,
-.app-modal--dialog.app-modal-leave-to .app-modal__panel {
-  transform: translateY(20px) scale(0.96);
-  opacity: 0;
-}
-
-.app-modal--dialog.app-modal-enter-to .app-modal__panel,
-.app-modal--dialog.app-modal-leave-from .app-modal__panel {
-  transform: translateY(0) scale(1);
-  opacity: 1;
-}
-
+.app-modal--bottom-sheet.app-modal-leave-to .app-modal__panel,
 .app-modal--fullscreen.app-modal-enter-from .app-modal__panel,
 .app-modal--fullscreen.app-modal-leave-to .app-modal__panel {
-  transform: translateY(30px);
-  opacity: 0;
-}
-
-.app-modal--fullscreen.app-modal-enter-to .app-modal__panel,
-.app-modal--fullscreen.app-modal-leave-from .app-modal__panel {
-  transform: translateY(0);
-  opacity: 1;
+  transform: translateY(100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -535,7 +501,8 @@ onBeforeUnmount(() => {
   .app-modal-leave-active,
   .app-modal-enter-active .app-modal__panel,
   .app-modal-leave-active .app-modal__panel {
-    transition-duration: 1ms;
+    --modal-dur: 1ms;
+    transition-delay: 0s;
   }
 }
 
@@ -557,14 +524,10 @@ onBeforeUnmount(() => {
     max-width: none;
     border-radius: 0;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .app-modal-enter-active,
-  .app-modal-leave-active,
-  .app-modal-enter-active .app-modal__panel,
-  .app-modal-leave-active .app-modal__panel {
-    transition-duration: 1ms;
+  .app-modal--bottom-sheet.app-modal-enter-from .app-modal__panel,
+  .app-modal--bottom-sheet.app-modal-leave-to .app-modal__panel {
+    transform: var(--modal-offscreen);
   }
 }
 </style>

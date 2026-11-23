@@ -3,7 +3,6 @@
     <ion-icon :icon="calendarOutline" aria-hidden="true" />
     <span>
       <strong>{{ total }} kavling</strong> punya jadwal survei<template v-if="pending > 0"> · {{ pending }} menunggu konfirmasi</template>.
-      Ditampilkan paling atas.
     </span>
   </div>
 </template>

@@ -8,7 +8,6 @@ import {
   onIonViewWillEnter,
 } from '@ionic/vue'
 import {
-  calendarOutline,
   checkmarkCircle,
   chevronForward,
   documentTextOutline,
@@ -16,8 +15,7 @@ import {
 } from 'ionicons/icons'
 
 import { authService } from '@/services/auth/authService'
-import { lotService } from '@/services/lotService'
-import { surveyService, type ClientSurveyRequest } from '@/services/surveyService'
+import SurveyAgendaCard from '@/components/common/SurveyAgendaCard.vue'
 import {
   getClientSpks,
   type ClientSpkDocumentKey,
@@ -37,8 +35,6 @@ const router = useRouter()
 const clientName = ref('Pembeli')
 const clientSpks = ref<ClientSpkRecord[]>([])
 const documentsLoaded = ref(false)
-const scheduledSurveyLots = ref<Array<{ id: number; lotNumber: string; scheduledAt: string; status: ClientSurveyRequest['status'] }>>([])
-const surveysLoaded = ref(false)
 
 const documentFields: Array<{ key: ClientSpkDocumentKey; label: string }> = [
   { key: 'ktp', label: 'KTP' },
@@ -89,36 +85,6 @@ async function loadClientName() {
     console.error('[Beranda Client] Gagal memuat nama akun:', error)
     clientName.value = 'Pembeli'
   }
-}
-
-async function loadScheduledSurveys() {
-  try {
-    const [lots, requests] = await Promise.all([
-      lotService.getClientLots(),
-      surveyService.getClientRequests(),
-    ])
-    const lotNames = new Map(lots.map((lot) => [lot.id, lot.lot_number]))
-    scheduledSurveyLots.value = requests
-      .filter((request) => request.status === 'pending' || request.status === 'confirmed')
-      .map((request) => ({
-        id: request.lot_id,
-        lotNumber: lotNames.get(request.lot_id) ?? `Kavling #${request.lot_id}`,
-        scheduledAt: request.scheduled_at,
-        status: request.status,
-      }))
-      .filter((item, index, rows) => rows.findIndex((candidate) => candidate.id === item.id) === index)
-  } catch (error) {
-    console.error('[Beranda Client] Gagal memuat jadwal survei:', error)
-    scheduledSurveyLots.value = []
-  } finally {
-    surveysLoaded.value = true
-  }
-}
-
-function formatSurveyDate(value: string) {
-  return new Date(value).toLocaleString('id-ID', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
 }
 
 const {
@@ -199,7 +165,6 @@ onMounted(() => {
 
 onIonViewWillEnter(() => {
   void loadClientDocuments()
-  void loadScheduledSurveys()
   void loadPurchase()
 })
 
@@ -339,25 +304,8 @@ function goTo(path: string) {
               </div>
             </Reveal>
 
-            <Reveal v-if="surveysLoaded && scheduledSurveyLots.length" :order="3">
-              <section class="card" aria-labelledby="survey-title">
-                <div class="card__head">
-                  <h2 id="survey-title" class="card__title">Jadwal survei kavling</h2>
-                  <span class="count t-num">{{ scheduledSurveyLots.length }}</span>
-                </div>
-                <ul class="list">
-                  <li v-for="survey in scheduledSurveyLots" :key="survey.id">
-                    <button type="button" class="row" @click="goTo(`/client/kavling/${survey.id}`)">
-                      <span class="row__icon"><ion-icon :icon="calendarOutline" aria-hidden="true" /></span>
-                      <span class="row__copy">
-                        <strong>{{ survey.lotNumber }}</strong>
-                        <small class="t-num">{{ formatSurveyDate(survey.scheduledAt) }}</small>
-                      </span>
-                      <StatusBadge size="sm" :tone="survey.status === 'confirmed' ? 'success' : 'warning'" :label="survey.status === 'confirmed' ? 'Dikonfirmasi' : 'Menunggu'" />
-                    </button>
-                  </li>
-                </ul>
-              </section>
+            <Reveal :order="3">
+              <SurveyAgendaCard variant="client" />
             </Reveal>
 
             <Reveal :order="4">

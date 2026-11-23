@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, reactive, ref, watch } from 'vue'
 import { IonIcon, IonModal, IonSpinner } from '@ionic/vue'
 import { closeOutline } from 'ionicons/icons'
@@ -71,7 +72,7 @@ async function submit() {
 </script>
 
 <template>
-  <IonModal :is-open="isOpen" class="client-spk-create-modal" @didDismiss="emit('close')">
+  <IonModal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="isOpen" class="client-spk-create-modal" @didDismiss="emit('close')">
     <div class="client-spk-form">
       <header><div><span>Pengajuan pembelian</span><h2>Pembuatan SPK</h2></div><button type="button" aria-label="Tutup formulir SPK" @click="emit('close')"><IonIcon :icon="closeOutline" /></button></header>
       <p v-if="lot" class="selected-lot">Kavling {{ lot.lot_number }} · {{ currency(price) }}</p>

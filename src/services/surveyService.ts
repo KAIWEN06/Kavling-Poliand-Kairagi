@@ -86,7 +86,25 @@ export function pinSurveyLots<T extends { id: number }>(list: T[], map: Map<numb
   return [...scheduled, ...list.filter((l) => !map.has(l.id))];
 }
 
+/** Satu baris agenda survei untuk kartu beranda. customer_name null untuk role client. */
+export interface SurveyAgendaItem {
+  survey_id: string;
+  lot_id: number;
+  lot_number: string | null;
+  scheduled_at: string;
+  status: "pending" | "confirmed";
+  customer_id: number | null;
+  customer_name: string | null;
+}
+
 export const surveyService = {
+  /** Agenda survei aktif (terdekat dulu) sesuai cakupan role pemanggil. */
+  async getMyAgenda(): Promise<SurveyAgendaItem[]> {
+    const { data, error } = await supabase.rpc("get_my_survey_agenda");
+    if (error) throw normalizeError(error);
+    return (data ?? []) as SurveyAgendaItem[];
+  },
+
   /**
    * Jadwal survei aktif sesuai cakupan role pemanggil (client: miliknya,
    * marketing: client-nya, admin/kepala marketing: semua). Dibatasi di server.

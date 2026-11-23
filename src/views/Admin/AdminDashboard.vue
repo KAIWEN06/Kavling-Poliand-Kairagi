@@ -22,6 +22,7 @@ import {
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import SurveyAgendaCard from '@/components/common/SurveyAgendaCard.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -368,6 +369,8 @@ onBeforeUnmount(() => {
             </template>
           </PageHeader>
         </Reveal>
+
+        <SurveyAgendaCard variant="admin" />
 
         <div class="dash__grid">
           <!-- INVENTARIS -->

@@ -11,7 +11,8 @@ onMounted(async () => {
   try {
     const session = await authService.getSession()
     if (!session) {
-      message.value = 'Sesi Google tidak ditemukan. Silakan coba login kembali.'
+      // Tidak ada sesi: jangan menahan pengguna di halaman callback.
+      await router.replace({ name: 'Login', query: { error: 'oauth_failed' } })
       return
     }
 

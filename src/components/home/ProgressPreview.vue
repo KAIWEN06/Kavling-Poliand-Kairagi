@@ -79,7 +79,7 @@
       </ion-grid>
 
       <!-- Modal Form Tambah/Ubah Progress -->
-      <ion-modal :is-open="isModalOpen" @didDismiss="isModalOpen = false">
+      <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="isModalOpen" @didDismiss="isModalOpen = false">
         <ion-header>
           <ion-toolbar class="modal-toolbar">
             <ion-title class="modal-title-custom">{{ editingId ? 'Ubah Progress Pembangunan' : 'Tambah Progress Baru' }}</ion-title>
@@ -157,6 +157,7 @@
 </template>
 
 <script setup lang="ts">
+import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import {
   IonGrid, IonRow, IonCol, IonCard, IonCardContent,

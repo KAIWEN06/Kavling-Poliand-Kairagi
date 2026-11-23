@@ -93,7 +93,7 @@
     </div>
 
     <!-- Modal Form Edit Kontak untuk Admin -->
-    <ion-modal :is-open="isModalOpen" @didDismiss="isModalOpen = false">
+    <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="isModalOpen" @didDismiss="isModalOpen = false">
       <ion-header>
         <ion-toolbar class="modal-toolbar">
           <ion-title class="modal-title-custom">Edit Informasi Kontak</ion-title>
@@ -178,6 +178,7 @@
 </template>
 
 <script setup lang="ts">
+import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { 
   IonContent, IonButton, IonIcon, IonSpinner, IonModal, 
