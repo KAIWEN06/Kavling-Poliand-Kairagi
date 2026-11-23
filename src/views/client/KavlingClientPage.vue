@@ -222,10 +222,12 @@
 
           <p v-if="proximityActive" class="kv-note">Diurutkan dari yang paling mendekati pencarian.</p>
 
+          <LotSurveyBanner :surveys="surveyByLot" />
+
           <!-- LIST -->
           <ul v-if="filtered.length" class="kv-list">
             <li v-for="lot in pagedLots" :key="lot.id">
-              <article :id="`lot-${lot.id}`" class="kv-card kv-lot">
+              <article :id="`lot-${lot.id}`" :class="['kv-card', 'kv-lot', { 'kv-lot--survey': surveyByLot.has(lot.id) }]">
                 <div class="kv-lot-top">
 
                   <div class="kv-lot-info">
@@ -239,10 +241,7 @@
                   </span>
                 </div>
 
-                <div v-if="surveyLotIds.has(lot.id)" class="kv-survey-marker" role="status">
-                  <ion-icon :icon="calendarOutline" aria-hidden="true" />
-                  <span>Survei sudah dijadwalkan</span>
-                </div>
+                <LotSurveyMarker v-if="surveyByLot.get(lot.id)" :info="surveyByLot.get(lot.id)!" />
 
                 <div class="kv-lot-bottom">
                   <!-- HARGA: baris sendiri, tidak berbagi ruang dengan tombol -->
@@ -348,7 +347,6 @@ import {
   useIonRouter,
 } from '@ionic/vue'
 import {
-  calendarOutline,
   searchOutline,
   closeOutline,
   optionsOutline,
@@ -376,7 +374,9 @@ import errorMascot from '@/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error
 import emptyMascot from '@/assets/mascot/Mascot_No_Data_Scene.png'
 import { useSiteplan } from '@/composables/useSiteplant'
 import { lotService, type LotRecord } from '@/services/lotService'
-import { surveyService } from '@/services/surveyService'
+import LotSurveyMarker from '@/components/common/LotSurveyMarker.vue'
+import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
+import { pinSurveyLots, surveyService, type LotSurveyInfo } from '@/services/surveyService'
 import { dimensionDistance, parseDimension, parseNumber, parsePrice } from '@/services/Admin/LotsearchService'
 import { getLotId, getLotStatusColor } from '@/utils/siteplan'
 
@@ -464,7 +464,7 @@ watch(siteplanLots, async () => {
 }, { deep: true, immediate: true })
 
 const lots = ref<Lot[]>([])
-const surveyLotIds = ref<Set<number>>(new Set())
+const surveyByLot = ref<Map<number, LotSurveyInfo>>(new Map())
 const loading = ref(true)
 const loadError = ref(false)
 
@@ -607,16 +607,15 @@ async function load(showSpinner: boolean) {
   loadError.value = false
 
   try {
-    const [rows, surveyRequests] = await Promise.all([
+    const [rows, surveys] = await Promise.all([
       lotService.getClientLots(),
-      surveyService.getClientRequests(),
+      surveyService.getMySchedule().catch((error: unknown) => {
+        console.error('Gagal memuat jadwal survei', error)
+        return new Map<number, LotSurveyInfo>()
+      }),
     ])
     lots.value = rows.map(mapLot)
-    surveyLotIds.value = new Set(
-      surveyRequests
-        .filter((request) => request.status === 'pending' || request.status === 'confirmed')
-        .map((request) => request.lot_id),
-    )
+    surveyByLot.value = surveys
   } catch (error) {
     console.error('Gagal memuat kavling', error)
     loadError.value = true
@@ -820,7 +819,9 @@ function proximityScore(lot: Lot): number {
   return Infinity
 }
 
-const filtered = computed(() => {
+const filtered = computed(() => pinSurveyLots(matched.value, surveyByLot.value))
+
+const matched = computed(() => {
   let result = lots.value.filter((l) => statusFilter.value === 'all' || l.status === statusFilter.value)
 
   /* cari nomor / blok / nama pelanggan */
@@ -1568,21 +1569,9 @@ h2 {
   font-size: 14px;
 }
 
-.kv-survey-marker {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 9px;
-  padding: 6px 9px;
-  border-radius: 9px;
-  background: var(--status-success-bg, #eef5ec);
-  color: var(--poliland-green, #355a2c);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.kv-survey-marker ion-icon {
-  font-size: 15px;
+.kv-lot--survey {
+  border-color: var(--poliland-gold);
+  box-shadow: inset 4px 0 0 var(--poliland-gold);
 }
 
 .kv-badge.available { background: var(--status-success-bg); color: var(--poliland-green); }

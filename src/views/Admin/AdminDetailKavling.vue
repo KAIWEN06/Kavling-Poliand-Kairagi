@@ -4,12 +4,7 @@
 
     <ion-content :fullscreen="true">
       <div class="detail-page client-detail-page">
-        <nav class="detail-back-nav" aria-label="Navigasi halaman">
-          <AppButton class="back-action" variant="neutral" fill="clear" size="small" @click="backToLots">
-            <ion-icon :icon="arrowBackOutline" slot="start" aria-hidden="true" />
-            <span>Kembali ke daftar kavling</span>
-          </AppButton>
-        </nav>
+        <PageBackButton fallback="/admin/kavling" label="Daftar kavling" />
 
         <div v-if="loading" class="state-card" role="status">
           <img :src="loadingMascot" alt="" class="loading-mascot" />
@@ -405,6 +400,7 @@ import {
   expandOutline, informationCircleOutline, lockClosedOutline, timeOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
+import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import loadingMascot from '@/assets/mascot/Mascot Examining Transaction History.png'
@@ -804,9 +800,6 @@ function handleDateChange() {
     selectedSurveyDate.value = todayISO.value
     notify('Tanggal survei tidak dapat dipilih pada hari yang sudah lewat.', 'warning')
   }
-}
-function backToLots() {
-  router.push('/client/kavling')
 }
 function openPanorama() {
   if (!lot.value?.panorama_url) return

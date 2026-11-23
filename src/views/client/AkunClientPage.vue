@@ -28,6 +28,8 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import { authService } from '@/services/auth/authService'
 import { supabase } from '@/services/config/supabase'
+import { profileService } from '@/services/profile/profileService'
+import { useCurrentUser } from '@/composables/useCurrentUser'
 import { getRegions, getRegionByCode } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
 
@@ -44,6 +46,7 @@ const userId = ref('')
 const customerId = ref<number | null>(null)
 const authEmail = ref('')
 const avatarUrl = ref('')
+const sharedUser = useCurrentUser()
 const avatarInput = ref<HTMLInputElement | null>(null)
 const isUploadingAvatar = ref(false)
 
@@ -385,13 +388,9 @@ async function uploadAvatar(event: Event) {
   const file = input.files?.[0]
   if (!file || !userId.value) return
 
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    profileError.value = 'Foto profil harus berformat JPG, PNG, atau WEBP.'
-    input.value = ''
-    return
-  }
-  if (file.size > 3 * 1024 * 1024) {
-    profileError.value = 'Ukuran foto maksimal 3 MB.'
+  const invalid = profileService.validateAvatar(file)
+  if (invalid) {
+    profileError.value = invalid
     input.value = ''
     return
   }
@@ -399,24 +398,10 @@ async function uploadAvatar(event: Event) {
   isUploadingAvatar.value = true
   profileError.value = ''
   try {
-    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const path = `${userId.value}/avatar-${Date.now()}.${extension}`
-    const { error: uploadError } = await supabase.storage
-      .from('client-avatars')
-      .upload(path, file, { upsert: true, contentType: file.type })
-    if (uploadError) throw uploadError
-
-    const { data: publicUrlData } = supabase.storage
-      .from('client-avatars')
-      .getPublicUrl(path)
-    const nextAvatarUrl = publicUrlData.publicUrl
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .upsert({ id: userId.value, avatar_url: nextAvatarUrl }, { onConflict: 'id' })
-    if (updateError) throw updateError
-
+    const nextAvatarUrl = await profileService.uploadAvatar(userId.value, file, avatarUrl.value)
     avatarUrl.value = nextAvatarUrl
+    // Perbarui state global agar avatar di header langsung berubah.
+    sharedUser.patch({ avatarUrl: nextAvatarUrl })
     successMessage.value = 'Foto profil berhasil diperbarui.'
   } catch (error: any) {
     console.error('Gagal mengunggah foto profil.', error)

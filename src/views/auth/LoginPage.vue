@@ -145,6 +145,18 @@ const queryError = computed(() => {
 
   }
 
+  if (route.query.error === 'oauth_state_used') {
+
+    return 'Sesi login Google sudah kedaluwarsa atau terpakai. Silakan coba login lagi.'
+
+  }
+
+  if (route.query.error === 'oauth_failed') {
+
+    return 'Login Google gagal. Silakan coba lagi.'
+
+  }
+
   return ''
 
 })

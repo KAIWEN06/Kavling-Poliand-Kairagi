@@ -32,7 +32,71 @@ function normalizeError(error: unknown): Error {
   return new Error("Terjadi kesalahan pada layanan survei.");
 }
 
+export interface LotSurveySchedule {
+  lot_id: number;
+  scheduled_at: string;
+  status: "pending" | "confirmed";
+}
+
+/** Jadwal survei aktif satu kavling, siap ditampilkan di semua role. */
+export interface LotSurveyInfo {
+  status: "pending" | "confirmed";
+  scheduledAt: number;
+  when: string;
+  statusText: string;
+}
+
+export function formatSurveyWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Jadwal tidak valid";
+  const date = d.toLocaleDateString("id-ID", {
+    weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Makassar",
+  });
+  const time = d.toLocaleTimeString("id-ID", {
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Makassar",
+  }).replace(".", ":");
+  return `${date} · ${time} WITA`;
+}
+
+/** Satu kavling bisa punya beberapa jadwal: ambil yang paling dekat. */
+export function buildSurveyMap(rows: LotSurveySchedule[]): Map<number, LotSurveyInfo> {
+  const map = new Map<number, LotSurveyInfo>();
+  for (const r of rows) {
+    const at = Date.parse(r.scheduled_at);
+    if (Number.isNaN(at)) continue;
+    const lotId = Number(r.lot_id);
+    const existing = map.get(lotId);
+    if (existing && existing.scheduledAt <= at) continue;
+    map.set(lotId, {
+      status: r.status,
+      scheduledAt: at,
+      when: formatSurveyWhen(r.scheduled_at),
+      statusText: r.status === "pending" ? "Menunggu konfirmasi" : "Sudah dikonfirmasi",
+    });
+  }
+  return map;
+}
+
+/** Kavling berjadwal survei di atas (terdekat dulu), sisanya mengikuti urutan semula. */
+export function pinSurveyLots<T extends { id: number }>(list: T[], map: Map<number, LotSurveyInfo>): T[] {
+  if (map.size === 0) return list;
+  const scheduled = list
+    .filter((l) => map.has(l.id))
+    .sort((a, b) => map.get(a.id)!.scheduledAt - map.get(b.id)!.scheduledAt);
+  return [...scheduled, ...list.filter((l) => !map.has(l.id))];
+}
+
 export const surveyService = {
+  /**
+   * Jadwal survei aktif sesuai cakupan role pemanggil (client: miliknya,
+   * marketing: client-nya, admin/kepala marketing: semua). Dibatasi di server.
+   */
+  async getMySchedule(): Promise<Map<number, LotSurveyInfo>> {
+    const { data, error } = await supabase.rpc("get_my_survey_schedule");
+    if (error) throw normalizeError(error);
+    return buildSurveyMap((data ?? []) as LotSurveySchedule[]);
+  },
+
   /**
    * Ambil slot yang sudah terisi untuk tanggal WITA tertentu.
    * RPC mengembalikan slot_time, bukan identitas client.

@@ -80,8 +80,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import StatCard from './StatCard.vue'
-import StatusBadge from './StatusBadge.vue'
+import StatCard from '@/components/ui/StatCard.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getTeamMembers, listInstallmentSchedules, listPayments, type TeamMember } from '@/services/marketing/marketingCrmService'
 import {
   formatDate,

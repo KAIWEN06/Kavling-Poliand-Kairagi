@@ -222,10 +222,12 @@
 
           <p v-if="proximityActive" class="kv-note">Diurutkan dari yang paling mendekati pencarian.</p>
 
+          <LotSurveyBanner :surveys="surveyByLot" />
+
           <!-- LIST -->
           <ul v-if="filtered.length" class="kv-list">
             <li v-for="lot in pagedLots" :key="lot.id">
-              <article :id="`lot-${lot.id}`" class="kv-card kv-lot">
+              <article :id="`lot-${lot.id}`" :class="['kv-card', 'kv-lot', { 'kv-lot--survey': surveyByLot.has(lot.id) }]">
                 <div class="kv-lot-top">
 
                   <div class="kv-lot-info">
@@ -238,6 +240,8 @@
                     {{ statusLabel[lot.status] }}
                   </span>
                 </div>
+
+                <LotSurveyMarker v-if="surveyByLot.get(lot.id)" :info="surveyByLot.get(lot.id)!" />
 
                 <div class="kv-lot-bottom">
                   <!-- HARGA: baris sendiri, tidak berbagi ruang dengan tombol -->
@@ -384,6 +388,9 @@ import errorMascot from '@/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error
 import emptyMascot from '@/assets/mascot/Mascot_No_Data_Scene.png'
 import { useSiteplan } from '@/composables/useSiteplant'
 import { lotService, type LotRecord } from '@/services/lotService'
+import LotSurveyMarker from '@/components/common/LotSurveyMarker.vue'
+import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
+import { pinSurveyLots, surveyService, type LotSurveyInfo } from '@/services/surveyService'
 import { dimensionDistance, parseDimension, parseNumber, parsePrice } from '@/services/Admin/LotsearchService'
 import { getLotId, getLotStatusColor } from '@/utils/siteplan'
 
@@ -473,6 +480,9 @@ watch(siteplanLots, async () => {
 const lots = ref<Lot[]>([])
 const loading = ref(true)
 const loadError = ref(false)
+
+/* jadwal survei aktif, diambil terpisah supaya kegagalannya tidak memblokir daftar */
+const surveyByLot = ref<Map<number, LotSurveyInfo>>(new Map())
 
 const statusFilter = ref<StatusFilter>('all')
 const sortMode = ref<SortMode>('number')
@@ -614,8 +624,15 @@ async function load(showSpinner: boolean) {
   loadError.value = false
 
   try {
-    const rows = await lotService.getLots()
+    const [rows, surveys] = await Promise.all([
+      lotService.getLots(),
+      surveyService.getMySchedule().catch((error: unknown) => {
+        console.error('Gagal memuat jadwal survei', error)
+        return new Map<number, LotSurveyInfo>()
+      }),
+    ])
     lots.value = rows.map(mapLot)
+    surveyByLot.value = surveys
   } catch (error) {
     console.error('Gagal memuat kavling', error)
     loadError.value = true
@@ -819,7 +836,10 @@ function proximityScore(lot: Lot): number {
   return Infinity
 }
 
-const filtered = computed(() => {
+/** kavling berjadwal survei selalu paling atas (terdekat dulu); sisanya mengikuti urutan pilihan */
+const filtered = computed(() => pinSurveyLots(matched.value, surveyByLot.value))
+
+const matched = computed(() => {
   let result = lots.value.filter((l) => statusFilter.value === 'all' || l.status === statusFilter.value)
 
   /* cari nomor / blok / nama pelanggan */
@@ -1504,6 +1524,12 @@ h2 {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* ---------- jadwal survei ---------- */
+.kv-lot--survey {
+  border-color: var(--poliland-gold);
+  box-shadow: inset 4px 0 0 var(--poliland-gold);
 }
 
 /* ---------- lot card ---------- */

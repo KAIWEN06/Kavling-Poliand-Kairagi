@@ -4,12 +4,7 @@
 
     <ion-content :fullscreen="true">
       <div class="detail-page client-detail-page">
-        <nav class="detail-back-nav" aria-label="Navigasi halaman">
-          <AppButton class="back-action" variant="neutral" fill="clear" size="small" @click="backToLots">
-            <ion-icon :icon="arrowBackOutline" slot="start" aria-hidden="true" />
-            <span>Kembali ke daftar kavling</span>
-          </AppButton>
-        </nav>
+        <PageBackButton fallback="/client/kavling" label="Daftar kavling" />
 
         <div v-if="loading" class="state-card" role="status">
           <img :src="loadingMascot" alt="" class="loading-mascot" />
@@ -34,9 +29,9 @@
                   <ion-icon :icon="calendarOutline" />
                 </div>
                 <div class="survey-title-wrap">
-                  <span class="eyebrow">KUNJUNGAN LOKASI</span>
+                  <span class="eyebrow">Kunjungan Lokasi</span>
                   <h2 id="survey-heading">Jadwal Survei</h2>
-                  <p>Pilih hari dan jam buat cek lokasi.</p>
+                  <p>Atur kunjungan langsung ke lokasi kavling bersama tim kami.</p>
                 </div>
               </div>
             </div>
@@ -64,33 +59,33 @@
                   </div>
                   <p v-if="request.status === 'rejected'">
                     <b>Catatan:</b>
-                    {{ request.rejection_reason || 'Jadwal belum bisa dipenuhi. Coba pilih waktu lain atau chat Admin.' }}
+                    {{ request.rejection_reason || 'Jadwal belum dapat dipenuhi. Silakan pilih waktu lain atau hubungi Admin.' }}
                   </p>
                   <p v-else-if="request.status === 'pending'">
-                    Menunggu konfirmasi Admin. Jadwal pilihanmu sedang ditahan sementara.
+                    Menunggu konfirmasi Admin. Jadwal Anda ditahan sementara selama proses peninjauan.
                   </p>
                   <p v-else-if="request.status === 'confirmed'">
-                    Jadwal sudah disetujui. Sampai jumpa di lokasi sesuai jam yang dipilih!
+                    Jadwal telah disetujui. Silakan hadir di lokasi sesuai tanggal dan jam yang dipilih.
                   </p>
                   <p v-else-if="request.status === 'completed'">
-                    Kunjungan survei selesai. Terima kasih sudah mampir ke PoliLand Kairagi.
+                    Kunjungan survei telah selesai. Terima kasih telah mengunjungi PoliLand Kairagi.
                   </p>
                   <p v-else-if="request.status === 'cancelled'">
-                    Pengajuan dibatalkan dan jamnya sudah terbuka lagi.
+                    Pengajuan dibatalkan dan jam tersebut kembali tersedia.
                   </p>
                 </article>
               </div>
             </section>
 
             <div v-if="hasActiveSurveyRequest" class="survey-active-request-hint">
-              Masih ada pengajuan survei yang {{ surveyRequestStatus?.status === 'pending' ? 'menunggu konfirmasi' : 'sudah dikonfirmasi' }}. Selesaikan dulu ya sebelum mengajukan jadwal baru untuk kavling ini.
+              Pengajuan survei untuk kavling ini masih {{ surveyRequestStatus?.status === 'pending' ? 'menunggu konfirmasi' : 'berstatus dikonfirmasi' }}. Pengajuan baru dapat dibuat setelah proses tersebut selesai.
             </div>
 
             <div v-if="canRequestSurvey" class="survey-form">
               <!-- Baris pilihan tanggal & navigasi hari -->
               <div class="calendar-block">
                 <div class="calendar-topline">
-                  <span class="step-label">1. Pilih Tanggal</span>
+                  <span class="step-label"><i class="step-num">1</i>Pilih Tanggal</span>
                   <div class="day-switcher">
                     <button
                       type="button"
@@ -199,18 +194,18 @@
 
                 <div class="operating-hours-hint">
                   <ion-icon :icon="timeOutline" aria-hidden="true" />
-                  <span>Buka survei: <strong>{{ selectedHoursLabel }}</strong></span>
+                  <span>Jam survei: <strong>{{ selectedHoursLabel }}</strong></span>
                 </div>
               </div>
 
               <p v-if="isSelectedDayClosed" class="survey-note warning-note" role="status">
-                Di hari ini belum buka untuk survei. Coba pilih tanggal lain ya.
+                Survei tidak tersedia pada hari ini. Silakan pilih tanggal lain.
               </p>
 
               <!-- Grid slot waktu fleksibel sesuai jam buka-tutup pada contacts.operating_hours -->
               <div v-else class="time-slot-section">
                 <div class="slot-heading">
-                  <span class="step-label">2. Pilih Jam ({{ timezoneSuffix }})</span>
+                  <span class="step-label"><i class="step-num">2</i>Pilih Jam ({{ timezoneSuffix }})</span>
                   <span class="slot-count">
                     {{ surveySlots.length }} kosong<span v-if="bookedSurveySlots.length"> · {{ bookedSurveySlots.length }} penuh</span>
                   </span>
@@ -230,34 +225,32 @@
                     :disabled="occupiedSurveySlots.includes(time) || availabilityLoading"
                     @click="selectedSurveyTime = time"
                   >
-                    <ion-icon :icon="timeOutline" aria-hidden="true" />
-                    <span class="slot-text">
-                      {{ time }} {{ timezoneSuffix }}<small v-if="occupiedSurveySlots.includes(time)"> (Penuh)</small>
-                    </span>
+                    <span class="slot-text">{{ time }}</span>
+                    <small>{{ occupiedSurveySlots.includes(time) ? 'Penuh' : selectedSurveyTime === time ? 'Dipilih' : 'Tersedia' }}</small>
                   </button>
                 </div>
 
                 <p v-if="allSurveySlots.length === 0" class="survey-note warning-note" role="status">
                   <img :src="worriedChoosingDayMascot" alt="Maskot sedang memilih hari survei" class="survey-warning-mascot" />
-                  yahh jam survei untuk tanggal ini sudah habis. Silakan pilih hari lain.
+                  Seluruh jam survei pada tanggal ini sudah terisi. Silakan pilih tanggal lain.
                 </p>
               </div>
 
               <div class="note-block">
-                <label class="survey-label" for="survey-note">Catatan tambahan (opsional)</label>
+                <label class="survey-label" for="survey-note"><i class="step-num">3</i>Catatan Tambahan <span class="optional">(opsional)</span></label>
                 <textarea
                   id="survey-note"
                   v-model="surveyNote"
                   class="form-control survey-textarea"
                   rows="2"
                   maxlength="300"
-                  placeholder="Misal: mau cek akses jalan masuk atau posisi kavling."
+                  placeholder="Contoh: ingin meninjau akses jalan masuk dan posisi kavling."
                 />
               </div>
 
               <!-- Ringkasan jadwal sebelum dikirim -->
               <div v-if="selectedSurveyTime && !isSelectedDayClosed" class="booking-summary-strip">
-                <span>Jadwalmu:</span>
+                <span>Ringkasan jadwal</span>
                 <strong>{{ selectedDateLabel }} · {{ selectedSurveyTime }} {{ timezoneSuffix }}</strong>
               </div>
 
@@ -276,7 +269,7 @@
             <div v-else class="survey-unavailable">
               <ion-icon :icon="informationCircleOutline" aria-hidden="true" />
               <span>
-                Pengajuan survei online hanya untuk kavling yang masih Tersedia. Chat Admin kalau butuh info lebih lanjut.
+                Pengajuan survei online hanya tersedia untuk kavling berstatus Tersedia. Hubungi Admin untuk informasi lebih lanjut.
               </span>
             </div>
           </section>
@@ -456,6 +449,7 @@ import {
   expandOutline, informationCircleOutline, lockClosedOutline, timeOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
+import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import loadingMascot from '@/assets/mascot/Mascot Examining Transaction History.png'
@@ -960,9 +954,6 @@ function handleDateChange() {
     notify('Tanggal yang sudah lewat tidak bisa dipilih.', 'warning')
   }
 }
-function backToLots() {
-  router.push('/client/kavling')
-}
 function openPanorama() {
   if (!lot.value?.panorama_url) return
   router.push({ name: 'Panorama', params: { lotId: String(lot.value.id) } })
@@ -1146,9 +1137,12 @@ const tabs: { key: TabKey; label: string }[] = [
 }
 
 .client-request-status strong {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
   color: var(--status-warning, #966a12);
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .request-time {
@@ -1273,8 +1267,8 @@ const tabs: { key: TabKey; label: string }[] = [
 }
 
 .calendar-block {
-  margin-bottom: 14px;
-  padding: 12px;
+  margin-bottom: 18px;
+  padding: 14px;
   border: 1px solid var(--border-default, #eae7e0);
   border-radius: 16px;
   background: var(--surface-muted, #f5f3ee);
@@ -1288,10 +1282,33 @@ const tabs: { key: TabKey; label: string }[] = [
   gap: 8px;
 }
 
-.step-label {
+.step-label,
+.survey-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--text-primary, #252525);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
+}
+
+.step-num {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--poliland-green, #355a2c);
+  color: #ffffff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.optional {
+  color: var(--text-secondary, #63636a);
+  font-weight: 500;
 }
 
 .day-switcher {
@@ -1475,20 +1492,22 @@ const tabs: { key: TabKey; label: string }[] = [
 
 .time-slots {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
 .time-slot {
   display: flex;
-  min-height: 44px;
+  min-height: 56px;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 0 10px;
+  gap: 1px;
+  padding: 6px 8px;
   border: 1px solid var(--border-default, #eae7e0);
   border-radius: var(--radius-control, 12px);
-  background: var(--surface-muted, #f5f3ee);
+  background: var(--surface-primary, #ffffff);
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary, #252525);
   font-family: inherit;
   font-size: 12.5px;
@@ -1509,18 +1528,30 @@ const tabs: { key: TabKey; label: string }[] = [
   color: #ffffff;
 }
 
-.time-slot.occupied {
-  opacity: 0.48;
-  cursor: not-allowed;
+.time-slot .slot-text {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.time-slot.occupied .slot-text {
   text-decoration: line-through;
+}
+
+.time-slot.selected small {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.time-slot.occupied {
+  opacity: 0.55;
+  cursor: not-allowed;
   background: var(--surface-muted, #f5f3ee);
   border-style: dashed;
 }
 
 .time-slot small {
+  color: var(--text-secondary, #63636a);
   font-size: 10px;
   font-weight: 600;
-  text-decoration: none;
 }
 
 .time-slot:disabled {
@@ -1532,11 +1563,7 @@ const tabs: { key: TabKey; label: string }[] = [
 }
 
 .survey-label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--text-primary, #252525);
-  font-size: 12px;
-  font-weight: 700;
+  margin-bottom: 8px;
 }
 
 .form-control {
@@ -1571,9 +1598,10 @@ textarea.form-control {
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 12px;
-  padding: 10px 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--poliland-green, #355a2c) 28%, transparent);
+  border-left: 4px solid var(--poliland-green, #355a2c);
   border-radius: var(--radius-control, 12px);
   background: var(--status-success-bg, #eef5ec);
   color: var(--poliland-green, #355a2c);
@@ -2151,7 +2179,7 @@ textarea.form-control {
   }
 
   .time-slots {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .selected-date-label {

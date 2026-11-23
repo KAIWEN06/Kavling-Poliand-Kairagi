@@ -99,8 +99,8 @@
 
   <button
     type="button"
-    :class="['nav-item', { active: isActive('/client/akun') }]"
-    @click="goTo('/client/akun')"
+    :class="['nav-item', { active: isActive('/akun') }]"
+    @click="goTo('/akun')"
   >
     <span class="icon-wrap"><ion-icon :icon="personOutline" /></span>
     <span class="nav-label">Akun</span>
@@ -788,6 +788,88 @@ function isActive(path: string) {
   transform: scale(0.96);
 }
 
+
+/* =====================================================
+   DESKTOP / TABLET LANDSCAPE (>= 1024px): sidebar kiri
+   Item, rute, dan logika aktif tetap sama dengan bottom nav.
+   ===================================================== */
+
+@media (min-width: 1024px) {
+  .mobile-footer {
+    top: 0;
+    right: auto;
+    width: var(--sidebar-w);
+    padding: 0;
+    z-index: var(--z-nav);
+  }
+
+  .bottom-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-1);
+    height: 100%;
+    padding: var(--space-6) var(--space-3) calc(var(--space-6) + var(--safe-bottom));
+    border: 0;
+    border-right: 1px solid var(--border-default);
+    border-radius: 0;
+    background: var(--surface-primary);
+    box-shadow: none;
+  }
+
+  .bottom-nav::before {
+    content: 'PoliLand';
+    padding: 0 var(--space-3) var(--space-6);
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--green-700);
+  }
+
+  .nav-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    height: 44px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-md);
+  }
+
+  .nav-item:hover {
+    background: var(--surface-muted);
+  }
+
+  .nav-item.active {
+    background: var(--green-100);
+  }
+
+  .nav-item .icon-wrap,
+  .nav-item.active .icon-wrap {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+  }
+
+  .nav-item ion-icon,
+  .nav-item.active ion-icon {
+    font-size: 20px;
+    transform: none;
+  }
+
+  /* Penanda aktif: batang di tepi kiri, bukan titik bawah */
+  .nav-item.active::after {
+    left: 0;
+    bottom: auto;
+    top: 10px;
+    width: 3px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    transform: none;
+    animation: none;
+  }
+}
 
 @keyframes active-dot-in {
 

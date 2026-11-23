@@ -1,8 +1,16 @@
 <template>
   <div class="mk-card mk-feed">
-    <p v-if="loading" class="mk-muted" role="status">Memuat aktivitas…</p>
+    <div v-if="loading" class="mk-feed__skel" role="status" aria-label="Memuat aktivitas">
+      <Skeleton v-for="n in 3" :key="n" height="56px" border-radius="14px" />
+    </div>
     <p v-else-if="error" class="mk-danger-text" role="alert">{{ error }}</p>
-    <p v-else-if="!items.length" class="mk-muted">Belum ada aktivitas.</p>
+    <EmptyState
+      v-else-if="!items.length"
+      kind="clients"
+      compact
+      title="Belum ada aktivitas"
+      description="Perubahan status, tindak lanjut, dan SPK dari tim akan tercatat di sini."
+    />
     <ul v-else>
       <li v-for="(item, index) in items" :key="index">
         <button type="button" :disabled="!item.customer_id" @click="item.customer_id && emit('open-client', item.customer_id)">
@@ -19,6 +27,8 @@
 </template>
 
 <script setup lang="ts">
+import EmptyState from '@/components/ui/EmptyState.vue'
+import Skeleton from '@/components/ui/Skeleton.vue'
 import type { ActivityItem } from '@/services/marketing/marketingCrmService'
 import { formatRelative } from '@/utils/marketingStatus'
 
@@ -29,18 +39,21 @@ const kindLabel: Record<string, string> = { crm: 'ST', followup: 'FU', note: 'CT
 </script>
 
 <style scoped>
-.mk-feed { padding: 4px 14px; }
-.mk-feed p { margin: 12px 0; font-size: 13px; }
+.mk-feed { padding: var(--space-1) var(--space-4); }
+.mk-feed p { margin: var(--space-3) 0; font-size: var(--text-sm); }
+.mk-feed__skel { display: grid; gap: var(--space-3); padding: var(--space-3) 0; }
 .mk-feed ul { list-style: none; margin: 0; padding: 0; }
 .mk-feed li + li { border-top: 1px solid var(--border-default); }
-.mk-feed button { width: 100%; display: flex; gap: 10px; align-items: flex-start; padding: 12px 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mk-feed button { width: 100%; display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .mk-feed button:disabled { cursor: default; }
-.mk-feed button:focus-visible { outline: 3px solid var(--poliland-gold); outline-offset: 2px; border-radius: 6px; }
-.mk-feed__kind { flex: 0 0 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; font-weight: 700; }
-.mk-feed__kind[data-kind='spk'] { background: var(--status-success-bg); color: var(--poliland-green); }
-.mk-feed__kind[data-kind='crm'] { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
+.mk-feed button:not(:disabled):hover .mk-feed__body strong { text-decoration: underline; }
+.mk-feed button:focus-visible { box-shadow: var(--ring-focus); border-radius: var(--radius-xs); outline: none; }
+.mk-feed__kind { flex: 0 0 40px; height: 40px; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--surface-muted); color: var(--text-secondary); font-size: var(--text-2xs); font-weight: 700; }
+.mk-feed__kind[data-kind='spk'] { background: var(--green-100); color: var(--green-700); }
+.mk-feed__kind[data-kind='crm'] { background: var(--gold-50); color: var(--gold-800); }
+.mk-feed__kind[data-kind='followup'] { background: var(--warning-bg); color: var(--warning-text); }
 .mk-feed__body { min-width: 0; display: grid; gap: 2px; }
-.mk-feed__body strong { font-size: 14px; }
-.mk-feed__body span { font-size: 13px; overflow-wrap: anywhere; }
-.mk-feed__body small { color: var(--text-secondary); font-size: 12px; }
+.mk-feed__body strong { font-size: var(--text-md); font-weight: 600; }
+.mk-feed__body span { font-size: var(--text-sm); overflow-wrap: anywhere; }
+.mk-feed__body small { color: var(--text-secondary); font-size: var(--text-xs); }
 </style>

@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import StatusBadge from './StatusBadge.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getTeamMembers, listSpkRequests, type TeamMember } from '@/services/marketing/marketingCrmService'
 import { formatDate, formatRupiah, paymentStatusLabel, paymentStatusTone, spkLabel, spkTone } from '@/utils/marketingStatus'
 

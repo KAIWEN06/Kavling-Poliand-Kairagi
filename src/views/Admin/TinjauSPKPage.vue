@@ -3,12 +3,7 @@
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
       <main class="review-shell">
-        <nav class="review-navigation" aria-label="Navigasi halaman">
-          <button type="button" class="review-back-button" @click="router.back()">
-            <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
-            <span>Kembali</span>
-          </button>
-        </nav>
+        <PageBackButton fallback="/admin/spk" label="Daftar SPK" />
         <div v-if="loading" class="review-state"><ion-spinner name="crescent" /><p>Memuat data SPK...</p></div>
         <div v-else-if="errorMessage" class="review-state review-error" role="alert"><strong>Data tidak dapat dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="load">Coba lagi</AppButton></div>
         <template v-else-if="data">
@@ -93,6 +88,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import { arrowBackOutline } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
+import PageBackButton from '@/components/ui/PageBackButton.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import {

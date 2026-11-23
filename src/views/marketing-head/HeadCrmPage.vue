@@ -79,7 +79,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useIonRouter } from '@ionic/vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
-import StatusBadge from '@/components/marketing/shared/StatusBadge.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ActivityFeed from '@/components/marketing/shared/ActivityFeed.vue'
 import {
   getMarketingActivity,

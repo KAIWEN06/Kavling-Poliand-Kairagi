@@ -25,6 +25,7 @@ import {
 import { useRoute } from 'vue-router'
 
 import AppHeader from '@/components/common/AppHeader.vue'
+import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import { authService } from '@/services/auth/authService'
 import {
@@ -476,16 +477,11 @@ onMounted(() => {
 
 <template>
   <ion-page class="client-spk-page">
-    <AppHeader
-      variant="client"
-      title="PoliLand Kairagi"
-      :show-back="true"
-      back-route="/client/kavling"
-      back-label="Kembali ke Kavling"
-    />
+    <AppHeader variant="client" />
 
     <ion-content class="client-spk-content" :fullscreen="true">
       <main class="spk-shell">
+        <PageBackButton fallback="/client/kavling" label="Kavling" />
         <header class="spk-page-heading">
           <div>
             <span class="spk-eyebrow">PENGAJUAN PEMBELIAN</span>

@@ -4,12 +4,7 @@
     <!-- =====================================================
          HEADER
          ===================================================== -->
-    <AppHeader
-      variant="marketing"
-      :authenticated="true"
-      title="Surat Pembelian Kavling"
-      :has-notification="true"
-    />
+    <AppHeader variant="marketing" />
 
     <ion-content
       :fullscreen="false"

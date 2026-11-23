@@ -1,229 +1,423 @@
-# KEPUTUSAN BISNIS TAMBAHAN — MODUL MARKETING POLILAND
+# IMPLEMENTASI GLOBAL MOBILE HEADER & SISTEM NOTIFIKASI POLILAND
 
-Berdasarkan hasil audit implementasi, tetapkan keputusan bisnis berikut dan sesuaikan implementasi Marketing serta Kepala Bagian Marketing.
+Saya ingin kamu melakukan pengembangan pada aplikasi mobile PoliLand, khususnya bagian **Global Mobile Header, Profil Pengguna, Avatar, Notifikasi, dan Konsistensi Tombol Kembali**.
 
-## 1. Pengajuan SPK oleh Marketing
+Tujuan utama pengembangan ini adalah menciptakan tampilan header yang modern, profesional, minimalis, dan konsisten di seluruh role aplikasi.
 
-Marketing DIPERBOLEHKAN membantu mengajukan SPK atas nama client yang menjadi tanggung jawabnya.
+**PENTING: Jangan langsung melakukan perubahan kode sebelum memahami struktur project yang sudah ada. Lakukan audit terlebih dahulu.**
 
+## 1. Audit Project Sebelum Implementasi
 
+Periksa terlebih dahulu:
 
-Ketentuan:
+1. Struktur folder dan arsitektur aplikasi.
+2. Framework, library UI, dan sistem navigasi yang digunakan.
+3. Seluruh role yang sudah tersedia beserta halaman masing-masing.
+4. Komponen header yang sudah digunakan di setiap halaman.
+5. Struktur tabel `profiles` dan tabel terkait pengguna di Supabase.
+6. Sistem autentikasi dan pengelolaan session.
+7. Sistem notifikasi yang sudah tersedia, jika ada.
+8. Sistem upload file dan konfigurasi Supabase Storage.
+9. Sistem tombol kembali pada setiap halaman.
+10. Struktur branch dan perubahan kode yang sedang berjalan.
 
-- Marketing dapat memilih client miliknya.
-- Marketing dapat memilih kavling yang diminati.
-- Marketing dapat membantu mengisi formulir SPK.
-- Marketing dapat membantu mengunggah dokumen dengan persetujuan client.
-- Marketing dapat mengunggah bukti transfer yang diberikan client.
-- Marketing tidak dapat menyetujui atau menolak SPK.
-- Marketing tidak dapat mengonfirmasi pembayaran.
+Jangan membuat asumsi mengenai struktur database. Periksa schema dan implementasi aktual sebelum menentukan perubahan.
 
-Booking Fee SPK adalah Rp1.000.000.
+Setelah audit, implementasikan dengan mengikuti arsitektur project yang sudah ada.
 
+## 2. Global Mobile Header
 
+Buat satu komponen reusable bernama `GlobalMobileHeader` atau sesuaikan dengan konvensi penamaan project.
 
-Ketika pengajuan SPK dibuat:
+Komponen ini harus digunakan secara konsisten di seluruh halaman utama aplikasi dan seluruh role.
 
-- Buat data pengajuan SPK.
-- Buat atau hubungkan catatan pembayaran Booking Fee sebesar Rp1.000.000 dengan status Menunggu sesuai struktur database aktual.
-- Jangan mencatatnya sebagai penerimaan kas.
-- Jangan membuat transaksi keuangan aktual sebelum pembayaran diverifikasi dan dikonfirmasi Admin.
-- Pastikan pembayaran terhubung ke SPK dan client yang benar.
-- Cegah pembuatan pembayaran ganda untuk SPK yang sama.
+### Elemen Header
 
-Admin tetap melakukan verifikasi dokumen, bukti transfer, dan mutasi rekening.
+Header minimal memiliki:
 
+- Avatar/foto profil pengguna di sebelah kiri.
+- Nama pengguna atau sapaan singkat jika sesuai dengan desain.
+- Tombol lonceng notifikasi di sebelah kanan.
+- Indikator jumlah notifikasi yang belum dibaca.
+- Tampilan yang responsif dan nyaman digunakan pada perangkat mobile.
 
+### Standar Desain
 
-Jika pembayaran dan dokumen valid, Admin mengonfirmasi SPK melalui mekanisme yang sudah berlaku.
+Gunakan pendekatan desain:
 
+- Modern, minimalis, dan profesional.
+- Tidak terlalu ramai.
+- Spacing dan alignment konsisten.
+- Ukuran avatar dan tombol konsisten.
+- Typography jelas dan mudah dibaca.
+- Menggunakan warna yang sesuai dengan identitas visual PoliLand.
+- Memiliki tampilan yang baik pada berbagai ukuran layar.
+- Memperhatikan safe area perangkat mobile.
+- Menghindari header yang terlalu tinggi sehingga mengurangi ruang konten.
 
+Jangan membuat desain header berbeda-beda untuk setiap role. Perbedaan informasi boleh disesuaikan berdasarkan role, tetapi struktur dan gaya visual harus tetap sama.
 
-Jika ditolak, simpan alasan penolakan dan izinkan proses perbaikan sesuai aturan sistem.
+## 3. Avatar dan Menu Pengguna
 
-### Perbaikan Storage SPK
+Avatar harus tersedia untuk seluruh role.
 
-Audit keberadaan bucket `spk-documents`.
+Ketika avatar diklik, tampilkan dropdown, popover, atau bottom sheet yang sesuai dengan pola UI aplikasi mobile.
 
+Isi menu pengguna:
 
+1. Foto profil atau avatar.
+2. Nama lengkap pengguna.
+3. Email pengguna.
+4. Role pengguna.
+5. Menu Profil Saya.
+6. Menu Pengaturan.
+7. Tombol Logout.
 
-Jika bucket tidak tersedia:
+Informasi pengguna harus diambil dari data autentikasi dan profil aktual, bukan data statis.
 
-### Perbaikan Storage SPK
+### Kondisi Avatar
 
-Sistem saat ini menggunakan bucket Supabase Storage:
+Tangani beberapa kondisi berikut:
 
-`spk-client-private-documents`
+- Pengguna sudah memiliki foto profil: tampilkan foto tersebut.
+- Pengguna belum memiliki foto: tampilkan avatar fallback menggunakan inisial nama.
+- Foto gagal dimuat: tampilkan fallback.
+- Pengguna belum memiliki nama lengkap: gunakan informasi yang tersedia secara aman.
 
-Gunakan bucket tersebut sebagai penyimpanan dokumen SPK. Jangan membuat bucket baru `spk-documents` dan jangan mengganti nama bucket yang sudah digunakan.
+Avatar harus tetap tampil dengan baik pada seluruh role.
 
-Ketentuan implementasi:
+## 4. Halaman Profil Pengguna
 
-1. Audit konfigurasi bucket `spk-client-private-documents`, termasuk status public/private, Storage RLS, dan kebijakan akses yang sudah diterapkan.
-2. Pastikan seluruh dokumen SPK tetap disimpan menggunakan bucket tersebut.
-3. Pastikan Marketing hanya dapat mengunggah dokumen yang berkaitan dengan pengajuan SPK milik client yang menjadi tanggung jawabnya.
-4. Marketing tidak boleh membaca, mengubah, atau menghapus dokumen SPK milik client Marketing lain.
-5. Admin dapat mengakses dan memeriksa seluruh dokumen SPK sesuai kewenangannya.
-6. Client hanya dapat mengakses dokumen miliknya sendiri apabila mekanisme akses client sudah tersedia.
-7. Gunakan signed URL atau mekanisme akses privat Supabase Storage untuk menampilkan dan mengunduh dokumen.
-8. Terapkan Storage RLS berdasarkan relasi pengajuan SPK, client, dan role pengguna.
-9. Jangan menjadikan bucket public hanya untuk mengatasi masalah akses file.
-10. Pertahankan file dan path dokumen yang sudah tersimpan. Jangan menghapus, memindahkan, atau mengubah referensi dokumen yang sudah ada tanpa kebutuhan yang jelas.
+Buat atau sempurnakan halaman profil pengguna yang dapat diakses melalui menu avatar.
 
-Sebelum mengubah Storage Policy, periksa seluruh policy yang sudah ada agar tidak terjadi konflik atau kerusakan akses dokumen.
+Halaman ini harus memiliki tampilan yang konsisten di semua role.
 
-**Penting:** Implementasi harus menggunakan bucket `spk-client-private-documents` yang sudah ada dan menyesuaikan kebijakan aksesnya dengan kewenangan Marketing, Kepala Bagian, Admin, dan Client.
+### Informasi Profil
 
-Jangan mengubah alur keuangan yang sudah berjalan tanpa memastikan relasi pembayaran dan proses verifikasinya.
+Tampilkan data yang relevan berdasarkan schema database, seperti:
 
-## 2. Aturan Komisi
+- Foto profil.
+- Nama lengkap.
+- Email.
+- Nomor telepon.
+- Role.
+- Departemen atau divisi jika tersedia.
+- Informasi tambahan yang memang tersedia di database.
 
-Aturan komisi perusahaan belum ditetapkan dan tabel komisi saat ini belum memiliki data.
+Jangan menampilkan field yang tidak relevan atau tidak tersedia.
 
+### Edit Profil
 
+Pengguna dapat mengubah informasi pribadi yang memang diizinkan.
 
-Untuk sementara:
+Sediakan fitur upload dan ganti foto profil.
 
-- Jangan membuat persentase komisi sendiri.
-- Jangan membuat nominal komisi default.
-- Jangan menghitung komisi otomatis berdasarkan nilai penjualan.
-- Marketing hanya dapat melihat komisi yang benar-benar sudah dicatat.
-- Kepala Bagian dapat melihat komisi seluruh anggota tim.
-- Admin tetap menjadi pihak yang mencatat dan mengelola komisi sesuai kewenangannya.
-- Jika belum ada data, tampilkan empty state yang informatif.
+Ketentuan upload:
 
-Jangan membuat transaksi komisi fiktif atau data dummy.
+- Format JPG, JPEG, PNG, dan WEBP.
+- Maksimal ukuran file 2 MB.
+- Tampilkan preview sebelum menyimpan.
+- Berikan indikator loading ketika upload.
+- Berikan notifikasi berhasil atau gagal.
+- Simpan file menggunakan Supabase Storage.
+- Simpan URL atau path foto ke field profil yang sesuai.
+- Pastikan kebijakan Storage dan RLS tidak memungkinkan pengguna mengubah foto profil pengguna lain.
+- Setelah berhasil upload, avatar di seluruh aplikasi harus langsung diperbarui tanpa harus logout atau login ulang.
 
+Jangan membuat tabel baru jika struktur database yang tersedia sudah mendukung kebutuhan ini.
 
+## 5. Sistem Notifikasi Global
 
-Dokumentasikan bahwa perhitungan otomatis komisi menunggu keputusan resmi perusahaan mengenai dasar perhitungan, persentase, syarat pencairan, dan pembagian komisi.
+Periksa dan evaluasi kembali sistem notifikasi yang sudah ada.
 
-## 3. Pemindahan Client Antar-Marketing
+Jika belum tersedia, implementasikan sistem notifikasi yang terintegrasi dengan Supabase.
 
-Berikan kewenangan pemindahan client kepada:
+Notifikasi harus berdasarkan kejadian nyata pada database, bukan sekadar notifikasi dummy dari frontend.
 
-- Admin.
-- Kepala Bagian dengan department Marketing.
+### A. Notifikasi Admin
 
-Kepala Bagian hanya boleh memindahkan client kepada Marketing dalam departemen yang sama.
+Admin menerima notifikasi terkait aktivitas penting seluruh sistem, seperti:
 
+- Pengajuan SPK baru.
+- Pengajuan pembayaran yang membutuhkan verifikasi.
+- Pembayaran yang berhasil diverifikasi atau ditolak.
+- Klien atau calon klien baru.
+- Perubahan status kavling yang penting.
+- Aktivitas penting lain yang membutuhkan perhatian Admin.
 
+### B. Notifikasi Marketing
 
-Marketing tidak boleh memindahkan client sendiri atau mengambil alih client milik Marketing lain.
+Marketing menerima notifikasi yang berkaitan dengan aktivitas dan klien miliknya sendiri, seperti:
 
+- Calon klien baru yang ditugaskan kepadanya.
+- Perubahan perkembangan calon klien.
+- Pengajuan SPK miliknya.
+- Status verifikasi SPK.
+- Pembayaran klien miliknya yang berhasil dikonfirmasi.
+- Informasi komisi apabila terdapat perubahan.
+- Informasi penting terkait klien yang ditanganinya.
 
+Marketing tidak boleh menerima informasi pribadi atau aktivitas klien milik marketing lain tanpa hak akses.
 
-Setiap perpindahan harus mencatat:
+### C. Notifikasi Kepala Marketing / Kepala Bagian
 
-- Client ID.
-- Marketing sebelumnya.
-- Marketing penerima.
-- User yang melakukan pemindahan.
-- Tanggal dan waktu.
-- Alasan pemindahan.
+Jika role ini sudah tersedia, notifikasi harus mencakup aktivitas tim atau departemen yang menjadi tanggung jawabnya, seperti:
 
-Riwayat penugasan harus dipertahankan dan tidak boleh dihapus atau ditimpa.
+- Pengajuan SPK dari anggota tim.
+- Perubahan perkembangan calon klien anggota tim.
+- Aktivitas pembayaran yang relevan.
+- Perubahan status anggota tim.
+- Informasi lain yang membutuhkan pengawasan.
 
+Pastikan cakupan notifikasi sesuai dengan hak akses departemen yang berlaku.
 
+### D. Notifikasi Client
 
-Pemindahan client tidak boleh mengubah atau menghapus riwayat SPK, pembayaran, transaksi, maupun aktivitas sebelumnya.
+Client menerima notifikasi yang hanya berkaitan dengan akun dan transaksinya sendiri, seperti:
 
+- Perubahan status pengajuan SPK.
+- Informasi pembayaran yang harus dilakukan.
+- Pengingat pembayaran.
+- Konfirmasi pembayaran.
+- Informasi perkembangan proyek.
+- Informasi penting terkait kavling yang dimiliki atau dipesan.
 
+Client tidak boleh menerima informasi transaksi pengguna lain.
 
-Jangan otomatis mengalihkan hak komisi akibat perpindahan. Perlakuan komisi menunggu kebijakan resmi perusahaan.
+### E. Notifikasi Owner
 
-## 4. Client yang Mendaftar Sendiri
+Role Owner sedang dikembangkan oleh developer lain pada branch terpisah.
 
-Client yang mendaftar sendiri tanpa melalui Marketing harus tetap masuk ke database client yang sama.
+Karena itu:
 
+- Siapkan kompatibilitas komponen header dan notifikasi dengan role Owner.
+- Jangan mengasumsikan Owner memiliki seluruh hak akses Admin.
+- Jangan membuat permission Owner secara sembarangan.
+- Jangan mengubah atau menghapus implementasi Owner yang sudah dikerjakan.
+- Jika konfigurasi role Owner belum tersedia di branch saat ini, buat integrasi yang tidak mengharuskan perubahan terhadap implementasi branch tersebut.
+- Hak akses dan jenis notifikasi Owner harus mengikuti implementasi resmi ketika branch Owner diintegrasikan.
 
+## 6. Tampilan Notification Center
 
-Gunakan mekanisme penugasan client.
+Ketika tombol lonceng diklik, tampilkan Notification Center yang profesional dan mudah digunakan.
 
+Isi minimal:
 
+- Judul Notifikasi.
+- Jumlah notifikasi belum dibaca.
+- Daftar notifikasi.
+- Ikon berdasarkan jenis notifikasi.
+- Judul dan deskripsi singkat.
+- Waktu notifikasi.
+- Indikator sudah dibaca atau belum.
+- Aksi untuk menandai notifikasi sebagai sudah dibaca.
+- Aksi Tandai Semua Dibaca.
+- Navigasi menuju halaman terkait ketika notifikasi diklik.
 
-Ketentuan:
+Sediakan tampilan khusus ketika tidak ada notifikasi, dengan empty state yang menarik dan sesuai dengan desain PoliLand.
 
-- Client yang belum memiliki Marketing penanggung jawab berstatus belum ditugaskan atau menggunakan representasi NULL pada relasi marketing yang sesuai dengan struktur database.
-- Kepala Bagian Marketing dapat melihat seluruh client yang belum ditugaskan.
-- Admin dapat melihat seluruh client.
-- Marketing hanya dapat melihat client yang ditugaskan kepadanya.
-- Client tetap dapat menggunakan aplikasi meskipun belum ditugaskan.
-- Kepala Bagian dapat menunjuk Marketing sebagai penanggung jawab.
-- Admin juga dapat melakukan penugasan.
-- Simpan riwayat setiap penugasan.
+### Aturan Notifikasi
 
-Buat bagian khusus pada halaman Kepala Bagian:\
-**Client Belum Ditugaskan**
+1. Notifikasi harus sesuai dengan role pengguna.
+2. Pengguna hanya dapat membaca notifikasi yang menjadi haknya.
+3. Jumlah badge harus mencerminkan jumlah notifikasi yang belum dibaca.
+4. Badge dapat menampilkan `99+` jika jumlahnya melebihi 99.
+5. Notifikasi harus diperbarui secara otomatis.
+6. Gunakan Supabase Realtime jika sesuai dengan arsitektur project.
+7. Hindari notifikasi duplikat untuk satu kejadian.
+8. Simpan waktu pembuatan dan waktu dibaca.
+9. Jangan membuat notifikasi untuk setiap perubahan kecil yang tidak penting.
+10. Gunakan kategori dan prioritas agar notifikasi penting mudah dikenali.
 
+Jika perlu membuat tabel notifikasi, rancang struktur yang mendukung:
+- ID notifikasi.
+- Penerima notifikasi.
+- Role atau cakupan penerima jika diperlukan.
+- Jenis notifikasi.
+- Judul.
+- Deskripsi.
+- Referensi data terkait.
+- Status sudah dibaca.
+- Waktu pembuatan.
+- Waktu dibaca.
 
+Sesuaikan dengan schema aktual dan gunakan RLS untuk mengamankan data.
 
-Tampilkan:
+## 7. Konsistensi Tombol Kembali di Semua Halaman
 
-- Nama client.
-- Nomor kontak.
-- Tanggal pendaftaran.
-- Minat kavling jika tersedia.
-- Status perkembangan.
-- Tombol untuk menugaskan Marketing.
+Ini merupakan salah satu bagian paling penting.
 
-Ketika client ditugaskan:
+**JANGAN menempatkan tombol kembali di dalam Global Mobile Header.**
 
-- Hubungkan client dengan Marketing penerima.
-- Catat riwayat penugasan.
-- Kirim notifikasi kepada Marketing penerima jika sistem notifikasi mendukungnya.
-- Client muncul pada daftar client Marketing penerima.
+Tombol kembali harus berada di luar header, tepatnya pada area konten halaman.
 
-Jangan membuat client baru ketika melakukan penugasan. Gunakan record client yang sama.
+Buat komponen reusable seperti `PageHeader`, `PageBackButton`, atau nama lain yang sesuai dengan arsitektur project.
 
-## 5. Security dan Integrasi
+### Aturan Penempatan
 
-Seluruh ketentuan harus diterapkan melalui:
+- Tombol kembali berada di atas judul halaman atau di area kiri atas konten.
+- Global Mobile Header tetap berada di posisi yang konsisten.
+- Halaman utama seperti Dashboard, Beranda, atau halaman root tidak perlu tombol kembali.
+- Halaman detail, form, edit, pengaturan, dan halaman turunan menggunakan tombol kembali apabila memang memiliki halaman sebelumnya.
+- Jangan menampilkan tombol kembali pada halaman yang tidak membutuhkannya.
 
-- Frontend.
-- Supabase RLS.
-- Database functions/RPC jika dibutuhkan.
-- Validasi server-side.
-- Activity logs.
+### Aturan Navigasi
 
-Jangan hanya menyembunyikan tombol di frontend.
+Periksa seluruh sistem navigasi.
 
+Pastikan tombol kembali:
 
+1. Menggunakan mekanisme navigasi resmi aplikasi.
+2. Kembali ke halaman sebelumnya secara benar.
+3. Tidak selalu diarahkan ke Dashboard secara paksa.
+4. Tidak menyebabkan halaman kosong.
+5. Tidak menyebabkan navigasi berulang atau loop.
+6. Memiliki fallback yang aman apabila halaman tidak memiliki history navigasi.
+7. Konsisten pada seluruh role.
+
+Perhatikan juga perilaku tombol Back bawaan Android agar tidak bertentangan dengan tombol kembali di dalam aplikasi.
+
+Jangan membuat setiap halaman memiliki implementasi tombol kembali yang berbeda-beda.
+
+## 8. Arsitektur Komponen yang Disarankan
+
+Gunakan komponen reusable agar tidak terjadi duplikasi kode.
+
+Contoh struktur konseptual:
+
+- `GlobalMobileHeader`
+  - `UserAvatar`
+  - `UserMenu`
+  - `NotificationBell`
+  - `NotificationCenter`
+- `PageHeader`
+  - `PageBackButton`
+  - `PageTitle`
+  - `PageDescription`
+- `ProfilePage`
+  - `ProfileAvatar`
+  - `ProfileInformation`
+  - `EditProfileForm`
+- `NotificationService`
+- `NotificationContext` atau state management yang sudah digunakan project.
+
+Struktur ini hanya sebagai acuan. Sesuaikan dengan pola arsitektur yang sudah ada, jangan memaksakan struktur baru jika project sudah memiliki solusi yang lebih baik.
+
+## 9. Keamanan dan Integrasi Supabase
 
 Pastikan:
 
-- Marketing tidak bisa mengakses client yang tidak ditugaskan kepadanya.
-- Kepala Bagian Marketing tidak bisa mengakses data departemen lain.
-- Kepala Bagian hanya dapat menugaskan client kepada Marketing di departemennya.
-- Admin tetap memiliki kewenangan sesuai sistem.
-- Client tidak kehilangan akses ke data dan transaksi miliknya.
-- Tidak ada duplikasi data client.
-- Tidak ada duplikasi pembayaran SPK.
-- Tidak ada penerimaan kas sebelum verifikasi Admin.
+- RLS tetap aktif dan benar.
+- Pengguna tidak dapat membaca notifikasi pengguna lain.
+- Pengguna tidak dapat mengubah profil pengguna lain.
+- Upload foto memiliki validasi ukuran dan format.
+- Storage tidak terbuka secara tidak aman.
+- Data role tidak dapat diubah oleh pengguna melalui frontend.
+- Proses logout menghapus session dengan benar.
+- Realtime hanya menerima data sesuai hak akses.
+- Jangan menaruh service role key di frontend.
 
-## 6. Testing Tambahan
+Jika memerlukan perubahan database, buat migration SQL yang aman dan sesuai dengan schema aktual.
 
-Uji skenario:
+Jangan menghapus tabel, kolom, policy, trigger, atau function yang sudah digunakan fitur lain tanpa alasan teknis yang jelas.
 
-1. Marketing mengajukan SPK atas nama client.
-2. Pembayaran Booking Fee dibuat dengan status Menunggu.
-3. Admin dapat melihat dokumen dan pembayaran SPK.
-4. Admin mengonfirmasi pembayaran dan SPK.
-5. Pembayaran tidak membuat penerimaan kas ganda.
-6. Kepala Bagian memindahkan client antar-Marketing.
-7. Marketing tidak dapat memindahkan client.
-8. Client mendaftar sendiri dan belum ditugaskan.
-9. Kepala Bagian melihat client yang belum ditugaskan.
-10. Kepala Bagian menugaskan client kepada Marketing.
-11. Marketing penerima dapat melihat client tersebut.
-12. Marketing lain tidak dapat melihat client tersebut.
-13. Riwayat penugasan tetap tersimpan.
-14. Halaman komisi menampilkan kondisi kosong jika belum ada data.
+## 10. Konsistensi di Semua Role
 
-Implementasikan keputusan ini dengan mempertahankan struktur database dan alur transaksi yang sudah berjalan. Jangan mengarang aturan bisnis yang belum ditetapkan.
+Implementasikan Global Mobile Header pada seluruh role yang sudah tersedia di branch saat ini.
 
+Minimal lakukan pemeriksaan terhadap:
 
+- Admin.
+- Marketing.
+- Client.
+- Kepala Marketing atau Kepala Bagian jika sudah tersedia.
 
+Untuk Owner, siapkan kompatibilitas tanpa mengganggu pengembangan di branch lain.
 
+Pastikan:
 
-saya pke spk-client-private-documents  untuk upload dokumen
+- Struktur header sama.
+- Posisi avatar sama.
+- Posisi lonceng sama.
+- Ukuran komponen sama.
+- Gaya visual sama.
+- Perilaku menu profil sama.
+- Perilaku notification center sama.
+- Pola tombol kembali sama.
+
+Konten dan data yang ditampilkan boleh berbeda berdasarkan role dan permission.
+
+## 11. Pengujian Wajib
+
+Setelah implementasi, lakukan pengujian.
+
+### Pengujian Header
+- Avatar tampil di seluruh role.
+- Avatar fallback bekerja.
+- Menu pengguna dapat dibuka dan ditutup.
+- Informasi pengguna sesuai akun yang login.
+- Logout berfungsi.
+
+### Pengujian Profil
+- Profil dapat dibuka.
+- Data profil tampil sesuai database.
+- Edit profil berfungsi.
+- Upload foto berfungsi.
+- Avatar diperbarui setelah upload.
+- Pengguna tidak dapat mengubah profil pengguna lain.
+
+### Pengujian Notifikasi
+- Notifikasi muncul ketika terjadi perubahan data yang relevan.
+- Notifikasi sesuai dengan role.
+- Badge jumlah belum dibaca benar.
+- Tandai dibaca berfungsi.
+- Tandai semua dibaca berfungsi.
+- Navigasi ke halaman terkait berfungsi.
+- Tidak ada notifikasi duplikat.
+- RLS mencegah akses notifikasi pengguna lain.
+
+### Pengujian Navigasi
+- Tombol kembali tidak berada di dalam header.
+- Tombol kembali konsisten pada seluruh halaman turunan.
+- Halaman utama tidak memiliki tombol kembali yang tidak diperlukan.
+- Navigasi kembali tidak menyebabkan error.
+- Android Back Button bekerja dengan benar.
+
+### Pengujian Kompatibilitas
+- Pastikan perubahan tidak merusak role yang sudah ada.
+- Pastikan tidak mengganggu fitur yang sedang dikembangkan.
+- Pastikan integrasi Owner tetap memungkinkan ketika branch Owner digabungkan.
+
+## 12. Aturan Penting Selama Pengembangan
+
+1. Jangan mengubah desain atau fungsi halaman lain yang tidak berkaitan dengan pekerjaan ini.
+2. Jangan menghapus fitur yang sudah berjalan.
+3. Jangan mengganti sistem navigasi tanpa alasan teknis yang kuat.
+4. Jangan membuat data dummy untuk menggantikan integrasi database.
+5. Jangan membuat komponen header terpisah untuk setiap role.
+6. Jangan menempatkan tombol kembali di dalam header global.
+7. Jangan mengasumsikan permission Owner.
+8. Jangan melakukan perubahan yang berpotensi menimpa pekerjaan developer lain.
+9. Pertahankan standar coding dan struktur project yang sudah ada.
+10. Pastikan seluruh perubahan dapat dijalankan dan tidak menghasilkan error.
+
+## 13. Laporan Hasil Implementasi
+
+Setelah selesai, berikan laporan yang menjelaskan:
+
+1. Komponen dan file yang dibuat.
+2. File yang dimodifikasi.
+3. Perubahan database dan migration SQL jika ada.
+4. Integrasi Supabase yang dilakukan.
+5. Role yang sudah berhasil diintegrasikan.
+6. Jenis notifikasi yang sudah diimplementasikan untuk setiap role.
+7. Perubahan sistem tombol kembali.
+8. Hasil pengujian.
+9. Kendala atau fitur yang belum selesai.
+10. Hal yang perlu diperhatikan ketika branch Owner digabungkan.
+
+**TARGET AKHIR:**
+
+Saya ingin PoliLand memiliki satu sistem Global Mobile Header yang modern, profesional, dan konsisten di seluruh role. Avatar pengguna, menu profil, notifikasi, halaman profil, dan tombol kembali harus memiliki standar desain serta perilaku yang seragam.
+
+Implementasikan secara menyeluruh, bukan hanya membuat tampilan UI. Pastikan seluruh fungsi benar-benar terhubung dengan autentikasi, database, sistem navigasi, dan hak akses aplikasi PoliLand.

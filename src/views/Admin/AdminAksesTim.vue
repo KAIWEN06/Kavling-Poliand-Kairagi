@@ -8,21 +8,11 @@
 
     <ion-content :fullscreen="true">
       <main class="team-shell">
-        <router-link
-          v-if="!selectedMarketing && currentRole === 'admin'"
-          to="/admin/lainnya"
-          class="back-button page-back-button"
-        >
-          <ion-icon :icon="arrowBackOutline" />
-          <span>Kembali</span>
-        </router-link>
+        <PageBackButton v-if="!selectedMarketing && currentRole === 'admin'" fallback="/admin/lainnya" />
 
         <template v-if="selectedMarketing">
           <div class="detail-topbar">
-            <button class="back-button" type="button" @click="closeMarketingDetail">
-              <ion-icon :icon="arrowBackOutline" />
-              <span>Kembali ke Akses Tim</span>
-            </button>
+            <PageBackButton :handler="closeMarketingDetail" label="Akses Tim" />
           </div>
 
           <section class="detail-heading">
@@ -282,6 +272,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
+import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import { authService, type UserRole } from '@/services/auth/authService'
 import {

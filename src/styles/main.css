@@ -42,3 +42,94 @@ body {
 ion-button {
   font-weight: var(--font-weight-semibold);
 }
+
+/* ---------------------------------------------------------------
+   Utilitas tipografi design system v2
+   --------------------------------------------------------------- */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-display);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.t-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-snug);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.t-title {
+  font-weight: 700;
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+}
+
+.t-body {
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+}
+
+.t-caption {
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+/* Angka keuangan, harga, statistik: lebar tetap agar kolom lurus */
+.t-figure {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
+  letter-spacing: -0.01em;
+}
+
+.t-num {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
+}
+
+/* Fokus keyboard konsisten di seluruh aplikasi */
+:where(button, a, [role='button'], [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ---------------------------------------------------------------
+   Transisi halaman (komponen <PageTransition>)
+   --------------------------------------------------------------- */
+.pl-page-enter-active {
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+.pl-page-leave-active {
+  transition: opacity var(--dur-fast) var(--ease-in);
+}
+.pl-page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.pl-page-leave-to {
+  opacity: 0;
+}
+
+/* ---------------------------------------------------------------
+   Reduced motion: hormati preferensi sistem secara global
+   --------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

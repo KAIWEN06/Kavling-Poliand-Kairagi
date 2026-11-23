@@ -5,6 +5,9 @@ import router from './router'
 
 import { IonicVue } from '@ionic/vue'
 import { initializeAuthDeepLinks } from '@/services/authDeepLink'
+import { authService } from '@/services/auth/authService'
+import { consumeOAuthUrlError } from '@/services/auth/authUrlError'
+import { poliPageTransition } from '@/utils/pageTransition'
 
 // Ionic Core
 import '@ionic/vue/css/core.css'
@@ -28,6 +31,8 @@ import '@fontsource/plus-jakarta-sans/500.css'
 import '@fontsource/plus-jakarta-sans/600.css'
 import '@fontsource/plus-jakarta-sans/700.css'
 import '@fontsource/plus-jakarta-sans/800.css'
+// Font display (judul dan angka besar)
+import '@fontsource-variable/fraunces'
 
 // Tailwind CSS
 import './styles/main.css'
@@ -40,7 +45,7 @@ import './theme/variables.css'
 const app = createApp(App)
 
 app
-  .use(IonicVue)
+  .use(IonicVue, { navAnimation: poliPageTransition })
   .use(router)
 
 // Initialize application
@@ -48,6 +53,29 @@ async function bootstrap() {
   try {
     // Daftarkan listener callback Google OAuth
     await initializeAuthDeepLinks()
+
+    // Callback OAuth yang sudah terpakai: bersihkan URL lalu arahkan ke login.
+    const oauthError = consumeOAuthUrlError()
+    if (oauthError) {
+      // Callback ganda: login pertama biasanya sudah berhasil. Jika sesi ada,
+      // langsung masuk ke beranda sesuai role, bukan menampilkan error.
+      let destination: string | null = null
+      try {
+        const session = await authService.getSession()
+        if (session) {
+          const role = await authService.getUserRole(session.user.id)
+          destination = authService.getRoleHomePath(role) ?? null
+        }
+      } catch {
+        // Lanjut ke halaman login.
+      }
+
+      if (destination) {
+        await router.replace(destination)
+      } else {
+        await router.replace({ name: 'Login', query: { error: oauthError } })
+      }
+    }
 
     // Tunggu router siap sebelum mounting
     await router.isReady()

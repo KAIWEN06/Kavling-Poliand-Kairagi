@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  IonButton,
   IonContent,
   IonIcon,
   IonPage,
@@ -10,16 +9,10 @@ import {
 } from '@ionic/vue'
 import {
   calendarOutline,
-  cardOutline,
-  cashOutline,
   checkmarkCircle,
   chevronForward,
   documentTextOutline,
-  gridOutline,
-  listOutline,
   logOutOutline,
-  mapOutline,
-  timeOutline,
 } from 'ionicons/icons'
 
 import { authService } from '@/services/auth/authService'
@@ -32,6 +25,13 @@ import {
 } from '@/services/clientSpkService'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import Reveal from '@/components/ui/Reveal.vue'
+import Skeleton from '@/components/ui/Skeleton.vue'
+import StatusBadge, { type BadgeTone } from '@/components/ui/StatusBadge.vue'
+import { useClientPurchaseOverview } from '@/composables/useClientPurchaseOverview'
 
 const router = useRouter()
 const clientName = ref('Pembeli')
@@ -121,6 +121,78 @@ function formatSurveyDate(value: string) {
   })
 }
 
+const {
+  loading: purchaseLoading,
+  error: purchaseError,
+  overview,
+  otherLotCount,
+  remaining,
+  progressPercent,
+  paidInstallments,
+  nextSchedule,
+  load: loadPurchase,
+} = useClientPurchaseOverview()
+
+const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })
+
+function formatRupiah(value: number) {
+  return rupiah.format(value)
+}
+
+function formatDay(value: string | null) {
+  if (!value) return 'Belum dijadwalkan'
+  const date = new Date(`${value.slice(0, 10)}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return '-'
+  return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+}
+
+function isOverdue(schedule: { dueDate: string | null; status: string } | null) {
+  if (!schedule) return false
+  if (schedule.status === 'Overdue') return true
+  if (!schedule.dueDate) return false
+  return new Date(`${schedule.dueDate.slice(0, 10)}T23:59:59`).getTime() < Date.now()
+}
+
+const transactionBadge = computed<{ tone: BadgeTone; label: string }>(() => {
+  const status = overview.value?.transactionStatus
+  if (status === 'Sold') return { tone: 'success', label: 'Terjual' }
+  if (status === 'Booking') return { tone: 'gold', label: 'Booking' }
+  return { tone: 'neutral', label: status || 'Dalam proses' }
+})
+
+const paymentStateBadge = computed<{ tone: BadgeTone; label: string }>(() => {
+  const o = overview.value
+  if (!o) return { tone: 'neutral', label: '-' }
+  if (o.finalPrice > 0 && remaining.value === 0) return { tone: 'success', label: 'Lunas' }
+  if (isOverdue(nextSchedule.value)) return { tone: 'danger', label: 'Ada cicilan terlambat' }
+  if (o.pendingCount > 0) return { tone: 'warning', label: 'Menunggu verifikasi' }
+  return { tone: 'info', label: 'Sesuai jadwal' }
+})
+
+function paymentTone(status: string): BadgeTone {
+  if (status === 'Confirmed') return 'success'
+  if (status === 'Pending') return 'warning'
+  return 'danger'
+}
+
+function paymentLabel(status: string) {
+  if (status === 'Confirmed') return 'Dikonfirmasi'
+  if (status === 'Pending') return 'Menunggu'
+  if (status === 'Needs Reupload') return 'Unggah ulang'
+  if (status === 'Rejected') return 'Ditolak'
+  return status
+}
+
+const schemeLabel = computed(() => {
+  const o = overview.value
+  if (!o) return ''
+  return o.paymentType === 'Installment' && o.months ? `Cicilan ${o.months} bulan` : 'Tunai'
+})
+
+const recentPayments = computed(() => overview.value?.payments.slice(0, 5) ?? [])
+
+const today = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
+
 onMounted(() => {
   void loadClientName()
 })
@@ -128,6 +200,7 @@ onMounted(() => {
 onIonViewWillEnter(() => {
   void loadClientDocuments()
   void loadScheduledSurveys()
+  void loadPurchase()
 })
 
 async function logout() {
@@ -142,284 +215,206 @@ function goTo(path: string) {
 
 <template>
   <ion-page>
-    <app-header
-      variant="client"
-      title="PoliLand Kairagi"
-      :show-back="false"
-    />
+    <app-header variant="client" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content class="client-content" :fullscreen="true">
-      <main class="dashboard">
-        <!-- Sambutan -->
-        <section class="welcome-card" aria-labelledby="welcome-title">
-          <div class="welcome-heading">
-            <div class="welcome-copy">
-              <p class="welcome-eyebrow">SELAMAT DATANG,</p>
-              <h1 id="welcome-title">{{ clientName }}</h1>
-            </div>
-            <ion-button
-              class="logout-icon-button"
-              fill="solid"
-              aria-label="Keluar dari akun"
-              @click="logout"
-            >
-              <ion-icon :icon="logOutOutline" />
-            </ion-button>
-          </div>
-          <p class="welcome-description">
-            Pantau proses pembelian kavling Anda di PoliLand Kairagi.
-          </p>
+      <main class="dash">
+        <Reveal :order="0">
+          <PageHeader :title="`Halo, ${clientName}`" :subtitle="`Pantau proses pembelian kavling Anda di PoliLand Kairagi. ${today}.`">
+            <template #actions>
+              <AppButton size="small" fill="outline" @click="goTo('/client/kavling')">Lihat kavling</AppButton>
+              <button type="button" class="icon-btn" aria-label="Keluar dari akun" @click="logout">
+                <ion-icon :icon="logOutOutline" aria-hidden="true" />
+              </button>
+            </template>
+          </PageHeader>
+        </Reveal>
 
-          <ion-button
-            class="gold-button welcome-button"
-            @click="goTo('/client/kavling')"
-          >
-            <ion-icon slot="start" :icon="gridOutline" />
-            Lihat Kavling
-            <ion-icon slot="end" :icon="chevronForward" />
-          </ion-button>
-        </section>
-
-        <section v-if="surveysLoaded && scheduledSurveyLots.length" class="dashboard-card survey-reminder-card" aria-labelledby="survey-reminder-title">
-          <div class="section-heading">
-            <div class="heading-title">
-              <span class="heading-icon success-icon"><ion-icon :icon="calendarOutline" /></span>
-              <h2 id="survey-reminder-title">Jadwal Survei Kavling</h2>
-            </div>
-            <span class="survey-count">{{ scheduledSurveyLots.length }}</span>
-          </div>
-          <div class="survey-reminder-list">
-            <button v-for="survey in scheduledSurveyLots" :key="survey.id" type="button" class="survey-reminder-item" @click="goTo(`/client/kavling/${survey.id}`)">
-              <span>
-                <strong>{{ survey.lotNumber }}</strong>
-                <small>{{ formatSurveyDate(survey.scheduledAt) }}</small>
-              </span>
-              <span class="survey-status-label">{{ survey.status === 'confirmed' ? 'Dikonfirmasi' : 'Menunggu' }}</span>
-            </button>
-          </div>
-        </section>
-
-        <!-- Status pembelian -->
-        <section class="dashboard-card purchase-card" aria-labelledby="purchase-title">
-          <div class="section-heading">
-            <div class="heading-title">
-              <span class="heading-icon gold-icon">
-                <ion-icon :icon="documentTextOutline" />
-              </span>
-              <h2 id="purchase-title">Status Pembelian Saya</h2>
-            </div>
-            <span class="booking-badge">Booking</span>
-          </div>
-
-          <div class="lot-summary">
-            <span class="lot-icon">
-              <ion-icon :icon="mapOutline" />
-            </span>
-
-            <div class="lot-info">
-              <h3>Blok A - No. A03</h3>
-              <p>Luas 120 m²</p>
-            </div>
-
-            <button
-              class="icon-link"
-              type="button"
-              aria-label="Lihat detail kavling"
-              @click="goTo('/client/kavling')"
-            >
-              <ion-icon :icon="chevronForward" />
-            </button>
-          </div>
-
-          <div class="purchase-details">
-            <div class="detail-row">
-              <span class="detail-label">
-                <ion-icon :icon="calendarOutline" />
-                Tanggal Booking
-              </span>
-              <span class="detail-value">12 Okt 2026</span>
-            </div>
-
-            <div class="detail-row">
-              <span class="detail-label">
-                <ion-icon :icon="cardOutline" />
-                Skema Pembayaran
-              </span>
-              <span class="detail-value">Cicilan 12 Bulan</span>
-            </div>
-
-            <div class="detail-row">
-              <span class="detail-label">
-                <ion-icon :icon="timeOutline" />
-                Status Pembayaran
-              </span>
-              <span class="status-badge status-danger">Belum Jatuh Tempo</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- Progress pembayaran -->
-        <section class="dashboard-card progress-card" aria-labelledby="progress-title">
-          <div class="section-heading progress-heading">
-            <div class="heading-title">
-              <span class="heading-icon gold-icon">
-                <ion-icon :icon="cardOutline" />
-              </span>
-              <div>
-                <h2 id="progress-title">Progress Pembayaran</h2>
-                <p class="section-subtitle">Cicilan 12 Bulan</p>
-              </div>
-            </div>
-
-            <ion-button
-              class="gold-button detail-button"
-              @click="goTo('/client/pembayaran')"
-            >
-              Lihat Detail
-              <ion-icon slot="end" :icon="chevronForward" />
-            </ion-button>
-          </div>
-
-          <div class="progress-line-row">
-            <div
-              class="progress-track"
-              role="progressbar"
-              aria-label="Progress cicilan"
-              aria-valuemin="0"
-              aria-valuemax="12"
-              aria-valuenow="3"
-            >
-              <span class="progress-fill"></span>
-            </div>
-
-            <div class="progress-count">
-              <strong>3 <span>/ 12</span></strong>
-              <small>Cicilan</small>
-            </div>
-          </div>
-
-          <div class="payment-totals">
-            <div class="total-box">
-              <div class="total-label">
-                <span class="small-icon success-icon">
-                  <ion-icon :icon="cashOutline" />
-                </span>
-                <span>Total Dibayar</span>
-              </div>
-              <strong>Rp 50.000.000</strong>
-            </div>
-
-            <div class="total-box">
-              <div class="total-label">
-                <span class="small-icon gold-icon">
-                  <ion-icon :icon="documentTextOutline" />
-                </span>
-                <span>Sisa Pembayaran</span>
-              </div>
-              <strong>Rp 20.000.000</strong>
-            </div>
-          </div>
-        </section>
-
-        <!-- Jadwal dan dokumen -->
-        <div class="quick-cards">
-          <button
-            class="dashboard-card quick-card"
-            type="button"
-            @click="goTo('/client/pembayaran')"
-          >
-            <span class="heading-icon gold-icon quick-card-icon">
-              <ion-icon :icon="calendarOutline" />
-            </span>
-
-            <div class="quick-card-content">
-              <h2>Jadwal Pembayaran Berikutnya</h2>
-              <div class="next-payment">
-                <strong>12 Okt 2026</strong>
-                <div class="installment-caption">
-                  <span>Cicilan ke-4</span>
-                  <span class="status-badge status-danger">Belum Dibayar</span>
+        <div class="dash__grid">
+          <!-- PROPERTI + PROGRES PEMBAYARAN -->
+          <Reveal :order="1" class="area-hero">
+            <section aria-labelledby="purchase-title">
+              <div v-if="purchaseLoading && !overview" class="card" role="status" aria-label="Memuat data pembelian">
+                <div class="skel">
+                  <Skeleton width="45%" height="36px" border-radius="8px" />
+                  <Skeleton height="12px" border-radius="6px" />
+                  <div class="skel__row"><Skeleton height="56px" /><Skeleton height="56px" /></div>
                 </div>
               </div>
-            </div>
 
-            <ion-icon class="quick-chevron" :icon="chevronForward" />
-          </button>
+              <div v-else-if="purchaseError" class="alert" role="alert">
+                <div>
+                  <strong>Data pembelian belum dapat dimuat</strong>
+                  <p>{{ purchaseError }}</p>
+                </div>
+                <AppButton size="small" @click="loadPurchase">Coba lagi</AppButton>
+              </div>
 
-          <button
-            class="dashboard-card quick-card document-card"
-            type="button"
-            @click="goTo('/client/dokumen')"
-          >
-            <span class="heading-icon gold-icon quick-card-icon">
-              <ion-icon :icon="documentTextOutline" />
-            </span>
+              <div v-else-if="!overview" class="card">
+                <h2 id="purchase-title" class="sr-only">Status pembelian</h2>
+                <EmptyState
+                  kind="lots"
+                  title="Belum ada pembelian kavling"
+                  description="Setelah Anda memesan kavling, ringkasan pembelian dan jadwal pembayaran muncul di sini."
+                >
+                  <AppButton @click="goTo('/client/kavling')">Lihat kavling</AppButton>
+                </EmptyState>
+              </div>
 
-            <div class="quick-card-content">
-              <h2>Dokumen Saya</h2>
-              <p v-if="uploadedDocumentCount > 0" class="document-description">
-                {{ uploadedDocumentLabels.join(', ') }}
-              </p>
-              <span
-                v-if="documentsLoaded && uploadedDocumentCount > 0"
-                class="document-status"
+              <div v-else class="hero">
+                <div class="hero__top">
+                  <div class="hero__lot">
+                    <h2 id="purchase-title" class="hero__title t-figure">{{ overview.lotLabel }}</h2>
+                    <span class="hero__meta">
+                      <span v-if="overview.area">{{ overview.area }} m²</span>
+                      <span>{{ schemeLabel }}</span>
+                      <span>Booking {{ formatDay(overview.bookingDate) }}</span>
+                    </span>
+                  </div>
+                  <StatusBadge :tone="transactionBadge.tone" :label="transactionBadge.label" />
+                </div>
+
+                <div class="hero__money">
+                  <div>
+                    <small>Total dibayar</small>
+                    <strong class="t-figure">{{ formatRupiah(overview.paidTotal) }}</strong>
+                  </div>
+                  <div>
+                    <small>Sisa pembayaran</small>
+                    <strong class="t-figure hero__remaining">{{ formatRupiah(remaining) }}</strong>
+                  </div>
+                </div>
+
+                <div
+                  class="hero__bar"
+                  role="progressbar"
+                  aria-label="Progres pembayaran"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  :aria-valuenow="progressPercent"
+                >
+                  <span class="hero__fill" :style="{ width: `${progressPercent}%` }"></span>
+                </div>
+
+                <div class="hero__foot">
+                  <span class="t-num">{{ progressPercent }}% dari {{ formatRupiah(overview.finalPrice) }}</span>
+                  <span v-if="overview.schedules.length" class="t-num">{{ paidInstallments }} / {{ overview.schedules.length }} cicilan</span>
+                </div>
+
+                <div class="hero__actions">
+                  <StatusBadge :tone="paymentStateBadge.tone" :label="paymentStateBadge.label" />
+                  <span v-if="overview.pendingCount" class="hero__note">{{ overview.pendingCount }} pembayaran menunggu verifikasi Admin</span>
+                  <button type="button" class="hero__link" @click="goTo('/client/pembayaran')">
+                    Lihat pembayaran <ion-icon :icon="chevronForward" aria-hidden="true" />
+                  </button>
+                </div>
+
+                <button v-if="otherLotCount" type="button" class="hero__more" @click="goTo('/client/kavling')">
+                  +{{ otherLotCount }} kavling lainnya
+                </button>
+              </div>
+            </section>
+          </Reveal>
+
+          <!-- RAIL: berikutnya, survei, dokumen -->
+          <div class="rail">
+            <Reveal :order="2">
+              <button
+                v-if="overview && nextSchedule"
+                type="button"
+                class="card next"
+                :class="{ 'next--late': isOverdue(nextSchedule) }"
+                @click="goTo('/client/pembayaran')"
               >
-                <ion-icon :icon="checkmarkCircle" />
-                <span>{{ uploadedDocumentCount }} jenis dokumen diunggah</span>
-              </span>
-            </div>
+                <span class="next__label">Pembayaran berikutnya</span>
+                <strong class="next__date t-figure">{{ formatDay(nextSchedule.dueDate) }}</strong>
+                <span class="next__row">
+                  <span class="t-num">Cicilan ke-{{ nextSchedule.installmentNumber }} · {{ formatRupiah(nextSchedule.amount) }}</span>
+                  <StatusBadge size="sm" :tone="isOverdue(nextSchedule) ? 'danger' : 'warning'" :label="isOverdue(nextSchedule) ? 'Terlambat' : 'Belum dibayar'" />
+                </span>
+              </button>
+              <div v-else-if="overview && overview.schedules.length" class="card next next--done">
+                <span class="next__label">Pembayaran berikutnya</span>
+                <strong class="next__date t-figure">Semua cicilan lunas</strong>
+              </div>
+            </Reveal>
 
-            <ion-icon class="quick-chevron" :icon="chevronForward" />
-          </button>
+            <Reveal v-if="surveysLoaded && scheduledSurveyLots.length" :order="3">
+              <section class="card" aria-labelledby="survey-title">
+                <div class="card__head">
+                  <h2 id="survey-title" class="card__title">Jadwal survei kavling</h2>
+                  <span class="count t-num">{{ scheduledSurveyLots.length }}</span>
+                </div>
+                <ul class="list">
+                  <li v-for="survey in scheduledSurveyLots" :key="survey.id">
+                    <button type="button" class="row" @click="goTo(`/client/kavling/${survey.id}`)">
+                      <span class="row__icon"><ion-icon :icon="calendarOutline" aria-hidden="true" /></span>
+                      <span class="row__copy">
+                        <strong>{{ survey.lotNumber }}</strong>
+                        <small class="t-num">{{ formatSurveyDate(survey.scheduledAt) }}</small>
+                      </span>
+                      <StatusBadge size="sm" :tone="survey.status === 'confirmed' ? 'success' : 'warning'" :label="survey.status === 'confirmed' ? 'Dikonfirmasi' : 'Menunggu'" />
+                    </button>
+                  </li>
+                </ul>
+              </section>
+            </Reveal>
+
+            <Reveal :order="4">
+              <button type="button" class="card docs" @click="goTo('/client/dokumen')">
+                <span class="row__icon"><ion-icon :icon="documentTextOutline" aria-hidden="true" /></span>
+                <span class="docs__copy">
+                  <strong>Dokumen saya</strong>
+                  <small v-if="!documentsLoaded">Memuat dokumen…</small>
+                  <small v-else-if="uploadedDocumentCount > 0">{{ uploadedDocumentLabels.join(', ') }}</small>
+                  <small v-else>Belum ada dokumen diunggah</small>
+                  <span v-if="documentsLoaded && uploadedDocumentCount > 0" class="docs__ok">
+                    <ion-icon :icon="checkmarkCircle" aria-hidden="true" />
+                    {{ uploadedDocumentCount }} jenis dokumen diunggah
+                  </span>
+                </span>
+                <ion-icon class="docs__chev" :icon="chevronForward" aria-hidden="true" />
+              </button>
+            </Reveal>
+          </div>
+
+          <!-- RIWAYAT PEMBAYARAN -->
+          <Reveal :order="5" class="area-history">
+            <section class="card" aria-labelledby="history-title">
+              <div class="card__head">
+                <h2 id="history-title" class="card__title">Riwayat pembayaran</h2>
+                <button type="button" class="link" @click="goTo('/client/pembayaran')">Lihat semua</button>
+              </div>
+
+              <div v-if="purchaseLoading && !overview" class="skel" role="status" aria-label="Memuat riwayat pembayaran">
+                <Skeleton v-for="n in 3" :key="n" height="60px" border-radius="14px" />
+              </div>
+
+              <ul v-else-if="recentPayments.length" class="list">
+                <li v-for="payment in recentPayments" :key="payment.id" class="pay">
+                  <span class="pay__copy">
+                    <strong>{{ payment.category }}<template v-if="payment.installmentNumbers.length"> · ke-{{ payment.installmentNumbers.join(', ') }}</template></strong>
+                    <small class="t-num">{{ formatDay(payment.date) }} · {{ payment.method }}</small>
+                  </span>
+                  <span class="pay__side">
+                    <strong class="t-num">{{ formatRupiah(payment.amount) }}</strong>
+                    <StatusBadge size="sm" :tone="paymentTone(payment.status)" :label="paymentLabel(payment.status)" />
+                  </span>
+                </li>
+              </ul>
+
+              <EmptyState
+                v-else
+                kind="payments"
+                compact
+                title="Belum ada pembayaran"
+                description="Pembayaran yang Anda kirim akan tercatat di sini setelah diverifikasi Admin."
+              >
+                <AppButton size="small" @click="goTo('/client/pembayaran')">Buka halaman pembayaran</AppButton>
+              </EmptyState>
+            </section>
+          </Reveal>
         </div>
-
-        <!-- Riwayat pembayaran -->
-        <section class="dashboard-card history-card" aria-labelledby="history-title">
-          <div class="section-heading history-heading">
-            <div class="heading-title">
-              <span class="heading-icon gold-icon">
-                <ion-icon :icon="listOutline" />
-              </span>
-              <h2 id="history-title">Riwayat Pembayaran</h2>
-            </div>
-
-            <ion-button
-              class="gold-button detail-button"
-              @click="goTo('/client/pembayaran')"
-            >
-              Lihat Semua
-              <ion-icon slot="end" :icon="chevronForward" />
-            </ion-button>
-          </div>
-
-          <div class="table-scroll">
-            <table class="payment-table">
-              <thead>
-                <tr>
-                  <th scope="col">Tanggal</th>
-                  <th scope="col">Cicilan</th>
-                  <th scope="col">Jumlah</th>
-                  <th scope="col">Metode</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>12 Okt 2026</td>
-                  <td>Ke-1</td>
-                  <td class="amount">Rp 10.000.000</td>
-                  <td>Transfer Bank</td>
-                </tr>
-                <tr>
-                  <td>12 Nov 2026</td>
-                  <td>Ke-2</td>
-                  <td class="amount">Rp 10.000.000</td>
-                  <td>Transfer Bank</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
       </main>
     </ion-content>
 
@@ -428,693 +423,159 @@ function goTo(path: string) {
 </template>
 
 <style scoped>
-.client-content {
-  --background: var(--app-background, #faf9f6);
+.client-content { --background: var(--app-background); }
+
+.dash {
+  width: min(100%, var(--container-max));
+  margin-inline: auto;
+  padding: var(--space-4) var(--page-gutter) calc(var(--bottom-nav-h) + var(--space-12) + var(--safe-bottom));
+  color: var(--text-primary);
+  font-family: var(--font-ui);
 }
 
-.dashboard {
+.dash__grid {
   display: grid;
-  gap: 20px;
-  width: min(100%, 760px);
-  margin: 0 auto;
-  padding: 16px 16px 28px;
-  color: var(--text-primary, #252525);
-  font-family: var(--font-primary, var(--ion-font-family, sans-serif));
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'hero' 'rail' 'history';
+}
+.area-hero { grid-area: hero; }
+.rail { grid-area: rail; display: grid; gap: var(--space-4); align-content: start; }
+.area-history { grid-area: history; }
+
+@media (min-width: 1024px) {
+  .dash { padding: var(--space-6) var(--space-8) var(--space-12); }
+  .dash__grid {
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-areas: 'hero rail' 'history rail';
+  }
 }
 
-.welcome-card {
-  padding: 30px 28px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 4px rgb(37 37 37 / 6%);
-}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-.welcome-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
+.icon-btn:hover { color: var(--danger-text); border-color: var(--status-danger); }
+.icon-btn:active { transform: scale(0.94); }
 
-.welcome-copy {
-  min-width: 0;
-}
-
-.welcome-eyebrow {
-  margin: 0 0 8px;
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-  font-weight: var(--font-weight-semibold, 600);
-  letter-spacing: 0.04em;
-}
-
-.welcome-card h1 {
-  margin: 0;
-  color: var(--text-primary, #252525);
-  font-size: clamp(22px, 6vw, 24px);
-  font-weight: var(--font-weight-bold, 700);
-  line-height: 1.2;
-}
-
-.welcome-description {
-  max-width: 420px;
-  margin: 12px 0 24px;
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.gold-button {
-  --background: var(--poliland-gold-soft, #f4d69a);
-  --background-hover: var(--poliland-gold-soft, #f4d69a);
-  --background-activated: var(--poliland-gold, #cba044);
-  --color: var(--poliland-gold-text-soft, #805708);
-  --border-radius: var(--radius-control, 12px);
-  --box-shadow: none;
-  min-height: 44px;
-  margin: 0;
-  font-weight: var(--font-weight-semibold, 600);
-  text-transform: none;
-}
-
-.dashboard ion-icon {
+/* ---------- card ---------- */
+.card {
   display: block;
-  flex: 0 0 auto;
-  line-height: 1;
-  transform: none;
-}
-
-.gold-button::part(native) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.gold-button ion-icon[slot='start'],
-.gold-button ion-icon[slot='end'] {
-  margin: 0;
-  font-size: 19px;
-}
-
-.welcome-button {
-  min-width: 190px;
-}
-
-.dashboard-card {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 4px rgb(37 37 37 / 5%);
-}
-
-.survey-reminder-card {
-  border-color: color-mix(in srgb, var(--poliland-green, #355a2c) 28%, var(--border-default, #eae7e0));
-}
-
-.survey-count,
-.survey-status-label {
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: var(--status-success-bg, #eef5ec);
-  color: var(--poliland-green, #355a2c);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.survey-reminder-list {
-  display: grid;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.survey-reminder-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   width: 100%;
-  padding: 11px 12px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: 12px;
-  background: var(--surface-muted, #f5f3ee);
-  color: var(--text-primary, #252525);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-primary);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+.card__title { margin: 0; font-size: var(--text-lg); font-weight: 700; }
+.count { display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--green-100); color: var(--green-700); font-size: var(--text-sm); font-weight: 700; }
+.link { min-height: 44px; padding: 0 var(--space-2); border: 0; background: none; color: var(--green-700); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.link:hover { text-decoration: underline; }
+.skel { display: grid; gap: var(--space-3); }
+.skel__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+
+.alert { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--danger-bg); color: var(--danger-text); }
+.alert strong { display: block; font-size: var(--text-md); }
+.alert p { margin: var(--space-1) 0 0; font-size: var(--text-sm); }
+
+/* ---------- hero (panel penekanan) ---------- */
+.hero {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-forest);
+  color: var(--on-forest);
+}
+.hero__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.hero__lot { min-width: 0; display: grid; gap: var(--space-1); }
+.hero__title { margin: 0; font-size: var(--text-3xl); line-height: var(--leading-tight); color: var(--on-forest); overflow-wrap: anywhere; }
+.hero__meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); color: var(--on-forest-muted); font-size: var(--text-sm); }
+
+.hero__money { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-4); }
+.hero__money div { display: grid; gap: var(--space-1); }
+.hero__money small { color: var(--on-forest-muted); font-size: var(--text-xs); }
+.hero__money strong { font-size: clamp(1.375rem, 1.1rem + 1.3vw, 1.875rem); line-height: 1.1; color: var(--gold-100); overflow-wrap: anywhere; }
+.hero__money .hero__remaining { color: var(--on-forest); }
+
+.hero__bar { height: 10px; overflow: hidden; border-radius: var(--radius-pill); background: rgba(244, 241, 232, 0.12); }
+.hero__fill { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--gold-500); transition: width var(--dur-slow) var(--ease-out); }
+.hero__foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin-top: calc(var(--space-2) * -1); color: var(--on-forest-muted); font-size: var(--text-sm); }
+
+.hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding-top: var(--space-3); border-top: 1px solid rgba(244, 241, 232, 0.14); }
+.hero__note { color: var(--gold-100); font-size: var(--text-sm); }
+.hero__link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: auto; padding: 0 var(--space-2); border: 0; background: none; color: var(--gold-100); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.hero__link:hover { text-decoration: underline; }
+.hero__more { justify-self: start; min-height: 44px; border: 0; background: none; color: var(--on-forest-muted); font: inherit; font-size: var(--text-sm); text-decoration: underline; cursor: pointer; }
+
+/* ---------- pembayaran berikutnya ---------- */
+.next { display: grid; gap: var(--space-2); cursor: pointer; border-left: 4px solid var(--gold-500); transition: box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.next--done { cursor: default; border-left-color: var(--green-500); }
+.next--late { border-left-color: var(--status-danger); }
+@media (hover: hover) { .next:not(.next--done):hover { box-shadow: var(--shadow-md); } }
+.next:not(.next--done):active { transform: scale(0.99); }
+.next__label { color: var(--text-secondary); font-size: var(--text-xs); font-weight: 500; }
+.next__date { font-size: var(--text-2xl); line-height: var(--leading-tight); }
+.next__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* ---------- list rows ---------- */
+.list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-}
-
-.survey-reminder-item:hover,
-.survey-reminder-item:focus-visible {
-  border-color: var(--poliland-green, #355a2c);
-}
-
-.survey-reminder-item > span:first-child {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.survey-reminder-item small {
-  color: var(--text-secondary, #63636a);
-  font-size: 11px;
-}
-
-.section-heading,
-.heading-title {
-  display: flex;
-  align-items: center;
-}
-
-.section-heading {
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.heading-title {
-  min-width: 0;
-  gap: 12px;
-}
-
-.heading-title h2,
-.quick-card h2 {
-  margin: 0;
-  color: var(--text-primary, #252525);
-  font-size: 16px;
-  font-weight: var(--font-weight-semibold, 600);
-  line-height: 1.4;
-}
-
-.heading-icon,
-.small-icon {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--poliland-gold-soft, #f4d69a);
-}
-
-.heading-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-control, 12px);
-  font-size: 20px;
-}
-
-.gold-icon {
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--poliland-gold-soft, #f4d69a);
-}
-
-.booking-badge,
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: var(--font-weight-medium, 500);
-  line-height: 1.3;
-}
-
-.booking-badge {
-  padding: 8px 12px;
-  color: var(--poliland-gold-text, #966a12);
-  background: var(--surface-muted, #f5f3ee);
-}
-
-.lot-summary {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 18px;
-  padding: 18px 0;
-  border-top: 1px solid var(--border-default, #eae7e0);
-}
-
-.lot-icon {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-control, 12px);
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--poliland-gold-soft, #f4d69a);
-  font-size: 20px;
-}
-
-.lot-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.lot-info h3 {
-  margin: 0 0 4px;
-  font-size: 16px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.lot-info p,
-.section-subtitle {
-  margin: 0;
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-}
-
-.icon-link {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: var(--radius-control, 12px);
-  color: var(--text-secondary, #717178);
-  background: transparent;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.purchase-details {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--app-background, #faf9f6);
-}
-
-.detail-row,
-.detail-label {
-  display: flex;
-  align-items: center;
-}
-
-.detail-row {
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 24px;
-}
-
-.detail-label {
-  gap: 9px;
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-}
-
-.detail-label ion-icon {
-  color: var(--text-secondary, #717178);
-  font-size: 18px;
-}
-
-.detail-value {
-  color: var(--text-primary, #252525);
-  font-size: 14px;
-  font-weight: var(--font-weight-medium, 500);
-  text-align: right;
-}
-
-.status-badge {
-  padding: 6px 10px;
-  white-space: nowrap;
-}
-
-.status-danger {
-  color: var(--status-danger, #d94b45);
-  background: #fff0f0;
-}
-
-.section-subtitle {
-  margin-top: 3px;
-}
-
-.detail-button {
-  flex: 0 0 auto;
-  min-height: 40px;
-  font-size: 14px;
-  white-space: nowrap;
-  --padding-start: 10px;
-  --padding-end: 10px;
-}
-
-.detail-button::part(native) {
-  white-space: nowrap;
-}
-
-.progress-line-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin: 22px 0;
-}
-
-.progress-track {
-  height: 13px;
-  flex: 1;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--surface-muted, #f5f3ee);
-}
-
-.progress-fill {
-  display: block;
-  width: 25%;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--poliland-gold-text, #966a12);
-}
-
-.progress-count {
-  display: grid;
-  min-width: 48px;
-  color: var(--text-primary, #252525);
-  text-align: center;
-}
-
-.progress-count strong {
-  font-size: 16px;
-  line-height: 1.2;
-}
-
-.progress-count strong span,
-.progress-count small {
-  color: var(--text-secondary, #717178);
-  font-weight: var(--font-weight-regular, 400);
-}
-
-.progress-count small {
-  margin-top: 3px;
-  font-size: 12px;
-}
-
-.payment-totals {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.total-box {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-  padding: 16px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--app-background, #faf9f6);
-}
-
-.total-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-}
-
-.small-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  font-size: 18px;
-}
-
-.success-icon {
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--poliland-gold-soft, #f4d69a);
-}
-
-.total-box > strong {
-  overflow-wrap: anywhere;
-  font-size: 16px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.quick-cards {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-}
-
-.quick-card {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 24px;
-  align-items: center;
-  gap: 12px;
-  min-height: 0;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.quick-card-icon {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.quick-card-content {
-  grid-column: 2;
-  grid-row: 1;
-  min-width: 0;
-}
-
-.quick-card-content h2 {
-  font-size: 16px;
-}
-
-.quick-chevron {
-  grid-column: 3;
-  grid-row: 1;
-  justify-self: end;
-  color: var(--text-secondary, #717178);
-  font-size: 22px;
-}
-
-.next-payment {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  margin-top: 6px;
-}
-
-.next-payment > strong {
-  font-size: 14px;
-}
-
-.installment-caption {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-}
-
-.document-description {
-  margin: 4px 0 8px;
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.document-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  padding: 8px 10px;
-  border-radius: var(--radius-control, 12px);
-  color: var(--poliland-green, #355a2c);
-  background: var(--status-success-bg, #eaf7ef);
-  font-size: 14px;
-  font-weight: var(--font-weight-medium, 500);
-  line-height: 1.35;
-}
-
-.document-status ion-icon {
-  flex: 0 0 auto;
-  font-size: 18px;
-}
-
-.document-status > span {
-  min-width: 0;
-}
-
-.history-heading {
-  margin-bottom: 18px;
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.payment-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.payment-table th,
-.payment-table td {
-  padding: 14px 12px;
-  text-align: left;
-}
-
-.payment-table thead {
-  color: var(--text-primary, #252525);
-  background: var(--app-background, #faf9f6);
-}
-
-.payment-table th {
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.payment-table tbody tr + tr {
-  border-top: 1px solid var(--border-default, #eae7e0);
-}
-
-.payment-table .amount {
-  color: var(--text-primary, #252525);
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.logout-icon-button {
-  flex: 0 0 64px;
-  width: 64px;
-  height: 64px;
-  --color: var(--text-primary, #252525);
-  --background: var(--surface-primary, #fff);
-  --background-hover: var(--surface-muted, #f5f3ee);
-  --background-activated: var(--surface-muted, #f5f3ee);
-  --border-radius: 50%;
-  --border-width: 1px;
-  --border-color: var(--border-default, #eae7e0);
-  --box-shadow: none;
-  --padding-start: 0;
-  --padding-end: 0;
-  min-height: 44px;
-  margin: 0;
-  font-size: 22px;
-}
-
-.dashboard button:focus-visible,
-.dashboard ion-button:focus-visible {
-  outline: 3px solid var(--poliland-green, #355a2c);
-  outline-offset: 3px;
-}
-
-@media (max-width: 420px) {
-  .dashboard {
-    gap: 14px;
-    padding: 12px 12px 24px;
-  }
-
-  .welcome-card {
-    padding: 24px 20px;
-  }
-
-  .dashboard-card {
-    padding: 18px;
-  }
-
-  .heading-title {
-    gap: 9px;
-  }
-
-  .heading-title h2 {
-    font-size: 16px;
-  }
-
-  .heading-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-  }
-
-  .quick-card {
-    grid-template-columns: 40px minmax(0, 1fr) 20px;
-    gap: 10px;
-  }
-
-  .quick-card-content h2 {
-    font-size: 14px;
-  }
-
-  .document-status {
-    font-size: 12px;
-  }
-  .detail-row {
-    align-items: flex-start;
-  }
-
-  .detail-label,
-  .detail-value {
-    font-size: 13px;
-  }
-
-  .status-badge {
-    font-size: 12px;
-    white-space: normal;
-    text-align: center;
-  }
-
-  .total-box {
-    padding: 12px;
-  }
-
-  .total-label {
-    gap: 7px;
-    font-size: 12px;
-  }
-
-  .total-box > strong {
-    font-size: 14px;
-  }
-
-  .section-heading {
-    gap: 8px;
-  }
-
-  .section-heading .heading-title {
-    flex: 1 1 0;
-    gap: 8px;
-  }
-
-  .section-heading .heading-title > div,
-  .section-heading .heading-title h2 {
-    min-width: 0;
-  }
-
-  .section-heading .heading-title h2 {
-    font-size: 14px;
-  }
-
-  .detail-button {
-    flex: 0 0 auto;
-    font-size: 12px;
-    --padding-start: 7px;
-    --padding-end: 7px;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .quick-card,
-  .icon-link,
-  .gold-button {
-    transition: background-color 160ms ease, box-shadow 160ms ease;
-  }
-
-  .quick-card:hover {
-    box-shadow: 0 4px 12px rgb(37 37 37 / 8%);
-  }
-}
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+.row:hover { background: var(--surface-sunken); }
+.row:active { transform: scale(0.99); }
+.row__icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--green-100); color: var(--green-700); font-size: 19px; }
+.row__copy { display: grid; min-width: 0; gap: 2px; }
+.row__copy strong { font-size: var(--text-md); font-weight: 600; }
+.row__copy small { color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* ---------- dokumen ---------- */
+.docs { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); cursor: pointer; transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
+.docs:hover { border-color: var(--green-500); }
+.docs:active { transform: scale(0.99); }
+.docs__copy { display: grid; gap: 2px; min-width: 0; }
+.docs__copy strong { font-size: var(--text-md); font-weight: 600; }
+.docs__copy small { color: var(--text-secondary); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.docs__ok { display: inline-flex; align-items: center; gap: 4px; color: var(--green-700); font-size: var(--text-xs); font-weight: 600; }
+.docs__chev { color: var(--text-tertiary); }
+
+/* ---------- riwayat ---------- */
+.pay { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 60px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--surface-muted); }
+.pay__copy { display: grid; min-width: 0; gap: 2px; }
+.pay__copy strong { font-size: var(--text-md); font-weight: 600; overflow-wrap: anywhere; }
+.pay__copy small { color: var(--text-secondary); font-size: var(--text-sm); }
+.pay__side { display: grid; justify-items: end; gap: var(--space-1); flex: none; }
+.pay__side strong { font-size: var(--text-md); font-weight: 700; }
 </style>

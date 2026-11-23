@@ -28,6 +28,7 @@ import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
 import AdminLainnyaPage from '@/views/Admin/AdminLainnya.vue'
 import AdminContentPage from '@/views/Admin/AdminContentPage.vue'
 import SPKAdminPage from '@/views/Admin/SPKAdminPage.vue'
+import AdminReviewsPage from '@/views/Admin/AdminReviewsPage.vue'
 import TinjauSPKPage from '@/views/Admin/TinjauSPKPage.vue'
 import BerandaMarketingPage from '@/views/marketing/BerandaMarketingPage.vue'
 import KavlingMarketingPage from '@/views/marketing/KavlingMarketingPage.vue'
@@ -52,11 +53,12 @@ import HeadCommissionPage from '@/views/marketing-head/HeadCommissionPage.vue'
 import HeadMorePage from '@/views/marketing-head/HeadMorePage.vue'
 import BerandaClientPage from '@/views/client/BerandaClientPage.vue'
 import PembayaranClientPage from '@/views/client/PembayaranClientPage.vue' 
-import AkunClientPage from '@/views/client/AkunClientPage.vue'
+import AkunPage from '@/views/account/AkunPage.vue'
 import DokumenClientPage from '@/views/client/DokumenClientPage.vue'
 import KavlingClientPage from '@/views/client/KavlingClientPage.vue'
 import KavlingClientDetailPage from '@/views/client/KavlingClientDetailPage.vue'
 import SPKClientPage from '@/views/client/SPKClientPage.vue'
+import SettingsPage from '@/views/account/SettingsPage.vue'
 import { setupAuthGuards } from '@/router/guards'
 
 const routes: Array<RouteRecordRaw> = [
@@ -156,6 +158,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/admin/konten',
     name: 'AdminKonten',
     component: AdminContentPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/ulasan',
+    name: 'AdminUlasan',
+    component: AdminReviewsPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {
@@ -334,16 +342,11 @@ const routes: Array<RouteRecordRaw> = [
     },
     meta: { requiresAuth: true, role: 'marketing' },
   },
-  {
-    path: '/marketing/profil',
-    name: 'ProfilMarketing',
-    component: MarketingInfoPage,
-    props: {
-      title: 'Profil Saya',
-      description: 'Kelola dan periksa informasi akun Marketing Anda.',
-    },
-    meta: { requiresAuth: true, role: 'marketing' },
-  },
+  // Profil & Pengaturan dipakai bersama oleh semua role (tanpa meta.role).
+  { path: '/akun', name: 'Akun', component: AkunPage, meta: { requiresAuth: true } },
+  { path: '/profil', redirect: '/akun' },
+  { path: '/pengaturan', name: 'Pengaturan', component: SettingsPage, meta: { requiresAuth: true } },
+  { path: '/marketing/profil', redirect: '/akun' },
   {
     path: '/syarat-ketentuan',
     name: 'SyaratKetentuan',
@@ -392,8 +395,7 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/client/akun',
-    name: 'AkunClient',
-    component: AkunClientPage,
+    redirect: '/akun',
   },
   {
     path: '/client/dokumen',

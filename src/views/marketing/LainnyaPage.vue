@@ -2,7 +2,7 @@
 <template>
   <ion-page>
     <!-- HEADER -->
-    <AppHeader variant="marketing" title="Lainnya" back-route="/beranda-marketing" />
+    <AppHeader variant="marketing" />
 
     <!-- CONTENT -->
     <ion-content :fullscreen="true" class="main-content">
@@ -10,7 +10,7 @@
       <div class="content-wrapper">
 
         <!-- PROFILE CARD -->
-        <div class="profile-card" @click="navigate('/marketing/profil')">
+        <div class="profile-card" @click="navigate('/akun')">
           <div class="profile-avatar">
             <img
               v-if="profile.avatar_url"
@@ -94,7 +94,7 @@
           <!-- PROFIL -->
           <button
             class="menu-card"
-            @click="navigate('/marketing/profil')"
+            @click="navigate('/akun')"
           >
             <div class="menu-icon">
               <ion-icon :icon="person" />

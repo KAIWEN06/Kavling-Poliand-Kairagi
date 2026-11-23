@@ -94,6 +94,14 @@ function handleClick(event: MouseEvent) {
   font-weight: var(--font-weight-semibold);
 }
 
+/* Micro-interaction: tekan memberi umpan balik fisik */
+.app-button {
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+.app-button:not([aria-disabled='true']):active {
+  transform: scale(0.97);
+}
+
 .app-button--small {
   min-height: 44px;
   font-size: var(--font-size-xs);

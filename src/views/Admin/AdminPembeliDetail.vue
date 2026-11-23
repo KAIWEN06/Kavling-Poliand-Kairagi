@@ -3,12 +3,7 @@
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
       <main class="buyer-detail-content">
-        <nav class="buyer-detail-breadcrumb" aria-label="Navigasi halaman">
-          <button type="button" class="breadcrumb-back" @click="router.back()" aria-label="Kembali">
-            <ion-icon :icon="arrowBackOutline" />
-          </button>
-          <span>Daftar Calon Pembeli & Pembeli</span>
-        </nav>
+        <PageBackButton fallback="/admin/pembeli" label="Daftar pembeli" />
         <div v-if="loading" class="buyer-detail-state" role="status"><ion-spinner name="crescent" /><p>Memuat detail customer...</p></div>
         <div v-else-if="errorMessage" class="buyer-detail-state buyer-detail-error" role="alert">
           <img src="/src/assets/mascot/WorriedMascotwithFailedDetails.png" alt="Mascot PoliLand khawatir detail gagal dimuat" class="buyer-detail-error-mascot" />
@@ -379,6 +374,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import { alertCircleOutline, arrowBackOutline, callOutline, chevronForwardOutline, createOutline, logoWhatsapp, peopleOutline, trashOutline } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
+import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'

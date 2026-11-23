@@ -5,7 +5,6 @@ import {
   IonContent,
   IonIcon,
   IonPage,
-  IonSpinner,
 } from '@ionic/vue'
 import {
   checkmarkCircleOutline,
@@ -23,6 +22,13 @@ import {
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import Reveal from '@/components/ui/Reveal.vue'
+import Skeleton from '@/components/ui/Skeleton.vue'
+import StatCard from '@/components/ui/StatCard.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getLots, type SiteplanLot } from '@/services/siteplanService'
 import { normalizeLotStatus } from '@/utils/siteplan'
 import { authService } from '@/services/auth/authService'
@@ -346,251 +352,248 @@ onBeforeUnmount(() => {
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content class="dashboard-content" :fullscreen="false">
-      <main class="dashboard-shell">
-        <section class="welcome-row" aria-labelledby="dashboard-title">
-          <div class="welcome-copy">
-            <h1 id="dashboard-title">Selamat datang, Admin</h1>
-            <p>{{ today }}</p>
-          </div>
+      <main class="dash">
+        <Reveal :order="0">
+          <PageHeader title="Selamat datang, Admin" :subtitle="today">
+            <template #actions>
+              <button
+                type="button"
+                class="icon-btn"
+                :disabled="loggingOut"
+                :aria-label="loggingOut ? 'Sedang keluar' : 'Keluar dari akun'"
+                @click="logout"
+              >
+                <IonIcon :icon="logOutOutline" aria-hidden="true" />
+              </button>
+            </template>
+          </PageHeader>
+        </Reveal>
 
-          <button
-            type="button"
-            class="icon-action logout-action"
-            :disabled="loggingOut"
-            :aria-label="loggingOut ? 'Sedang keluar' : 'Keluar dari akun'"
-            @click="logout"
-          >
-            <IonIcon :icon="logOutOutline" aria-hidden="true" />
-          </button>
-        </section>
-
-        <section class="inventory-section" aria-labelledby="inventory-title">
-          <div class="section-heading inventory-heading">
-            <div class="heading-title">
-              <span class="heading-icon green-icon">
-                <IonIcon :icon="gridOutline" aria-hidden="true" />
-              </span>
-              <div>
-                <h2 id="inventory-title">Inventaris Kavling</h2>
-                <p>Ringkasan status seluruh unit</p>
-              </div>
-            </div>
-
-            <button
-              v-if="loadState === 'success' || loadState === 'empty'"
-              type="button"
-              class="text-action"
-              :disabled="refreshing"
-              @click="loadInventory(true)"
-            >
-              <IonIcon :icon="refreshOutline" aria-hidden="true" />
-              <span>{{ refreshing ? 'Memuat' : 'Perbarui' }}</span>
-            </button>
-          </div>
-
-          <div v-if="loadState === 'loading'" class="state-panel" role="status" aria-live="polite">
-            <IonSpinner name="crescent" />
-            <div>
-              <strong>Memuat inventaris</strong>
-              <p>Data kavling sedang diambil dari database.</p>
-            </div>
-          </div>
-
-          <div v-else-if="loadState === 'error'" class="state-panel state-error" role="alert">
-            <div>
-              <strong>Inventaris belum dapat dimuat</strong>
-              <p>{{ loadError }}</p>
-            </div>
-            <button class="button-primary" type="button" @click="loadInventory(true)">
-              Coba lagi
-            </button>
-          </div>
-
-          <div v-else-if="loadState === 'empty'" class="state-panel">
-            <div>
-              <strong>Belum ada kavling terdaftar</strong>
-              <p>Data akan muncul setelah kavling ditambahkan.</p>
-            </div>
-          </div>
-
-          <template v-else>
-            <div class="inventory-overview">
-              <div class="total-block">
-                <span>Total unit</span>
-                <strong>{{ totalUnits.toLocaleString('id-ID') }}</strong>
-                <small>Kavling terdaftar</small>
-              </div>
-
-              <div class="status-breakdown">
-                <div
-                  v-for="item in inventory"
-                  :key="item.key"
-                  class="status-item"
-                  :class="`status-${item.key}`"
-                >
-                  <div class="status-label">
-                    <span class="status-dot" aria-hidden="true"></span>
-                    <span>{{ item.label }}</span>
+        <div class="dash__grid">
+          <!-- INVENTARIS -->
+          <Reveal :order="1" class="area-inv">
+            <section aria-labelledby="inventory-title">
+              <template v-if="loadState === 'success'">
+                <div class="inv">
+                  <div class="inv__head">
+                    <h2 id="inventory-title" class="inv__title">Inventaris kavling</h2>
                   </div>
-                  <strong>{{ item.value.toLocaleString('id-ID') }}</strong>
-                  <small>{{ item.percentage.toLocaleString('id-ID') }}%</small>
+
+                  <div class="inv__body">
+                    <div class="inv__total">
+                      <strong class="inv__number t-figure">{{ totalUnits.toLocaleString('id-ID') }}</strong>
+                      <span class="inv__caption">unit kavling terdaftar</span>
+                    </div>
+
+                    <ul class="inv__list">
+                      <li v-for="item in inventory" :key="item.key" class="inv__row" :class="`inv__row--${item.key}`">
+                        <span class="inv__dot" aria-hidden="true"></span>
+                        <span class="inv__label">{{ item.label }}</span>
+                        <strong class="inv__value t-num">{{ item.value.toLocaleString('id-ID') }}</strong>
+                        <span class="inv__pct t-num">{{ item.percentage.toLocaleString('id-ID') }}%</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div class="inv__bar" role="img" :aria-label="inventoryDescription">
+                    <span
+                      v-for="item in inventory"
+                      :key="item.key"
+                      v-show="item.percentage > 0"
+                      :class="`inv__seg inv__seg--${item.key}`"
+                      :style="{ width: `${item.percentage}%` }"
+                    ></span>
+                  </div>
+
+                  <p v-if="loadError" class="inv__warn" role="status">
+                    Data terakhir tetap ditampilkan. Pembaruan terbaru gagal dimuat.
+                  </p>
+                </div>
+              </template>
+
+              <div v-else class="card">
+                <h2 id="inventory-title" class="card__title">Inventaris kavling</h2>
+
+                <div v-if="loadState === 'loading'" class="skel-inv" role="status" aria-live="polite" aria-label="Memuat inventaris">
+                  <Skeleton width="38%" height="44px" border-radius="8px" />
+                  <Skeleton height="12px" border-radius="6px" />
+                  <div class="skel-row">
+                    <Skeleton height="52px" /><Skeleton height="52px" /><Skeleton height="52px" />
+                  </div>
+                </div>
+
+                <div v-else-if="loadState === 'error'" class="alert" role="alert">
+                  <div>
+                    <strong>Inventaris belum dapat dimuat</strong>
+                    <p>{{ loadError }}</p>
+                  </div>
+                  <AppButton size="small" @click="loadInventory(true)">Coba lagi</AppButton>
+                </div>
+
+                <EmptyState
+                  v-else
+                  kind="lots"
+                  compact
+                  title="Belum ada kavling terdaftar"
+                  description="Data inventaris akan muncul setelah kavling ditambahkan."
+                />
+              </div>
+            </section>
+          </Reveal>
+
+          <!-- STATISTIK CALON PEMBELI -->
+          <Reveal :order="2" class="area-buyers">
+            <section class="card" aria-labelledby="buyers-title">
+              <div class="card__head">
+                <h2 id="buyers-title" class="card__title">Calon pembeli</h2>
+                <span class="card__meta t-num">{{ dashboardCustomers.length }} customer</span>
+              </div>
+
+              <div v-if="buyerDataLoading" class="stat-grid" role="status" aria-label="Memuat statistik customer">
+                <Skeleton height="96px" border-radius="14px" />
+                <Skeleton height="96px" border-radius="14px" />
+                <Skeleton height="96px" border-radius="14px" />
+              </div>
+              <div v-else-if="buyerDataError" class="alert" role="alert">
+                <div>
+                  <strong>Statistik belum dapat dimuat</strong>
+                  <p>{{ buyerDataError }}</p>
+                </div>
+                <AppButton size="small" @click="loadBuyerData">Coba lagi</AppButton>
+              </div>
+              <div v-else class="stat-grid">
+                <StatCard label="Prospek aktif" :value="buyerStats.prospects" hint="Belum melakukan pembelian" />
+                <StatCard label="Pembeli" :value="buyerStats.buyers" hint="Transaksi terjual" />
+                <StatCard label="Tindak lanjut" :value="buyerStats.followUps" hint="Memiliki catatan" />
+              </div>
+            </section>
+          </Reveal>
+
+          <!-- PERLU DITINDAKLANJUTI -->
+          <Reveal :order="3" class="area-tasks">
+            <section class="card" aria-labelledby="tasks-title">
+              <div class="card__head">
+                <h2 id="tasks-title" class="card__title">Perlu ditindaklanjuti</h2>
+                <span v-if="!buyerDataLoading && actionTasks.length" class="card__meta t-num">{{ actionTasks.length }} tugas</span>
+              </div>
+
+              <div v-if="buyerDataLoading" class="skel-list" role="status" aria-label="Memuat tugas operasional">
+                <Skeleton v-for="n in 3" :key="n" height="60px" border-radius="14px" />
+              </div>
+
+              <ul v-else-if="actionTasks.length" class="rows">
+                <li v-for="task in actionTasks.slice(0, 5)" :key="task.id">
+                  <button type="button" class="row" @click="openTask(task)">
+                    <span class="row__icon" :class="{ 'row__icon--danger': task.isOverdue }">
+                      <IonIcon :icon="task.type === 'spk' ? documentTextOutline : (task.isOverdue ? timeOutline : walletOutline)" aria-hidden="true" />
+                    </span>
+                    <span class="row__copy">
+                      <strong>{{ task.type === 'spk' ? 'Konfirmasi SPK Konsumen' : (task.isOverdue ? 'Pembayaran terlambat' : 'Verifikasi pembayaran') }}</strong>
+                      <small>{{ task.type === 'spk' ? task.lotCode : `${task.customerName} · ${task.lotCode} · ${formatCurrency(task.amount)}` }}</small>
+                    </span>
+                    <StatusBadge
+                      size="sm"
+                      :tone="task.type === 'spk' ? 'info' : (task.isOverdue ? 'danger' : 'warning')"
+                      :label="task.type === 'spk' ? 'SPK' : (task.isOverdue ? 'Terlambat' : 'Menunggu')"
+                    />
+                    <IonIcon class="row__chev" :icon="arrowForwardOutline" aria-hidden="true" />
+                  </button>
+                </li>
+                <li v-if="actionTasks.length > 5" class="rows__more">+{{ actionTasks.length - 5 }} tugas lainnya</li>
+              </ul>
+
+              <EmptyState
+                v-else
+                kind="transactions"
+                compact
+                title="Tidak ada tugas saat ini"
+                description="Tugas baru muncul ketika ada pembayaran atau aktivitas yang perlu ditindaklanjuti."
+              />
+            </section>
+          </Reveal>
+
+          <!-- AKSI CEPAT -->
+          <Reveal :order="4" class="area-quick">
+            <section class="card" aria-labelledby="quick-title">
+              <h2 id="quick-title" class="card__title">Aksi cepat</h2>
+              <div class="quick">
+                <button
+                  v-for="action in availableQuickActions"
+                  :key="action.label"
+                  type="button"
+                  class="quick__item"
+                  :class="`quick__item--${action.tone}`"
+                  :disabled="!action.available"
+                  :title="action.available ? action.description : 'Rute halaman belum tersedia di router'"
+                  @click="openQuickAction(action)"
+                >
+                  <span class="quick__icon"><IonIcon :icon="action.icon" aria-hidden="true" /></span>
+                  <span class="quick__copy">
+                    <strong>{{ action.label }}</strong>
+                    <small>{{ action.available ? action.description : 'Belum tersedia' }}</small>
+                  </span>
+                </button>
+              </div>
+            </section>
+          </Reveal>
+
+          <!-- AKTIVITAS -->
+          <Reveal :order="5" class="area-activity">
+            <section class="card" aria-labelledby="activity-title">
+              <div class="card__head">
+                <h2 id="activity-title" class="card__title">Aktivitas terkini</h2>
+                <div class="date-filter">
+                  <label>
+                    <span class="sr-only">Pilih tanggal aktivitas</span>
+                    <input v-model="selectedActivityDate" type="date" aria-label="Pilih tanggal aktivitas" @change="resetActivityPage" />
+                  </label>
+                  <button v-if="selectedActivityDate" type="button" class="date-filter__clear" @click="selectedActivityDate = ''; resetActivityPage()">
+                    Hapus filter
+                  </button>
                 </div>
               </div>
-            </div>
 
-            <div class="inventory-bar" role="img" :aria-label="inventoryDescription">
-              <span
-                v-for="item in inventory"
-                :key="item.key"
-                v-show="item.percentage > 0"
-                :class="`bar-${item.key}`"
-                :style="{ width: `${item.percentage}%` }"
-              ></span>
-            </div>
-          </template>
-
-          <p v-if="loadError && loadState === 'success'" class="inline-warning" role="status">
-            Data terakhir tetap ditampilkan. Pembaruan terbaru gagal dimuat.
-          </p>
-        </section>
-
-        <section class="tasks-section" aria-labelledby="tasks-title">
-          <div class="section-heading">
-            <div class="heading-title">
-              <span class="heading-icon gold-icon">
-                <IonIcon :icon="timeOutline" aria-hidden="true" />
-              </span>
-              <div>
-                <h2 id="tasks-title">Perlu Ditindaklanjuti</h2>
-                <p>Tugas operasional admin</p>
+              <div v-if="buyerDataLoading" class="skel-list" role="status" aria-label="Memuat aktivitas">
+                <Skeleton v-for="n in 4" :key="n" height="56px" border-radius="14px" />
               </div>
-            </div>
-          </div>
-
-          <div v-if="buyerDataLoading" class="dashboard-data-state" role="status">
-            <IonSpinner name="crescent" />
-            <span>Memuat tugas operasional...</span>
-          </div>
-          <div v-else-if="actionTasks.length" class="task-list">
-            <button v-for="task in actionTasks.slice(0, 5)" :key="task.id" type="button" class="task-item" @click="openTask(task)">
-              <span class="empty-symbol"><IonIcon :icon="task.type === 'spk' ? documentTextOutline : (task.isOverdue ? timeOutline : walletOutline)" aria-hidden="true" /></span>
-              <span class="task-copy"><strong>{{ task.type === 'spk' ? 'Konfirmasi SPK Konsumen' : (task.isOverdue ? 'Pembayaran terlambat' : 'Verifikasi pembayaran') }}</strong><small>{{ task.type === 'spk' ? task.lotCode : `${task.customerName} · ${task.lotCode} · ${formatCurrency(task.amount)}` }}</small></span>
-              <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
-            </button>
-            <p v-if="actionTasks.length > 5" class="task-more">+{{ actionTasks.length - 5 }} tugas lainnya</p>
-          </div>
-          <div v-else class="empty-inline">
-            <span class="empty-symbol"><IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" /></span>
-            <div><strong>Belum ada daftar tugas</strong><p>Tugas baru akan muncul ketika ada pembayaran atau aktivitas yang perlu ditindaklanjuti.</p></div>
-          </div>
-        </section>
-
-        <section class="quick-section" aria-labelledby="quick-title">
-          <div class="section-heading">
-            <div>
-              <h2 id="quick-title">Aksi Cepat</h2>
-            </div>
-          </div>
-
-          <div class="quick-grid">
-            <button
-              v-for="action in availableQuickActions"
-              :key="action.label"
-              type="button"
-              class="quick-action"
-              :class="[`quick-${action.tone}`, { 'quick-unavailable': !action.available }]"
-              :disabled="!action.available"
-              :title="action.available ? action.description : 'Rute halaman belum tersedia di router'"
-              @click="openQuickAction(action)"
-            >
-              <span class="quick-icon">
-                <IonIcon :icon="action.icon" aria-hidden="true" />
-              </span>
-              <span class="quick-label">{{ action.label }}</span>
-              <small v-if="!action.available">Belum tersedia</small>
-            </button>
-          </div>
-        </section>
-
-        <section class="buyers-section" aria-labelledby="buyers-title">
-          <div class="section-heading">
-            <div class="heading-title">
-              <span class="heading-icon green-icon">
-                <IonIcon :icon="peopleOutline" aria-hidden="true" />
-              </span>
-              <div>
-                <h2 id="buyers-title">Statistik Calon Pembeli</h2>
-                <p>Ringkasan aktivitas marketing</p>
+              <div v-else-if="buyerDataError" class="alert" role="alert">
+                <div>
+                  <strong>Aktivitas belum dapat dimuat</strong>
+                  <p>{{ buyerDataError }}</p>
+                </div>
+                <AppButton size="small" @click="loadBuyerData">Coba lagi</AppButton>
               </div>
-            </div>
-            <span class="section-meta">{{ dashboardCustomers.length }} customer</span>
-          </div>
-
-          <div v-if="buyerDataLoading" class="dashboard-data-state" role="status">
-            <IonSpinner name="crescent" />
-            <span>Memuat statistik customer...</span>
-          </div>
-          <div v-else-if="buyerDataError" class="dashboard-data-state dashboard-data-error" role="alert">
-            <strong>Statistik belum dapat dimuat</strong>
-            <p>{{ buyerDataError }}</p>
-          </div>
-          <div v-else class="buyer-stat-grid">
-            <div class="buyer-stat-card buyer-stat-card--gold"><span>Prospek aktif</span><strong>{{ buyerStats.prospects }}</strong><small>Belum melakukan pembelian</small></div>
-            <div class="buyer-stat-card buyer-stat-card--green"><span>Pembeli</span><strong>{{ buyerStats.buyers }}</strong><small>Transaksi terjual</small></div>
-            <div class="buyer-stat-card buyer-stat-card--neutral"><span>Tindak lanjut</span><strong>{{ buyerStats.followUps }}</strong><small>Memiliki catatan</small></div>
-          </div>
-        </section>
-
-        <section class="activity-section" aria-labelledby="activity-title">
-          <div class="section-heading">
-            <div class="heading-title">
-              <span class="heading-icon gold-icon">
-                <IonIcon :icon="timeOutline" aria-hidden="true" />
-              </span>
-              <div>
-                <h2 id="activity-title">Aktivitas Terkini</h2>
-                <p>Riwayat perubahan dan transaksi</p>
+              <div v-else-if="filteredActivities.length" class="activity-list">
+                <ul class="rows">
+                  <li v-for="activity in pagedActivities" :key="activity.id">
+                    <button type="button" class="row" @click="openActivity(activity)">
+                      <span class="row__icon" :class="`row__icon--${activity.tone}`">
+                        <IonIcon :icon="activity.icon" aria-hidden="true" />
+                      </span>
+                      <span class="row__copy">
+                        <strong>{{ activity.label }}</strong>
+                        <small>{{ activity.detail }}</small>
+                      </span>
+                      <time class="row__time t-num" :datetime="activity.date">{{ formatActivityDate(activity.date) }}</time>
+                    </button>
+                  </li>
+                </ul>
+                <nav v-if="filteredActivityTotalPages > 1" class="pager" aria-label="Halaman aktivitas terkini">
+                  <button type="button" aria-label="Aktivitas sebelumnya" :disabled="activityPage === 1" @click="goToActivityPage(activityPage - 1)">‹</button>
+                  <span class="t-num">Halaman {{ activityPage }} dari {{ filteredActivityTotalPages }}</span>
+                  <button type="button" aria-label="Aktivitas berikutnya" :disabled="activityPage === filteredActivityTotalPages" @click="goToActivityPage(activityPage + 1)">›</button>
+                </nav>
               </div>
-            </div>
-          </div>
-          <div class="activity-toolbar">
-            <label class="activity-date-filter">
-              <span>Pilih tanggal</span>
-              <input v-model="selectedActivityDate" type="date" aria-label="Pilih tanggal aktivitas" @change="resetActivityPage" />
-            </label>
-            <button v-if="selectedActivityDate" type="button" class="activity-clear-date" aria-label="Hapus filter tanggal" @click="selectedActivityDate = ''; resetActivityPage()"><span class="activity-clear-label">Hapus filter tanggal</span><span class="activity-clear-icon" aria-hidden="true">×</span></button>
-          </div>
-
-          <div v-if="buyerDataLoading" class="dashboard-data-state" role="status">
-            <IonSpinner name="crescent" />
-            <span>Memuat aktivitas...</span>
-          </div>
-          <div v-else-if="buyerDataError" class="dashboard-data-state dashboard-data-error" role="alert">
-            <strong>Aktivitas belum dapat dimuat</strong>
-            <p>{{ buyerDataError }}</p>
-          </div>
-          <div v-else-if="filteredActivities.length" class="activity-list">
-            <button v-for="activity in pagedActivities" :key="activity.id" type="button" class="activity-item" @click="openActivity(activity)">
-              <span class="activity-icon" :class="`activity-icon--${activity.tone}`"><IonIcon :icon="activity.icon" aria-hidden="true" /></span>
-              <div class="activity-copy"><strong>{{ activity.label }}</strong><p>{{ activity.detail }}</p></div>
-              <time :datetime="activity.date">{{ formatActivityDate(activity.date) }}</time>
-            </button>
-            <nav v-if="filteredActivityTotalPages > 1" class="activity-pager" aria-label="Halaman aktivitas terkini">
-              <button type="button" aria-label="Aktivitas sebelumnya" :disabled="activityPage === 1" @click="goToActivityPage(activityPage - 1)">‹</button>
-              <span>Halaman {{ activityPage }} dari {{ filteredActivityTotalPages }}</span>
-              <button type="button" aria-label="Aktivitas berikutnya" :disabled="activityPage === filteredActivityTotalPages" @click="goToActivityPage(activityPage + 1)">›</button>
-            </nav>
-          </div>
-          <div v-else class="dashboard-data-state">
-            <img
-              class="activity-empty-mascot"
-              src="@/assets/mascot/Cheerful House Mascot Desk Scene.png"
-              alt="Mascot rumah sedang duduk di meja"
-            />
-            <strong>{{ selectedActivityDate ? 'Tidak ada aktivitas pada tanggal ini' : 'Belum ada aktivitas' }}</strong>
-            <p>{{ selectedActivityDate ? 'Pilih tanggal lain untuk melihat aktivitas.' : 'Aktivitas customer dan pembayaran akan muncul di sini.' }}</p>
-          </div>
-        </section>
+              <EmptyState
+                v-else
+                kind="notifications"
+                compact
+                :title="selectedActivityDate ? 'Tidak ada aktivitas pada tanggal ini' : 'Belum ada aktivitas'"
+                :description="selectedActivityDate ? 'Pilih tanggal lain untuk melihat aktivitas.' : 'Aktivitas customer dan pembayaran akan muncul di sini.'"
+              />
+            </section>
+          </Reveal>
+        </div>
       </main>
     </ion-content>
     <MobileTabBar variant="admin" />
@@ -602,637 +605,314 @@ onBeforeUnmount(() => {
   --background: var(--app-background);
 }
 
-.dashboard-shell {
-  width: min(100%, 1120px);
-  min-height: 100%;
+.dash {
+  width: min(100%, var(--container-max));
   margin-inline: auto;
-  padding: 22px 18px calc(112px + env(safe-area-inset-bottom));
+  padding: var(--space-4) var(--page-gutter) calc(var(--bottom-nav-h) + var(--space-12) + var(--safe-bottom));
   color: var(--text-primary);
-  font-family: var(--font-primary);
+  font-family: var(--font-ui);
 }
 
-.welcome-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+.dash__grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'inv' 'tasks' 'quick' 'buyers' 'activity';
+}
+.area-inv { grid-area: inv; }
+.area-buyers { grid-area: buyers; }
+.area-tasks { grid-area: tasks; }
+.area-quick { grid-area: quick; }
+.area-activity { grid-area: activity; }
+
+@media (min-width: 1024px) {
+  .dash { padding: var(--space-6) var(--space-8) var(--space-12); }
+  .dash__grid {
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-areas:
+      'inv buyers'
+      'tasks quick'
+      'activity quick';
+  }
 }
 
-.welcome-copy {
-  min-width: 0;
-}
-
-.eyebrow {
-  margin: 0 0 6px;
-  color: var(--poliland-green);
-  font-size: 10px;
-  font-weight: var(--font-weight-extrabold);
-  letter-spacing: 0.12em;
-  line-height: 1.4;
-}
-
-.welcome-copy h1 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: clamp(21px, 5vw, 28px);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: -0.04em;
-  line-height: 1.2;
-}
-
-.welcome-copy > p:last-child {
-  margin: 6px 0 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  text-transform: capitalize;
-}
-
-.icon-action {
+/* ---------- header action ---------- */
+.icon-btn {
+  display: grid;
+  place-items: center;
   width: 44px;
   height: 44px;
-  display: inline-grid;
-  flex: 0 0 auto;
-  place-items: center;
   border: 1px solid var(--border-default);
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   background: var(--surface-primary);
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  font-size: 20px;
   cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
+.icon-btn:hover { color: var(--danger-text); border-color: var(--status-danger); }
+.icon-btn:active { transform: scale(0.94); }
+.icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.icon-action ion-icon {
-  width: 19px;
-  height: 19px;
-}
-
-.icon-action:focus-visible,
-.text-action:focus-visible,
-.quick-action:focus-visible,
-.button-primary:focus-visible {
-  outline: 3px solid var(--poliland-green);
-  outline-offset: 3px;
-}
-
-.icon-action:disabled {
-  cursor: wait;
-  opacity: 0.55;
-}
-
-.inventory-section,
-.buyers-section,
-.activity-section {
-  margin-bottom: 25px;
-}
-
-.inventory-section {
-  padding: 18px;
+/* ---------- generic card ---------- */
+.card {
+  min-width: 0;
+  padding: var(--space-4);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-lg);
   background: var(--surface-primary);
 }
+.card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.card__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: var(--leading-snug);
+}
+.card__head .card__title { margin: 0; }
+.card__meta { color: var(--text-secondary); font-size: var(--text-xs); font-weight: 600; }
 
-.section-heading {
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- inventory (panel penekanan) ---------- */
+.inv {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-forest);
+  color: var(--on-forest);
+}
+.inv__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 15px;
+  gap: var(--space-3);
 }
-
-.heading-title {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.heading-title h2,
-.section-heading > div > h2 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 16px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: -0.025em;
-  line-height: 1.3;
-}
-
-.heading-title p {
-  margin: 3px 0 0;
-  color: var(--text-secondary);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-.heading-icon {
-  width: 34px;
-  height: 34px;
-  display: inline-grid;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 10px;
-  background: var(--surface-muted);
-}
-
-.heading-icon ion-icon {
-  width: 19px;
-  height: 19px;
-}
-
-.green-icon {
-  color: var(--poliland-green);
-}
-
-.gold-icon {
-  color: var(--poliland-gold-text);
-}
-
-.text-action {
-  min-height: 40px;
+.inv__title { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--on-forest-muted); }
+.inv__refresh {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0 2px 0 8px;
-  border: 0;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid rgba(244, 241, 232, 0.22);
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--poliland-green);
+  color: var(--on-forest);
   font: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  font-weight: 600;
   cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
 }
+.inv__refresh:hover { background: rgba(244, 241, 232, 0.1); }
+.inv__refresh:disabled { opacity: 0.6; cursor: progress; }
+.is-spinning { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.text-action ion-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.text-action:disabled {
-  opacity: 0.55;
-  cursor: wait;
-}
-
-.inventory-overview {
+.inv__body {
   display: grid;
-  grid-template-columns: minmax(90px, 0.78fr) minmax(0, 2fr);
-  align-items: center;
-  gap: 16px;
-  padding: 15px 0 14px;
-  border-top: 1px solid var(--border-default);
+  gap: var(--space-5);
+  margin-top: var(--space-4);
 }
-
-.total-block {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding-right: 14px;
-  border-right: 1px solid var(--border-default);
+.inv__total { display: grid; gap: var(--space-1); }
+.inv__number {
+  font-size: clamp(2.75rem, 2rem + 3.6vw, 4.25rem);
+  line-height: 1;
+  color: var(--gold-100);
 }
+.inv__caption { color: var(--on-forest-muted); font-size: var(--text-sm); }
 
-.total-block span,
-.total-block small {
-  color: var(--text-secondary);
-  font-size: 11px;
-}
-
-.total-block strong {
-  margin: 3px 0 1px;
-  color: var(--text-primary);
-  font-size: clamp(42px, 12vw, 58px);
-  font-weight: var(--font-weight-bold);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.065em;
-  line-height: 0.98;
-}
-
-.status-breakdown {
+.inv__list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.inv__row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.status-item {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: 10px 1fr auto 52px;
   align-items: center;
-  gap: 4px;
-  padding-inline: 5px;
-  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid rgba(244, 241, 232, 0.12);
+  font-size: var(--text-md);
 }
+.inv__row:last-child { border-bottom: 0; }
+.inv__dot { width: 10px; height: 10px; border-radius: 3px; }
+.inv__row--available .inv__dot, .inv__seg--available { background: #7DB36B; }
+.inv__row--booking .inv__dot, .inv__seg--booking { background: var(--gold-500); }
+.inv__row--sold .inv__dot, .inv__seg--sold { background: #E58B84; }
+.inv__value { font-size: var(--text-lg); }
+.inv__pct { text-align: right; color: var(--on-forest-muted); font-size: var(--text-sm); }
 
-.status-item + .status-item {
-  border-left: 1px solid var(--border-default);
-}
-
-.status-label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  color: var(--text-secondary);
-  font-size: 10px;
-  white-space: nowrap;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-}
-
-.status-available .status-dot,
-.bar-available {
-  background: var(--status-success);
-}
-
-.status-booking .status-dot,
-.bar-booking {
-  background: var(--poliland-gold);
-}
-
-.status-sold .status-dot,
-.bar-sold {
-  background: var(--status-danger);
-}
-
-.status-item strong {
-  color: var(--text-primary);
-  font-size: clamp(21px, 6vw, 27px);
-  font-weight: var(--font-weight-bold);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-}
-
-.status-item small {
-  color: var(--text-secondary);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.inventory-bar {
-  height: 9px;
+.inv__bar {
   display: flex;
-  gap: 2px;
+  gap: 3px;
+  height: 10px;
+  margin-top: var(--space-5);
   overflow: hidden;
-  border-radius: 999px;
-  background: var(--surface-muted);
+  border-radius: var(--radius-pill);
+  background: rgba(244, 241, 232, 0.1);
+}
+.inv__seg { min-width: 4px; border-radius: var(--radius-pill); transition: width var(--dur-slow) var(--ease-out); }
+.inv__warn { margin: var(--space-3) 0 0; color: var(--gold-100); font-size: var(--text-sm); }
+
+@media (min-width: 640px) {
+  .inv__body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: end; }
 }
 
-.inventory-bar span {
-  min-width: 2px;
-  height: 100%;
-  transition: width 180ms ease;
-}
-
-.state-panel {
-  min-height: 150px;
+/* ---------- skeleton / alert ---------- */
+.skel-inv, .skel-list { display: grid; gap: var(--space-3); }
+.skel-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+.alert {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: var(--text-primary);
-}
-
-.state-panel ion-spinner {
-  color: var(--poliland-green);
-}
-
-.state-panel strong,
-.empty-inline strong,
-.unavailable-panel strong {
-  display: block;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-}
-
-.state-panel p,
-.empty-inline p,
-.unavailable-panel p {
-  margin: 4px 0 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  line-height: 1.55;
-}
-
-.state-error {
   flex-wrap: wrap;
-  text-align: center;
-}
-
-.state-error strong {
-  color: var(--status-danger);
-}
-
-.button-primary {
-  min-height: 42px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: var(--poliland-green);
-  color: #fff;
-  font: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-}
-
-.inline-warning {
-  margin: 12px 0 0;
-  color: var(--text-secondary);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.tasks-section {
-  margin-bottom: 26px;
-}
-
-.tasks-section > .section-heading {
-  margin-bottom: 10px;
-}
-
-.empty-inline {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 15px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
-  background: var(--surface-primary);
-}
-
-.empty-symbol {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--surface-muted);
-  color: var(--poliland-green);
-}
-
-.empty-symbol ion-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.task-list { display: grid; gap: 8px; }
-.task-item { display: grid; grid-template-columns: 34px minmax(0, 1fr) 18px; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
-.task-item:hover { border-color: var(--poliland-green); background: var(--surface-muted); }
-.task-item:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
-.task-item > ion-icon { color: var(--text-secondary); }
-.task-copy { min-width: 0; }.task-copy strong, .task-copy small { display: block; }.task-copy strong { font-size: 12px; }.task-copy small { margin-top: 3px; overflow: hidden; color: var(--text-secondary); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.task-more { margin: 2px 0 0; color: var(--text-secondary); font-size: 11px; text-align: center; }
-
-.quick-section {
-  margin-bottom: 27px;
-}
-
-.quick-section .section-heading {
-  align-items: flex-end;
-  margin-bottom: 12px;
-}
-
-.quick-section .eyebrow {
-  margin-bottom: 3px;
-}
-
-.section-meta {
-  flex: 0 0 auto;
-  color: var(--text-secondary);
-  font-size: 10px;
-  line-height: 1.4;
-}
-
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
-}
-
-.quick-action {
-  min-width: 0;
-  min-height: 112px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 9px;
-  padding: 13px 12px 11px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
-  background: var(--surface-primary);
-  color: var(--text-primary);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+.alert strong { display: block; font-size: var(--text-md); }
+.alert p { margin: var(--space-1) 0 0; font-size: var(--text-sm); }
+
+/* ---------- stats ---------- */
+.stat-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 479px) { .stat-grid { grid-template-columns: 1fr; } }
+@media (min-width: 1024px) { .stat-grid { grid-template-columns: 1fr; } }
+
+/* ---------- rows (tugas, aktivitas) ---------- */
+.rows { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.rows__more { padding: var(--space-2) 0 0; color: var(--text-secondary); font-size: var(--text-sm); text-align: center; }
+.row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  color: inherit;
+  font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 150ms ease, background-color 150ms ease;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
-
-.quick-action:not(:disabled):hover {
-  border-color: var(--poliland-green);
-  background: var(--surface-muted);
-}
-
-.quick-action:disabled {
-  cursor: not-allowed;
-  opacity: 0.72;
-}
-
-.quick-icon {
-  width: 36px;
-  height: 36px;
+.row:hover { background: var(--surface-sunken); border-color: var(--border-strong); }
+.row:active { transform: scale(0.99); }
+.row__icon {
   display: grid;
   place-items: center;
-  border-radius: 10px;
-  background: var(--surface-muted);
-  color: var(--poliland-green);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--green-100);
+  color: var(--green-700);
+  font-size: 19px;
 }
-
-.quick-icon ion-icon {
-  width: 21px;
-  height: 21px;
-}
-
-.quick-gold .quick-icon {
-  color: var(--poliland-gold-text);
-}
-
-.quick-neutral .quick-icon {
+.row__icon--gold { background: var(--gold-50); color: var(--gold-800); }
+.row__icon--danger { background: var(--danger-bg); color: var(--danger-text); }
+.row__copy { display: grid; min-width: 0; gap: 2px; }
+.row__copy strong { font-size: var(--text-md); font-weight: 600; }
+.row__copy small {
+  overflow: hidden;
   color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row__time { color: var(--text-secondary); font-size: var(--text-xs); white-space: nowrap; }
+.row__chev { color: var(--text-tertiary); font-size: 16px; transition: transform var(--dur-fast) var(--ease-out); }
+.row:hover .row__chev { transform: translateX(3px); }
+
+@media (max-width: 479px) {
+  .row { grid-template-columns: 40px minmax(0, 1fr) auto; }
+  .row__chev { display: none; }
+  .row > :nth-child(3) { align-self: start; }
 }
 
-.quick-label {
-  font-size: 12px;
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.3;
-}
-
-.quick-action small {
-  color: var(--text-secondary);
-  font-size: 9px;
-  line-height: 1.2;
-}
-
-.buyers-section,
-.activity-section {
-  padding: 16px;
+/* ---------- aktivitas: filter, pager ---------- */
+.date-filter { display: flex; align-items: center; gap: var(--space-2); }
+.date-filter input {
+  min-height: 44px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-sm);
   background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
 }
-
-.buyers-section .section-heading,
-.activity-section .section-heading {
-  margin-bottom: 12px;
-}
-
-.unavailable-panel {
-  padding: 15px;
-  border-radius: var(--radius-control);
-  background: var(--surface-muted);
-}
-
-.dashboard-data-state {
-  display: flex;
-  min-height: 92px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 16px;
-  border-radius: var(--radius-control);
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-align: center;
-}
-
-.dashboard-data-state ion-spinner { color: var(--poliland-green); }
-.dashboard-data-state strong { color: var(--text-primary); font-size: 13px; }
-.dashboard-data-state p { margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
-.dashboard-data-error strong { color: var(--status-danger); }
-
-.buyer-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.buyer-stat-card { min-width: 0; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }
-.buyer-stat-card span, .buyer-stat-card small { display: block; color: var(--text-secondary); font-size: 10px; line-height: 1.35; }
-.buyer-stat-card strong { display: block; margin: 7px 0 3px; color: var(--text-primary); font-size: 25px; line-height: 1; }
-.buyer-stat-card--gold strong { color: var(--poliland-gold-text); }.buyer-stat-card--green strong { color: var(--poliland-green); }.buyer-stat-card--neutral strong { color: var(--text-primary); }
-
-.activity-list { display: grid; gap: 0; }
-.activity-item { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--border-default); }
-.activity-item:last-child { border-bottom: 0; }
-.activity-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; background: var(--surface-muted); color: var(--text-secondary); }.activity-icon ion-icon { width: 17px; height: 17px; }.activity-icon--green { background: var(--status-success-bg); color: var(--poliland-green); }.activity-icon--gold { background: var(--poliland-gold-soft); color: var(--poliland-gold-text); }
-.activity-copy { min-width: 0; }.activity-copy strong { display: block; color: var(--text-primary); font-size: 12px; }.activity-copy p { margin: 3px 0 0; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }.activity-item time { color: var(--text-secondary); font-size: 10px; white-space: nowrap; }
-.activity-item { border-inline: 0; border-top: 0; border-right: 0; border-left: 0; cursor: pointer; font: inherit; text-align: left; }.activity-item:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }.activity-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 0 0 10px; padding: 10px 0; border-top: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); }.activity-date-filter { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 11px; font-weight: var(--font-weight-semibold); }.activity-date-filter input { min-height: 36px; padding: 0 9px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; }.activity-date-filter input:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }.activity-clear-date { min-height: 36px; padding: 0 9px; border: 0; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--poliland-green); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.activity-clear-date:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
-.activity-pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-default); color: var(--text-secondary); font-size: 11px; }.activity-pager button { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font-size: 20px; cursor: pointer; }.activity-pager button:disabled { opacity: .45; cursor: default; }.activity-pager button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
-
-.activity-empty {
+.date-filter__clear {
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
   background: transparent;
-  border-top: 1px solid var(--border-default);
-  border-radius: 0;
-  padding: 17px 2px 3px;
+  color: var(--green-700);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
 }
+.pager { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin-top: var(--space-3); font-size: var(--text-sm); color: var(--text-secondary); }
+.pager button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+}
+.pager button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.dashboard-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 3px 2px 0;
+/* ---------- aksi cepat ---------- */
+.quick { display: grid; gap: var(--space-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1024px) { .quick { grid-template-columns: 1fr; } }
+.quick__item {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 60px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-primary);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+.quick__item:hover:not(:disabled) { border-color: var(--green-500); box-shadow: var(--shadow-sm); }
+.quick__item:active:not(:disabled) { transform: scale(0.985); }
+.quick__item:disabled { opacity: 0.55; cursor: not-allowed; }
+.quick__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
   color: var(--text-secondary);
-  font-size: 10px;
+  font-size: 19px;
 }
-
-@media (min-width: 700px) {
-  .dashboard-shell {
-    padding: 30px 28px 120px;
-  }
-
-  .welcome-row {
-    margin-bottom: 32px;
-  }
-
-  .inventory-section {
-    padding: 22px 24px;
-  }
-
-  .quick-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  .quick-action {
-    min-height: 126px;
-  }
-
-  .buyers-section,
-  .activity-section {
-    padding: 20px 22px;
-  }
-}
-
-@media (max-width: 360px) {
-  .dashboard-shell {
-    padding-inline: 13px;
-  }
-
-  .inventory-section {
-    padding: 14px 12px;
-  }
-
-  .inventory-overview {
-    grid-template-columns: minmax(75px, 0.7fr) minmax(0, 2fr);
-    gap: 10px;
-  }
-
-  .total-block {
-    padding-right: 9px;
-  }
-
-  .status-label {
-    gap: 3px;
-    font-size: 9px;
-  }
-
-  .status-item {
-    padding-inline: 2px;
-  }
-
-  .quick-grid {
-    gap: 7px;
-  }
-
-  .quick-action {
-    min-height: 104px;
-    padding: 11px 9px;
-  }
-
-  .buyer-stat-card { padding: 9px 7px; }
-  .buyer-stat-card strong { font-size: 21px; }
-  .buyer-stat-card span, .buyer-stat-card small { font-size: 9px; }
-  .activity-item { grid-template-columns: 30px minmax(0, 1fr); }
-  .activity-item time { grid-column: 2; }
-  .activity-toolbar { align-items: stretch; flex-direction: column; gap: 8px; }
-  .activity-date-filter { justify-content: space-between; }
-  .activity-date-filter input { flex: 1; min-width: 0; }
-  .activity-clear-date { display: inline-grid; width: 38px; min-width: 38px; height: 36px; padding: 0; place-items: center; }
-  .activity-clear-label { display: none; }
-  .activity-clear-icon { display: block; font-size: 20px; line-height: 1; }
-}
-
-@media (max-width: 520px) {
-  .activity-clear-date { display: inline-grid; width: 38px; min-width: 38px; height: 36px; padding: 0; place-items: center; }
-  .activity-clear-label { display: none; }
-  .activity-clear-icon { display: block; font-size: 20px; line-height: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-  }
-}
+.quick__item--green .quick__icon { background: var(--green-100); color: var(--green-700); }
+.quick__item--gold .quick__icon { background: var(--gold-50); color: var(--gold-800); }
+.quick__copy { display: grid; min-width: 0; gap: 2px; }
+.quick__copy strong { font-size: var(--text-md); font-weight: 600; }
+.quick__copy small { color: var(--text-secondary); font-size: var(--text-xs); line-height: 1.3; }
 </style>

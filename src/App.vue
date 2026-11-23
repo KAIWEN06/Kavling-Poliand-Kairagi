@@ -1,6 +1,7 @@
 <template>
   <ion-app>
     <ion-router-outlet />
+    <ToastHost />
   </ion-app>
 </template>
 
@@ -8,6 +9,10 @@
 import {
   IonApp,
   IonRouterOutlet,
+  actionSheetController,
+  alertController,
+  modalController,
+  popoverController,
   useIonRouter
 } from '@ionic/vue'
 
@@ -18,6 +23,7 @@ import {
 } from 'vue'
 
 import router from './router'
+import ToastHost from '@/components/ui/ToastHost.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 const ionRouter = useIonRouter()
 
@@ -218,23 +224,51 @@ let backButtonListener: Awaited<
   ReturnType<typeof CapacitorApp.addListener>
 > | null = null
 
+/** Halaman beranda tiap role: tombol Back di sini menutup aplikasi. */
+const ROOT_PATHS = new Set([
+  '/home',
+  '/login',
+  '/beranda-admin',
+  '/beranda-owner',
+  '/beranda-marketing',
+  '/beranda-kepala-marketing',
+  '/beranda-client',
+])
+
+/** Menutup overlay teratas (menu pengguna, notifikasi, dialog) bila ada. */
+async function dismissTopOverlay(): Promise<boolean> {
+  for (const controller of [
+    alertController,
+    actionSheetController,
+    popoverController,
+    modalController,
+  ]) {
+    const top = await controller.getTop()
+    if (top) {
+      await top.dismiss()
+      return true
+    }
+  }
+  return false
+}
+
 async function handleAndroidBackButton(): Promise<void> {
+  // 1. Overlay terbuka: tutup dulu, jangan pindah halaman.
+  if (await dismissTopOverlay()) return
 
-  /*
-   * Jika masih ada halaman sebelumnya,
-   * kembali ke halaman tersebut.
-   */
-  if (ionRouter.canGoBack()) {
-
-    ionRouter.back()
-
+  // 2. Halaman beranda / root: keluar aplikasi.
+  if (ROOT_PATHS.has(router.currentRoute.value.path)) {
+    await CapacitorApp.exitApp()
     return
   }
 
-  /*
-   * Tidak ada halaman sebelumnya.
-   * Tutup aplikasi Android.
-   */
+  // 3. Halaman turunan: kembali ke halaman sebelumnya.
+  if (ionRouter.canGoBack()) {
+    ionRouter.back()
+    return
+  }
+
+  // 4. Tanpa riwayat: ke beranda bila tahu role-nya, selain itu tutup aplikasi.
   await CapacitorApp.exitApp()
 }
 

@@ -1,8 +1,15 @@
 {
-	"mcpServers": {
-		"supabase-poliland": {
-			"url": "https://mcp.supabase.com/mcp?project_ref=ewiundofcsxghkkhremp",
-			"type": "http"
-		}
-	}
+  "mcpServers": {
+    "supabase-poliland": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=ewiundofcsxghkkhremp",
+      "type": "http"
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    }
+  }
 }

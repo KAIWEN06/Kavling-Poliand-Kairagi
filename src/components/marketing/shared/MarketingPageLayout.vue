@@ -1,11 +1,12 @@
 <template>
   <ion-page class="mk-page">
-    <AppHeader variant="marketing" :title="title" :show-back="showBack" :back-route="backRoute" />
+    <AppHeader variant="marketing" />
     <ion-content class="mk-content" :fullscreen="false">
       <ion-refresher slot="fixed" @ionRefresh="onRefresh">
         <ion-refresher-content />
       </ion-refresher>
       <main class="mk-shell">
+        <PageHeader :title="title" :show-back="showBack" :back-fallback="backRoute" />
         <slot />
       </main>
     </ion-content>
@@ -16,6 +17,7 @@
 <script setup lang="ts">
 import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/vue'
 import AppHeader from '@/components/common/AppHeader.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 
 const props = withDefaults(

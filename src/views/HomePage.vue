@@ -16,7 +16,7 @@
           <SiteplanPreview :lots="lots" @goToSiteplan="goToSiteplan" />
         </section>
         <ProgressPreview />
-        <TestimonialsSection />
+        <CustomerReviewsSection />
         <div class="faq-section"><FAQSection /></div>
         <CTASection @contactWhatsapp="contactWhatsapp" />
         <ContactSection @callUs="callUs" @contactWhatsapp="contactWhatsapp" />
@@ -45,7 +45,7 @@ import GalleryPreview from '@/components/home/GalleryPreview.vue'
 import LocationSection from '@/components/home/LocationSection.vue'
 import SiteplanPreview from '@/components/home/SiteplanPreview.vue'
 import ProgressPreview from '@/components/home/ProgressPreview.vue'
-import TestimonialsSection from '@/components/home/TestimonialsSection.vue'
+import CustomerReviewsSection from '@/components/home/CustomerReviewsSection.vue'
 import FAQSection from '@/components/home/FAQSection.vue'
 import CTASection from '@/components/home/CTASection.vue'
 import ContactSection from '@/components/home/ContactSection.vue'

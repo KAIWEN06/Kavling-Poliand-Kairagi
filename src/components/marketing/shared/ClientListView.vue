@@ -132,7 +132,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import StatusBadge from './StatusBadge.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import WhatsAppButton from './WhatsAppButton.vue'
 import {
   filterClients,

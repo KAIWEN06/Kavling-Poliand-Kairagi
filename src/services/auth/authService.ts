@@ -1,5 +1,6 @@
 
 import { supabase } from '@/services/config/supabase'
+import { clearStalePkceVerifier } from '@/services/auth/authUrlError'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import type { ID } from '@/types/common'
@@ -85,6 +86,9 @@ export const authService = {
     const redirectTo = isNative
       ? AUTH_CALLBACK_URL
       : `${window.location.origin}/auth/callback`
+
+    // Pastikan tidak ada verifier PKCE sisa dari percobaan sebelumnya.
+    clearStalePkceVerifier()
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

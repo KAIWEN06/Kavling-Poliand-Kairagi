@@ -4,7 +4,9 @@
     <MascotPullRefresh />
 
     <!-- Header umum: disembunyikan pada halaman Admin dan client -->
-    <AppHeader v-if="!isRolePage" />
+    <div v-if="!isRolePage" class="header-slot">
+      <AppHeader />
+    </div>
 
     <!-- Konten halaman -->
     <div
@@ -144,6 +146,24 @@ onBeforeUnmount(() => {
 .tabbar-overlay.search-mode-hidden :deep(*),
 .tabbar-overlay.detail-mode-hidden :deep(*) {
   pointer-events: none;
+}
+
+/* Desktop: sidebar kiri dari MobileTabBar, konten bergeser */
+@media (min-width: 1024px) {
+  .content-container {
+    left: var(--sidebar-w);
+  }
+
+  .header-slot {
+    padding-left: var(--sidebar-w);
+  }
+
+  .tabbar-overlay {
+    right: auto;
+    top: 0;
+    width: var(--sidebar-w);
+    padding-bottom: 0;
+  }
 }
 
 @media (max-width: 480px) {

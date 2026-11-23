@@ -5,14 +5,7 @@
          HEADER
          ================================================= -->
 
-    <AppHeader
-      variant="marketing"
-      :authenticated="true"
-      title="Kavling"
-      :has-notification="true"
-      back-route="/beranda-marketing"
-      @logout="handleLogout"
-    />
+    <AppHeader variant="marketing" />
 
 
     <!-- =================================================
@@ -140,10 +133,13 @@
           class="lot-list"
         >
 
+          <LotSurveyBanner :surveys="surveyByLot" />
+
           <article
             v-for="lot in paginatedLots"
             :key="lot.id"
             class="lot-card"
+            :class="{ 'lot-card--survey': surveyByLot.has(lot.id) }"
             role="button"
             tabindex="0"
             @click="openPanorama(lot)"
@@ -266,6 +262,11 @@
                 {{ formatPrice(getDisplayPrice(lot)) }}
 
               </div>
+
+              <LotSurveyMarker
+                v-if="surveyByLot.get(lot.id)"
+                :info="surveyByLot.get(lot.id)!"
+              />
 
             </div>
 
@@ -410,6 +411,14 @@ import {
   supabase,
 } from '@/services/config/supabase'
 
+import LotSurveyMarker from '@/components/common/LotSurveyMarker.vue'
+import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
+import {
+  pinSurveyLots,
+  surveyService,
+  type LotSurveyInfo,
+} from '@/services/surveyService'
+
 import {
   formatLotNumber,
 } from '@/services/marketing/spkService'
@@ -490,6 +499,9 @@ const errorMessage = ref('')
 
 const lots = ref<Lot[]>([])
 
+/* jadwal survei client milik marketing; kegagalannya tidak memblokir daftar */
+const surveyByLot = ref<Map<number, LotSurveyInfo>>(new Map())
+
 const initialLotNumber = route.query.lot_number
 const searchQuery = ref(
   Array.isArray(initialLotNumber)
@@ -564,6 +576,13 @@ async function loadLots() {
 
     lots.value =
       (data || []) as Lot[]
+
+    surveyByLot.value = await surveyService
+      .getMySchedule()
+      .catch((scheduleError: unknown) => {
+        console.error('[Kavling Marketing] Jadwal survei:', scheduleError)
+        return new Map<number, LotSurveyInfo>()
+      })
 
 
   } catch (error: any) {
@@ -645,7 +664,11 @@ const filters = computed(() => {
    FILTERED LOTS
    ===================================================== */
 
-const filteredLots = computed(() => {
+const filteredLots = computed(() =>
+  pinSurveyLots(matchedLots.value, surveyByLot.value),
+)
+
+const matchedLots = computed(() => {
 
   let result =
     [...lots.value]
@@ -1325,6 +1348,15 @@ onMounted(() => {
   transition:
     transform 150ms ease,
     box-shadow 150ms ease;
+
+}
+
+
+.lot-card--survey {
+
+  box-shadow:
+    inset 4px 0 0 var(--poliland-gold, #c9a227),
+    0 2px 8px rgba(0, 0, 0, 0.045);
 
 }
 
