@@ -114,10 +114,11 @@ export const contactsService = {
     if (error) throw error
   },
 
-  async getLocationSettings(): Promise<LocationSettings> {
+  /** `null` bila Admin belum pernah menyimpan pengaturan lokasi. */
+  async getLocationSettings(): Promise<LocationSettings | null> {
     const { data, error } = await supabase.from('contacts').select('value').eq('key', LOCATION_SETTINGS_KEY).maybeSingle()
     if (error) throw error
-    return normalizeLocationSettings(data?.value)
+    return data?.value ? normalizeLocationSettings(data.value) : null
   },
 
   async saveLocationSettings(settings: LocationSettings): Promise<void> {

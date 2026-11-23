@@ -12,6 +12,9 @@
               Punya pertanyaan tentang kaveling, harga, lokasi, atau ingin
               melihat kawasan secara langsung? Tim marketing kami siap membantu.
             </p>
+            <div v-if="isAdmin" class="hero-admin">
+              <AdminEditButton label="Edit kontak" @click="editOpen = true" />
+            </div>
           </div>
 
           <div class="hero-decoration">
@@ -128,6 +131,8 @@
         -->
         <div class="page-bottom-space" aria-hidden="true"></div>
       </div>
+      <CmsPanelModal v-model="editOpen" title="Edit kontak" panel="contact" @saved="loadContacts(true)" />
+      <CmsBackBar />
     </ion-content>
   </ion-page>
 </template>
@@ -142,6 +147,10 @@ import {
 import AppButton from '@/components/ui/AppButton.vue'
 import ContactSkeleton from '@/components/ui/skeletons/ContactSkeleton.vue'
 import { contactsService } from '@/services/contactService'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
+import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
 
 import {
   arrowForwardOutline,
@@ -155,6 +164,8 @@ import {
 } from 'ionicons/icons'
 
 const isLoading = ref(true)
+const editOpen = ref(false)
+const { isAdmin } = useCmsAdmin()
 const loadError = ref(false)
 
 interface ContactRecord {
@@ -757,4 +768,5 @@ onBeforeUnmount(() => {
     justify-content: center;
   }
 }
+.hero-admin { margin-top: 16px; }
 </style>

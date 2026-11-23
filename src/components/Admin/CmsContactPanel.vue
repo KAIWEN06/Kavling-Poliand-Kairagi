@@ -1,6 +1,6 @@
 <template>
-  <section class="cms-panel" aria-labelledby="contact-title">
-    <header class="panel-head">
+  <section class="cms-panel" :class="{ embedded }" aria-labelledby="contact-title">
+    <header v-if="!embedded" class="panel-head">
       <div>
         <h2 id="contact-title">Kontak</h2>
         <p>Dipakai di bagian Hubungi Kami, halaman Kontak, tombol WhatsApp, dan tombol telepon.</p>
@@ -48,7 +48,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { contactsService } from '@/services/contactService'
 
-const emit = defineEmits<{ notify: [message: string, type?: 'success' | 'error'] }>()
+defineProps<{ embedded?: boolean }>()
+const emit = defineEmits<{ notify: [message: string, type?: 'success' | 'error']; saved: [] }>()
 
 type FieldKey = 'address' | 'whatsapp' | 'phone' | 'email' | 'operational_hours' | 'instagram' | 'facebook' | 'tiktok'
 const FIELD_LABELS: Record<FieldKey, { label: string; icon: string | null }> = {
@@ -73,7 +74,7 @@ const form = reactive<Record<FieldKey, string>>({ address: '', whatsapp: '', pho
 
 const whatsappHint = computed(() => {
   const digits = form.whatsapp.replace(/\D/g, '')
-  if (!digits) return 'Kosong: tombol WhatsApp memakai nomor cadangan aplikasi.'
+  if (!digits) return 'Kosong: tombol WhatsApp tidak aktif sampai nomor diisi.'
   const normalized = digits.startsWith('0') ? `62${digits.slice(1)}` : digits
   return `Tombol akan membuka wa.me/${normalized}`
 })
@@ -99,10 +100,10 @@ async function load() {
   }
 }
 
-async function save() {
+async function save(): Promise<boolean> {
   const invalid = SOCIALS.find((social) => socialProblem(social.key))
-  if (invalid) return emit('notify', `Tautan ${invalid.label} tidak valid.`, 'error')
-  if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) return emit('notify', 'Format email tidak valid.', 'error')
+  if (invalid) { emit('notify', `Tautan ${invalid.label} tidak valid.`, 'error'); return false }
+  if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) { emit('notify', 'Format email tidak valid.', 'error'); return false }
   saving.value = true
   try {
     await contactsService.saveMany((Object.keys(FIELD_LABELS) as FieldKey[]).map((key) => ({
@@ -112,18 +113,23 @@ async function save() {
       ...(FIELD_LABELS[key].icon ? { icon: FIELD_LABELS[key].icon } : {}),
     })))
     emit('notify', 'Kontak tersimpan dan langsung tampil di website.', 'success')
+    emit('saved')
+    return true
   } catch (error) {
     emit('notify', error instanceof Error ? error.message : 'Kontak gagal disimpan.', 'error')
+    return false
   } finally {
     saving.value = false
   }
 }
 
+defineExpose({ save, saving, loading })
 onMounted(load)
 </script>
 
 <style scoped src="./cmsPanel.css"></style>
 <style scoped>
+.embedded { padding: 0; border: 0; background: transparent; }
 .group-title { margin: 26px 0 12px; padding-top: 20px; border-top: 1px solid var(--border-default); font-size: 16px; font-weight: 800; }
 .hint.error { color: var(--status-danger); font-weight: 700; }
 .note { margin: 14px 0 0; }

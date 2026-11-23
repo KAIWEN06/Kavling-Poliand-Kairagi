@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, onMounted, ref } from 'vue'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
@@ -722,11 +724,13 @@ onMounted(loadPaymentData)
         </section>
 
         <SkeletonDetailHeader v-if="loading" :sections="2" :rows="4" label="Memuat data pembayaran" />
-        <div v-else-if="loadError" class="empty-state" role="alert">
-          <strong>Data pembayaran belum dapat dimuat</strong>
-          <span>{{ loadError }}</span>
-          <button type="button" class="filter-chip filter-chip-active" @click="loadPaymentData">Coba lagi</button>
-        </div>
+        <StatusIllustration
+          v-else-if="loadError"
+          :variant="resolveErrorVariant(loadError)"
+          title="Data pembayaran belum dapat dimuat"
+          fill
+          :on-action="loadPaymentData"
+        />
 
         <template v-else-if="transactions.length">
           <section class="payment-action-card" aria-labelledby="payment-form-title">
@@ -957,11 +961,13 @@ onMounted(loadPaymentData)
                 <ion-icon class="transaction-chevron" :icon="chevronForward" aria-hidden="true" />
               </button>
 
-              <div v-if="filteredTransactions.length === 0" class="empty-state" role="status">
-                <ion-icon :icon="searchOutline" />
-                <strong>{{ paymentHistory.length === 0 ? 'Belum ada riwayat pembayaran' : 'Transaksi tidak ditemukan' }}</strong>
-                <span>{{ paymentHistory.length === 0 ? 'Riwayat akan muncul setelah bukti pembayaran dikirim.' : 'Coba ubah kata pencarian atau filter status.' }}</span>
-              </div>
+              <StatusIllustration
+                v-if="filteredTransactions.length === 0"
+                :variant="paymentHistory.length === 0 ? 'empty-data' : 'no-result'"
+                size="sm"
+                :title="paymentHistory.length === 0 ? 'Belum ada riwayat pembayaran' : 'Transaksi tidak ditemukan'"
+                :description="paymentHistory.length === 0 ? 'Riwayat akan muncul setelah bukti pembayaran dikirim.' : 'Coba ubah kata pencarian atau filter status.'"
+              />
             </section>
 
             <div v-if="reuploadPaymentId" class="payment-notice warning">
@@ -1000,10 +1006,13 @@ onMounted(loadPaymentData)
           </section>
         </template>
 
-        <div v-else class="empty-state">
-          <strong>Belum ada transaksi aktif</strong>
-          <span>Informasi pembayaran akan muncul setelah transaksi kaveling dibuat untuk akun Anda.</span>
-        </div>
+        <StatusIllustration
+          v-else
+          variant="empty-data"
+          title="Belum ada transaksi aktif"
+          description="Informasi pembayaran akan muncul setelah transaksi kaveling dibuat untuk akun Anda."
+          fill
+        />
       </main>
     </ion-content>
     <MobileTabBar variant="client" />

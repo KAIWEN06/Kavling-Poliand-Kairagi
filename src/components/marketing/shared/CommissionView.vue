@@ -4,7 +4,7 @@
       <SkeletonStatGrid :count="4" label="Memuat komisi" />
       <SkeletonRowList :rows="4" :fields="3" :badges="[3]" />
     </template>
-    <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Komisi belum dapat dimuat</strong><span>{{ error }}</span></div>
+    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Komisi belum dapat dimuat" :on-action="load" />
 
     <template v-else>
       <div class="mk-grid">
@@ -32,10 +32,7 @@
       </div>
 
       <h2 class="mk-subhead">Riwayat komisi</h2>
-      <div v-if="!rows.length" class="mk-state">
-        <strong>Belum ada data komisi</strong>
-        <span>Komisi Rp500.000 (50% dari Booking Fee Rp1.000.000) tercatat otomatis setelah SPK klien disetujui Admin.</span>
-      </div>
+      <StatusIllustration v-if="!rows.length" variant="empty-data" size="sm" title="Belum ada data komisi" description="Komisi Rp500.000 (50% dari Booking Fee Rp1.000.000) tercatat otomatis setelah SPK klien disetujui Admin." />
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
           <thead><tr><th>Klien / kaveling</th><th v-if="isHead">Marketing</th><th>Jenis</th><th class="num">Nilai transaksi</th><th class="num">Tarif</th><th class="num">Komisi</th><th>Status</th><th>Tanggal pencairan</th></tr></thead>
@@ -60,6 +57,8 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, onMounted, ref } from 'vue'

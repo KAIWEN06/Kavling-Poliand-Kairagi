@@ -1,14 +1,16 @@
 <template>
-  <section class="cta-section">
+  <section v-if="ctaTitle || isAdmin" class="cta-section">
     <div class="cta-card">
       <div class="cta-content">
 
-        <h2>{{ ctaTitle }}</h2>
+        <h2>{{ ctaTitle || 'Judul ajakan belum diisi' }}</h2>
 
-        <p>{{ ctaText }}</p>
+        <p v-if="ctaText">{{ ctaText }}</p>
 
         <ion-button
+          v-if="hasWhatsapp || isAdmin"
           class="whatsapp-button"
+          :disabled="!hasWhatsapp"
           @click="handleWhatsapp"
         >
           <ion-icon
@@ -19,14 +21,24 @@
           Hubungi via WhatsApp
         </ion-button>
 
+        <div v-if="isAdmin" class="cta-admin">
+          <AdminEditButton label="Edit ajakan" @click="editOpen = true" />
+        </div>
+
       </div>
     </div>
+
+    <CmsPanelModal v-model="editOpen" title="Edit ajakan" panel="home" section="cta" @saved="load" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { contactsService } from '@/services/contactService'
+import { HOME_KEYS, toWaNumber } from '@/utils/homeContent'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
 import {
   IonButton,
   IonIcon
@@ -36,20 +48,25 @@ import {
   logoWhatsapp
 } from 'ionicons/icons'
 
-const ctaTitle = ref('Siap memiliki kaveling impian?')
-const ctaText = ref('Hubungi tim kami sekarang dan dapatkan informasi lengkap.')
+const ctaTitle = ref('')
+const ctaText = ref('')
+const hasWhatsapp = ref(false)
+const editOpen = ref(false)
+const { isAdmin } = useCmsAdmin()
 
-/** Judul & teks ajakan dikelola Admin lewat data Kontak (key cta_title, cta_text). */
-onMounted(async () => {
+/** Judul & teks ajakan dikelola Admin; tombol WhatsApp hanya aktif bila nomor Kontak sudah diisi. */
+async function load() {
   try {
     const rows = await contactsService.getAll()
-    const valueOf = (key: string) => rows.find((row) => row.key === key)?.value?.trim()
-    ctaTitle.value = valueOf('cta_title') || ctaTitle.value
-    ctaText.value = valueOf('cta_text') || ctaText.value
-  } catch {
-    /* tetap memakai teks bawaan */
+    const valueOf = (key: string) => rows.find((row) => row.key === key)?.value?.trim() || ''
+    ctaTitle.value = valueOf(HOME_KEYS.ctaTitle)
+    ctaText.value = valueOf(HOME_KEYS.ctaText)
+    hasWhatsapp.value = !!toWaNumber(valueOf('whatsapp'))
+  } catch (error) {
+    console.error('Gagal mengambil teks ajakan:', error)
   }
-})
+}
+onMounted(load)
 
 const emit = defineEmits<{
   contactWhatsapp: []
@@ -167,6 +184,8 @@ const handleWhatsapp = () => {
 /* =========================================================
    WHATSAPP
 ========================================================= */
+
+.cta-admin { display: flex; justify-content: center; margin-top: 14px; }
 
 .whatsapp-button {
   --background: #2E7D32;

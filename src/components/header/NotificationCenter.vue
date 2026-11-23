@@ -26,11 +26,13 @@
           <button type="button" class="notif__retry" @click="reload">Coba lagi</button>
         </div>
 
-        <div v-else-if="!items.length" class="notif__empty">
-          <span class="notif__empty-icon"><ion-icon :icon="notificationsOffOutline" aria-hidden="true" /></span>
-          <strong>Belum ada notifikasi</strong>
-          <p>Kabar terbaru tentang aktivitas Anda di PoliLand Kairagi akan muncul di sini.</p>
-        </div>
+        <StatusIllustration
+          v-else-if="!items.length"
+          variant="empty-data"
+          size="sm"
+          title="Belum ada notifikasi"
+          description="Kabar terbaru tentang aktivitas Anda di PoliLand Kairagi akan muncul di sini."
+        />
 
         <ul v-else class="notif__list">
           <li v-for="n in items" :key="n.id">
@@ -61,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
 import { IonIcon, IonModal, useIonRouter } from '@ionic/vue'
 import {
@@ -71,7 +74,6 @@ import {
   documentTextOutline,
   homeOutline,
   informationCircleOutline,
-  notificationsOffOutline,
   personAddOutline,
   walletOutline,
 } from 'ionicons/icons'

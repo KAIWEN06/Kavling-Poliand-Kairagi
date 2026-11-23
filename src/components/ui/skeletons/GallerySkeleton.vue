@@ -117,11 +117,12 @@
             </button>
           </div>
 
-          <div v-if="!isLoading && filteredPhotos.length === 0" class="empty-state">
-            <div class="empty-icon"><ion-icon :icon="imagesOutline" /></div>
-            <h3>Belum ada foto</h3>
-            <p>Foto untuk kategori ini belum tersedia.</p>
-          </div>
+          <StatusIllustration
+            v-if="!isLoading && filteredPhotos.length === 0"
+            variant="no-result"
+            title="Foto tidak ditemukan"
+            description="Foto untuk kategori ini belum tersedia."
+          />
         </section>
 
         <section class="gallery-cta">
@@ -176,6 +177,7 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import {

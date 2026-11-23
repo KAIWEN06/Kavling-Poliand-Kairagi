@@ -1,5 +1,5 @@
 <template>
-  <section class="section about-section">
+  <section v-if="showSection" class="section about-section">
     <div class="section-heading simple-heading">
       <div v-if="loading" class="skeleton-heading">
         <Skeleton
@@ -26,6 +26,7 @@
         <h2>Tentang Kami</h2>
         <span class="heading-line"></span>
       </div>
+      <AdminEditButton v-if="isAdmin" label="Edit teks" @click="editTextOpen = true" />
     </div>
 
     <div class="about-content">
@@ -115,27 +116,13 @@
 
         <!-- DATA ASLI -->
         <template v-else>
-          <p>
-            {{
-              videoData?.description ||
-              'PoliLand Kairagi hadir untuk memberikan solusi investasi tanah yang aman, nyaman, dan menguntungkan. Kami berkomitmen untuk menghadirkan kawasan hunian dan investasi terbaik di Manado.'
-            }}
-          </p>
+          <p v-if="aboutText">{{ aboutText }}</p>
+          <p v-else-if="isAdmin" class="empty-hint">Deskripsi belum diisi. Tekan “Edit teks”.</p>
 
-          <div class="check-list">
-            <div>
+          <div v-if="aboutPoints.length" class="check-list">
+            <div v-for="(point, index) in aboutPoints" :key="index">
               <ion-icon :icon="checkmarkCircleOutline" />
-              <span>Kawasan berkembang dan potensial</span>
-            </div>
-
-            <div>
-              <ion-icon :icon="checkmarkCircleOutline" />
-              <span>Infrastruktur lengkap dan akses mudah</span>
-            </div>
-
-            <div>
-              <ion-icon :icon="checkmarkCircleOutline" />
-              <span>Dikelola secara profesional dan terpercaya</span>
+              <span>{{ point }}</span>
             </div>
           </div>
 
@@ -215,91 +202,61 @@
           <div
             v-else
             class="video-empty-box"
+            :role="isAdmin ? 'button' : undefined"
+            :tabindex="isAdmin ? 0 : undefined"
             @click="isAdmin ? handleOpenModal() : null"
+            @keydown.enter="isAdmin ? handleOpenModal() : null"
           >
             <ion-icon
               :icon="videocamOffOutline"
               class="empty-icon"
             />
 
-            <p>Video Belum Diatur</p>
+            <p>{{ isAdmin ? 'Video belum diatur. Tekan untuk menambahkan.' : 'Video belum tersedia' }}</p>
           </div>
 
         </div>
       </div>
     </div>
 
-    <!-- ==========================================
-         VIDEO PLAYER MODAL
-    =========================================== -->
-    <div
-      v-if="isVideoOpen && videoData?.video_url"
-      class="modal-backdrop"
+    <!-- VIDEO PLAYER -->
+    <AppModal
+      v-model="isVideoOpen"
+      :title="videoData?.title || 'Video profil'"
+      variant="dialog"
+      max-width="720px"
+      :show-footer="false"
     >
-      <div class="modal-content-wrapper">
-
-        <button
-          class="modal-close-btn"
-          @click="handleCloseVideo"
-        >
-          <ion-icon :icon="closeOutline" />
-        </button>
-
-        <div class="player-container">
-
-          <iframe
-            v-if="isYouTubeUrl(videoData.video_url)"
-            :src="getYouTubeEmbedUrl(videoData.video_url) || ''"
-            :title="videoData.title"
-            class="video-iframe"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen
-          />
-
-          <video
-            v-else
-            :src="videoData.video_url"
-            controls
-            autoplay
-            class="video-native"
-          />
-
-        </div>
+      <div v-if="videoData?.video_url" class="player-container">
+        <iframe
+          v-if="isYouTubeUrl(videoData.video_url)"
+          :src="getYouTubeEmbedUrl(videoData.video_url) || ''"
+          :title="videoData.title"
+          class="video-iframe"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        />
+        <video v-else :src="videoData.video_url" controls autoplay class="video-native" />
       </div>
-    </div>
+    </AppModal>
 
-    <!-- ==========================================
-         ADMIN MODAL FORM
-    =========================================== -->
-    <div
-      v-if="isModalOpen"
-      class="modal-backdrop"
+    <!-- ADMIN: VIDEO PROFIL -->
+    <AppModal
+      v-model="isModalOpen"
+      title="Kelola Video Profil"
+      :loading="saving"
+      confirm-text="Simpan"
+      @confirm="handleSubmit"
     >
-      <div class="admin-modal-card">
-
-        <div class="admin-modal-header">
-          <h3>Kelola Video Profil Utama</h3>
-
-          <button
-            @click="isModalOpen = false"
-            :disabled="saving"
-            class="close-icon-btn"
-          >
-            <ion-icon :icon="closeOutline" />
-          </button>
-        </div>
-
         <div
           v-if="message.text"
           :class="['alert-box', message.type]"
+          :role="message.type === 'error' ? 'alert' : 'status'"
         >
           {{ message.text }}
         </div>
 
-        <form
-          @submit.prevent="handleSubmit"
-          class="admin-form"
-        >
+        <form class="admin-form" @submit.prevent="handleSubmit">
 
           <!-- JUDUL -->
           <div class="form-group">
@@ -469,43 +426,10 @@
             </div>
           </div>
 
-          <!-- FORM ACTION -->
-          <div class="form-actions">
-
-            <button
-              type="button"
-              @click="isModalOpen = false"
-              :disabled="saving"
-              class="btn-cancel"
-            >
-              Batal
-            </button>
-
-            <button
-              type="submit"
-              :disabled="saving"
-              class="btn-save"
-            >
-              <ion-spinner
-                v-if="saving"
-                name="crescent"
-                style="
-                  width: 16px;
-                  height: 16px;
-                  margin-right: 6px;
-                "
-              />
-
-              <span>
-                {{ saving ? 'Menyimpan...' : 'Simpan' }}
-              </span>
-            </button>
-
-          </div>
-
         </form>
-      </div>
-    </div>
+    </AppModal>
+
+    <CmsPanelModal v-model="editTextOpen" title="Edit Tentang Kami" panel="home" section="about" @saved="loadAboutText" />
   </section>
 </template>
 
@@ -521,13 +445,17 @@ import {
 
 import {
   IonButton,
-  IonIcon,
-  IonSpinner
+  IonIcon
 } from '@ionic/vue'
 
 import { useRouter } from 'vue-router'
 import Skeleton from '@/components/ui/Skeleton.vue'
-import sampleThumbnail from '@/assets/images/hero2.jpg'
+import AppModal from '@/components/ui/AppModal.vue'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import { contactsService } from '@/services/contactService'
+import { HOME_KEYS, parsePoints } from '@/utils/homeContent'
 
 import {
   checkmarkCircleOutline,
@@ -535,15 +463,10 @@ import {
   play,
   settingsOutline,
   videocamOffOutline,
-  closeOutline,
   cloudUploadOutline,
   videocamOutline,
   imageOutline
 } from 'ionicons/icons'
-
-import {
-  supabase
-} from '@/services/config/supabase'
 
 import {
   featureService,
@@ -561,18 +484,16 @@ import {
 
 const router = useRouter()
 
-// Video contoh, tampil selama video profil di database belum diatur.
-// Admin bisa menggantinya lewat tombol "Tambah Video".
-const sampleVideo: VideoItem = {
-  title: 'Profil PoliLand Kairagi (Contoh)',
-  description: 'PoliLand Kairagi hadir untuk memberikan solusi investasi tanah yang aman, nyaman, dan menguntungkan. Kami berkomitmen untuk menghadirkan kawasan hunian dan investasi terbaik di Manado.',
-  video_url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-  thumbnail_url: sampleThumbnail,
-}
-
 const videoData = ref<VideoItem | null>(null)
 
-const isAdmin = ref(false)
+const { isAdmin } = useCmsAdmin()
+
+const aboutDescription = ref('')
+const aboutPoints = ref<string[]>([])
+const editTextOpen = ref(false)
+
+const aboutText = computed(() => aboutDescription.value || videoData.value?.description || '')
+const showSection = computed(() => loading.value || isAdmin.value || !!aboutText.value || aboutPoints.value.length > 0 || !!videoData.value)
 
 const loading = ref(true)
 
@@ -640,41 +561,6 @@ const fetchData = async () => {
 
     }
 
-
-    // ========================================
-    // CHECK ADMIN
-    // ========================================
-
-    const {
-      data: sessionData
-    } = await supabase.auth.getSession()
-
-    const session = sessionData?.session
-
-    if (session) {
-
-      const {
-        data: profile
-      } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-
-      if (
-        profile &&
-        (
-          profile.role === 'admin' ||
-          profile.role === 'superadmin'
-        )
-      ) {
-
-        isAdmin.value = true
-
-      }
-
-    }
-
   } catch (error) {
 
     console.error(
@@ -684,15 +570,22 @@ const fetchData = async () => {
 
   } finally {
 
-    if (!videoData.value) {
-      videoData.value = sampleVideo
-    }
-
-
     loading.value = false
 
   }
 
+}
+
+/** Deskripsi dan poin "Tentang Kami" diatur Admin lewat Kelola Konten atau tombol Edit teks. */
+const loadAboutText = async () => {
+  try {
+    const rows = await contactsService.getAll()
+    const valueOf = (key: string) => rows.find((row) => row.key === key)?.value ?? ''
+    aboutDescription.value = valueOf(HOME_KEYS.aboutDescription).trim()
+    aboutPoints.value = parsePoints(valueOf(HOME_KEYS.aboutPoints))
+  } catch (error) {
+    console.error('Gagal mengambil teks Tentang Kami:', error)
+  }
 }
 
 
@@ -702,6 +595,7 @@ const fetchData = async () => {
 
 onMounted(() => {
   fetchData()
+  loadAboutText()
 })
 
 
@@ -1354,13 +1248,6 @@ const handlePlayVideo = () => {
 
 }
 
-
-const handleCloseVideo = () => {
-
-  isVideoOpen.value = false
-
-}
-
 </script>
 
 
@@ -1372,6 +1259,13 @@ const handleCloseVideo = () => {
 
 .section {
   padding: 30px 16px 0;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .section-heading h2 {
@@ -1557,15 +1451,17 @@ const handleCloseVideo = () => {
 
   gap: 4px;
 
-  padding: 5px 10px;
+  min-height: 36px;
+
+  padding: 0 12px;
 
   background: #556B2F;
 
   color: #ffffff;
 
-  border-radius: 8px;
+  border-radius: 999px;
 
-  font-size: 9px;
+  font-size: 11px;
 
   font-weight: 700;
 
@@ -1708,425 +1604,175 @@ const handleCloseVideo = () => {
 
 
 /* ==========================================
-   MODAL VIDEO PLAYER
+   VIDEO PLAYER (dalam AppModal)
 ========================================== */
-
-.modal-backdrop {
-  position: fixed;
-
-  inset: 0;
-
-  z-index: 1000;
-
-  background:
-    rgba(0, 0, 0, 0.8);
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 16px;
-}
-
-.modal-content-wrapper {
-  position: relative;
-
-  width: 100%;
-
-  max-width: 600px;
-}
-
-.modal-close-btn {
-  position: absolute;
-
-  top: -36px;
-
-  right: 0;
-
-  background: transparent;
-
-  border: none;
-
-  color: #ffffff;
-
-  font-size: 24px;
-
-  cursor: pointer;
-}
 
 .player-container {
   aspect-ratio: 16 / 9;
-
-  background: #000000;
-
-  border-radius: 12px;
-
-  overflow: hidden;
-
   width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000000;
 }
 
 .video-iframe,
 .video-native {
   width: 100%;
-
   height: 100%;
-
   border: none;
+}
+
+.empty-hint {
+  padding: 12px;
+  border: 1px dashed #d5d0c4;
+  border-radius: 10px;
+  color: #6b6b6b !important;
 }
 
 
 /* ==========================================
-   ADMIN MODAL
-========================================== */
-
-.admin-modal-card {
-  background: #ffffff;
-
-  border-radius: 16px;
-
-  width: 100%;
-
-  max-width: 450px;
-
-  max-height: 90vh;
-
-  overflow-y: auto;
-
-  padding: 18px;
-
-  box-shadow:
-    0 20px 25px -5px
-    rgba(0, 0, 0, 0.1);
-}
-
-.admin-modal-header {
-  display: flex;
-
-  justify-content: space-between;
-
-  align-items: center;
-
-  border-bottom:
-    1px solid #f1f5f9;
-
-  padding-bottom: 10px;
-
-  margin-bottom: 14px;
-}
-
-.admin-modal-header h3 {
-  margin: 0;
-
-  font-size: 13px;
-
-  font-weight: 800;
-
-  color: #1e293b;
-}
-
-.close-icon-btn {
-  background: transparent;
-
-  border: none;
-
-  font-size: 18px;
-
-  color: #64748b;
-
-  cursor: pointer;
-}
-
-
-/* ==========================================
-   ALERT
+   FORM ADMIN (dalam AppModal)
 ========================================== */
 
 .alert-box {
-  padding: 8px 10px;
-
-  border-radius: 8px;
-
-  font-size: 10px;
-
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
-
-  margin-bottom: 12px;
+  line-height: 1.5;
 }
 
 .alert-box.success {
-  background: #ecfdf5;
-
-  color: #059669;
-
-  border:
-    1px solid #a7f3d0;
+  background: #e8eee4;
+  color: #355a2c;
 }
 
 .alert-box.error {
-  background: #fef2f2;
-
-  color: #dc2626;
-
-  border:
-    1px solid #fecaca;
+  background: #fbe7e6;
+  color: #a8322d;
 }
 
-
-/* ==========================================
-   FORM
-========================================== */
-
-.admin-form .form-group {
-  margin-bottom: 12px;
+.admin-form {
+  display: grid;
+  gap: 16px;
 }
 
 .admin-form label {
   display: block;
-
-  font-size: 10px;
-
+  margin-bottom: 6px;
+  color: #717178;
+  font-size: 12px;
   font-weight: 700;
-
-  color: #334155;
-
-  margin-bottom: 5px;
 }
 
 .admin-form input[type="text"],
 .admin-form input[type="url"],
 .admin-form textarea {
   width: 100%;
-
-  padding: 7px 9px;
-
-  font-size: 11px;
-
-  border:
-    1px solid #cbd5e1;
-
-  border-radius: 8px;
-
-  outline: none;
-
-  background: #f8fafc;
-
-  color: #1e293b;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 11px 12px;
+  border: 1px solid #eae7e0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #252525;
+  font: inherit;
+  font-size: 14px;
 }
 
 .admin-form textarea {
-  resize: none;
+  resize: vertical;
+  line-height: 1.5;
 }
-
-
-/* ==========================================
-   VIDEO SOURCE
-========================================== */
 
 .source-grid {
   display: grid;
-
-  grid-template-columns:
-    repeat(2, 1fr);
-
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
 .source-tab {
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   gap: 6px;
-
-  padding: 8px;
-
-  border-radius: 8px;
-
-  border:
-    1px solid #cbd5e1;
-
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid #eae7e0;
+  border-radius: 12px;
   background: #ffffff;
-
-  font-size: 10px;
-
+  color: #717178;
+  font: inherit;
+  font-size: 13px;
   font-weight: 700;
-
-  color: #64748b;
-
   cursor: pointer;
 }
 
 .source-tab.active-youtube {
-  border-color: #ef4444;
-
-  background: #fef2f2;
-
-  color: #dc2626;
+  border-color: #d94b45;
+  background: #fbe7e6;
+  color: #a8322d;
 }
 
 .source-tab.active-upload {
-  border-color: #556B2F;
-
-  background: #f4f7f0;
-
-  color: #556B2F;
+  border-color: #355a2c;
+  background: #e8eee4;
+  color: #355a2c;
 }
-
-
-/* ==========================================
-   UPLOAD
-========================================== */
 
 .upload-dropzone {
   display: flex;
-
   flex-direction: column;
-
   align-items: center;
-
   justify-content: center;
-
-  padding: 14px;
-
-  border:
-    2px dashed #cbd5e1;
-
-  border-radius: 10px;
-
-  background: #f8fafc;
-
-  cursor: pointer;
-
+  padding: 16px;
+  border: 2px dashed #d5d0c4;
+  border-radius: 12px;
+  background: #faf9f6;
   text-align: center;
+  cursor: pointer;
 }
 
 .drop-icon {
-  font-size: 20px;
-
-  color: #64748b;
-
   margin-bottom: 4px;
+  color: #717178;
+  font-size: 22px;
 }
 
 .drop-text {
-  font-size: 10px;
-
+  color: #252525;
+  font-size: 13px;
   font-weight: 700;
-
-  color: #334155;
+  word-break: break-all;
 }
 
 .drop-hint {
-  font-size: 9px;
-
-  color: #94a3b8;
-
   margin-top: 2px;
+  color: #8a8a90;
+  font-size: 11px;
 }
-
-
-/* ==========================================
-   THUMBNAIL
-========================================== */
 
 .helper-success {
   display: block;
-
-  font-size: 9px;
-
-  font-weight: 700;
-
-  color: #059669;
-
   margin-top: 4px;
+  color: #355a2c;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .thumbnail-preview {
-  margin-top: 6px;
-
-  border-radius: 8px;
-
+  height: 120px;
+  margin-top: 8px;
   overflow: hidden;
-
-  border:
-    1px solid #cbd5e1;
-
-  height: 90px;
+  border: 1px solid #eae7e0;
+  border-radius: 12px;
 }
 
 .thumbnail-preview img {
   width: 100%;
-
   height: 100%;
-
   object-fit: cover;
-}
-
-
-/* ==========================================
-   FORM ACTIONS
-========================================== */
-
-.form-actions {
-  display: flex;
-
-  justify-content: flex-end;
-
-  gap: 8px;
-
-  border-top:
-    1px solid #f1f5f9;
-
-  padding-top: 12px;
-
-  margin-top: 14px;
-}
-
-.btn-cancel {
-  padding: 7px 12px;
-
-  background: #f1f5f9;
-
-  color: #64748b;
-
-  border-radius: 8px;
-
-  font-size: 10px;
-
-  font-weight: 700;
-
-  border: none;
-
-  cursor: pointer;
-}
-
-.btn-save {
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 7px 14px;
-
-  background: #556B2F;
-
-  color: #ffffff;
-
-  border-radius: 8px;
-
-  font-size: 10px;
-
-  font-weight: 700;
-
-  border: none;
-
-  cursor: pointer;
 }
 
 </style>

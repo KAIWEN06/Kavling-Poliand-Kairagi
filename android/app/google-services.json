@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "85190754374",
+    "project_id": "poliland",
+    "storage_bucket": "poliland.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:85190754374:android:17530d99de3da4985e4a47",
+        "android_client_info": {
+          "package_name": "com.poliland.kairagi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-sBVpnRiKDiz1IKldKXRHBZgYOA52dvc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

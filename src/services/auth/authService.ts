@@ -155,6 +155,13 @@ export const authService = {
    * Logout.
    */
   async logout() {
+    // Batalkan token push selagi sesi masih ada, agar perangkat tak menerima notifikasi akun ini.
+    try {
+      const { roleNotificationService } = await import('@/services/notification/roleNotificationService')
+      await roleNotificationService.unregisterPush()
+    } catch {
+      // Logout tidak boleh gagal karena push.
+    }
     const { error } = await supabase.auth.signOut()
 
     // Bersihkan verifier PKCE agar login Google berikutnya memulai flow baru.

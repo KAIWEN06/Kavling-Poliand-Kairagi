@@ -1,9 +1,9 @@
 <template>
-  <section class="cms-panel" aria-labelledby="location-title">
-    <header class="panel-head">
+  <section class="cms-panel" :class="{ embedded }" aria-labelledby="location-title">
+    <header v-if="!embedded" class="panel-head">
       <div>
         <h2 id="location-title">Lokasi</h2>
-        <p>Titik peta dan daftar tempat terdekat pada bagian Lokasi & Denah Kavling di Beranda.</p>
+        <p>Cari dan tandai titik kavling di peta, lalu atur daftar tempat terdekat. Tampil di bagian Lokasi & Denah Kavling pada Beranda.</p>
       </div>
       <button class="btn btn-primary" type="button" :disabled="saving || loading" @click="save">
         {{ saving ? 'Menyimpan…' : 'Simpan lokasi' }}
@@ -13,22 +13,7 @@
     <p v-if="loading" class="state" role="status">Memuat pengaturan lokasi…</p>
     <template v-else>
       <div class="map-block">
-        <div class="fields coords">
-          <label class="field">Lintang (latitude)
-            <input v-model="latText" inputmode="decimal" placeholder="1.5107731">
-          </label>
-          <label class="field">Bujur (longitude)
-            <input v-model="lngText" inputmode="decimal" placeholder="124.8848806">
-          </label>
-          <label class="field">Zoom peta (10–20)
-            <input v-model.number="settings.zoom" type="number" min="10" max="20" inputmode="numeric">
-          </label>
-        </div>
-        <p class="hint">Cara mengambil koordinat: buka Google Maps, tekan lama titik kavling, lalu salin dua angka yang muncul (lintang, bujur).</p>
-        <p v-if="coordError" class="hint error" role="alert">{{ coordError }}</p>
-        <div v-else class="map-frame">
-          <iframe :src="previewUrl" title="Pratinjau peta lokasi kavling" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-        </div>
+        <LocationPicker v-model="point" />
       </div>
 
       <div class="block-head">
@@ -64,36 +49,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { contactsService } from '@/services/contactService'
 import { PLACE_ICON_OPTIONS, resolvePlaceIcon } from '@/utils/cmsIcons'
-import { DEFAULT_LOCATION_SETTINGS, mapEmbedUrl, type LocationSettings } from '@/utils/locationSettings'
+import LocationPicker from '@/components/Admin/LocationPicker.vue'
+import { DEFAULT_LOCATION_SETTINGS, type LocationSettings } from '@/utils/locationSettings'
 
-const emit = defineEmits<{ notify: [message: string, type?: 'success' | 'error'] }>()
+defineProps<{ embedded?: boolean }>()
+const emit = defineEmits<{ notify: [message: string, type?: 'success' | 'error']; saved: [] }>()
 
 const loading = ref(true)
 const saving = ref(false)
 const settings = reactive<LocationSettings>(structuredClone(DEFAULT_LOCATION_SETTINGS))
-const latText = ref(String(DEFAULT_LOCATION_SETTINGS.lat))
-const lngText = ref(String(DEFAULT_LOCATION_SETTINGS.lng))
-
-const parse = (text: string) => Number(text.trim().replace(',', '.'))
-const coordError = computed(() => {
-  const lat = parse(latText.value)
-  const lng = parse(lngText.value)
-  if (!latText.value.trim() || !lngText.value.trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return 'Isi lintang dan bujur dengan angka, contoh 1.5107731 dan 124.8848806.'
-  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return 'Koordinat di luar jangkauan. Lintang maksimal 90, bujur maksimal 180.'
-  return ''
-})
-const zoomValue = computed(() => Math.min(20, Math.max(10, Math.round(Number(settings.zoom) || 17))))
-const previewUrl = computed(() => coordError.value ? '' : mapEmbedUrl({ ...settings, lat: parse(latText.value), lng: parse(lngText.value), zoom: zoomValue.value }))
+/** Titik pin di peta. Admin menandainya lewat pencarian atau ketukan, tanpa mengisi koordinat manual. */
+const point = ref({ lat: settings.lat, lng: settings.lng, zoom: settings.zoom })
 
 async function load() {
   try {
-    Object.assign(settings, await contactsService.getLocationSettings())
-    latText.value = String(settings.lat)
-    lngText.value = String(settings.lng)
+    const saved = await contactsService.getLocationSettings()
+    if (saved) Object.assign(settings, saved)
+    point.value = { lat: settings.lat, lng: settings.lng, zoom: settings.zoom }
   } catch (error) {
     emit('notify', error instanceof Error ? error.message : 'Pengaturan lokasi gagal dimuat.', 'error')
   } finally {
@@ -109,34 +85,34 @@ function move(index: number, step: -1 | 1) {
   ;[settings.places[index], settings.places[target]] = [settings.places[target], settings.places[index]]
 }
 
-async function save() {
-  if (coordError.value) return emit('notify', coordError.value, 'error')
+async function save(): Promise<boolean> {
   const places = settings.places.map((place) => ({ ...place, name: place.name.trim(), time: place.time.trim() }))
   const incomplete = places.findIndex((place) => (place.name && !place.time) || (!place.name && place.time))
-  if (incomplete !== -1) return emit('notify', `Tempat nomor ${incomplete + 1} belum lengkap. Isi nama dan jarak, atau hapus.`, 'error')
+  if (incomplete !== -1) { emit('notify', `Tempat nomor ${incomplete + 1} belum lengkap. Isi nama dan jarak, atau hapus.`, 'error'); return false }
   saving.value = true
   try {
-    const payload: LocationSettings = { lat: parse(latText.value), lng: parse(lngText.value), zoom: zoomValue.value, places: places.filter((place) => place.name) }
+    const payload: LocationSettings = { lat: point.value.lat, lng: point.value.lng, zoom: point.value.zoom, places: places.filter((place) => place.name) }
     await contactsService.saveLocationSettings(payload)
     Object.assign(settings, payload)
     emit('notify', 'Lokasi tersimpan dan langsung tampil di Beranda.', 'success')
+    emit('saved')
+    return true
   } catch (error) {
     emit('notify', error instanceof Error ? error.message : 'Lokasi gagal disimpan.', 'error')
+    return false
   } finally {
     saving.value = false
   }
 }
 
+defineExpose({ save, saving, loading })
 onMounted(load)
 </script>
 
 <style scoped src="./cmsPanel.css"></style>
 <style scoped>
-.coords { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.embedded { padding: 0; border: 0; background: transparent; }
 .map-block { display: grid; gap: 10px; margin-bottom: 8px; }
-.map-frame { aspect-ratio: 16 / 9; max-block-size: 320px; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }
-.map-frame iframe { inline-size: 100%; block-size: 100%; border: 0; }
-.hint.error { color: var(--status-danger); font-weight: 700; }
 .block-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 22px 0 14px; padding-top: 20px; border-top: 1px solid var(--border-default); }
 .block-head h3 { margin: 0; font-size: 16px; font-weight: 800; }
 .place-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
@@ -146,8 +122,7 @@ onMounted(load)
 .place-controls { display: flex; flex-direction: column; gap: 8px; }
 .place-controls .icon-btn { align-self: flex-start; }
 @media (max-width: 720px) {
-  .coords { grid-template-columns: 1fr 1fr; }
-  .place-item { grid-template-columns: 40px minmax(0, 1fr); }
+    .place-item { grid-template-columns: 40px minmax(0, 1fr); }
   .place-fields { grid-template-columns: 1fr; }
   .place-controls { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; }
 }

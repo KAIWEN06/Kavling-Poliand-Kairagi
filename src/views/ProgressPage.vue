@@ -13,6 +13,9 @@
             <div v-else>
               <h1>Kemajuan Pembangunan</h1>
               <p>Pantau perkembangan pembangunan kawasan secara berkala.</p>
+              <div v-if="isAdmin" class="page-admin">
+                <AdminEditButton label="Tambah update" :icon="addOutline" @click="openAdd" />
+              </div>
             </div>
           </header>
 
@@ -105,17 +108,17 @@
             <article
               v-else-if="featuredProject"
               class="featured-card"
+              role="link"
+              tabindex="0"
               @click="openProject(featuredProject)"
+              @keydown.enter="openProject(featuredProject)"
             >
               <div class="featured-image">
-                <img :src="featuredProject.cover" :alt="featuredProject.name" />
+                <img v-if="featuredProject.cover" :src="featuredProject.cover" :alt="featuredProject.name" />
+                <div v-else class="cover-empty" aria-hidden="true"><ion-icon :icon="constructOutline" /></div>
                 <div class="featured-image-overlay"></div>
                 <div class="featured-image-info">
                   <span class="category-label">{{ featuredProject.category }}</span>
-                  <span class="photo-count">
-                    <ion-icon :icon="imagesOutline" />
-                    {{ featuredProject.photoCount }}
-                  </span>
                 </div>
               </div>
 
@@ -227,10 +230,14 @@
                 v-for="project in filteredProjects"
                 :key="project.id"
                 class="project-card"
+                role="link"
+                tabindex="0"
                 @click="openProject(project)"
+                @keydown.enter="openProject(project)"
               >
                 <div class="project-thumbnail">
-                  <img :src="project.cover" :alt="project.name" />
+                  <img v-if="project.cover" :src="project.cover" :alt="project.name" loading="lazy" />
+                  <div v-else class="cover-empty" aria-hidden="true"><ion-icon :icon="constructOutline" /></div>
                   <div class="thumbnail-overlay"></div>
                   <span class="thumbnail-status">{{ project.statusLabel }}</span>
                 </div>
@@ -256,7 +263,6 @@
                       <ion-icon :icon="calendarOutline" />
                       {{ project.lastUpdate }}
                     </span>
-                    <span>{{ project.updateCount }} update</span>
                   </div>
                 </div>
 
@@ -264,13 +270,12 @@
               </article>
             </div>
 
-            <div v-else class="empty-state">
-              <div class="empty-icon">
-                <ion-icon :icon="constructOutline" />
-              </div>
-              <h3>Tidak ada proyek</h3>
-              <p>Belum ada pembangunan untuk kategori yang dipilih.</p>
-            </div>
+            <StatusIllustration
+              v-else
+              :variant="projects.length ? 'no-result' : 'empty-data'"
+              :title="projects.length ? 'Proyek tidak ditemukan' : 'Belum ada update'"
+              :description="projects.length ? 'Belum ada pembangunan untuk kategori yang dipilih.' : (isAdmin ? 'Tekan “Tambah update” untuk menampilkan perkembangan pertama.' : 'Update pembangunan akan segera ditambahkan.')"
+            />
           </section>
 
           <!-- Information -->
@@ -315,101 +320,114 @@
         </main>
       </ion-content>
 
+      <CmsItemFormModal v-model="formOpen" type="progress" :count="projects.length" @saved="onSaved" />
+      <CmsBackBar />
     </div>
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { calendarOutline, chevronForwardOutline, constructOutline, imagesOutline, informationCircleOutline, refreshOutline } from 'ionicons/icons'
+import { addOutline, calendarOutline, chevronForwardOutline, constructOutline, informationCircleOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
+import CmsItemFormModal from '@/components/Admin/CmsItemFormModal.vue'
+import { progressService, type ProgressItem } from '@/services/progressService'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
+const toast = useToast()
+const { isAdmin } = useCmsAdmin()
+
 const isLoading = ref(true)
 const isRefreshing = ref(false)
-let refreshTimer: ReturnType<typeof setTimeout> | null = null
+const formOpen = ref(false)
 
-const REFRESH_DURATION = 1800
+const STATUS_LABEL: Record<string, string> = { completed: 'Selesai', ongoing: 'Sedang berjalan', planned: 'Direncanakan' }
 
 const selectedCategory = ref('all')
-
 const categories = [
   { label: 'Semua', value: 'all' },
-  { label: 'Jalan', value: 'jalan' },
-  { label: 'Drainase', value: 'drainase' },
-  { label: 'Penerangan', value: 'penerangan' },
-  { label: 'Fasilitas', value: 'fasilitas' },
-  { label: 'Taman', value: 'taman' },
+  { label: 'Sedang berjalan', value: 'ongoing' },
+  { label: 'Selesai', value: 'completed' },
+  { label: 'Direncanakan', value: 'planned' },
 ]
 
-const projects = [
-  { id: 1, name: 'Jalan Utama', category: 'Jalan', categoryValue: 'jalan', description: 'Pembangunan akses utama menuju kawasan PoliLand Kairagi.', shortDescription: 'Pengerjaan struktur dan lapisan jalan utama kawasan.', progress: 72, status: 'ongoing', statusLabel: 'Sedang dikerjakan', lastUpdate: '14 Okt 2026', updateCount: 6, photoCount: 12, cover: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1000&q=80' },
-  { id: 2, name: 'Sistem Drainase', category: 'Drainase', categoryValue: 'drainase', description: 'Pembangunan sistem drainase untuk mendukung kawasan.', shortDescription: 'Pengerjaan saluran drainase pada area blok pembangunan.', progress: 48, status: 'ongoing', statusLabel: 'Sedang dikerjakan', lastUpdate: '12 Okt 2026', updateCount: 4, photoCount: 9, cover: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1000&q=80' },
-  { id: 3, name: 'Gerbang Kawasan', category: 'Fasilitas', categoryValue: 'fasilitas', description: 'Pembangunan gerbang utama sebagai identitas kawasan.', shortDescription: 'Pengerjaan struktur dan finishing gerbang kawasan.', progress: 100, status: 'completed', statusLabel: 'Selesai', lastUpdate: '05 Okt 2026', updateCount: 5, photoCount: 15, cover: 'https://images.unsplash.com/photo-1590725140246-20acddd6c9c3?auto=format&fit=crop&w=1000&q=80' },
-  { id: 4, name: 'Penerangan Jalan', category: 'Penerangan', categoryValue: 'penerangan', description: 'Pemasangan penerangan untuk meningkatkan kenyamanan kawasan.', shortDescription: 'Persiapan titik dan pemasangan lampu penerangan jalan.', progress: 38, status: 'ongoing', statusLabel: 'Sedang dikerjakan', lastUpdate: '10 Okt 2026', updateCount: 3, photoCount: 7, cover: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1000&q=80' },
-  { id: 5, name: 'Taman Kawasan', category: 'Taman', categoryValue: 'taman', description: 'Penataan ruang hijau dan area taman kawasan.', shortDescription: 'Persiapan area hijau dan penataan taman kawasan.', progress: 18, status: 'ongoing', statusLabel: 'Tahap awal', lastUpdate: '08 Okt 2026', updateCount: 2, photoCount: 5, cover: 'https://images.unsplash.com/photo-1558904541-efa843a96f01?auto=format&fit=crop&w=1000&q=80' },
-]
+/** Semua data kemajuan berasal dari database (diatur Admin lewat Kelola Konten atau tombol Tambah update). */
+const rows = ref<ProgressItem[]>([])
 
-const filteredProjects = computed(() => selectedCategory.value === 'all' ? projects : projects.filter(project => project.categoryValue === selectedCategory.value))
+function formatDate(value?: string | null) {
+  if (!value) return ''
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+const projects = computed(() => rows.value.map((row) => {
+  const status = row.status || 'ongoing'
+  return {
+    id: row.id as string,
+    name: row.title,
+    category: STATUS_LABEL[status] ?? 'Sedang berjalan',
+    categoryValue: status,
+    description: row.description || '',
+    shortDescription: row.description || '',
+    progress: Math.round(Number(row.percentage) || 0),
+    status,
+    statusLabel: STATUS_LABEL[status] ?? '',
+    lastUpdate: formatDate(row.progress_date),
+    cover: row.image_url || '',
+  }
+}))
+
+const filteredProjects = computed(() => selectedCategory.value === 'all' ? projects.value : projects.value.filter(project => project.categoryValue === selectedCategory.value))
 const featuredProject = computed(() => {
   const ongoing = filteredProjects.value.filter(project => project.status === 'ongoing').sort((a, b) => b.progress - a.progress)
   return ongoing[0] ?? filteredProjects.value[0]
 })
 
-function openProject(project: typeof projects[number]) {
+function openProject(project: { id: string }) {
   router.push(`/progress/${project.id}`)
 }
 
-const handleRefresh = () => {
-  if (isRefreshing.value) return
-
-  isRefreshing.value = true
-  isLoading.value = true
-
-  if (refreshTimer) {
-    clearTimeout(refreshTimer)
-  }
-
-  refreshTimer = setTimeout(() => {
+async function loadProjects() {
+  try {
+    rows.value = await progressService.getProgress(false)
+  } catch (error) {
+    console.error('Gagal memuat kemajuan:', error)
+    toast.error('Kemajuan gagal dimuat. Tarik layar ke bawah untuk mencoba lagi.')
+  } finally {
     isLoading.value = false
-    isRefreshing.value = false
-
-    window.dispatchEvent(
-      new CustomEvent('poliland:refresh-complete')
-    )
-  }, REFRESH_DURATION)
+  }
 }
 
-const handleInitialLoad = () => {
-  setTimeout(() => {
-    isLoading.value = false
-  }, 800)
+function openAdd() { formOpen.value = true }
+async function onSaved(message: string) { toast.success(message); await loadProjects() }
+
+const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  isLoading.value = true
+  await loadProjects()
+  isRefreshing.value = false
+  window.dispatchEvent(new CustomEvent('poliland:refresh-complete'))
 }
 
 onMounted(() => {
-  window.addEventListener(
-    'poliland:refresh',
-    handleRefresh
-  )
-
-  handleInitialLoad()
+  window.addEventListener('poliland:refresh', handleRefresh)
+  void loadProjects()
 })
 
 onUnmounted(() => {
-  window.removeEventListener(
-    'poliland:refresh',
-    handleRefresh
-  )
-
-  if (refreshTimer) {
-    clearTimeout(refreshTimer)
-    refreshTimer = null
-  }
+  window.removeEventListener('poliland:refresh', handleRefresh)
 })
 </script>
 
 <style scoped>
 .progress-wrapper{position:relative;width:100%;height:100%;background:var(--pl-background,#f8f7f2)}.progress-content{--background:var(--pl-background,#f8f7f2)}.progress-page{width:100%;max-width:680px;margin:0 auto;padding:20px 16px calc(90px + env(safe-area-inset-bottom))}.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:22px}.page-eyebrow,.section-eyebrow{display:block;color:var(--pl-gray,#8b8b82);font-size:8px;font-weight:800;letter-spacing:.12em}.page-header h1{margin:5px 0 5px;color:var(--pl-charcoal,#24241f);font-size:24px;line-height:1.15;font-weight:850;letter-spacing:-.04em}.page-header p{margin:0;max-width:280px;color:var(--pl-gray,#8b8b82);font-size:10px;line-height:1.5}.update-indicator{display:flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid var(--pl-stone,#dedbd0);border-radius:999px;background:var(--pl-surface,#fff);color:var(--pl-olive,#556b2f);font-size:8px;font-weight:800}.update-indicator ion-icon{font-size:11px}.filter-section{margin-bottom:25px}.filter-label{margin-bottom:9px;color:var(--pl-gray,#8b8b82);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.filter-scroll{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}.filter-scroll::-webkit-scrollbar{display:none}.filter-chip{flex:0 0 auto;height:34px;padding:0 13px;border:1px solid var(--pl-stone,#dedbd0);border-radius:999px;background:var(--pl-surface,#fff);color:var(--pl-gray,#8b8b82);font:inherit;font-size:9px;font-weight:750}.filter-chip.active{border-color:var(--ion-color-primary,#556b2f);background:var(--ion-color-primary,#556b2f);color:#fff}.section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:13px}.section-heading h2{margin:5px 0 0;color:var(--pl-charcoal,#24241f);font-size:19px;line-height:1.2;font-weight:850;letter-spacing:-.03em}.section-count{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:var(--pl-cream,#eeeadd);color:var(--pl-olive,#556b2f);font-size:8px;font-weight:850}.featured-section{margin-bottom:29px}.featured-card{overflow:hidden;border:1px solid var(--pl-stone,#dedbd0);border-radius:20px;background:var(--pl-surface,#fff);box-shadow:0 8px 25px rgb(45 45 45 / 5%);cursor:pointer}.featured-image{position:relative;width:100%;height:190px;overflow:hidden;background:var(--pl-sand,#e9e4d5)}.featured-image img{width:100%;height:100%;display:block;object-fit:cover}.featured-image-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgb(0 0 0 / 48%))}.featured-image-info{position:absolute;left:13px;right:13px;bottom:13px;display:flex;align-items:center;justify-content:space-between}.category-label,.photo-count{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;background:rgb(0 0 0 / 48%);color:#fff;font-size:9px;font-weight:750;backdrop-filter:blur(5px)}.photo-count ion-icon{font-size:12px}.featured-content{padding:16px}.featured-title-row{display:flex;justify-content:space-between;gap:15px}.featured-title-row h3{margin:0;color:var(--pl-charcoal,#24241f);font-size:17px;font-weight:800}.featured-title-row p{margin:4px 0 0;color:var(--pl-gray,#8b8b82);font-size:10px;line-height:1.5}.featured-percentage{flex:0 0 auto;color:var(--ion-color-primary,#556b2f);font-size:21px;line-height:1;font-weight:850;letter-spacing:-.04em}.progress-track{width:100%;height:7px;margin-top:15px;overflow:hidden;border-radius:999px;background:var(--pl-sand,#e9e4d5)}.progress-fill{height:100%;border-radius:inherit;background:var(--ion-color-primary,#556b2f)}.featured-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}.status-text{display:inline-flex;align-items:center;gap:5px;color:var(--pl-slate,#64645d);font-size:9px;font-weight:700}.status-dot{width:6px;height:6px;border-radius:50%;background:var(--pl-success,#5f8f46)}.last-update{color:var(--pl-warm-gray,#aaa79d);font-size:9px}.projects-section{margin-bottom:27px}.project-list{display:flex;flex-direction:column;gap:11px}.project-card{position:relative;display:grid;grid-template-columns:105px minmax(0,1fr) 17px;align-items:center;gap:12px;min-height:126px;padding:9px;border:1px solid var(--pl-stone,#dedbd0);border-radius:17px;background:var(--pl-surface,#fff);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}.project-card:active{transform:scale(.99)}.project-thumbnail{position:relative;width:105px;height:108px;overflow:hidden;border-radius:11px;background:var(--pl-sand,#e9e4d5)}.project-thumbnail img{width:100%;height:100%;display:block;object-fit:cover}.thumbnail-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgb(0 0 0 / 35%))}.thumbnail-status{position:absolute;left:7px;bottom:7px;padding:4px 6px;border-radius:5px;background:rgb(0 0 0 / 50%);color:#fff;font-size:7px;font-weight:800}.project-body{min-width:0}.project-top{display:flex;align-items:center;justify-content:space-between;gap:5px}.project-category{color:var(--pl-gray,#8b8b82);font-size:8px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}.project-progress{color:var(--ion-color-primary,#556b2f);font-size:15px;line-height:1;font-weight:850}.project-body h3{margin:5px 0 3px;color:var(--pl-charcoal,#24241f);font-size:14px;line-height:1.25;font-weight:800}.project-body p{display:-webkit-box;margin:0;overflow:hidden;color:var(--pl-gray,#8b8b82);font-size:9.5px;line-height:1.4;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical}.project-progress-track{width:100%;height:5px;margin-top:10px;overflow:hidden;border-radius:999px;background:var(--pl-sand,#e9e4d5)}.project-progress-fill{height:100%;border-radius:inherit;background:var(--ion-color-primary,#556b2f)}.project-meta{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:7px;color:var(--pl-warm-gray,#aaa79d);font-size:8px;font-weight:650}.project-meta span:first-child{display:flex;align-items:center;gap:3px}.project-meta ion-icon{font-size:11px}.project-arrow{color:var(--pl-warm-gray,#aaa79d);font-size:15px}.empty-state{display:flex;flex-direction:column;align-items:center;padding:35px 20px;border:1px dashed var(--pl-stone,#dedbd0);border-radius:17px;text-align:center}.empty-icon{width:45px;height:45px;display:grid;place-items:center;border-radius:13px;background:var(--pl-cream,#eeeadd);color:var(--pl-olive,#556b2f)}.empty-icon ion-icon{font-size:22px}.empty-state h3{margin:11px 0 4px;color:var(--pl-charcoal,#24241f);font-size:14px}.empty-state p{margin:0;color:var(--pl-gray,#8b8b82);font-size:10px}.information-section{display:flex;align-items:flex-start;gap:10px;padding:14px;border:1px solid var(--pl-stone,#dedbd0);border-radius:15px;background:var(--pl-cream,#eeeadd)}.information-icon{flex:0 0 28px;width:28px;height:28px;display:grid;place-items:center;border-radius:9px;background:var(--pl-surface,#fff);color:var(--pl-olive,#556b2f)}.information-icon ion-icon{font-size:15px}.information-section strong{display:block;color:var(--pl-charcoal,#24241f);font-size:10px;font-weight:800}.information-section p{margin:4px 0 0;color:var(--pl-gray,#8b8b82);font-size:9px;line-height:1.5}.last-updated{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:17px;color:var(--pl-warm-gray,#aaa79d);font-size:8px}.last-updated ion-icon{font-size:11px}.bottom-space{height:60px}.skeleton-page-header{display:flex;flex-direction:column;align-items:flex-start;gap:7px}.skeleton-filter-label{margin-bottom:9px}.skeleton-filter-scroll{align-items:center}.skeleton-section-heading{display:flex;flex-direction:column;align-items:flex-start;gap:5px}.skeleton-featured-copy{display:flex;flex-direction:column;gap:6px;min-width:0}.skeleton-project-description{display:flex;flex-direction:column;gap:4px;margin-top:6px}.skeleton-information-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}.featured-card-skeleton,.project-card-skeleton{pointer-events:none}@media(max-width:380px){.progress-page{padding-inline:13px}.page-header h1{font-size:22px}.update-indicator{padding-inline:7px}.project-card{grid-template-columns:92px minmax(0,1fr) 15px;gap:9px}.project-thumbnail{width:92px;height:103px}.project-body h3{font-size:13px}.project-body p{font-size:9px}}
+.page-admin{margin-top:12px}.cover-empty{display:grid;place-items:center;width:100%;height:100%;color:var(--pl-olive,#556b2f);font-size:34px;background:var(--pl-sand,#e9e4d5)}.featured-card:focus-visible,.project-card:focus-visible{outline:3px solid var(--pl-olive,#556b2f);outline-offset:2px}
 </style>

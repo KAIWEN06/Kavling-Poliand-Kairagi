@@ -1,9 +1,9 @@
 <template>
-  <section class="cms-panel" aria-labelledby="home-title">
-    <header class="panel-head">
+  <section class="cms-panel" :class="{ embedded }" aria-labelledby="home-title">
+    <header v-if="!embedded" class="panel-head">
       <div>
         <h2 id="home-title">Beranda</h2>
-        <p>Tiga bagian di halaman utama yang bisa Anda ubah: hero, keunggulan, dan ajakan di bagian bawah.</p>
+        <p>Bagian-bagian di halaman utama yang bisa Anda ubah. Perubahan tampil setelah disimpan.</p>
       </div>
       <button class="btn btn-primary" type="button" :disabled="saving || loading" @click="save">
         {{ saving ? 'Menyimpan…' : 'Simpan perubahan' }}
@@ -12,16 +12,16 @@
 
     <p v-if="loading" class="state" role="status">Memuat konten beranda…</p>
     <template v-else>
-      <section class="block" aria-labelledby="hero-title">
+      <section v-if="shows('hero')" class="block" aria-labelledby="hero-title">
         <div class="block-head">
-          <h3 id="hero-title">Hero</h3>
+          <h3 id="hero-title">Hero (bagian paling atas)</h3>
           <label class="switch">
             <input v-model="hero.is_active" type="checkbox">
-            <span>{{ hero.is_active ? 'Memakai konten ini' : 'Memakai teks bawaan' }}</span>
+            <span>{{ hero.is_active ? 'Ditampilkan' : 'Disembunyikan' }}</span>
           </label>
         </div>
         <div class="fields">
-          <label class="field wide">Judul utama
+          <label class="field wide">Judul utama *
             <input v-model="hero.title" maxlength="90" placeholder="Investasi Tanah Masa Depan Anda">
           </label>
           <label class="field wide">Subjudul
@@ -47,25 +47,52 @@
         <div class="image-field">
           <div class="image-frame">
             <img v-if="previewSrc" :src="previewSrc" alt="Pratinjau gambar hero" width="640" height="360">
-            <p v-else>Memakai gambar bawaan aplikasi</p>
+            <p v-else>Belum ada gambar. Hero tampil dengan latar hijau polos.</p>
           </div>
           <div class="image-actions">
             <label class="btn btn-secondary file-btn">
               {{ previewSrc ? 'Ganti gambar' : 'Pilih gambar' }}
               <input type="file" accept="image/jpeg,image/png,image/webp" @change="selectImage">
             </label>
-            <button v-if="previewSrc" class="btn btn-ghost" type="button" @click="clearImage">Pakai gambar bawaan</button>
+            <button v-if="previewSrc" class="btn btn-ghost" type="button" @click="clearImage">Hapus gambar</button>
             <span class="hint">JPG, PNG, atau WEBP. Maksimal 5 MB. Rasio lebar disarankan.</span>
           </div>
         </div>
       </section>
 
-      <section class="block" aria-labelledby="feat-title">
+      <section v-if="shows('highlights')" class="block" aria-labelledby="hl-title">
+        <div class="block-head">
+          <h3 id="hl-title">Angka & sorotan</h3>
+          <button class="btn btn-secondary" type="button" :disabled="highlights.length >= 4" @click="addHighlight">Tambah sorotan</button>
+        </div>
+        <p class="hint lead">Total kaveling dan jumlah terjual dihitung otomatis dari data kavling. Sorotan di bawah ini tampil di sebelahnya.</p>
+        <p v-if="!highlights.length" class="empty">Belum ada sorotan.</p>
+        <ul class="rows">
+          <li v-for="(item, index) in highlights" :key="index" class="row-item">
+            <div class="row-fields three">
+              <label class="field">Isi
+                <input v-model="item.value" maxlength="12" placeholder="SHM">
+              </label>
+              <label class="field">Keterangan
+                <input v-model="item.label" maxlength="24" placeholder="Legalitas">
+              </label>
+              <label class="field">Ikon
+                <select v-model="item.icon">
+                  <option v-for="icon in CMS_ICON_OPTIONS" :key="icon.key" :value="icon.key">{{ icon.label }}</option>
+                </select>
+              </label>
+            </div>
+            <button class="btn btn-danger" type="button" :aria-label="`Hapus sorotan ${item.label || index + 1}`" @click="highlights.splice(index, 1)">Hapus</button>
+          </li>
+        </ul>
+      </section>
+
+      <section v-if="shows('features')" class="block" aria-labelledby="feat-title">
         <div class="block-head">
           <h3 id="feat-title">Keunggulan</h3>
           <button class="btn btn-secondary" type="button" @click="addFeature">Tambah keunggulan</button>
         </div>
-        <p v-if="!features.length" class="empty">Belum ada keunggulan. Beranda menampilkan tiga keunggulan bawaan sampai Anda menambahkan sendiri.</p>
+        <p v-if="!features.length" class="empty">Belum ada keunggulan. Bagian ini tidak tampil di Beranda sampai Anda menambahkan.</p>
         <ul class="feature-list">
           <li v-for="(feature, index) in features" :key="feature.id || `new-${index}`" class="feature-item" :class="{ off: !feature.is_active }">
             <span class="feature-icon" aria-hidden="true"><ion-icon :icon="resolveCmsIcon(feature.icon)" /></span>
@@ -93,34 +120,65 @@
             </div>
           </li>
         </ul>
+        <p v-if="removedFeatureIds.length" class="hint">{{ removedFeatureIds.length }} keunggulan akan dihapus saat Anda menyimpan.</p>
       </section>
 
-      <section class="block" aria-labelledby="cta-title">
+      <section v-if="shows('about')" class="block" aria-labelledby="about-title">
+        <div class="block-head">
+          <h3 id="about-title">Tentang Kami</h3>
+          <button class="btn btn-secondary" type="button" :disabled="aboutPoints.length >= 6" @click="aboutPoints.push('')">Tambah poin</button>
+        </div>
+        <div class="fields">
+          <label class="field wide">Deskripsi singkat
+            <textarea v-model="aboutDescription" rows="4" maxlength="500" placeholder="Ceritakan singkat tentang PoliLand Kairagi."></textarea>
+            <span class="hint">{{ aboutDescription.length }}/500 karakter. Video profil diatur lewat tombol Ubah Video di bagian ini pada Beranda.</span>
+          </label>
+        </div>
+        <ul class="rows">
+          <li v-for="(_, index) in aboutPoints" :key="index" class="row-item">
+            <label class="field grow">Poin {{ index + 1 }}
+              <input v-model="aboutPoints[index]" maxlength="80" placeholder="Contoh: Kawasan berkembang dan potensial">
+            </label>
+            <button class="btn btn-danger" type="button" :aria-label="`Hapus poin ${index + 1}`" @click="aboutPoints.splice(index, 1)">Hapus</button>
+          </li>
+        </ul>
+      </section>
+
+      <section v-if="shows('cta')" class="block" aria-labelledby="cta-title">
         <div class="block-head"><h3 id="cta-title">Ajakan di bagian bawah</h3></div>
         <div class="fields">
           <label class="field wide">Judul
-            <input v-model="cta.title" maxlength="60" :placeholder="CTA_DEFAULTS.title">
+            <input v-model="cta.title" maxlength="60" placeholder="Siap memiliki kaveling impian?">
           </label>
           <label class="field wide">Teks pendukung
-            <input v-model="cta.text" maxlength="120" :placeholder="CTA_DEFAULTS.text">
+            <input v-model="cta.text" maxlength="120" placeholder="Hubungi tim kami sekarang dan dapatkan informasi lengkap.">
           </label>
         </div>
-        <p class="hint">Tombol WhatsApp di bagian ini memakai nomor dari tab Kontak.</p>
+        <p class="hint lead">Tombol WhatsApp di bagian ini memakai nomor dari bagian Kontak.</p>
       </section>
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { cmsService, type CmsFeature, type CmsHero } from '@/services/cmsService'
 import { contactsService } from '@/services/contactService'
 import { CMS_ICON_OPTIONS, resolveCmsIcon } from '@/utils/cmsIcons'
+import { HOME_KEYS, parseHighlights, parsePoints, type HomeHighlight } from '@/utils/homeContent'
 
-const emit = defineEmits<{ notify: [message: string, type?: 'success' | 'error'] }>()
+type Section = 'hero' | 'highlights' | 'features' | 'about' | 'cta'
 
-const CTA_DEFAULTS = { title: 'Siap memiliki kaveling impian?', text: 'Hubungi tim kami sekarang dan dapatkan informasi lengkap.' }
+/**
+ * `only` menampilkan satu bagian saja (dipakai tombol Edit di halaman publik).
+ * `embedded` menyembunyikan judul panel karena sudah ada di modal; simpan dipicu dari luar lewat `save()`.
+ */
+const props = defineProps<{ only?: Section; embedded?: boolean }>()
+const emit = defineEmits<{ notify: [message: string, type?: 'success' | 'error']; saved: [] }>()
+
+const shows = (section: Section) => !props.only || props.only === section
+
 const CTA_PRESETS = [
   { value: 'whatsapp', label: 'WhatsApp admin' },
   { value: '/contact', label: 'Halaman Kontak' },
@@ -134,6 +192,10 @@ const loading = ref(true)
 const saving = ref(false)
 const hero = reactive<CmsHero>({ title: '', subtitle: '', description: '', image_url: null, cta_text: 'Hubungi Kami', cta_url: 'whatsapp', is_active: true })
 const features = ref<CmsFeature[]>([])
+const removedFeatureIds = ref<string[]>([])
+const highlights = ref<HomeHighlight[]>([])
+const aboutDescription = ref('')
+const aboutPoints = ref<string[]>([])
 const cta = reactive({ title: '', text: '' })
 const ctaPreset = ref('whatsapp')
 const customCtaUrl = ref('')
@@ -156,8 +218,11 @@ async function load() {
     else { ctaPreset.value = 'custom'; customCtaUrl.value = url }
     features.value = savedFeatures
     const valueOf = (key: string) => contacts.find((row) => row.key === key)?.value ?? ''
-    cta.title = valueOf('cta_title')
-    cta.text = valueOf('cta_text')
+    cta.title = valueOf(HOME_KEYS.ctaTitle)
+    cta.text = valueOf(HOME_KEYS.ctaText)
+    highlights.value = parseHighlights(valueOf(HOME_KEYS.highlights))
+    aboutDescription.value = valueOf(HOME_KEYS.aboutDescription)
+    aboutPoints.value = parsePoints(valueOf(HOME_KEYS.aboutPoints))
   } catch (error) {
     notify(error instanceof Error ? error.message : 'Konten beranda gagal dimuat.', 'error')
   } finally {
@@ -165,23 +230,34 @@ async function load() {
   }
 }
 
-function selectImage(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
+function resetLocalPreview() {
   if (localPreview.value) URL.revokeObjectURL(localPreview.value)
+  localPreview.value = ''
+  selectedImage.value = null
+}
+
+function selectImage(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { notify('Format gambar harus JPG, PNG, atau WEBP.', 'error'); input.value = ''; return }
+  if (file.size > 5 * 1024 * 1024) { notify('Ukuran gambar maksimal 5 MB.', 'error'); input.value = ''; return }
+  resetLocalPreview()
   selectedImage.value = file
   localPreview.value = URL.createObjectURL(file)
 }
 
 function clearImage() {
-  if (localPreview.value) URL.revokeObjectURL(localPreview.value)
-  localPreview.value = ''
-  selectedImage.value = null
+  resetLocalPreview()
   hero.image_url = null
 }
 
 function addFeature() {
   features.value.push({ icon: 'leaf', title: '', description: '', sort_order: features.value.length, is_active: true })
+}
+
+function addHighlight() {
+  highlights.value.push({ icon: 'shield', value: '', label: '' })
 }
 
 function moveFeature(index: number, step: -1 | 1) {
@@ -191,67 +267,88 @@ function moveFeature(index: number, step: -1 | 1) {
   ;[list[index], list[target]] = [list[target], list[index]]
 }
 
-async function removeFeature(feature: CmsFeature, index: number) {
-  if (!confirm(`Hapus keunggulan "${feature.title || 'tanpa judul'}"? Tindakan ini tidak bisa dibatalkan.`)) return
-  try {
-    if (feature.id) await cmsService.deleteFeature(feature.id)
-    features.value.splice(index, 1)
-    notify('Keunggulan dihapus.')
-  } catch (error) {
-    notify(error instanceof Error ? error.message : 'Keunggulan gagal dihapus.', 'error')
-  }
+/** Dihapus dari daftar dulu; baru benar-benar terhapus di database saat Simpan ditekan. */
+function removeFeature(feature: CmsFeature, index: number) {
+  if (feature.id) removedFeatureIds.value.push(feature.id)
+  features.value.splice(index, 1)
 }
 
 function validate(): string | null {
-  if (!hero.title.trim()) return 'Judul utama hero wajib diisi.'
-  if (ctaPreset.value === 'custom' && !/^(https?:\/\/|\/)/i.test(hero.cta_url)) return 'Alamat tujuan tombol harus diawali https:// atau /.'
-  const incomplete = features.value.findIndex((feature) => !feature.title.trim() || !feature.description.trim())
-  if (incomplete !== -1) return `Keunggulan nomor ${incomplete + 1} belum lengkap. Isi judul dan deskripsi, atau hapus.`
+  if (shows('hero')) {
+    if (!hero.title.trim()) return 'Judul utama hero wajib diisi.'
+    if (ctaPreset.value === 'custom' && !/^(https?:\/\/|\/)/i.test(hero.cta_url)) return 'Alamat tujuan tombol harus diawali https:// atau /.'
+  }
+  if (shows('features')) {
+    const incomplete = features.value.findIndex((feature) => !feature.title.trim() || !feature.description.trim())
+    if (incomplete !== -1) return `Keunggulan nomor ${incomplete + 1} belum lengkap. Isi judul dan deskripsi, atau hapus.`
+  }
+  if (shows('highlights') && highlights.value.some((item) => !item.value.trim() || !item.label.trim())) return 'Setiap sorotan harus punya isi dan keterangan, atau hapus yang kosong.'
   return null
 }
 
-async function save() {
+async function save(): Promise<boolean> {
   const problem = validate()
-  if (problem) return notify(problem, 'error')
+  if (problem) { notify(problem, 'error'); return false }
   saving.value = true
   try {
-    if (selectedImage.value) hero.image_url = await cmsService.uploadImage(selectedImage.value)
-    const savedHero = await cmsService.saveHero({ ...hero })
-    hero.id = savedHero.id
-    const ordered = features.value.map((feature, index) => ({ ...feature, sort_order: index }))
-    features.value = await Promise.all(ordered.map((feature) => cmsService.saveFeature(feature)))
-    await contactsService.saveMany([
-      { key: 'cta_title', label: 'Judul ajakan beranda', value: cta.title },
-      { key: 'cta_text', label: 'Teks ajakan beranda', value: cta.text },
-    ])
-    if (localPreview.value) URL.revokeObjectURL(localPreview.value)
-    localPreview.value = ''
-    selectedImage.value = null
-    notify('Konten beranda tersimpan dan langsung tampil di website.')
+    if (shows('hero')) {
+      if (selectedImage.value) hero.image_url = await cmsService.uploadImage(selectedImage.value)
+      const savedHero = await cmsService.saveHero({ ...hero })
+      hero.id = savedHero.id
+      resetLocalPreview()
+    }
+    if (shows('features')) {
+      for (const id of removedFeatureIds.value) await cmsService.deleteFeature(id)
+      removedFeatureIds.value = []
+      const ordered = features.value.map((feature, index) => ({ ...feature, sort_order: index }))
+      features.value = await Promise.all(ordered.map((feature) => cmsService.saveFeature(feature)))
+    }
+    const entries: { key: string; label: string; value: string }[] = []
+    if (shows('cta')) entries.push({ key: HOME_KEYS.ctaTitle, label: 'Judul ajakan beranda', value: cta.title }, { key: HOME_KEYS.ctaText, label: 'Teks ajakan beranda', value: cta.text })
+    if (shows('highlights')) entries.push({ key: HOME_KEYS.highlights, label: 'Sorotan Beranda', value: JSON.stringify(highlights.value.map((item) => ({ icon: item.icon, value: item.value.trim(), label: item.label.trim() }))) })
+    if (shows('about')) entries.push(
+      { key: HOME_KEYS.aboutDescription, label: 'Deskripsi Tentang Kami', value: aboutDescription.value },
+      { key: HOME_KEYS.aboutPoints, label: 'Poin Tentang Kami', value: JSON.stringify(aboutPoints.value.map((point) => point.trim()).filter(Boolean)) },
+    )
+    if (entries.length) await contactsService.saveMany(entries)
+    notify('Tersimpan dan langsung tampil di website.')
+    emit('saved')
+    return true
   } catch (error) {
-    notify(error instanceof Error ? error.message : 'Konten beranda gagal disimpan.', 'error')
+    notify(error instanceof Error ? error.message : 'Konten gagal disimpan.', 'error')
+    return false
   } finally {
     saving.value = false
   }
 }
 
+defineExpose({ save, saving, loading })
 onMounted(load)
+onBeforeUnmount(resetLocalPreview)
 </script>
 
 <style scoped src="./cmsPanel.css"></style>
 <style scoped>
+.embedded { padding: 0; border: 0; background: transparent; }
+.embedded .block:first-child { padding-top: 0; border-top: 0; }
 .block { padding: 20px 0; border-top: 1px solid var(--border-default); }
 .block-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .block-head h3 { margin: 0; font-size: 16px; font-weight: 800; }
+.lead { margin: 0 0 12px; }
 .image-field { display: grid; grid-template-columns: minmax(0, 260px) 1fr; gap: 16px; margin-top: 18px; align-items: start; }
 .image-frame { aspect-ratio: 16 / 9; overflow: hidden; border: 1px dashed var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); display: grid; place-items: center; }
 .image-frame img { width: 100%; height: 100%; object-fit: cover; }
 .image-frame p { margin: 0; padding: 12px; color: var(--text-secondary); font-size: 12px; text-align: center; }
 .image-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .image-actions .hint { flex-basis: 100%; }
-.file-btn { cursor: pointer; }
+.file-btn { position: relative; cursor: pointer; }
 .file-btn input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; pointer-events: none; }
 .file-btn:focus-within { outline: 3px solid color-mix(in srgb, var(--poliland-green) 35%, transparent); outline-offset: 2px; }
+.rows { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.row-item { display: flex; align-items: end; gap: 10px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
+.row-fields { flex: 1; display: grid; gap: 10px; min-width: 0; }
+.row-fields.three { grid-template-columns: 1fr 1.4fr 1.4fr; }
+.field.grow { flex: 1; min-width: 0; }
 .feature-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .feature-item { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
 .feature-item.off { background: var(--surface-muted); }
@@ -262,6 +359,8 @@ onMounted(load)
 .feature-controls .icon-btn { align-self: flex-start; }
 @media (max-width: 720px) {
   .image-field { grid-template-columns: 1fr; }
+  .row-item { flex-direction: column; align-items: stretch; }
+  .row-fields.three { grid-template-columns: 1fr; }
   .feature-item { grid-template-columns: 40px minmax(0, 1fr); }
   .feature-controls { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; }
   .feature-fields { grid-template-columns: 1fr; }

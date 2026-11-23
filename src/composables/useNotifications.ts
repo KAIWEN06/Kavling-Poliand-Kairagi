@@ -1,6 +1,8 @@
 import { computed, readonly, ref } from 'vue'
 import { notificationService, type AppNotification } from '@/services/notification/notificationService'
 import { onProfileCleared, onProfileLoaded } from '@/composables/useCurrentUser'
+import { roleNotificationService } from '@/services/notification/roleNotificationService'
+import type { UserRole } from '@/services/auth/authService'
 
 /**
  * State notifikasi global (singleton) berbasis tabel public.notifications
@@ -13,6 +15,7 @@ const loading = ref(false)
 const error = ref('')
 
 let activeUserId: string | null = null
+let activeRole: string | null = null
 let unsubscribe: (() => void) | null = null
 let wired = false
 
@@ -38,14 +41,20 @@ function upsertLocal(n: AppNotification) {
 }
 
 function start(userId: string, role: string | null) {
-  if (activeUserId === userId) return
+  // Role berubah pada user yang sama juga harus memulai ulang langganan & konteks native.
+  if (activeUserId === userId && activeRole === role) return
   stop()
   activeUserId = userId
+  activeRole = role
+  if (role) void roleNotificationService.activate(userId, role as UserRole)
   unsubscribe = notificationService.subscribe(userId, {
     onInsert: (n) => {
       if (items.value.some((x) => x.id === n.id)) return
       upsertLocal(n)
-      if (!n.read_at) unread.value += 1
+      if (!n.read_at) {
+        unread.value += 1
+        void roleNotificationService.notify(n)
+      }
     },
     onUpdate: (n) => {
       const previous = items.value.find((x) => x.id === n.id)
@@ -67,6 +76,8 @@ function stop() {
   unsubscribe?.()
   unsubscribe = null
   activeUserId = null
+  activeRole = null
+  void roleNotificationService.deactivate()
   items.value = []
   unread.value = 0
   error.value = ''

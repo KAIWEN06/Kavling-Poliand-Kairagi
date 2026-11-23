@@ -1,17 +1,15 @@
 <template>
-  <section class="section">
+  <section v-if="features.length || isAdmin" class="section">
     <div class="section-heading">
       <div>
         <h2>Kenapa Memilih PoliLand?</h2>
         <span class="heading-line"></span>
       </div>
-      <button class="see-all">
-        Lihat Semua
-        <ion-icon :icon="chevronForwardOutline" />
-      </button>
+      <AdminEditButton v-if="isAdmin" label="Edit keunggulan" @click="editOpen = true" />
     </div>
 
-    <div class="horizontal-scroll">
+    <p v-if="!features.length" class="empty-hint">Belum ada keunggulan. Tekan “Edit keunggulan” untuk menambahkan.</p>
+    <div v-else class="horizontal-scroll">
       <article v-for="feature in features" :key="feature.id || feature.title" class="feature-card">
         <div class="feature-icon green">
           <ion-icon :icon="resolveCmsIcon(feature.icon)" />
@@ -20,18 +18,28 @@
         <p>{{ feature.description }}</p>
       </article>
     </div>
+
+    <CmsPanelModal v-model="editOpen" title="Edit keunggulan" panel="home" section="features" @saved="load" />
   </section>
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { IonIcon } from '@ionic/vue'
-import { chevronForwardOutline } from 'ionicons/icons'
-import { ref, onMounted } from 'vue'
 import { cmsService, type CmsFeature } from '@/services/cmsService'
 import { resolveCmsIcon } from '@/utils/cmsIcons'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
+
 const features = ref<CmsFeature[]>([])
-const fallback = [{ icon: 'leaf', title: 'Lingkungan nyaman', description: 'Ruang hidup yang dirancang untuk keluarga.' }, { icon: 'home', title: 'Lokasi strategis', description: 'Akses mudah menuju fasilitas penting.' }, { icon: 'shield', title: 'Legalitas jelas', description: 'Informasi properti transparan dan mudah dipahami.' }]
-onMounted(async () => { try { const saved = await cmsService.getFeatures(false); features.value = saved.length ? saved : fallback as CmsFeature[] } catch { features.value = fallback as CmsFeature[] } })
+const editOpen = ref(false)
+const { isAdmin } = useCmsAdmin()
+
+async function load() {
+  try { features.value = await cmsService.getFeatures(false) } catch (error) { console.error('Gagal mengambil keunggulan:', error) }
+}
+onMounted(load)
 </script>
 
 <style scoped>
@@ -39,8 +47,7 @@ onMounted(async () => { try { const saved = await cmsService.getFeatures(false);
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
 .section-heading h2 { margin: 0; color: #2D2D2D; font-size: 20px; line-height: 1.2; font-weight: 800; letter-spacing: -0.3px; }
 .heading-line { display: block; width: 34px; height: 3px; margin-top: 7px; background: #556B2F; border-radius: 999px; }
-.see-all { display: flex; align-items: center; gap: 3px; padding: 0; border: 0; background: transparent; color: #556B2F; font-size: 10px; font-weight: 700; white-space: nowrap; }
-.see-all ion-icon { font-size: 14px; }
+.empty-hint { margin: 0; padding: 14px; border: 1px dashed #d5d0c4; border-radius: 12px; color: #6b6b6b; font-size: 11px; line-height: 1.5; }
 .horizontal-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-right: -16px; padding-right: 16px; scrollbar-width: none; }
 .horizontal-scroll::-webkit-scrollbar { display: none; }
 .feature-card { flex: 0 0 190px; min-height: 165px; padding: 16px; background: #FFFFFF; border: 1px solid #EDE0D6; border-radius: 13px; box-shadow: 0 4px 14px rgba(45, 45, 45, 0.035); }

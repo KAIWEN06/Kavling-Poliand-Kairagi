@@ -61,19 +61,25 @@
     </div>
 
     <SkeletonRowList v-if="loading" :rows="5" :fields="4" :badges="[3]" label="Memuat data klien" />
-    <div v-else-if="error" class="mk-state mk-state--error" role="alert">
-      <strong>Data klien belum dapat dimuat</strong>
-      <span>{{ error }}</span>
-      <button type="button" class="mk-btn mk-btn--primary" @click="load">Coba lagi</button>
-    </div>
-    <div v-else-if="!rows.length" class="mk-state">
-      <strong>Belum ada klien</strong>
-      <span>{{ isHead ? 'Client yang ditambahkan tim Marketing akan tampil di sini.' : 'Tambahkan calon pembeli pertama Anda untuk mulai melakukan follow-up.' }}</span>
-    </div>
-    <div v-else-if="!filtered.length" class="mk-state">
-      <strong>Tidak ada klien yang cocok</strong>
-      <span>Ubah kata kunci atau hapus filter.</span>
-    </div>
+    <StatusIllustration
+      v-else-if="error"
+      :variant="resolveErrorVariant(error)"
+      title="Data klien belum dapat dimuat"
+      :on-action="load"
+    />
+    <StatusIllustration
+      v-else-if="!rows.length"
+      variant="empty-data"
+      title="Belum ada klien"
+      :description="isHead ? 'Client yang ditambahkan tim Marketing akan tampil di sini.' : 'Tambahkan calon pembeli pertama Anda untuk mulai melakukan follow-up.'"
+    />
+    <StatusIllustration
+      v-else-if="!filtered.length"
+      variant="no-result"
+      title="Klien tidak ditemukan"
+      description="Ubah kata kunci atau hapus filter."
+      :on-action="resetFilters"
+    />
 
     <template v-else>
       <div class="mk-table-wrap">
@@ -132,6 +138,8 @@
 
 <script setup lang="ts">
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import WhatsAppButton from './WhatsAppButton.vue'

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Aksen label kategori pada notifikasi kustom (versi terang). -->
+    <color name="notif_accent">#3E6A31</color>
+    <color name="notif_status_color">#4A7C3A</color>
+</resources>

@@ -19,7 +19,7 @@
         <CustomerReviewsSection />
         <div class="faq-section"><FAQSection /></div>
         <CTASection @contactWhatsapp="contactWhatsapp" />
-        <ContactSection @callUs="callUs" @contactWhatsapp="contactWhatsapp" />
+        <ContactSection />
         <div class="bottom-space" aria-hidden="true"></div>
       </ion-content>
 
@@ -29,6 +29,8 @@
         </div>
       </Transition>
     </div>
+
+    <CmsBackBar />
   </ion-page>
 </template>
 
@@ -50,6 +52,9 @@ import FAQSection from '@/components/home/FAQSection.vue'
 import CTASection from '@/components/home/CTASection.vue'
 import ContactSection from '@/components/home/ContactSection.vue'
 import HomeSkeleton from '@/components/ui/skeletons/HomeSkeleton.vue'
+import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
+import { useToast } from '@/composables/useToast'
+import { toWaNumber } from '@/utils/homeContent'
 import { useSiteplan } from '../composables/useSiteplant'
 import { contactsService } from '@/services/contactService'
 
@@ -127,10 +132,10 @@ const goToSiteplan = () => {
   router.push('/siteplan')
 }
 
-const DEFAULT_WHATSAPP = '6281234567890'
+const toast = useToast()
 const contactSettings = ref({ whatsapp: '', phone: '' })
 
-/** Nomor WhatsApp & telepon diambil dari data Kontak yang dikelola Admin. */
+/** Nomor WhatsApp & telepon diambil dari data Kontak yang dikelola Admin. Tidak ada nomor cadangan di kode. */
 const loadContactSettings = async () => {
   try {
     const rows = await contactsService.getAll()
@@ -142,19 +147,10 @@ const loadContactSettings = async () => {
 }
 onMounted(loadContactSettings)
 
-const toWaNumber = (value: string) => {
-  const digits = value.replace(/\D/g, '')
-  return digits.startsWith('0') ? `62${digits.slice(1)}` : digits
-}
-
 const contactWhatsapp = () => {
-  const number = toWaNumber(contactSettings.value.whatsapp) || DEFAULT_WHATSAPP
+  const number = toWaNumber(contactSettings.value.whatsapp)
+  if (!number) return toast.info('Nomor WhatsApp belum tersedia. Silakan coba lagi nanti.')
   window.open(`https://wa.me/${number}`, '_blank')
-}
-
-const callUs = () => {
-  const phone = contactSettings.value.phone.replace(/[^\d+]/g, '') || `+${DEFAULT_WHATSAPP}`
-  window.location.href = `tel:${phone}`
 }
 </script>
 

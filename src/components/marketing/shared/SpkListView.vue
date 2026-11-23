@@ -17,8 +17,18 @@
     </div>
 
     <SkeletonRowList v-if="loading" :rows="5" :fields="3" :badges="[3]" label="Memuat pengajuan SPK" />
-    <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Pengajuan SPK belum dapat dimuat</strong><span>{{ error }}</span></div>
-    <div v-else-if="!filtered.length" class="mk-state"><strong>Belum ada pengajuan</strong><span>Pengajuan SPK klien akan tampil di sini setelah diajukan.</span></div>
+    <StatusIllustration
+      v-else-if="error"
+      :variant="resolveErrorVariant(error)"
+      title="Pengajuan SPK belum dapat dimuat"
+      :on-action="load"
+    />
+    <StatusIllustration
+      v-else-if="!filtered.length"
+      variant="empty-data"
+      title="Belum ada pengajuan"
+      description="Pengajuan SPK klien akan tampil di sini setelah diajukan."
+    />
 
     <div v-else class="mk-table-wrap">
       <table class="mk-table mk-table--stack">
@@ -57,6 +67,8 @@
 
 <script setup lang="ts">
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { computed, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getTeamMembers, listSpkRequests, type TeamMember } from '@/services/marketing/marketingCrmService'

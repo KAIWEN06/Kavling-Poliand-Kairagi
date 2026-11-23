@@ -1,175 +1,132 @@
 <template>
-  <section class="faq-section">
-
-    <!-- HEADER -->
+  <section v-if="loading || faqs.length || isAdmin" class="faq-section">
     <div class="faq-container">
-
       <div class="faq-header">
         <div>
           <h2>Pertanyaan Umum</h2>
           <span class="faq-line"></span>
         </div>
+        <AdminEditButton v-if="isAdmin" label="Tambah pertanyaan" :icon="addOutline" @click="openAdd" />
       </div>
 
-      <!-- LOADING -->
-      <div
-        v-if="loading"
-        class="faq-loading"
-      >
+      <div v-if="loading" class="faq-loading">
         <ion-spinner name="crescent" />
       </div>
 
-      <!-- FAQ LIST -->
-      <div
-        v-else
-        class="faq-list"
-      >
-
+      <div v-else class="faq-list">
         <div
           v-for="(faq, index) in faqs"
           :key="faq.id || index"
           class="faq-item"
           :class="{ open: openIndex === index }"
         >
-
-          <!-- QUESTION -->
           <button
             type="button"
             class="faq-question"
+            :aria-expanded="openIndex === index"
             @click="toggleFaq(index)"
           >
-
-            <span>
-              {{ faq.question }}
-            </span>
-
-            <ion-icon
-              :icon="
-                openIndex === index
-                  ? chevronUpOutline
-                  : chevronDownOutline
-              "
-            />
-
+            <span>{{ faq.question }}</span>
+            <ion-icon :icon="openIndex === index ? chevronUpOutline : chevronDownOutline" aria-hidden="true" />
           </button>
 
-          <!-- ANSWER -->
-          <div
-            v-show="openIndex === index"
-            class="faq-answer"
-          >
+          <div v-show="openIndex === index" class="faq-answer">
             {{ faq.answer }}
+            <div v-if="isAdmin" class="faq-admin">
+              <button type="button" class="faq-mini" @click="openEdit(faq)"><ion-icon :icon="createOutline" aria-hidden="true" /> Edit</button>
+              <button type="button" class="faq-mini danger" @click="askDelete(faq)"><ion-icon :icon="trashOutline" aria-hidden="true" /> Hapus</button>
+            </div>
           </div>
-
         </div>
 
-        <!-- EMPTY -->
-        <div
-          v-if="faqs.length === 0"
-          class="faq-empty"
-        >
-          Belum ada pertanyaan FAQ.
+        <div v-if="faqs.length === 0" class="faq-empty">
+          Belum ada pertanyaan. Tekan “Tambah pertanyaan” untuk mengisinya.
         </div>
-
       </div>
-
     </div>
 
+    <CmsItemFormModal v-model="formOpen" type="faq" :item="editingItem" :count="faqs.length" @saved="onSaved" />
+
+    <AppModal
+      v-model="deleteOpen"
+      variant="dialog"
+      title="Hapus pertanyaan ini?"
+      confirm-text="Hapus"
+      confirm-variant="danger"
+      :loading="deleting"
+      @confirm="confirmDelete"
+    >
+      <p class="confirm-text">“{{ deleteTarget?.question }}” akan dihapus dari website dan tidak bisa dikembalikan.</p>
+    </AppModal>
   </section>
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  onMounted
-} from 'vue'
+import { ref, onMounted } from 'vue'
+import { IonIcon, IonSpinner } from '@ionic/vue'
+import { addOutline, chevronUpOutline, chevronDownOutline, createOutline, trashOutline } from 'ionicons/icons'
+import AppModal from '@/components/ui/AppModal.vue'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsItemFormModal from '@/components/Admin/CmsItemFormModal.vue'
+import { faqService, type FaqItem } from '@/services/faqService'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import { useToast } from '@/composables/useToast'
 
-import {
-  IonIcon,
-  IonSpinner
-} from '@ionic/vue'
+const toast = useToast()
+const { isAdmin } = useCmsAdmin()
 
-import {
-  chevronUpOutline,
-  chevronDownOutline
-} from 'ionicons/icons'
-
-import { faqService } from '@/services/faqService'
-
-interface FAQ {
-  id?: string | number
-  question: string
-  answer: string
-}
-
-const faqs = ref<FAQ[]>([])
-
+const faqs = ref<FaqItem[]>([])
 const loading = ref(true)
-
 const openIndex = ref<number | null>(null)
 
-/* =========================================================
-   LOAD FAQ
-========================================================= */
+const formOpen = ref(false)
+const editingItem = ref<FaqItem | null>(null)
+const deleteOpen = ref(false)
+const deleteTarget = ref<FaqItem | null>(null)
+const deleting = ref(false)
 
 async function loadFaqs() {
-
-  loading.value = true
-
   try {
-
     const result = await faqService.getFaqs()
-
-    faqs.value = Array.isArray(result)
-      ? result
-      : []
-
+    faqs.value = Array.isArray(result) ? result : []
   } catch (error) {
-
-    console.error(
-      'Gagal mengambil FAQ:',
-      error
-    )
-
+    console.error('Gagal mengambil FAQ:', error)
     faqs.value = []
-
   } finally {
-
     loading.value = false
-
   }
-
 }
-
-/* =========================================================
-   TOGGLE
-========================================================= */
 
 function toggleFaq(index: number) {
-
-  if (openIndex.value === index) {
-
-    openIndex.value = null
-
-  } else {
-
-    openIndex.value = index
-
-  }
-
+  openIndex.value = openIndex.value === index ? null : index
 }
 
-/* =========================================================
-   MOUNT
-========================================================= */
+function openAdd() { editingItem.value = null; formOpen.value = true }
+function openEdit(item: FaqItem) { editingItem.value = item; formOpen.value = true }
+async function onSaved(message: string) { toast.success(message); await loadFaqs() }
 
-onMounted(() => {
+function askDelete(item: FaqItem) { deleteTarget.value = item; deleteOpen.value = true }
+async function confirmDelete() {
+  const item = deleteTarget.value
+  if (!item?.id) return
+  deleting.value = true
+  try {
+    await faqService.deleteFaq(item.id)
+    deleteOpen.value = false
+    openIndex.value = null
+    toast.success('Pertanyaan dihapus.')
+    await loadFaqs()
+  } catch (error) {
+    deleteOpen.value = false
+    toast.error(error instanceof Error ? error.message : 'Pertanyaan gagal dihapus.')
+  } finally {
+    deleting.value = false
+  }
+}
 
-  loadFaqs()
-
-})
-
+onMounted(loadFaqs)
 </script>
+
 
 <style scoped>
 
@@ -329,7 +286,7 @@ onMounted(() => {
 
   font-family: inherit;
 
-  font-size: 11px;
+  font-size: 13px;
 
   font-weight: 700;
 
@@ -371,7 +328,7 @@ onMounted(() => {
 
   color: #666666;
 
-  font-size: 10px;
+  font-size: 12px;
 
   font-weight: 400;
 
@@ -421,4 +378,12 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
+
+.faq-header { justify-content: space-between; gap: 12px; }
+.faq-admin { display: flex; gap: 8px; margin-top: 12px; }
+.faq-mini { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; padding: 0 12px; border: 1px solid #E3E3E3; border-radius: 10px; background: #FFFFFF; color: #355A2C; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.faq-mini.danger { color: #D94B45; }
+.faq-mini:focus-visible { outline: 3px solid #556B2F; outline-offset: 2px; }
+.faq-question:focus-visible { outline: 3px solid #556B2F; outline-offset: -3px; border-radius: 10px; }
+.confirm-text { margin: 0; color: #717178; font-size: 14px; line-height: 1.6; }
 </style>

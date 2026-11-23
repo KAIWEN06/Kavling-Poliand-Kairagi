@@ -1,26 +1,41 @@
-Saya memiliki aplikasi mobile dan ingin menerapkan **Skeleton** secara menyeluruh di halaman-halaman yang membutuhkan dengan pendekatan yang terukur—bukan sekadar menempelkan kotak placeholder generik, melainkan menyesuaikan bentuk, proporsi, dan ukuran skeleton dengan tata letak serta tipe data asli di tiap halaman.
+Saya sedang mengembangkan aplikasi mobile dan ingin menyeragamkan penggunaan ilustrasi maskot situasional di seluruh halaman agar konsisten seperti pola empty/error/status state pada aplikasi e-commerce modern.
 
-### Referensi & Prinsip Utama
-1. **Dokumentasi Acuan:** Pelajari dan ikuti konsep serta pola penggunaan komponen **Skeleton** dari dokumentasi shadcn/ui berikut:
-   `https://ui.shadcn.com/docs/components/base/skeleton`
-   *(Jika stack proyek saya tidak menggunakan Base UI secara langsung, adaptasikan pola komposisi, ukuran, aksesibilitas, dan styling kelas utilitasnya ke komponen/styling yang dipakai di repo ini tanpa keluar dari prinsip utama shadcn/ui Skeleton).*
-2. **Presisi Bentuk & Ukuran Sesuai Data:**
-   - Samakan rasio lebar/tinggi, jumlah baris teks, avatar/thumbnail, badge/chip, maupun grid/card dengan struktur data nyata pada masing-masing komponen/halaman agar *layout shift* minimal.
-   - Pisahkan atau buat komponen skeleton yang modular/reusable sesuai pola data (misalnya skeleton untuk list item, detail header, kartu grid, atau tabel/ringkasan), bukan copy-paste mentah.
-3. **Audit & Perbaikan Skeleton yang Sudah Ada:**
-   - Periksa seluruh skeleton yang sudah terpasang saat ini di aplikasi.
-   - Identifikasi bagian mana yang ukurannya meleset, kurang proporsional terhadap data asli, atau belum konsisten, lalu perbaiki.
-4. **Integrasi dengan Pull-to-Refresh:**
-   - Hubungkan tampilan skeleton dengan mekanisme *pull-to-refresh* saat pengguna menarik halaman ke bawah untuk memuat ulang data.
-   - Pastikan alur *state* loading awal (*initial load*) vs *refreshing / pull-to-refresh* jelas dan tidak menimbulkan kedipan (*flicker*) yang mengganggu (jelaskan atau tangani kapan menampilkan skeleton penuh, kapan menjaga konten lama / menampilkan indikator refresh, atau mengganti ke skeleton sesuai kebutuhan alur aplikasi).
+Saat ini beberapa ilustrasi sudah terpasang di beberapa halaman, tetapi penempatan, ukuran, jarak (spacing), teks, dan tombol aksinya belum konsisten.
 
-### Efisiensi Analisis dengan Skill
-- Untuk mempercepat pemetaan struktur proyek, relasi komponen, halaman, dan titik pemanggilan data/pull-to-refresh, gunakan `/graphify` terlebih dahulu serta aktifkan/gunakan *skill* lain yang relevan di workspace/environment ini (seperti skill UI/UX atau skill framework terkait).
+Tugas kamu:
+1. Audit seluruh halaman/komponen yang sudah menggunakan ilustrasi atau menampilkan kondisi kosong/error/loading/status.
+2. Buat satu komponen state terpusat dan reusable (misalnya `EmptyStateView` / `StatusIllustration`) yang menerima props standar:
+   - `type` / `variant` (misalnya: `empty-data`, `no-search-result`, `creating-data`, `offline-error`, `server-error`, `maintenance`, `not-found-404`, `success`)
+   - `title` (judul singkat dan jelas)
+   - `description` (penjelasan singkat penyebab & langkah berikutnya)
+   - `actionLabel` & `onAction` (opsional, tombol utama seperti "Coba Lagi", "Tambah Data", "Kembali ke Beranda")
+   - `secondaryActionLabel` & `onSecondaryAction` (opsional)
+3. Terapkan aturan tata letak yang seragam di semua halaman:
+   - Posisi vertikal seimbang (di tengah area konten / viewport yang tersedia, responsif di layar kecil).
+   - Ukuran ilustrasi konsisten, proporsional di mobile, dan tidak pecah/terpotong.
+   - Hirarki teks jelas: Ilustrasi -> Judul -> Deskripsi singkat -> Tombol CTA.
+   - Gaya bahasa konsisten (Bahasa Indonesia yang ramah, ringkas, dan tidak teknis).
+4. Refactor halaman-halaman yang belum konsisten agar memakai komponen terpusat tersebut tanpa merusak fungsionalitas halaman yang sudah ada.
 
-### Langkah Kerja yang Saya Inginkan
-1. **Eksplorasi & Pemetaan:** Gunakan `/graphify` dan skill terkait untuk memetakan halaman mobile, komponen data, alur fetch/refresh data, serta skeleton yang sudah ada.
-2. **Audit Skeleton Eksisting:** Ringkas temuan skeleton yang sudah ada beserta kekurangannya (ukuran, bentuk, konsistensi, atau alur state).
-3. **Rencana & Implementasi Bertahap:** Susun rencana per halaman/komponen, lalu terapkan perbaikan skeleton yang sudah ada sekaligus pasang skeleton baru di halaman yang membutuhkan dan hubungkan dengan fitur *pull-to-refresh*.
-4. **Penjelasan & Verifikasi:** Jelaskan konsep utama dari dokumentasi shadcn/ui Skeleton yang diterapkan, contoh komponennya, serta hal-hal penting untuk *debugging* jika terjadi ketidaksesuaian layout atau *state* refresh.
+Sebelum mengubah kode, tampilkan dulu ringkasan temuan inkonsistensi dan rencana standarisasinya.
 
-Mulailah dengan memetakan struktur proyek menggunakan `/graphify` dan skill yang sesuai sebelum mengubah kode.
+Buatkan implementasi lengkap dan konsisten untuk seluruh skenario ilustrasi maskot situasional di aplikasi mobile saya. Pastikan semua halaman menggunakan standar yang sama:
+
+Daftar skenario yang harus didukung:
+1. Tidak ada data (`empty-data`): saat list/riwayat/item belum tersedia sama sekali.
+2. Data kosong / hasil filter tidak ditemukan (`no-result`): saat pencarian atau filter tidak mengembalikan kecocokan.
+3. Membuat / memproses data (`creating-data` / `processing`): saat data sedang disimpan/diunggah/diproses.
+4. Kesalahan koneksi internet (`offline-error`): saat perangkat tidak terhubung ke jaringan atau request timeout.
+5. Perbaikan / maintenance (`maintenance`): saat fitur atau sistem sedang dalam pemeliharaan.
+6. Halaman tidak ditemukan (`not-found-404`): saat rute atau data yang dituju tidak ada.
+7. Kesalahan sistem / gagal memuat (`fetch-error`): saat terjadi error dari server/database.
+
+Pastikan setiap state memiliki:
+- Mapping aset ilustrasi maskot yang jelas dan terpusat (mudah diganti jika aset gambar diperbarui).
+- Fallback yang aman jika file gambar gagal dimuat.
+- Tombol aksi yang relevan dengan konteks halaman (misal: "Muat Ulang", "Reset Filter", "Buat Baru", "Kembali").
+- Tampilan mobile-first yang rapi, tidak overflow horizontal, dan nyaman dijangkau satu tangan.
+
+Tunjukkan struktur file/komponen, kode komponen utamanya, serta contoh penerapannya pada beberapa halaman utama.
+
+pke /graphify dan skill yang sesuai

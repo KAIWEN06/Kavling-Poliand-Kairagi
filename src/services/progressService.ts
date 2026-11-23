@@ -29,6 +29,12 @@ export const progressService = {
     return (data || []) as ProgressItem[];
   },
 
+  async getProgressById(id: string): Promise<ProgressItem | null> {
+    const { data, error } = await supabase.from("progress").select("*").eq("id", id).maybeSingle();
+    if (error) throw error;
+    return (data as ProgressItem | null) ?? null;
+  },
+
   async uploadImage(file: File): Promise<string> {
     const fileExt = file.name.split(".").pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;

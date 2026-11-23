@@ -8,14 +8,13 @@
 
         <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail kaveling" />
 
-        <div v-else-if="loadError" class="state-card" role="alert">
-          <ion-icon :icon="alertCircleOutline" />
-          <strong>Detail kaveling gagal dimuat</strong>
-          <p>{{ errorMessage }}</p>
-          <AppButton variant="primary" @click="loadDetail">
-            <span>Coba Lagi</span>
-          </AppButton>
-        </div>
+        <StatusIllustration
+          v-else-if="loadError"
+          :variant="resolveErrorVariant(errorMessage)"
+          title="Detail kaveling gagal dimuat"
+          fill
+          :on-action="loadDetail"
+        />
 
         <template v-else-if="lot">
           <!-- Jadwal survei ditempatkan di bagian atas dengan gaya kartu booking editorial -->
@@ -386,6 +385,8 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -393,7 +394,7 @@ import {
   IonPage, IonContent, IonIcon, IonToast, onIonViewWillEnter,
 } from '@ionic/vue'
 import {
-  alertCircleOutline, arrowBackOutline, calendarOutline, callOutline,
+  arrowBackOutline, calendarOutline, callOutline,
   chatbubbleEllipsesOutline, chevronBackOutline, chevronForwardOutline,
   expandOutline, informationCircleOutline, lockClosedOutline, timeOutline,
 } from 'ionicons/icons'

@@ -4,7 +4,6 @@
 
     <ion-content :fullscreen="true">
       <main class="shell">
-        <PageBackButton fallback="/admin/lainnya" />
         <header class="intro">
           <h1>Ulasan Pelanggan</h1>
           <p>Periksa ulasan klien sebelum ditampilkan di halaman Beranda.</p>

@@ -368,16 +368,7 @@
         class="search-empty"
         :style="resultsStyle"
       >
-        <img
-          src="@/assets/mascot/Mascot_No_Data_Scene.png"
-          alt="Tidak ada data kaveling"
-          class="search-empty-mascot"
-        />
-
-        <div class="search-empty-content">
-          <strong>Tidak ada kaveling yang sesuai</strong>
-          <span>Coba ubah kata kunci atau filter pencarian.</span>
-        </div>
+        <StatusIllustration variant="no-result" size="sm" :heading-level="3" title="Kaveling tidak ditemukan" description="Coba ubah kata kunci atau filter pencarian." />
       </div>
     </Teleport>
   </div>
@@ -395,6 +386,7 @@ import {
 
 import { IonIcon } from '@ionic/vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 
 import {
   searchOutline,
@@ -2319,35 +2311,6 @@ onBeforeUnmount(() => {
   color: #6b7280;
 }
 
-.search-empty-mascot {
-  display: block;
-
-  width: 110px;
-  height: 110px;
-
-  object-fit: contain;
-
-  flex: 0 0 auto;
-}
-
-.search-empty-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.search-empty-content strong {
-  font-size: 12px;
-  font-weight: 700;
-  color: #374151;
-}
-
-.search-empty-content span {
-  font-size: 10px;
-  line-height: 1.4;
-  color: #9ca3af;
-}
 
 /* =========================================================
    RESULT

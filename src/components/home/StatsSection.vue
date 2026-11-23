@@ -30,49 +30,57 @@
         </div>
       </div>
 
-      <!-- Legalitas -->
-      <div class="stat-item">
-        <div class="stat-icon info-bg">
-          <ion-icon :icon="shieldCheckmarkOutline" />
+      <!-- Sorotan yang diatur Admin (mis. legalitas, akses jalan) -->
+      <div v-for="(item, index) in highlights" :key="`hl-${index}`" class="stat-item">
+        <div class="stat-icon" :class="index % 2 ? 'info-bg' : 'sage-bg'">
+          <ion-icon :icon="resolveCmsIcon(item.icon)" />
         </div>
 
         <div>
-          <strong>SHM</strong>
-          <span>Legalitas</span>
-        </div>
-      </div>
-
-      <!-- Akses Jalan -->
-      <div class="stat-item">
-        <div class="stat-icon sage-bg">
-          <ion-icon :icon="navigateOutline" />
-        </div>
-
-        <div>
-          <strong>100%</strong>
-          <span>Akses Jalan</span>
+          <strong>{{ item.value }}</strong>
+          <span>{{ item.label }}</span>
         </div>
       </div>
 
     </div>
+
+    <div v-if="isAdmin" class="stats-admin">
+      <AdminEditButton label="Edit sorotan" @click="editOpen = true" />
+    </div>
+
+    <CmsPanelModal v-model="editOpen" title="Edit sorotan" panel="home" section="highlights" @saved="loadHighlights" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { IonIcon } from '@ionic/vue'
-import {
-  homeOutline,
-  ribbonOutline,
-  shieldCheckmarkOutline,
-  navigateOutline
-} from 'ionicons/icons'
+import { homeOutline, ribbonOutline } from 'ionicons/icons'
 
 import { lotService } from '@/services/lotService'
+import { contactsService } from '@/services/contactService'
+import { resolveCmsIcon } from '@/utils/cmsIcons'
+import { HOME_KEYS, parseHighlights, type HomeHighlight } from '@/utils/homeContent'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
 
 const totalLots = ref(0)
 const soldCount = ref(0)
 const loading = ref(true)
+const highlights = ref<HomeHighlight[]>([])
+const editOpen = ref(false)
+const { isAdmin } = useCmsAdmin()
+
+/** Sorotan (mis. legalitas, akses jalan) diatur Admin dan disimpan di database. */
+const loadHighlights = async () => {
+  try {
+    const rows = await contactsService.getAll()
+    highlights.value = parseHighlights(rows.find((row) => row.key === HOME_KEYS.highlights)?.value)
+  } catch (error) {
+    console.error('Gagal mengambil sorotan:', error)
+  }
+}
 
 const loadStats = async () => {
   try {
@@ -95,6 +103,7 @@ const loadStats = async () => {
 
 onMounted(() => {
   loadStats()
+  loadHighlights()
 })
 </script>
 
@@ -116,6 +125,12 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 18px 8px;
+}
+
+.stats-admin {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
 }
 
 .stat-item {

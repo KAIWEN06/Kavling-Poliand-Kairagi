@@ -50,7 +50,7 @@
             </div>
 
             <SkeletonStatGrid v-if="detailLoading" :count="4" label="Memuat data performa" />
-            <p v-else-if="detailError" class="state-card state-card--error" role="alert">{{ detailError }}</p>
+            <StatusIllustration v-else-if="detailError" :variant="resolveErrorVariant(detailError)" size="sm" title="Detail tidak dapat dimuat" :on-action="loadMarketingDetail" />
             <template v-else-if="marketingDetail">
               <div class="metric-grid">
                 <article class="metric-card"><span>Total klien</span><strong>{{ number(marketingDetail.metrics.total_clients) }}</strong><small>Seluruh klien terdaftar</small></article>
@@ -86,7 +86,7 @@
           <section class="section-block">
             <div class="section-heading"><div><h2>Klien yang ditangani</h2></div><span class="count-pill">{{ marketingDetail?.clients.length || 0 }} klien</span></div>
             <SkeletonCardList v-if="detailLoading" :count="3" :lines="3" label="Memuat daftar klien" />
-            <p v-else-if="!marketingDetail?.clients.length" class="state-card">Belum ada klien yang terhubung dengan Marketing ini.</p>
+            <StatusIllustration v-else-if="!marketingDetail?.clients.length" variant="empty-data" size="sm" title="Belum ada klien" description="Belum ada klien yang terhubung dengan Marketing ini." />
             <div v-else class="client-list">
               <article v-for="client in marketingDetail.clients" :key="client.id" class="client-card">
                 <div class="client-card__top">
@@ -106,7 +106,7 @@
 
           <section class="section-block">
             <div class="section-heading"><div><h2>Daftar komisi</h2></div></div>
-            <p v-if="!marketingDetail?.commissions.length" class="state-card">Belum ada catatan komisi.</p>
+            <StatusIllustration v-if="!marketingDetail?.commissions.length" variant="empty-data" size="sm" title="Belum ada komisi" description="Catatan komisi akan tampil di sini setelah dicatat Admin." />
             <div v-else class="commission-list">
               <article v-for="commission in marketingDetail.commissions" :key="commission.id" class="commission-row">
                 <div><strong>{{ commission.commission_type === 'Sales' ? 'Komisi Penjualan' : 'Komisi Booking Fee' }}</strong><small>{{ commission.customer_name || 'Client tidak tersedia' }} · {{ commission.lot_number || 'Kavling tidak tersedia' }}</small><small>{{ formatDate(commission.created_at) }}</small></div>
@@ -148,11 +148,11 @@
           </section>
 
           <SkeletonCardList v-if="loading" :count="5" :lines="3" label="Memuat anggota tim" />
-          <div v-else-if="pageError" class="state-card state-card--error" role="alert"><p>{{ pageError }}</p><button type="button" @click="load">Coba lagi</button></div>
+          <StatusIllustration v-else-if="pageError" :variant="resolveErrorVariant(pageError)" title="Data tim gagal dimuat" fill :on-action="load" />
           <template v-else>
             <section v-if="activeTab === 'owner'" class="member-section">
               <div class="section-heading"><div><p class="eyebrow">Akses tingkat tertinggi</p><h2>Daftar Owner</h2></div></div>
-              <p v-if="visibleOwners.length === 0" class="state-card">Belum ada akun Owner yang sesuai dengan filter.</p>
+              <StatusIllustration v-if="visibleOwners.length === 0" variant="no-result" size="sm" title="Owner tidak ditemukan" description="Belum ada akun Owner yang sesuai dengan filter." />
               <div v-else class="member-list">
                 <article v-for="member in visibleOwners" :key="member.id" class="member-card">
                   <div class="avatar"><img v-if="member.photo_url" :src="member.photo_url" alt="" /><span v-else>{{ initials(member) }}</span></div>
@@ -163,7 +163,7 @@
 
               <template v-if="currentRole === 'owner'">
                 <div class="section-heading admin-subheading"><div><p class="eyebrow">Akun operasional</p><h2>Daftar Admin</h2></div><span class="count-pill">{{ adminMembers.length }}</span></div>
-                <p v-if="visibleAdmins.length === 0" class="state-card">Belum ada akun Admin yang sesuai dengan filter.</p>
+                <StatusIllustration v-if="visibleAdmins.length === 0" variant="no-result" size="sm" title="Admin tidak ditemukan" description="Belum ada akun Admin yang sesuai dengan filter." />
                 <div v-else class="member-list">
                   <article v-for="member in visibleAdmins" :key="member.id" class="member-card">
                     <div class="avatar"><span>{{ initials(member) }}</span></div>
@@ -176,8 +176,8 @@
 
             <section v-else class="member-section">
               <div class="section-heading"><div><p class="eyebrow">Tim pemasaran</p><h2>Performa Marketing</h2><p class="section-description">Pilih anggota untuk melihat klien, transaksi, dan komisinya.</p></div></div>
-              <p v-if="overviewLoading" class="state-card">Menghitung performa Marketing...</p>
-              <p v-else-if="visibleMarketing.length === 0" class="state-card">Belum ada Marketing yang sesuai dengan filter.</p>
+              <StatusIllustration v-if="overviewLoading" variant="processing" size="sm" title="Menghitung performa" description="Performa Marketing sedang dihitung." />
+              <StatusIllustration v-else-if="visibleMarketing.length === 0" variant="no-result" size="sm" title="Marketing tidak ditemukan" description="Belum ada Marketing yang sesuai dengan filter." />
               <div v-else class="member-list">
                 <article v-for="member in visibleMarketing" :key="member.id" class="marketing-card">
                   <div class="marketing-card__identity">
@@ -264,6 +264,8 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { computed, onMounted, reactive, ref } from 'vue'

@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import { modalEnterAnimation, modalLeaveAnimation, sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import {
-  IonContent, IonIcon, IonModal, IonPage, IonSpinner,
-  onIonViewWillEnter, useIonRouter,
+  IonContent, IonIcon, IonModal, IonPage, onIonViewWillEnter, useIonRouter,
 } from '@ionic/vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -864,11 +864,12 @@ onIonViewWillEnter(handleRouteIntent)
             <span class="spk-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
           </nav>
 
-          <div v-if="!filteredRecords.length" class="spk-state spk-empty-state">
-            <ion-icon :icon="documentTextOutline" />
-            <strong>{{ spkRecords.length ? 'Tidak ada pengajuan SPK' : 'Belum ada pengajuan SPK' }}</strong>
-            <p>{{ spkRecords.length ? 'Tidak ada data yang sesuai dengan pencarian atau filter.' : 'Pilih kavling yang tersedia untuk mulai membuat pengajuan SPK.' }}</p>
-          </div>
+          <StatusIllustration
+            v-if="!filteredRecords.length"
+            :variant="spkRecords.length ? 'no-result' : 'empty-data'"
+            :title="spkRecords.length ? 'Pengajuan SPK tidak ditemukan' : 'Belum ada pengajuan SPK'"
+            :description="spkRecords.length ? 'Tidak ada data yang sesuai dengan pencarian atau filter.' : 'Pilih kavling yang tersedia untuk mulai membuat pengajuan SPK.'"
+          />
         </template>
       </main>
       <button class="spk-create-btn spk-create-fab" type="button" aria-label="Buat SPK" title="Buat SPK" @click="() => openCreateForm()">

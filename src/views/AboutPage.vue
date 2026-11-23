@@ -10,45 +10,53 @@
           </button>
           <span class="eyebrow">TENTANG POLILAND</span>
           <h1>Membangun masa depan,<br />satu kavling demi kavling.</h1>
-          <p>
-            PoliLand Kairagi adalah kawasan kavling di Manado yang dikembangkan
-            untuk hunian dan investasi jangka panjang dengan legalitas yang jelas.
-          </p>
         </section>
+
+        <div v-if="isAdmin" class="admin-row">
+          <AdminEditButton label="Edit teks" @click="editTextOpen = true" />
+          <AdminEditButton label="Edit sorotan" @click="editHighlightsOpen = true" />
+        </div>
 
         <!-- PROFIL -->
-        <section class="block">
+        <section v-if="aboutText || points.length" class="block">
           <h2>Profil Kami</h2>
           <span class="heading-line"></span>
-          <p>
-            Kami hadir untuk memberikan solusi kepemilikan tanah yang aman,
-            nyaman, dan menguntungkan. Setiap kavling disiapkan dengan batas yang
-            jelas, akses jalan yang baik, serta informasi yang terbuka sehingga
-            calon pembeli dapat mengambil keputusan dengan tenang.
-          </p>
-          <p>
-            Berlokasi di kawasan Kairagi yang terus berkembang, dekat dengan
-            Politeknik Negeri Manado, pusat perbelanjaan, dan akses utama menuju
-            pusat kota.
-          </p>
+          <p v-if="aboutText">{{ aboutText }}</p>
+          <div v-if="points.length" class="card">
+            <ul>
+              <li v-for="point in points" :key="point">
+                <ion-icon :icon="checkmarkCircleOutline" />
+                <span>{{ point }}</span>
+              </li>
+            </ul>
+          </div>
         </section>
+        <p v-else-if="!loading && isAdmin" class="empty-hint">Profil belum diisi. Tekan “Edit teks”.</p>
 
         <!-- ANGKA -->
-        <section class="stats">
-          <div v-for="stat in stats" :key="stat.label" class="stat">
+        <section v-if="highlights.length" class="stats">
+          <div v-for="stat in highlights" :key="stat.label" class="stat">
             <strong>{{ stat.value }}</strong>
             <span>{{ stat.label }}</span>
           </div>
         </section>
 
         <!-- VIDEO -->
-        <section class="block">
-          <h2>Video Profil</h2>
+        <section v-if="video?.video_url" class="block">
+          <h2>{{ video.title || 'Video Profil' }}</h2>
           <span class="heading-line"></span>
           <div class="video-box">
+            <iframe
+              v-if="isYouTubeUrl(video.video_url)"
+              :src="getYouTubeEmbedUrl(video.video_url) || ''"
+              :title="video.title"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            />
             <video
-              :src="videoUrl"
-              :poster="poster"
+              v-else
+              :src="video.video_url"
+              :poster="video.thumbnail_url || undefined"
               controls
               playsinline
               preload="metadata"
@@ -56,45 +64,8 @@
           </div>
         </section>
 
-        <!-- VISI MISI -->
-        <section class="block">
-          <h2>Visi & Misi</h2>
-          <span class="heading-line"></span>
-          <div class="card">
-            <h3>Visi</h3>
-            <p>
-              Menjadi pengembang kawasan kavling terpercaya di Sulawesi Utara
-              yang memberikan nilai tumbuh bagi setiap pemilik lahan.
-            </p>
-          </div>
-          <div class="card">
-            <h3>Misi</h3>
-            <ul>
-              <li v-for="item in missions" :key="item">
-                <ion-icon :icon="checkmarkCircleOutline" />
-                <span>{{ item }}</span>
-              </li>
-            </ul>
-          </div>
-        </section>
-
-        <!-- NILAI -->
-        <section class="block">
-          <h2>Nilai Kami</h2>
-          <span class="heading-line"></span>
-          <div class="values">
-            <article v-for="value in values" :key="value.title" class="value">
-              <div class="value-icon"><ion-icon :icon="value.icon" /></div>
-              <div>
-                <h3>{{ value.title }}</h3>
-                <p>{{ value.text }}</p>
-              </div>
-            </article>
-          </div>
-        </section>
-
         <!-- CTA -->
-        <section class="cta">
+        <section v-if="hasWhatsapp" class="cta">
           <h2>Ingin tahu lebih lanjut?</h2>
           <p>Tim kami siap menjawab pertanyaan Anda dan mengantar melihat kawasan secara langsung.</p>
           <ion-button class="cta-btn" @click="contactWhatsapp">
@@ -105,48 +76,58 @@
 
         <div class="bottom-space" aria-hidden="true"></div>
       </div>
+
+      <CmsPanelModal v-model="editTextOpen" title="Edit Tentang Kami" panel="home" section="about" @saved="load" />
+      <CmsPanelModal v-model="editHighlightsOpen" title="Edit sorotan" panel="home" section="highlights" @saved="load" />
+      <CmsBackBar />
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import { IonButton, IonContent, IonIcon, IonPage } from '@ionic/vue'
-import {
-  arrowBackOutline,
-  checkmarkCircleOutline,
-  logoWhatsapp,
-  shieldCheckmarkOutline,
-  eyeOutline,
-  peopleOutline,
-  trendingUpOutline,
-} from 'ionicons/icons'
+import { arrowBackOutline, checkmarkCircleOutline, logoWhatsapp } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
-import poster from '@/assets/images/hero2.jpg'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
+import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
+import { contactsService } from '@/services/contactService'
+import { featureService, getYouTubeEmbedUrl, isYouTubeUrl, type VideoItem } from '@/services/featureService'
+import { HOME_KEYS, parseHighlights, parsePoints, toWaNumber, type HomeHighlight } from '@/utils/homeContent'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
 
 const router = useRouter()
+const { isAdmin } = useCmsAdmin()
 
-// Video contoh. Ganti dengan video profil asli bila sudah tersedia.
-const videoUrl = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+/** Seluruh isi halaman berasal dari database dan diatur Admin. Tidak ada teks, angka, video, atau nomor contoh di kode. */
+const loading = ref(true)
+const description = ref('')
+const points = ref<string[]>([])
+const highlights = ref<HomeHighlight[]>([])
+const whatsapp = ref('')
+const video = ref<VideoItem | null>(null)
+const editTextOpen = ref(false)
+const editHighlightsOpen = ref(false)
 
-const stats = [
-  { value: 'SHM', label: 'Legalitas' },
-  { value: '100%', label: 'Akses Jalan' },
-  { value: 'Manado', label: 'Lokasi' },
-]
+const aboutText = computed(() => description.value || video.value?.description || '')
+const hasWhatsapp = computed(() => !!toWaNumber(whatsapp.value))
 
-const missions = [
-  'Menyediakan kavling dengan legalitas yang jelas dan aman.',
-  'Membangun infrastruktur dan akses jalan yang memadai.',
-  'Menjaga transparansi harga, progres, dan informasi kepada pembeli.',
-  'Memberikan pelayanan yang ramah, cepat, dan profesional.',
-]
-
-const values = [
-  { icon: shieldCheckmarkOutline, title: 'Terpercaya', text: 'Legalitas dan proses jual beli yang jelas serta terdokumentasi.' },
-  { icon: eyeOutline, title: 'Transparan', text: 'Informasi harga dan perkembangan pembangunan dapat dipantau kapan saja.' },
-  { icon: trendingUpOutline, title: 'Bernilai Investasi', text: 'Kawasan strategis dengan prospek kenaikan nilai jangka panjang.' },
-  { icon: peopleOutline, title: 'Melayani Sepenuh Hati', text: 'Tim kami mendampingi Anda dari survei hingga serah terima.' },
-]
+async function load() {
+  try {
+    const [rows, savedVideo] = await Promise.all([contactsService.getAll(), featureService.getVideo().catch(() => null)])
+    const valueOf = (key: string) => rows.find((row) => row.key === key)?.value ?? ''
+    description.value = valueOf(HOME_KEYS.aboutDescription).trim()
+    points.value = parsePoints(valueOf(HOME_KEYS.aboutPoints))
+    highlights.value = parseHighlights(valueOf(HOME_KEYS.highlights))
+    whatsapp.value = valueOf('whatsapp')
+    video.value = savedVideo
+  } catch (error) {
+    console.error('Gagal memuat halaman Tentang Kami:', error)
+  } finally {
+    loading.value = false
+  }
+}
 
 const goBack = () => {
   if (window.history.length > 1) router.back()
@@ -154,8 +135,11 @@ const goBack = () => {
 }
 
 const contactWhatsapp = () => {
-  window.open('https://wa.me/6281234567890', '_blank')
+  const number = toWaNumber(whatsapp.value)
+  if (number) window.open(`https://wa.me/${number}`, '_blank')
 }
+
+onMounted(load)
 </script>
 
 <style scoped>
@@ -204,4 +188,7 @@ const contactWhatsapp = () => {
 @media (min-width: 768px) {
   .about-page { max-width: 720px; margin: 0 auto; }
 }
+.admin-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.empty-hint { margin: 16px 0 0; padding: 14px; border: 1px dashed #d5d0c4; border-radius: 12px; color: #6b6b6b; font-size: 13px; }
+.video-box iframe { display: block; width: 100%; height: 100%; border: 0; }
 </style>

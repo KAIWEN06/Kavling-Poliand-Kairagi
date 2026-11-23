@@ -1,25 +1,18 @@
 <template>
-  <div class="location-card">
+  <div v-if="settings || isAdmin" class="location-card">
+    <div v-if="isAdmin" class="location-admin">
+      <AdminEditButton label="Edit lokasi" @click="editOpen = true" />
+    </div>
+    <p v-if="!settings" class="location-empty">Lokasi belum diatur. Tekan “Edit lokasi” untuk menambahkan titik peta.</p>
+    <template v-else>
     <!-- Peta Satelit Interaktif (Bisa di-zoom, digeser, & tombol Buka Maps) -->
     <div class="location-map">
       <div class="map-container">
-        <iframe
-          title="Peta Satelit Kaveling Poliland Kairagi"
-          :src="embedUrl"
-          class="w-full h-full border-0"
-          allowfullscreen
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        />
-        <!-- Tombol Buka Maps dipindah ke dalam map-container agar melayang rapi di atas peta -->
-        <div class="absolute top-3 left-3 z-10">
-          <a 
-            :href="openUrl" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="map-float-btn"
-          >
-            <ion-icon :icon="locationOutline" class="map-btn-icon" /> Buka Google Maps
+        <div ref="mapEl" class="map-canvas" role="img" aria-label="Peta lokasi kavling PoliLand Kairagi"></div>
+        <div class="map-actions">
+          <button type="button" class="map-float-btn" :aria-pressed="satellite" @click="toggleBase">{{ satellite ? 'Peta' : 'Satelit' }}</button>
+          <a :href="openUrl" target="_blank" rel="noopener noreferrer" class="map-float-btn">
+            <ion-icon :icon="locationOutline" class="map-btn-icon" /> Buka Maps
           </a>
         </div>
       </div>
@@ -33,26 +26,67 @@
         <small>{{ item.time }}</small>
       </div>
     </div>
+    </template>
+
+    <CmsPanelModal v-model="editOpen" title="Edit lokasi" panel="location" @saved="load" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { locationOutline } from 'ionicons/icons'
 import { contactsService } from '@/services/contactService'
 import { resolvePlaceIcon } from '@/utils/cmsIcons'
-import { DEFAULT_LOCATION_SETTINGS, mapEmbedUrl, mapOpenUrl, type LocationSettings } from '@/utils/locationSettings'
+import { mapOpenUrl, type LocationSettings } from '@/utils/locationSettings'
+import { L, baseLayers, pinIcon } from '@/utils/leafletMap'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
 
-/** Koordinat peta dan daftar tempat terdekat dikelola Admin (tab Lokasi). */
-const settings = ref<LocationSettings>(structuredClone(DEFAULT_LOCATION_SETTINGS))
-const embedUrl = computed(() => mapEmbedUrl(settings.value))
-const openUrl = computed(() => mapOpenUrl(settings.value))
-const nearbyPlaces = computed(() => settings.value.places.map((place) => ({ ...place, icon: resolvePlaceIcon(place.icon) })))
+/** Koordinat peta dan daftar tempat terdekat dikelola Admin (tab Lokasi). Kosong sampai Admin mengisinya. */
+const settings = ref<LocationSettings | null>(null)
+const editOpen = ref(false)
+const { isAdmin } = useCmsAdmin()
+const mapEl = ref<HTMLElement | null>(null)
+const satellite = ref(true)
+let map: L.Map | null = null
+let marker: L.Marker | null = null
+let layers: L.TileLayer[] = []
+const openUrl = computed(() => (settings.value ? mapOpenUrl(settings.value) : '#'))
+const nearbyPlaces = computed(() => (settings.value?.places ?? []).map((place) => ({ ...place, icon: resolvePlaceIcon(place.icon) })))
 
-onMounted(async () => {
-  try { settings.value = await contactsService.getLocationSettings() } catch { /* tetap memakai bawaan */ }
-})
+async function load() {
+  try { settings.value = await contactsService.getLocationSettings() } catch (error) { console.error('Gagal mengambil lokasi:', error) }
+}
+onMounted(load)
+
+function applyBase() {
+  if (!map) return
+  layers.forEach((layer) => layer.remove())
+  layers = baseLayers(satellite.value)
+  layers.forEach((layer) => layer.addTo(map!))
+}
+function toggleBase() { satellite.value = !satellite.value; applyBase() }
+
+/** Peta hanya dibuat saat ada data lokasi; di layar sentuh, peta tidak menahan gulir halaman (geser dengan dua jari). */
+async function renderMap() {
+  const s = settings.value
+  await nextTick()
+  if (!s || !mapEl.value) return
+  const center: L.LatLngExpression = [s.lat, s.lng]
+  if (!map) {
+    map = L.map(mapEl.value, { center, zoom: s.zoom, scrollWheelZoom: false, dragging: !L.Browser.mobile, touchZoom: true })
+    applyBase()
+    marker = L.marker(center, { icon: pinIcon, interactive: false }).addTo(map)
+    window.setTimeout(() => map?.invalidateSize(), 300)
+  } else {
+    map.setView(center, s.zoom)
+    marker?.setLatLng(center)
+  }
+}
+watch(settings, renderMap)
+onBeforeUnmount(() => { map?.remove(); map = null })
 </script>
 
 <style scoped>
@@ -63,11 +97,15 @@ onMounted(async () => {
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(26, 26, 26, 0.06);
 }
+.location-admin { display: flex; justify-content: flex-end; padding: 10px 12px 0; }
+.location-empty { margin: 0; padding: 18px 16px; color: #6b6b6b; font-size: 11px; line-height: 1.5; }
 .location-map {
   height: 240px; 
   padding: 12px;
   background: #FFFFFF;
 }
+.map-canvas { width: 100%; height: 100%; background: #F5F3EE; }
+.map-actions { position: absolute; z-index: 500; top: 10px; left: 10px; display: flex; gap: 6px; }
 .map-container {
   width: 100%;
   height: 100%;
@@ -79,6 +117,9 @@ onMounted(async () => {
 
 /* Styling Tombol Melayang agar menyatu dengan nuansa kartu */
 .map-float-btn {
+  min-height: 36px;
+  font-family: inherit;
+  cursor: pointer;
   background: rgba(255, 255, 255, 0.95);
   color: #1A1A1A;
   font-size: 11px;

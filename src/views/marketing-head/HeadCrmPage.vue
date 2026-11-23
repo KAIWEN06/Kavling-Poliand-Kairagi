@@ -19,7 +19,7 @@
     </Reveal>
 
     <SkeletonRowList v-if="loading" :rows="5" :fields="3" :badges="[2]" label="Memuat perkembangan klien" />
-    <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Data belum dapat dimuat</strong><span>{{ error }}</span></div>
+    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Data belum dapat dimuat" :on-action="load" />
 
     <template v-else>
       <section class="mk-section">
@@ -29,7 +29,7 @@
             {{ st }} ({{ scoped.filter((c) => c.crm_status === st).length }})
           </button>
         </div>
-        <div v-if="!byStatus.length" class="mk-state">Tidak ada klien pada status ini.</div>
+        <StatusIllustration v-if="!byStatus.length" variant="empty-data" size="sm" title="Belum ada klien" description="Tidak ada klien pada status ini." />
         <div v-else class="mk-table-wrap">
           <table class="mk-table mk-table--stack">
             <thead><tr><th>Klien</th><th>Marketing</th><th>Status</th><th>Terakhir dihubungi</th><th>SPK</th></tr></thead>
@@ -54,7 +54,7 @@
             <option :value="3">3 hari</option><option :value="7">7 hari</option><option :value="14">14 hari</option><option :value="30">30 hari</option>
           </select>
         </div>
-        <div v-if="!stale.length" class="mk-state">Semua klien aktif sudah dihubungi dalam {{ staleDays }} hari terakhir.</div>
+        <StatusIllustration v-if="!stale.length" variant="success" size="sm" title="Semua klien sudah dihubungi" :description="`Semua klien aktif sudah dihubungi dalam ${staleDays} hari terakhir.`" />
         <div v-else class="mk-table-wrap">
           <table class="mk-table mk-table--stack">
             <thead><tr><th>Klien</th><th>Marketing</th><th>Status</th><th>Terakhir dihubungi</th></tr></thead>
@@ -80,6 +80,8 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import { computed, onMounted, ref } from 'vue'

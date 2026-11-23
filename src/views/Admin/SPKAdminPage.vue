@@ -107,7 +107,12 @@
             </div>
             <span class="spk-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
           </nav>
-          <div v-if="!filteredRequests.length" class="spk-state spk-empty-state"><img class="spk-empty-mascot" :src="mascotImage" alt="Maskot memeriksa berkas pengajuan" /><strong>Tidak ada pengajuan SPK</strong><p>Belum ada data yang sesuai dengan pencarian atau filter ini.</p></div>
+          <StatusIllustration
+            v-if="!filteredRequests.length"
+            variant="no-result"
+            title="Pengajuan SPK tidak ditemukan"
+            description="Belum ada data yang sesuai dengan pencarian atau filter ini."
+          />
         </template>
       </main>
       <button class="spk-create-btn spk-create-fab" type="button" aria-label="Buat SPK" title="Buat SPK" @click="openCreateForm">
@@ -534,6 +539,7 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
@@ -550,7 +556,6 @@ import { getRegions } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
-import mascotImage from '@/assets/mascot/Curious Mascot Investigates Handshake Files.png'
 import { currentMakassarDateTimeLocal, makassarDateTimeLocalToIso } from '@/utils/financialCashflow'
 import {
   approveSPKRequest, getAdminSPKRequests, getAdminSPKStats,

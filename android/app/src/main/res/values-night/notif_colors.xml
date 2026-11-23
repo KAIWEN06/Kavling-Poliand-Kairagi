@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Versi gelap: hijau lebih terang agar kontras di latar notifikasi gelap. -->
+    <color name="notif_accent">#9CC98B</color>
+    <color name="notif_status_color">#4A7C3A</color>
+</resources>

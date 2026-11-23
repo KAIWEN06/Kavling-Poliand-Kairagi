@@ -180,18 +180,13 @@
         <SkeletonLotList v-if="loading" :count="4" />
 
         <!-- ERROR -->
-        <div v-else-if="loadError" class="kv-state" role="alert">
-          <img
-            :src="errorMascot"
-            alt=""
-            class="kv-state-mascot"
-            aria-hidden="true"
-          />
-          <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-          <strong>Data kaveling gagal dimuat</strong>
-          <p>Periksa koneksi internet, lalu coba lagi.</p>
-          <button type="button" class="kv-detail kv-detail-inline" @click="load(true)">Coba lagi</button>
-        </div>
+        <StatusIllustration
+          v-else-if="loadError"
+          :variant="resolveErrorVariant()"
+          title="Data kaveling gagal dimuat"
+          fill
+          :on-action="() => load(true)"
+        />
 
         <template v-else>
           <!-- LIST HEAD -->
@@ -327,16 +322,13 @@
             <span class="kv-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
           </nav>
 
-          <div v-if="filtered.length === 0" class="kv-state" role="status">
-            <img
-              :src="emptyMascot"
-              alt=""
-              class="kv-state-mascot"
-              aria-hidden="true"
-            />
-            <strong>{{ lots.length ? 'Tidak ada kavling yang sesuai' : 'Belum ada data kavling' }}</strong>
-            <p v-if="lots.length">Coba ubah kata kunci, jenis pencarian, atau filter status.</p>
-          </div>
+          <StatusIllustration
+            v-if="filtered.length === 0"
+            :variant="lots.length ? 'no-result' : 'empty-data'"
+            :title="lots.length ? 'Kavling tidak ditemukan' : 'Belum ada data kavling'"
+            :description="lots.length ? 'Coba ubah kata kunci, jenis pencarian, atau filter status.' : 'Data kavling akan tampil di sini setelah tersedia.'"
+            :on-action="lots.length ? resetFilters : undefined"
+          />
         </template>
       </div>
     </ion-content>
@@ -353,7 +345,6 @@ import {
   IonPage,
   IonContent,
   IonIcon,
-  IonSpinner,
   onIonViewWillEnter,
   useIonRouter,
 } from '@ionic/vue'
@@ -372,7 +363,6 @@ import {
   checkmarkCircleOutline,
   timeOutline,
   closeCircleOutline,
-  alertCircleOutline,
 } from 'ionicons/icons'
 
 import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
@@ -381,8 +371,8 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import siteplanImage from '@/assets/siteplan/Siteplan.png'
 import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
-import errorMascot from '@/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error.png'
-import emptyMascot from '@/assets/mascot/Mascot_No_Data_Scene.png'
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { useSiteplan } from '@/composables/useSiteplant'
 import { lotService, type LotRecord } from '@/services/lotService'
 import LotSurveyMarker from '@/components/common/LotSurveyMarker.vue'
@@ -493,6 +483,13 @@ const panelOpen = ref(false)
 
 const searchInput = ref<HTMLInputElement | null>(null)
 const minInput = ref<HTMLInputElement | null>(null)
+
+function resetFilters() {
+  statusFilter.value = 'all'
+  query.value = ''
+  minPriceText.value = ''
+  maxPriceText.value = ''
+}
 
 const statusLabel: Record<LotStatus, string> = {
   available: 'Tersedia',
@@ -1846,40 +1843,6 @@ h2 {
 }
 
 /* ---------- loading / empty / error ---------- */
-.kv-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 32px 16px;
-  text-align: center;
-  background: var(--surface-primary);
-  border: 1px dashed var(--border-default);
-  border-radius: var(--radius-card);
-}
-
-.kv-state ion-icon {
-  font-size: 28px;
-  color: var(--text-secondary);
-}
-
-.kv-state ion-spinner {
-  color: var(--poliland-green);
-}
-
-.kv-state-mascot {
-  display: block;
-  width: min(132px, 42vw);
-  height: auto;
-  margin-bottom: 2px;
-  object-fit: contain;
-}
-
-.kv-state p {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
 
 /* ---------- 320px ---------- */
 @media (max-width: 360px) {

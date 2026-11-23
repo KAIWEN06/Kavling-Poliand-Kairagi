@@ -77,10 +77,13 @@
               <ion-icon :icon="chevronBackOutline" aria-hidden="true" /> Kembali
             </button>
             <SkeletonRowList v-if="proofLoading" :rows="2" :fields="3" :subtitle="false" label="Memuat bukti pembayaran" />
-            <div v-else-if="proofError" class="finance-state" role="alert">
-              <ion-icon :icon="alertCircleOutline" /><strong>Bukti pembayaran tidak dapat dimuat</strong><p>{{ proofError }}</p>
-              <AppButton size="small" @click="() => loadSelectedPaymentProof()">Coba lagi</AppButton>
-            </div>
+            <StatusIllustration
+              v-else-if="proofError"
+              :variant="resolveErrorVariant(proofError)"
+              size="sm"
+              title="Bukti pembayaran tidak dapat dimuat"
+              :on-action="() => loadSelectedPaymentProof()"
+            />
             <template v-else-if="selectedProofPayment">
               <div class="proof-status-banner" :class="`proof-status-banner--${selectedProofPayment.payment.status.toLowerCase().replaceAll(' ', '-')}`">
                 <span class="proof-status-icon"><ion-icon :icon="selectedProofPayment.payment.status === 'Confirmed' ? shieldCheckmarkOutline : timeOutline" /></span>
@@ -199,7 +202,7 @@
         <template v-else-if="paymentPage === 'add'">
           <section class="payment-flow-page payment-create-page">
             <button type="button" class="report-back-link" @click="closePaymentPage"><ion-icon :icon="chevronBackOutline" /> Kembali ke Detail Keuangan</button>
-            <div v-if="!selectedReportLot" class="finance-state" role="alert"><strong>Transaksi tidak ditemukan.</strong><p>Kembali ke laporan dan pilih transaksi yang benar.</p></div>
+            <StatusIllustration v-if="!selectedReportLot" variant="not-found-404" size="sm" title="Transaksi tidak ditemukan" description="Kembali ke laporan dan pilih transaksi yang benar." />
             <template v-else>
               <section class="payment-step-card">
                 <header><span>1</span><div><strong>Identitas Klien & Kaveling</strong></div></header>
@@ -215,7 +218,7 @@
                 <header><span>2</span><div><strong>{{ selectedReportLot.paymentType === 'Installment' ? 'Pilih Bulan Cicilan' : 'Nominal Pembayaran' }}</strong><small>{{ selectedReportLot.paymentType === 'Installment' ? 'Centang bulan tagihan' : 'Masukkan nominal pembayaran yang diterima' }}</small></div></header>
                 <div class="payment-step-body">
                   <SkeletonRowList v-if="selectedReportLot.paymentType === 'Installment' && schedulesLoading" :rows="3" :fields="1" :badges="[1]" label="Memuat jadwal cicilan" />
-                  <div v-else-if="selectedReportLot.paymentType === 'Installment' && schedulesError" class="finance-state" role="alert"><p>{{ schedulesError }}</p><AppButton size="small" @click="loadSchedulesForSelectedLot">Coba lagi</AppButton></div>
+                  <StatusIllustration v-else-if="selectedReportLot.paymentType === 'Installment' && schedulesError" :variant="resolveErrorVariant(schedulesError)" size="sm" title="Jadwal cicilan gagal dimuat" :on-action="loadSchedulesForSelectedLot" />
                   <template v-else-if="selectedReportLot.paymentType === 'Installment'">
                     <label v-for="schedule in selectableSchedules" :key="schedule.id" class="payment-schedule-option">
                       <input v-model="selectedScheduleIds" type="checkbox" :value="schedule.id" />
@@ -305,12 +308,13 @@
 
             <SkeletonRowList v-if="bankLoading" :rows="2" :fields="2" label="Memuat rekening bank" />
 
-            <div v-else-if="bankError" class="finance-state" role="alert">
-              <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-              <strong>Rekening bank gagal dimuat</strong>
-              <p>{{ bankError }}</p>
-              <AppButton size="small" @click="loadBankAccounts">Coba lagi</AppButton>
-            </div>
+            <StatusIllustration
+              v-else-if="bankError"
+              :variant="resolveErrorVariant(bankError)"
+              size="sm"
+              title="Rekening bank gagal dimuat"
+              :on-action="loadBankAccounts"
+            />
 
             <template v-else>
               <div v-if="bankAccounts.length" class="bank-account-list">
@@ -349,11 +353,13 @@
                 </article>
               </div>
 
-              <section v-else class="bank-empty-state">
-                <div class="bank-empty-icon"><ion-icon :icon="businessOutline" aria-hidden="true" /></div>
-                <strong>Belum ada rekening bank</strong>
-                <p>Tambahkan rekening resmi PoliLand Kairagi agar pembeli dapat memilih tujuan transfer.</p>
-              </section>
+              <StatusIllustration
+                v-else
+                variant="empty-data"
+                size="sm"
+                title="Belum ada rekening bank"
+                description="Tambahkan rekening resmi PoliLand Kairagi agar pembeli dapat memilih tujuan transfer."
+              />
 
               <button type="button" class="bank-add-button" @click="openBankEditor()">
                 <ion-icon :icon="addOutline" aria-hidden="true" />
@@ -371,12 +377,13 @@
           >
             <SkeletonRowList v-if="instructionLoading" :rows="2" :fields="2" label="Memuat instruksi pembayaran" />
 
-            <div v-else-if="instructionError" class="finance-state" role="alert">
-              <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-              <strong>Instruksi gagal dimuat</strong>
-              <p>{{ instructionError }}</p>
-              <AppButton size="small" @click="loadPaymentInstruction">Coba lagi</AppButton>
-            </div>
+            <StatusIllustration
+              v-else-if="instructionError"
+              :variant="resolveErrorVariant(instructionError)"
+              size="sm"
+              title="Instruksi gagal dimuat"
+              :on-action="loadPaymentInstruction"
+            />
 
             <template v-else>
               <section class="instruction-editor" aria-label="Formulir instruksi pembayaran">
@@ -528,13 +535,13 @@
             <section v-if="selectedReportLot.paymentType === 'Installment'" class="report-detail-history">
               <div class="report-detail-section-title"><h2>Jadwal Cicilan</h2><span>{{ installmentSchedules.length }} jadwal</span></div>
               <SkeletonRowList v-if="schedulesLoading" :rows="3" :fields="1" :badges="[1]" label="Memuat jadwal cicilan" />
-              <div v-else-if="schedulesError" class="finance-state" role="alert"><p>{{ schedulesError }}</p><AppButton size="small" @click="loadSchedulesForSelectedLot">Coba lagi</AppButton></div>
+              <StatusIllustration v-else-if="schedulesError" :variant="resolveErrorVariant(schedulesError)" size="sm" title="Jadwal cicilan gagal dimuat" :on-action="loadSchedulesForSelectedLot" />
               <article v-for="schedule in installmentSchedules" :key="schedule.id" class="installment-detail-row">
                 <span class="installment-detail-number">{{ schedule.installment_number }}</span>
                 <div><strong>Cicilan {{ schedule.installment_number }}</strong><small>{{ formatShortDate(schedule.due_date) }}</small></div>
                 <div class="installment-detail-amount"><strong>{{ formatCurrency(schedule.amount) }}</strong><span :class="`installment-status installment-status--${schedule.status.toLowerCase()}`">{{ schedule.status === 'Paid' ? 'Lunas' : schedule.pending_payment ? 'Menunggu Verifikasi' : schedule.due_date < todayDate ? 'Jatuh Tempo' : 'Mendatang' }}</span></div>
               </article>
-              <div v-if="!schedulesLoading && !schedulesError && !installmentSchedules.length" class="report-empty-inline">Jadwal cicilan belum tersedia. Jalankan migrasi database untuk membuat jadwal transaksi.</div>
+              <StatusIllustration v-if="!schedulesLoading && !schedulesError && !installmentSchedules.length" variant="empty-data" size="sm" title="Jadwal cicilan belum tersedia" description="Jadwal akan dibuat setelah transaksi cicilan terkonfirmasi." />
             </section>
 
             <section class="report-detail-history">
@@ -558,7 +565,7 @@
                 <p v-if="payment.note">{{ payment.note }}</p>
                 <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" /> {{ payment.refundStatus === 'Refunded' ? 'Lihat Bukti Refund' : 'Lihat Bukti Pembayaran' }}</button>
               </article>
-              <div v-if="!selectedReportLot.payments.length" class="report-empty-inline">Belum ada riwayat pembayaran untuk kaveling ini.</div>
+              <StatusIllustration v-if="!selectedReportLot.payments.length" variant="empty-data" size="sm" title="Belum ada riwayat pembayaran" description="Pembayaran untuk kaveling ini akan tercatat di sini." />
             </section>
             <button type="button" class="report-add-payment-button" :disabled="selectedReportLot.remaining <= 0" @click="openAddPayment">
               <ion-icon :icon="addCircleOutline" /> Tambah Pembayaran
@@ -615,12 +622,13 @@
               <SkeletonStatGrid :count="4" :label="reportLedgerLoading ? 'Memuat arus kas' : 'Memuat laporan keuangan'" />
               <SkeletonRowList :rows="4" :fields="2" :badges="[]" />
             </div>
-            <div v-else-if="errorMessage || (activeReportTab === 'summary' && reportLedgerError)" class="finance-state" role="alert">
-              <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-              <strong>Laporan keuangan gagal dimuat</strong>
-              <p>{{ reportLedgerError || errorMessage }}</p>
-              <AppButton size="small" @click="retryFinanceReport">Coba lagi</AppButton>
-            </div>
+            <StatusIllustration
+              v-else-if="errorMessage || (activeReportTab === 'summary' && reportLedgerError)"
+              :variant="resolveErrorVariant(reportLedgerError || errorMessage)"
+              size="sm"
+              title="Laporan keuangan gagal dimuat"
+              :on-action="retryFinanceReport"
+            />
 
             <template v-else>
               <template v-if="activeReportTab === 'summary'">
@@ -684,7 +692,7 @@
                       <small :class="`report-text-${payment.statusTone}`">{{ payment.statusLabel }}</small>
                     </div>
                   </article>
-                  <div v-if="!recentReportPayments.length" class="report-empty-inline">Belum ada transaksi pada periode ini.</div>
+                  <StatusIllustration v-if="!recentReportPayments.length" variant="empty-data" size="sm" title="Belum ada transaksi" description="Belum ada transaksi pada periode ini." />
                 </section>
               </template>
 
@@ -715,7 +723,7 @@
                     <button type="button" class="report-detail-button" @click="openReportLot(lot)">Lihat Detail Keuangan <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
                   </article>
                 </div>
-                <div v-else class="report-empty-inline">{{ reportQuery ? 'Tidak ada kavling yang cocok dengan pencarian.' : 'Belum ada data transaksi kavling.' }}</div>
+                <StatusIllustration v-else :variant="reportQuery ? 'no-result' : 'empty-data'" size="sm" :title="reportQuery ? 'Kavling tidak ditemukan' : 'Belum ada transaksi kavling'" :description="reportQuery ? 'Tidak ada kavling yang cocok dengan pencarian.' : 'Data akan tampil setelah ada transaksi.'" />
               </template>
 
               <template v-else>
@@ -746,7 +754,7 @@
                     </div>
                   </article>
                 </div>
-                <div v-else class="report-empty-inline">{{ reportQuery ? 'Tidak ada pembeli yang cocok dengan pencarian.' : 'Belum ada data pembeli.' }}</div>
+                <StatusIllustration v-else :variant="reportQuery ? 'no-result' : 'empty-data'" size="sm" :title="reportQuery ? 'Pembeli tidak ditemukan' : 'Belum ada data pembeli'" :description="reportQuery ? 'Tidak ada pembeli yang cocok dengan pencarian.' : 'Data pembeli akan tampil setelah ada transaksi.'" />
               </template>
             </template>
           </template>
@@ -762,8 +770,14 @@
             </div>
             <div class="ledger-policy-note" role="note">Booking Fee dan denda tidak termasuk dasar pengembalian. Transfer refund harus dicatat terpisah dengan referensi bank dan bukti transfer.</div>
             <SkeletonRowList v-if="cancellationLoading" :rows="2" :fields="3" :badges="[3]" label="Memuat pengajuan" />
-            <div v-else-if="cancellationError" class="finance-state" role="alert"><ion-icon :icon="alertCircleOutline" /><strong>Pengajuan tidak dapat dimuat</strong><p>{{ cancellationError }}</p><AppButton size="small" @click="loadCancellationRequests">Coba lagi</AppButton></div>
-            <div v-else-if="!cancellationRequests.length" class="finance-state ledger-empty"><strong>Tidak ada pengajuan menunggu</strong><p>Pengajuan pembatalan baru akan muncul di sini.</p></div>
+            <StatusIllustration
+              v-else-if="cancellationError"
+              :variant="resolveErrorVariant(cancellationError)"
+              size="sm"
+              title="Pengajuan tidak dapat dimuat"
+              :on-action="loadCancellationRequests"
+            />
+            <StatusIllustration v-else-if="!cancellationRequests.length" variant="empty-data" size="sm" title="Tidak ada pengajuan menunggu" description="Pengajuan pembatalan baru akan muncul di sini." />
             <div v-else class="cancellation-request-list">
               <article v-for="request in cancellationRequests" :key="request.id" class="cancellation-review-card">
                 <div class="cancellation-review-card__top"><div><span>Pengajuan #{{ request.id }} · {{ formatShortDate(request.created_at) }}</span><h2>{{ request.customer_name }}</h2><small>{{ request.customer_phone || 'Nomor kontak tidak tersedia' }}</small></div><strong>{{ request.lot_number }}<small>{{ request.block_name || 'Blok belum tersedia' }}</small></strong></div>
@@ -799,10 +813,13 @@
               <SkeletonStatGrid :count="4" label="Memuat buku kas" />
               <SkeletonRowList :rows="4" :fields="2" />
             </div>
-            <div v-else-if="ledgerError" class="finance-state" role="alert">
-              <ion-icon :icon="alertCircleOutline" /><strong>Buku kas belum tersedia</strong><p>{{ ledgerError }}</p>
-              <AppButton size="small" @click="loadFinancialLedger">Coba lagi</AppButton>
-            </div>
+            <StatusIllustration
+              v-else-if="ledgerError"
+              :variant="resolveErrorVariant(ledgerError)"
+              size="sm"
+              title="Buku kas belum tersedia"
+              :on-action="loadFinancialLedger"
+            />
             <template v-else>
               <div class="ledger-totals" aria-label="Ringkasan arus kas tercatat">
                 <p class="ledger-count">Menampilkan {{ ledgerEntries.length }} pembukuan terbaru, maksimal 200 entri.</p>
@@ -830,7 +847,7 @@
                   </tbody>
                 </table>
               </div>
-              <div v-else class="finance-state ledger-empty"><strong>Belum ada pembukuan</strong><p>Pembayaran baru akan muncul setelah Admin mengonfirmasinya.</p></div>
+              <StatusIllustration v-else variant="empty-data" size="sm" title="Belum ada pembukuan" description="Pembayaran baru akan muncul setelah Admin mengonfirmasinya." />
             </template>
           </section>
         </template>
@@ -847,12 +864,13 @@
 
             <SkeletonRowList v-if="planLoading" :rows="3" :fields="2" label="Memuat skema cicilan" />
 
-            <div v-else-if="planError" class="finance-state" role="alert">
-              <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-              <strong>Skema cicilan gagal dimuat</strong>
-              <p>{{ planError }}</p>
-              <AppButton size="small" @click="loadPaymentPlans">Coba lagi</AppButton>
-            </div>
+            <StatusIllustration
+              v-else-if="planError"
+              :variant="resolveErrorVariant(planError)"
+              size="sm"
+              title="Skema cicilan gagal dimuat"
+              :on-action="loadPaymentPlans"
+            />
 
             <template v-else>
               <div v-if="paymentPlans.length" class="payment-plan-list">
@@ -882,11 +900,13 @@
                 </article>
               </div>
 
-              <section v-else class="payment-plan-empty">
-                <div class="payment-plan-empty-icon"><ion-icon :icon="calendarOutline" aria-hidden="true" /></div>
-                <strong>Belum ada skema cicilan</strong>
-                <p>Tambahkan skema tenor dan margin agar tersedia saat Admin membuat transaksi cicilan.</p>
-              </section>
+              <StatusIllustration
+                v-else
+                variant="empty-data"
+                size="sm"
+                title="Belum ada skema cicilan"
+                description="Tambahkan skema tenor dan margin agar tersedia saat Admin membuat transaksi cicilan."
+              />
 
               <AppButton class="payment-plan-add-button" variant="secondary" expand="block" @click="openPlanEditor()">
                 <ion-icon :icon="addOutline" aria-hidden="true" />
@@ -913,7 +933,13 @@
           </label>
 
           <SkeletonRowList v-if="loading" :rows="4" :fields="3" :badges="[3]" label="Memuat transaksi" />
-          <div v-else-if="errorMessage" class="finance-state" role="alert"><ion-icon :icon="alertCircleOutline" aria-hidden="true" /><strong>Data keuangan gagal dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="loadTransactions()">Coba lagi</AppButton></div>
+          <StatusIllustration
+              v-else-if="errorMessage"
+              :variant="resolveErrorVariant(errorMessage)"
+              size="sm"
+              title="Data keuangan gagal dimuat"
+              :on-action="() => loadTransactions()"
+            />
           <template v-else>
             <section v-if="filteredTransactions.length" class="transaction-list" aria-label="Daftar transaksi pembayaran">
               <article v-for="transaction in pagedTransactions" :key="transaction.id" class="transaction-card" :class="{ 'transaction-card--target': isTargetTransaction(transaction) }">
@@ -958,11 +984,12 @@
               </div>
               <span class="finance-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
             </nav>
-            <section v-if="!filteredTransactions.length" class="finance-state empty-state">
-              <img class="empty-mascot" src="@/assets/mascot/MascotwithEmptyReceiptandCoins.png" alt="Mascot PoliLand membawa bukti pembayaran kosong" />
-              <strong>Tidak ada transaksi</strong>
-              <p>{{ query ? 'Coba ubah kata kunci pencarian.' : 'Belum ada transaksi pada kategori ini.' }}</p>
-            </section>
+            <StatusIllustration
+              v-if="!filteredTransactions.length"
+              :variant="query ? 'no-result' : 'empty-data'"
+              :title="query ? 'Transaksi tidak ditemukan' : 'Tidak ada transaksi'"
+              :description="query ? 'Coba ubah kata kunci pencarian.' : 'Belum ada transaksi pada kategori ini.'"
+            />
           </template>
         </template>
         <AppModal v-model="proofZoomOpen" title="Bukti Transfer" variant="fullscreen" :show-footer="false">
@@ -1123,12 +1150,14 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
-import { addCircleOutline, addOutline, alertCircleOutline, businessOutline, calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, closeCircleOutline, closeOutline, copyOutline, createOutline, documentTextOutline, downloadOutline, imageOutline, informationCircleOutline, peopleOutline, pieChartOutline, refreshOutline, saveOutline, searchOutline, shieldCheckmarkOutline, starOutline, timeOutline, trashOutline, walletOutline } from 'ionicons/icons'
+import { addCircleOutline, addOutline, businessOutline, calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, closeCircleOutline, closeOutline, copyOutline, createOutline, documentTextOutline, downloadOutline, imageOutline, informationCircleOutline, peopleOutline, pieChartOutline, refreshOutline, saveOutline, searchOutline, shieldCheckmarkOutline, starOutline, timeOutline, trashOutline, walletOutline } from 'ionicons/icons'
 import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'

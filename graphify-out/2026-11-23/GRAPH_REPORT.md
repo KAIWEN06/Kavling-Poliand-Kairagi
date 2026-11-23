@@ -1,7 +1,7 @@
 # Graph Report - poliland-mobile  (2026-11-23)
 
 ## Corpus Check
-- 432 files · ~528,794 words
+- 432 files · ~528,809 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 87 file(s) not represented in the graph (top: .csv 53, .xml 10, (none) 7)
 
@@ -1418,7 +1418,7 @@ Nodes (12): jspdf@^4.2.1, jspdf, blobToBase64(), saveBlobAsFile(), currentMakass
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vue` connect `vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `Admin Lot Detail`, `Client Lot Detail`, `Siteplan Map Gestures`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `HeadCrmPage.vue`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ClientListView.vue`, `AdminContentPage.vue`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `HomePage.vue`, `Marketing SPK Submission`, `Siteplan Search Box`, `Home About Section`, `Login Mascot Animation`, `Capacitor Dependencies`, `contactService.ts`, `Home Gallery`, `Lot Stats & Pricing`, `KavlingMarketingPage.vue`, `Dev Tooling Deps`, `Home Progress Updates`, `PaymentMonitorView.vue`, `Register Page`, `App Modal Component`, `Client SPK Modal`, `Login Page`, `AppPullRefresh.vue`, `BerandaMarketingPage.vue`, `CmsCrudPanel.vue`, `authService.ts`, `ClientProfileGateModal.vue`, `Progress Detail Page`, `Contact Page`, `Panorama Viewer`, `CmsHomePanel.vue`, `SiteplanPage Module`, `PolygonLayer Module`, `GalleryPage.vue`, `ContactSection.vue`, `BerandaClientPage.vue`, `siteplanService Module`, `AppButton.vue`, `AppInput.vue`, `LoginPageCanvasTest.vue`, `CommissionView.vue`, `App Module`, `HeadDashboardPage.vue`, `ClientDetailView.vue`, `AdminSurveyRequestsPage.vue`, `supabase.ts`, `CmsContactPanel.vue`, `surveyService.ts`, `AdminReviewsPage.vue`, `profileService.ts`, `GallerySkeleton.vue`, `main.ts`, `BarChart.vue`, `SpkListView.vue`, `CmsLocationPanel.vue`, `useNotifications.ts`, `marketingStatus.ts`, `CustomerReviewsSection.vue`, `useToast.ts`, `ProfilePage.vue`, `RegionSelect.vue`, `useCurrentUser.ts`, `ReviewForm.vue`, `AppInput.vue`, `ReviewReportDialog.vue`, `ReviewSummaryCard.vue`, `ReviewCard.vue`, `PanoramaPage.vue`, `HeroSection.vue`, `MobileTabBar.vue`, `AppVideo.vue`, `ProgressPage.vue`, `@ionic/vue`, `router/index.ts`?**
-  _High betweenness centrality (0.144) - this node is a cross-community bridge._
+  _High betweenness centrality (0.123) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `TailwindConfigGenerator` (e.g. with `TestGeneratedConfigIsValidJs` and `TestTailwindConfigGenerator`) actually correct?**
   _`TailwindConfigGenerator` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `PackageDescription`, `npx`, `contacts Supabase Table` to the rest of the system?**
@@ -1426,7 +1426,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Admin Finance Page` be split into smaller, more focused modules?**
   _Cohesion score 0.011487037850731279 - nodes in this community are weakly interconnected._
 - **Why does `@ionic/vue` connect `@ionic/vue` to `AppInput.vue`, `Admin Finance Page`, `Admin SPK Page`, `Bank & Payment Instructions`, `Admin Lot Browser`, `Client Lot Browser`, `Admin Lot Detail`, `Client Lot Detail`, `Client Payment Page`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `HeadCrmPage.vue`, `Siteplan Detail Panel`, `ReviewSummaryCard.vue`, `Team Access & Roles`, `Admin Buyers List`, `ReviewCard.vue`, `SPK Review & Notary`, `AdminContentPage.vue`, `Customer Notes`, `PanoramaPage.vue`, `Admin Buyer Detail`, `HeroSection.vue`, `HomePage.vue`, `Admin Dashboard`, `Siteplan Search Box`, `Home About Section`, `MobileTabBar.vue`, `Marketing SPK Submission`, `Capacitor Dependencies`, `contactService.ts`, `Home Gallery`, `Lot Stats & Pricing`, `Login Mascot Animation`, `KavlingMarketingPage.vue`, `Dev Tooling Deps`, `Home Progress Updates`, `AppVideo.vue`, `Register Page`, `App Modal Component`, `ProgressPage.vue`, `Client SPK Modal`, `Login Page`, `BerandaMarketingPage.vue`, `NotificationCenter.vue`, `authService.ts`, `ClientProfileGateModal.vue`, `CmsLocationPanel.vue`, `Contact Page`, `Progress Detail Page`, `CmsHomePanel.vue`, `SiteplanPage Module`, `router/index.ts`, `GalleryPage.vue`, `ContactSection.vue`, `BerandaClientPage.vue`, `AppButton.vue`, `AppInput.vue`, `LoginPageCanvasTest.vue`, `App Module`, `marketingStatus.ts`, `modalAnimation.ts`, `HeadDashboardPage.vue`, `ClientDetailView.vue`, `AdminSurveyRequestsPage.vue`, `surveyService.ts`, `CustomerReviewsSection.vue`, `AdminReviewsPage.vue`, `ProfilePage.vue`, `vue`, `GallerySkeleton.vue`, `main.ts`, `useCurrentUser.ts`, `ReviewForm.vue`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+  _High betweenness centrality (0.062) - this node is a cross-community bridge._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._

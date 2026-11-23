@@ -1,10 +1,6 @@
 <template>
   <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail klien" />
-  <div v-else-if="error" class="mk-state mk-state--error" role="alert">
-    <strong>Detail klien belum dapat dimuat</strong>
-    <span>{{ error }}</span>
-    <button type="button" class="mk-btn mk-btn--primary" @click="load">Coba lagi</button>
-  </div>
+  <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Detail klien belum dapat dimuat" :on-action="load" />
 
   <template v-else-if="detail">
     <!-- Ringkasan -->
@@ -59,7 +55,7 @@
 
     <!-- B. Minat kavling -->
     <section v-if="activeTab === 'lot'" class="mk-section" role="tabpanel">
-      <div v-if="!detail.interests.length" class="mk-state">Belum ada minat kaveling yang dicatat.</div>
+      <StatusIllustration v-if="!detail.interests.length" variant="empty-data" size="sm" title="Belum ada minat" description="Belum ada minat kaveling yang dicatat." />
       <article v-for="interest in detail.interests" :key="interest.id" class="mk-card">
         <div class="mk-section-head">
           <h2>Kaveling {{ interest.lot?.lot_number || '-' }}</h2>
@@ -97,7 +93,7 @@
 
     <!-- D. SPK -->
     <section v-if="activeTab === 'spk'" class="mk-section" role="tabpanel">
-      <div v-if="!detail.spks.length" class="mk-state">Klien ini belum memiliki pengajuan SPK.</div>
+      <StatusIllustration v-if="!detail.spks.length" variant="empty-data" size="sm" title="Belum ada pengajuan SPK" description="Klien ini belum memiliki pengajuan SPK." />
       <article v-for="spk in detail.spks" :key="spk.id" class="mk-card mk-section">
         <div class="mk-section-head">
           <div><h2>{{ spk.spk_number }}</h2><p>Kaveling {{ spk.lot?.lot_number || '-' }} · diajukan {{ formatDate(spk.submitted_at) }} ({{ spk.submission_source }})</p></div>
@@ -163,7 +159,7 @@
 
     <!-- F. Jadwal pembayaran -->
     <section v-if="activeTab === 'schedule'" class="mk-section" role="tabpanel">
-      <div v-if="!scheduleTx.length" class="mk-state">Belum ada jadwal cicilan resmi. Jadwal dibuat sistem setelah SPK cicilan terkonfirmasi Admin.</div>
+      <StatusIllustration v-if="!scheduleTx.length" variant="empty-data" size="sm" title="Belum ada jadwal cicilan" description="Jadwal dibuat sistem setelah SPK cicilan terkonfirmasi Admin." />
       <article v-for="tx in scheduleTx" :key="tx.id" class="mk-section">
         <div class="mk-card">
           <dl class="mk-dl">
@@ -199,7 +195,7 @@
         <h2>Catatan & arahan</h2>
         <button type="button" class="mk-link" @click="openNote">{{ role === 'head' ? 'Beri arahan' : 'Tambah catatan' }}</button>
       </div>
-      <div v-if="!detail.notes.length" class="mk-state">Belum ada catatan.</div>
+      <StatusIllustration v-if="!detail.notes.length" variant="empty-data" size="sm" title="Belum ada catatan" description="Catatan tentang klien ini akan tampil di sini." />
       <article v-for="note in detail.notes" :key="note.id" class="mk-card mk-note" :class="{ 'mk-note--head': actorRole(note.created_by) === 'marketing_head' }">
         <div class="mk-section-head">
           <strong>{{ note.title || note.category }}</strong>
@@ -221,10 +217,7 @@
 
     <!-- H. Komisi -->
     <section v-if="activeTab === 'commission'" class="mk-section" role="tabpanel">
-      <div v-if="!detail.commissions.length" class="mk-state">
-        <strong>Belum ada data komisi</strong>
-        <span>Komisi dicatat Admin sesuai kebijakan perusahaan. Aplikasi tidak menghitung komisi sendiri.</span>
-      </div>
+      <StatusIllustration v-if="!detail.commissions.length" variant="empty-data" size="sm" title="Belum ada data komisi" description="Komisi dicatat Admin sesuai kebijakan perusahaan. Aplikasi tidak menghitung komisi sendiri." />
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
           <thead><tr><th>Marketing</th><th>Jenis</th><th class="num">Dasar</th><th class="num">Komisi</th><th>Status</th><th>Dibayarkan</th></tr></thead>
@@ -319,6 +312,8 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useIonRouter } from '@ionic/vue'

@@ -19,10 +19,7 @@
         <Skeleton v-for="n in 4" :key="n" height="104px" border-radius="14px" />
       </div>
     </div>
-    <div v-else-if="error" class="mk-state mk-state--error" role="alert">
-      <strong>Ringkasan belum dapat dimuat</strong><span>{{ error }}</span>
-      <button type="button" class="mk-btn mk-btn--primary" @click="load()">Coba lagi</button>
-    </div>
+    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Ringkasan belum dapat dimuat" :on-action="() => load()" />
 
     <template v-else-if="report">
       <Reveal :order="2">
@@ -81,6 +78,8 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { computed, onMounted, ref } from 'vue'
 import { useIonRouter } from '@ionic/vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'

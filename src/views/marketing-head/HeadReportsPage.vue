@@ -10,8 +10,8 @@
       <PeriodFilter :members="tab === 'performance' ? [] : members" @change="load" />
     </Reveal>
 
-    <div v-if="loading && !report" class="mk-state" role="status">Memuat laporan…</div>
-    <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Laporan belum dapat dimuat</strong><span>{{ error }}</span></div>
+    <StatusIllustration v-if="loading && !report" variant="processing" title="Memuat laporan" />
+    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Laporan belum dapat dimuat" :on-action="() => load()" />
 
     <template v-else-if="report">
       <!-- STATISTIK PENJUALAN -->
@@ -147,6 +147,8 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import Reveal from '@/components/ui/Reveal.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'

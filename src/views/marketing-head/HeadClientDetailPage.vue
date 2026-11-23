@@ -1,11 +1,12 @@
 <template>
   <MarketingPageLayout title="Detail Klien" tab-variant="head" :refreshable="false" show-back back-route="/kepala-marketing/clients" @refresh="detail?.reload()">
     <ClientDetailView v-if="customerId" ref="detail" :customer-id="customerId" role="head" :viewer-name="profileName" />
-    <div v-else class="mk-state mk-state--error"><strong>ID klien tidak valid</strong></div>
+    <StatusIllustration v-else variant="not-found-404" size="sm" title="Klien tidak ditemukan" description="ID klien tidak valid. Kembali ke daftar klien lalu pilih ulang." />
   </MarketingPageLayout>
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'

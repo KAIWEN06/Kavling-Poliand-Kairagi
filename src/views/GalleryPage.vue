@@ -19,6 +19,9 @@
                 Lihat suasana kawasan, fasilitas, akses, dan perkembangan
                 PoliLand Kairagi melalui koleksi foto kami.
               </p>
+              <div v-if="isAdmin" class="hero-admin">
+                <AdminEditButton label="Tambah foto" :icon="addOutline" @click="openAdd" />
+              </div>
             </div>
           </template>
 
@@ -116,11 +119,12 @@
             </button>
           </div>
 
-          <div v-if="!isLoading && filteredPhotos.length === 0" class="empty-state">
-            <div class="empty-icon"><ion-icon :icon="imagesOutline" /></div>
-            <h3>Belum ada foto</h3>
-            <p>Foto untuk kategori ini belum tersedia.</p>
-          </div>
+          <StatusIllustration
+            v-if="!isLoading && filteredPhotos.length === 0"
+            :variant="photos.length ? 'no-result' : 'empty-data'"
+            :title="photos.length ? 'Foto tidak ditemukan' : 'Belum ada foto'"
+            :description="photos.length ? 'Foto untuk kategori ini belum tersedia.' : (isAdmin ? 'Galeri masih kosong. Tekan “Tambah foto” untuk mengisinya.' : 'Foto akan segera ditambahkan.')"
+          />
         </section>
 
         <section class="gallery-cta">
@@ -149,133 +153,185 @@
         </section>
       </div>
 
-      <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation"
-        :is-open="!!selectedPhoto"
-        class="gallery-modal"
-        @didDismiss="closePhoto"
+      <AppModal
+        :model-value="!!selectedPhoto"
+        :title="selectedPhoto?.title || 'Foto'"
+        variant="dialog"
+        max-width="640px"
+        :show-confirm="false"
+        :show-cancel="false"
+        :show-footer="isAdmin"
+        @update:model-value="closePhoto"
       >
-        <div v-if="selectedPhoto" class="lightbox">
-          <button class="lightbox-close" @click="closePhoto" aria-label="Tutup">
-            <ion-icon :icon="closeOutline" />
-          </button>
-          <img
-            :src="selectedPhoto.image"
-            :alt="selectedPhoto.title"
-            class="lightbox-image"
-          />
+        <template v-if="selectedPhoto">
+          <img :src="selectedPhoto.image" :alt="selectedPhoto.title" class="lightbox-image" />
           <div class="lightbox-info">
             <span class="photo-category">{{ selectedPhoto.categoryLabel }}</span>
-            <h2>{{ selectedPhoto.title }}</h2>
-            <p>{{ selectedPhoto.location }}</p>
+            <p>{{ selectedPhoto.location || 'Tidak ada deskripsi.' }}</p>
           </div>
-        </div>
-      </ion-modal>
+        </template>
+        <template #footer>
+          <AppButton type="button" variant="neutral" fill="outline" @click="openEdit">Edit</AppButton>
+          <AppButton type="button" variant="danger" fill="outline" @click="askDelete">Hapus</AppButton>
+        </template>
+      </AppModal>
+
+      <CmsItemFormModal v-model="formOpen" type="gallery" :item="editingItem" :count="photos.length" @saved="onSaved" />
+
+      <AppModal
+        v-model="deleteOpen"
+        variant="dialog"
+        title="Hapus foto ini?"
+        confirm-text="Hapus"
+        confirm-variant="danger"
+        :loading="deleting"
+        @confirm="confirmDelete"
+      >
+        <p class="confirm-text">“{{ deleteTarget?.title }}” akan dihapus dari galeri dan tidak bisa dikembalikan.</p>
+      </AppModal>
+
+      <CmsBackBar />
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   IonContent,
   IonIcon,
-  IonModal,
   IonPage,
 } from '@ionic/vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppModal from '@/components/ui/AppModal.vue'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
+import CmsItemFormModal from '@/components/Admin/CmsItemFormModal.vue'
+import { galleryService } from '@/services/galleryService'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import { useToast } from '@/composables/useToast'
 import {
+  addOutline,
   arrowForwardOutline,
-  businessOutline,
-  closeOutline,
   expandOutline,
   gridOutline,
   imageOutline,
   imagesOutline,
-  leafOutline,
   locationOutline,
-  mapOutline,
-  trailSignOutline,
 } from 'ionicons/icons'
 
-type CategoryId =
-  | 'all'
-  | 'kavling'
-  | 'fasilitas'
-  | 'lingkungan'
-  | 'akses'
-  | 'progress'
-
-interface GalleryPhoto {
-  id: number
+interface GalleryRow {
+  id: string
   title: string
-  location: string
-  category: CategoryId
-  categoryLabel: string
-  image: string
+  category: string | null
+  description?: string | null
+  image_url: string
 }
 
-const categories = [
-  { id: 'all' as CategoryId, label: 'Semua', icon: gridOutline },
-  { id: 'kavling' as CategoryId, label: 'Kaveling', icon: businessOutline },
-  { id: 'fasilitas' as CategoryId, label: 'Fasilitas', icon: leafOutline },
-  { id: 'lingkungan' as CategoryId, label: 'Lingkungan', icon: imagesOutline },
-  { id: 'akses' as CategoryId, label: 'Akses & Jalan', icon: trailSignOutline },
-  { id: 'progress' as CategoryId, label: 'Kemajuan', icon: mapOutline },
-]
+interface GalleryPhoto {
+  id: string
+  title: string
+  location: string
+  category: string
+  categoryLabel: string
+  image: string
+  row: GalleryRow
+}
 
-const photos: GalleryPhoto[] = [
-  { id: 1, title: 'Suasana Kawasan PoliLand', location: 'PoliLand Kairagi', category: 'lingkungan', categoryLabel: 'Lingkungan', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85' },
-  { id: 2, title: 'Area Kaveling Blok A', location: 'Blok A', category: 'kavling', categoryLabel: 'Kaveling', image: 'https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?auto=format&fit=crop&w=1000&q=85' },
-  { id: 3, title: 'Akses Jalan Kawasan', location: 'Jalan Utama', category: 'akses', categoryLabel: 'Akses & Jalan', image: 'https://images.unsplash.com/photo-1544986581-efac024faf62?auto=format&fit=crop&w=1000&q=85' },
-  { id: 4, title: 'Ruang Hijau', location: 'Area Kawasan', category: 'fasilitas', categoryLabel: 'Fasilitas', image: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1000&q=85' },
-  { id: 5, title: 'Pemandangan Area Perbukitan', location: 'Sekitar Kawasan', category: 'lingkungan', categoryLabel: 'Lingkungan', image: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1000&q=85' },
-  { id: 6, title: 'Perkembangan Pembangunan', location: 'PoliLand Kairagi', category: 'progress', categoryLabel: 'Kemajuan', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1000&q=85' },
-  { id: 7, title: 'Jalan Menuju Kawasan', location: 'Akses Utama', category: 'akses', categoryLabel: 'Akses & Jalan', image: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1000&q=85' },
-  { id: 8, title: 'Area Kaveling', location: 'Blok B', category: 'kavling', categoryLabel: 'Kaveling', image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1000&q=85' },
-]
+const toast = useToast()
+const { isAdmin } = useCmsAdmin()
 
-const selectedCategory = ref<CategoryId>('all')
+/** Foto dan kategori sepenuhnya berasal dari database (diatur Admin). */
+const rows = ref<GalleryRow[]>([])
+const photos = computed<GalleryPhoto[]>(() => rows.value.map((row) => ({
+  id: row.id,
+  title: row.title,
+  location: row.description || '',
+  category: row.category || 'Umum',
+  categoryLabel: row.category || 'Umum',
+  image: row.image_url,
+  row,
+})))
+
+const categories = computed(() => [
+  { id: 'all', label: 'Semua', icon: gridOutline },
+  ...Array.from(new Set(photos.value.map((photo) => photo.category))).map((name) => ({ id: name, label: name, icon: imagesOutline })),
+])
+
+const selectedCategory = ref('all')
 const selectedPhoto = ref<GalleryPhoto | null>(null)
 const compactView = ref(false)
 const isLoading = ref(true)
 
-const refreshGallery = () => {
-  isLoading.value = true
-  window.setTimeout(() => {
+const formOpen = ref(false)
+const editingItem = ref<GalleryRow | null>(null)
+const deleteOpen = ref(false)
+const deleteTarget = ref<GalleryPhoto | null>(null)
+const deleting = ref(false)
+
+async function loadPhotos() {
+  try {
+    rows.value = (await galleryService.getGallery(true)) as GalleryRow[]
+    if (!categories.value.some((category) => category.id === selectedCategory.value)) selectedCategory.value = 'all'
+  } catch (error) {
+    console.error('Gagal memuat galeri:', error)
+    toast.error('Galeri gagal dimuat. Tarik layar ke bawah untuk mencoba lagi.')
+  } finally {
     isLoading.value = false
-    window.dispatchEvent(new CustomEvent('poliland:refresh-complete'))
-  }, 450)
+  }
 }
 
-const handleRefresh = () => {
-  refreshGallery()
+const handleRefresh = async () => {
+  isLoading.value = true
+  await loadPhotos()
+  window.dispatchEvent(new CustomEvent('poliland:refresh-complete'))
 }
 
 const filteredPhotos = computed(() =>
   selectedCategory.value === 'all'
-    ? photos
-    : photos.filter((photo) => photo.category === selectedCategory.value),
+    ? photos.value
+    : photos.value.filter((photo) => photo.category === selectedCategory.value),
 )
 
-function openPhoto(photo: GalleryPhoto) {
-  selectedPhoto.value = photo
+function openPhoto(photo: GalleryPhoto) { selectedPhoto.value = photo }
+function closePhoto() { selectedPhoto.value = null }
+
+function openAdd() { editingItem.value = null; formOpen.value = true }
+function openEdit() {
+  editingItem.value = selectedPhoto.value?.row ?? null
+  closePhoto()
+  formOpen.value = true
+}
+async function onSaved(message: string) { toast.success(message); await loadPhotos() }
+
+function askDelete() {
+  deleteTarget.value = selectedPhoto.value
+  closePhoto()
+  deleteOpen.value = true
+}
+async function confirmDelete() {
+  const photo = deleteTarget.value
+  if (!photo) return
+  deleting.value = true
+  try {
+    await galleryService.deleteGallery(photo.id, photo.image)
+    deleteOpen.value = false
+    toast.success('Foto dihapus.')
+    await loadPhotos()
+  } catch (error) {
+    deleteOpen.value = false
+    toast.error(error instanceof Error ? error.message : 'Foto gagal dihapus.')
+  } finally {
+    deleting.value = false
+  }
 }
 
-function closePhoto() {
-  selectedPhoto.value = null
-}
-
-function toggleView() {
-  compactView.value = !compactView.value
-}
-
-window.addEventListener('poliland:refresh', handleRefresh)
-
-window.setTimeout(() => {
-  isLoading.value = false
-}, 450)
+onMounted(() => {
+  void loadPhotos()
+  window.addEventListener('poliland:refresh', handleRefresh)
+})
 
 onBeforeUnmount(() => {
   window.removeEventListener('poliland:refresh', handleRefresh)
@@ -661,55 +717,9 @@ onBeforeUnmount(() => {
 }
 
 
-.gallery-modal {
-  --background: transparent;
-  --box-shadow: none;
-}
-
-.lightbox {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(20,20,18,.98);
-}
-
-.lightbox-close {
-  position: absolute;
-  z-index: 5;
-  top: max(18px, env(safe-area-inset-top));
-  right: 18px;
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 50%;
-  color: #fff;
-  background: rgba(255,255,255,.08);
-}
-
-.lightbox-close ion-icon { font-size: 21px; }
-
-.lightbox-image {
-  width: 100%;
-  max-height: 72vh;
-  object-fit: contain;
-  border-radius: 16px;
-}
-
-.lightbox-info {
-  width: min(100%, 720px);
-  margin: 18px auto 0;
-}
-
-.lightbox-info .photo-category { background: var(--gallery-olive); }
-.lightbox-info h2 { margin: 8px 0 3px; color: #fff; font-size: 21px; }
-.lightbox-info p { margin: 0; color: rgba(255,255,255,.58); font-size: 12px; }
+.lightbox-info { margin-top: 12px; }
+.lightbox-info .photo-category { display: inline-block; margin-bottom: 8px; padding: 3px 10px; border-radius: 999px; background: var(--gallery-olive); color: #fff; font-size: 11px; font-weight: 800; }
+.lightbox-info p { margin: 0; color: #475569; font-size: 14px; line-height: 1.6; }
 
 @media (min-width: 700px) {
   .gallery-page { padding: 28px 28px 28px; }
@@ -789,4 +799,8 @@ onBeforeUnmount(() => {
   align-items:flex-start;
   gap:7px;
 }
+
+.hero-admin { margin-top: 18px; }
+.lightbox-image { display: block; width: 100%; max-height: 52dvh; object-fit: contain; border-radius: 12px; background: #000; }
+.confirm-text { margin: 0; color: #717178; font-size: 14px; line-height: 1.6; }
 </style>

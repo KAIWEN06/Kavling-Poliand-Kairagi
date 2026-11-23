@@ -45,6 +45,16 @@ export const cmsService = {
     if (error) throw error
   },
 
+  /** Jumlah data per bagian untuk ringkasan di Kelola Konten. `null` bila gagal dimuat. */
+  async getCounts() {
+    const count = async (table: string) => {
+      const { count: total, error } = await supabase.from(table).select('id', { count: 'exact', head: true })
+      return error ? null : total ?? 0
+    }
+    const [gallery, progress, faq, features] = await Promise.all([count('gallery'), count('progress'), count('faqs'), count('home_features')])
+    return { gallery, progress, faq, features }
+  },
+
   async uploadImage(file: File) {
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) throw new Error('Format gambar harus JPG, PNG, atau WEBP.')
     if (file.size > MAX_IMAGE_BYTES) throw new Error('Ukuran gambar maksimal 5 MB.')

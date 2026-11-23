@@ -1,698 +1,176 @@
 <template>
-  <div class="progress-page">
-    <div class="progress-container">
-      
-      <!-- Tombol Tambah Progress (Hanya Admin) -->
-      <div v-if="isAdmin" class="ion-text-right ion-margin-bottom">
-        <ion-button class="btn-primary-custom" @click="handleOpenAddModal">
-          <ion-icon slot="start" :icon="addOutline"></ion-icon>
-          Tambah Kemajuan
-        </ion-button>
-      </div>
-
-      <!-- Judul Bagian -->
-      <div class="section-header ion-text-center">
+  <section v-if="loading || items.length || isAdmin" class="progress-section">
+    <div class="section-heading">
+      <div>
         <h2>Kemajuan Pembangunan</h2>
-        <p>Laporan transparan perkembangan pembangunan perumahan kami secara berkala.</p>
+        <span class="heading-line"></span>
       </div>
-
-      <!-- Loading State -->
-      <div v-if="loading" class="ion-text-center ion-padding">
-        <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <div class="heading-actions">
+        <AdminEditButton v-if="isAdmin" label="Tambah update" :icon="addOutline" @click="openAdd" />
+        <button v-if="items.length" class="see-all" type="button" @click="router.push('/progress')">
+          Lihat Semua <ion-icon :icon="chevronForwardOutline" />
+        </button>
       </div>
-
-      <!-- Grid Kartu Progress -->
-      <ion-grid v-else class="ion-no-padding">
-        <ion-row>
-          <ion-col size="12" size-md="6" size-lg="4" v-for="item in progressItems" :key="item.id">
-            <ion-card class="progress-card">
-              
-              <!-- Tombol Aksi Admin (Edit & Hapus) -->
-              <div v-if="isAdmin" class="admin-actions">
-                <ion-button fill="solid" color="light" size="small" class="action-btn edit-btn" @click="handleOpenEditModal(item)">
-                  <ion-icon :icon="createOutline"></ion-icon>
-                </ion-button>
-                <ion-button fill="solid" color="light" size="small" class="action-btn delete-btn" @click="handleDelete(item)">
-                  <ion-icon :icon="trashOutline"></ion-icon>
-                </ion-button>
-              </div>
-
-              <!-- Gambar Progress -->
-              <div class="image-wrapper">
-                <img v-if="item.image_url" :src="item.image_url" :alt="item.title" />
-                <div v-else class="placeholder-image">
-                  <ion-icon :icon="imageOutline" size="large"></ion-icon>
-                </div>
-              </div>
-
-              <ion-card-content class="card-body">
-                <!-- Tanggal & Status -->
-                <div class="meta-info">
-                  <span class="date-text">
-                    <ion-icon :icon="calendarOutline"></ion-icon> {{ item.progress_date }}
-                  </span>
-                  <span :class="['custom-badge', item.status === 'completed' ? 'badge-completed' : 'badge-ongoing']">
-                    {{ item.status === 'completed' ? 'Selesai' : item.status === 'ongoing' ? 'Sedang Berjalan' : 'Direncanakan' }}
-                  </span>
-                </div>
-
-                <!-- Judul & Deskripsi -->
-                <div class="text-content">
-                  <h3>{{ item.title }}</h3>
-                  <p>{{ item.description }}</p>
-                </div>
-
-                <!-- Progress Bar -->
-                <div class="progress-wrapper">
-                  <div class="progress-label">
-                    <span>Pencapaian</span>
-                    <span>{{ item.percentage }}%</span>
-                  </div>
-                  <div class="progress-bar-track">
-                    <div class="progress-bar-fill" :style="{ width: `${item.percentage ?? 0}%` }"></div>
-                  </div>
-                </div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-
-      <!-- Modal Form Tambah/Ubah Progress -->
-      <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="isModalOpen" @didDismiss="isModalOpen = false">
-        <ion-header>
-          <ion-toolbar class="modal-toolbar">
-            <ion-title class="modal-title-custom">{{ editingId ? 'Ubah Progress Pembangunan' : 'Tambah Progress Baru' }}</ion-title>
-            <ion-buttons slot="end">
-              <ion-button @click="isModalOpen = false" color="medium">
-                <ion-icon :icon="closeOutline" size="large"></ion-icon>
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-
-        <ion-content class="ion-padding modal-content-custom">
-          <div v-if="message.text" :class="['alert-box', message.type]">
-            {{ message.text }}
-          </div>
-
-          <form @submit.prevent="handleSubmit" class="modal-form">
-            <div class="form-group">
-              <label class="form-label">Judul Kemajuan</label>
-              <ion-input required v-model="formData.title" class="custom-input"></ion-input>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Tanggal</label>
-                <ion-input type="date" required v-model="formData.progress_date" class="custom-input"></ion-input>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Status</label>
-                <ion-select v-model="formData.status" interface="popover" class="custom-select">
-                  <ion-select-option value="planned">Direncanakan</ion-select-option>
-                  <ion-select-option value="ongoing">Sedang Berjalan</ion-select-option>
-                  <ion-select-option value="completed">Selesai</ion-select-option>
-                </ion-select>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Persentase ({{ formData.percentage }}%)</label>
-              <ion-range :min="0" :max="100" v-model.number="formData.percentage" color="primary"></ion-range>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Foto Kemajuan (Maks 5 MB)</label>
-              <div class="upload-box" @click="triggerFileInput">
-                <ion-icon :icon="cloudUploadOutline" class="upload-icon"></ion-icon>
-                <span>{{ selectedFile ? selectedFile.name : 'Pilih Foto dari Perangkat' }}</span>
-                <input type="file" ref="fileInputRef" accept="image/*" @change="handleFileChange" style="display: none;" />
-              </div>
-              <div v-if="previewUrl" class="preview-container">
-                <img :src="previewUrl" alt="Pratinjau" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Deskripsi</label>
-              <ion-textarea :rows="3" v-model="formData.description" class="custom-input"></ion-textarea>
-            </div>
-
-            <div class="modal-actions">
-              <ion-button type="button" fill="clear" color="medium" @click="isModalOpen = false">
-                Batal
-              </ion-button>
-              <ion-button type="submit" class="btn-primary-custom" :disabled="saving">
-                <ion-spinner v-if="saving" name="crescent"></ion-spinner>
-                <span v-else>Simpan</span>
-              </ion-button>
-            </div>
-          </form>
-        </ion-content>
-      </ion-modal>
-
     </div>
-  </div>
+
+    <div v-if="loading" class="loading-box"><ion-spinner name="crescent" color="primary" /></div>
+
+    <p v-else-if="!items.length" class="empty-hint">Belum ada update kemajuan. Tekan “Tambah update” untuk menampilkan perkembangan pertama.</p>
+
+    <ul v-else class="progress-list">
+      <li v-for="item in items" :key="item.id" class="progress-card">
+        <button type="button" class="card-open" :aria-label="`Lihat detail ${item.title}`" @click="router.push(`/progress/${item.id}`)">
+          <span class="thumb">
+            <img v-if="item.image_url" :src="item.image_url" :alt="item.title" loading="lazy" />
+            <ion-icon v-else :icon="constructOutline" aria-hidden="true" />
+          </span>
+          <span class="body">
+            <span class="meta">
+              <span class="badge" :class="`badge-${item.status || 'ongoing'}`">{{ STATUS_LABEL[item.status || 'ongoing'] }}</span>
+              <span v-if="item.progress_date" class="date"><ion-icon :icon="calendarOutline" aria-hidden="true" /> {{ formatDate(item.progress_date) }}</span>
+            </span>
+            <strong class="title">{{ item.title }}</strong>
+            <span v-if="item.description" class="desc">{{ item.description }}</span>
+            <span class="bar-row">
+              <span class="track"><span class="fill" :style="{ width: `${pct(item)}%` }"></span></span>
+              <span class="pct">{{ pct(item) }}%</span>
+            </span>
+          </span>
+        </button>
+        <div v-if="isAdmin" class="card-admin">
+          <button type="button" class="mini" aria-label="Edit update" @click="openEdit(item)"><ion-icon :icon="createOutline" /></button>
+          <button type="button" class="mini danger" aria-label="Hapus update" @click="askDelete(item)"><ion-icon :icon="trashOutline" /></button>
+        </div>
+      </li>
+    </ul>
+
+    <CmsItemFormModal v-model="formOpen" type="progress" :item="editingItem" :count="items.length" @saved="onSaved" />
+
+    <AppModal
+      v-model="deleteOpen"
+      variant="dialog"
+      title="Hapus update ini?"
+      confirm-text="Hapus"
+      confirm-variant="danger"
+      :loading="deleting"
+      @confirm="confirmDelete"
+    >
+      <p class="confirm-text">“{{ deleteTarget?.title }}” akan dihapus dari website dan tidak bisa dikembalikan.</p>
+    </AppModal>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import {
-  IonGrid, IonRow, IonCol, IonCard, IonCardContent,
-  IonButton, IonIcon, IonSpinner, IonModal, IonHeader, IonToolbar,
-  IonTitle, IonButtons, IonInput, IonSelect, IonSelectOption,
-  IonRange, IonTextarea, IonContent
-} from '@ionic/vue'
-import {
-  addOutline, createOutline, trashOutline, calendarOutline,
-  imageOutline, closeOutline, cloudUploadOutline
-} from 'ionicons/icons'
-import { supabase } from '@/services/config/supabase'
-import { progressService, ProgressItem } from '@/services/progressService'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { IonIcon, IonSpinner } from '@ionic/vue'
+import { addOutline, calendarOutline, chevronForwardOutline, constructOutline, createOutline, trashOutline } from 'ionicons/icons'
+import AppModal from '@/components/ui/AppModal.vue'
+import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
+import CmsItemFormModal from '@/components/Admin/CmsItemFormModal.vue'
+import { progressService, type ProgressItem } from '@/services/progressService'
+import { useCmsAdmin } from '@/composables/useCmsAdmin'
+import { useToast } from '@/composables/useToast'
 
-const progressItems = ref<ProgressItem[]>([])
+const router = useRouter()
+const toast = useToast()
+const { isAdmin } = useCmsAdmin()
+
+const STATUS_LABEL: Record<string, string> = { completed: 'Selesai', ongoing: 'Sedang berjalan', planned: 'Direncanakan' }
+
+const items = ref<ProgressItem[]>([])
 const loading = ref(true)
-const isAdmin = ref(false)
-const isRefreshing = ref(false)
+const formOpen = ref(false)
+const editingItem = ref<ProgressItem | null>(null)
+const deleteOpen = ref(false)
+const deleteTarget = ref<ProgressItem | null>(null)
+const deleting = ref(false)
 
-const isModalOpen = ref(false)
-const editingId = ref<string | null>(null)
-const saving = ref(false)
-const message = reactive({ text: '', type: '' })
-
-const formData = reactive<ProgressItem>({
-  title: '',
-  description: '',
-  progress_date: '',
-  percentage: 0,
-  status: 'ongoing',
-  image_url: ''
-})
-
-const selectedFile = ref<File | null>(null)
-const previewUrl = ref('')
-const oldImageUrl = ref('')
-const fileInputRef = ref<HTMLInputElement | null>(null)
-
-async function checkAdminRole() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-
-    if (!session) return
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-
-    if (profile && (profile.role === 'admin' || profile.role === 'superadmin')) {
-      isAdmin.value = true
-    }
-  } catch (err) {
-    console.error('Gagal memeriksa peran admin:', err)
-  }
+const pct = (item: ProgressItem) => Math.min(100, Math.max(0, Math.round(Number(item.percentage) || 0)))
+function formatDate(value: string) {
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-async function fetchProgress(forceRefresh = false) {
-  loading.value = true
-
+/** Data kemajuan sepenuhnya dari database; Beranda hanya menampilkan 3 update terbaru. */
+async function load() {
   try {
-    const data = await progressService.getProgress(forceRefresh)
-    progressItems.value = data || []
-    return data || []
-  } catch (err) {
-    console.error('Gagal memuat kemajuan:', err)
-    throw err
+    const rows = await progressService.getProgress(false)
+    items.value = [...rows].sort((a, b) => String(b.progress_date ?? '').localeCompare(String(a.progress_date ?? ''))).slice(0, 3)
+  } catch (error) {
+    console.error('Gagal memuat kemajuan:', error)
   } finally {
     loading.value = false
   }
 }
 
-const handleRefreshProgress = async () => {
-  if (isRefreshing.value) return
+const handleRefresh = async () => {
+  await load()
+  window.dispatchEvent(new CustomEvent('poliland:refresh-item-complete', { detail: { source: 'progress' } }))
+}
 
-  isRefreshing.value = true
-
+function openAdd() { editingItem.value = null; formOpen.value = true }
+function openEdit(item: ProgressItem) { editingItem.value = item; formOpen.value = true }
+async function onSaved(message: string) { toast.success(message); await load() }
+function askDelete(item: ProgressItem) { deleteTarget.value = item; deleteOpen.value = true }
+async function confirmDelete() {
+  const item = deleteTarget.value
+  if (!item?.id) return
+  deleting.value = true
   try {
-    await fetchProgress(true)
+    await progressService.deleteProgress(item.id, item.image_url)
+    deleteOpen.value = false
+    toast.success('Update dihapus.')
+    await load()
   } catch (error) {
-    console.error('Gagal refresh kemajuan:', error)
+    deleteOpen.value = false
+    toast.error(error instanceof Error ? error.message : 'Update gagal dihapus.')
   } finally {
-    isRefreshing.value = false
-    window.dispatchEvent(new CustomEvent('poliland:refresh-item-complete', {
-      detail: { source: 'progress' }
-    }))
+    deleting.value = false
   }
 }
 
-onMounted(async () => {
-  await checkAdminRole()
-  await fetchProgress(false)
-  window.addEventListener('poliland:refresh-progress', handleRefreshProgress)
+onMounted(() => {
+  void load()
+  window.addEventListener('poliland:refresh-progress', handleRefresh)
 })
-
-onUnmounted(() => {
-  window.removeEventListener('poliland:refresh-progress', handleRefreshProgress)
-})
-
-const handleOpenAddModal = () => {
-  editingId.value = null
-  formData.title = ''
-  formData.description = ''
-  formData.progress_date = new Date().toISOString().split('T')[0]
-  formData.percentage = 0
-  formData.status = 'ongoing'
-  formData.image_url = ''
-  selectedFile.value = null
-  previewUrl.value = ''
-  oldImageUrl.value = ''
-  isModalOpen.value = true
-  message.text = ''
-}
-
-const handleOpenEditModal = (item: ProgressItem) => {
-  editingId.value = item.id || null
-  formData.title = item.title || ''
-  formData.description = item.description || ''
-  formData.progress_date = item.progress_date || ''
-  formData.percentage = item.percentage || 0
-  formData.status = item.status || 'ongoing'
-  formData.image_url = item.image_url || ''
-  selectedFile.value = null
-  previewUrl.value = item.image_url || ''
-  oldImageUrl.value = item.image_url || ''
-  isModalOpen.value = true
-  message.text = ''
-}
-
-const triggerFileInput = () => {
-  fileInputRef.value?.click()
-}
-
-const handleFileChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-
-  if (target.files && target.files[0]) {
-    const file = target.files[0]
-
-    if (file.size > 5 * 1024 * 1024) {
-      message.text = 'Ukuran file terlalu besar (maksimal 5 MB)'
-      message.type = 'error'
-      return
-    }
-
-    selectedFile.value = file
-    previewUrl.value = URL.createObjectURL(file)
-    message.text = ''
-  }
-}
-
-const handleSubmit = async () => {
-  saving.value = true
-  message.text = ''
-
-  try {
-    let finalImageUrl = formData.image_url
-
-    if (selectedFile.value) {
-      finalImageUrl = await progressService.uploadImage(selectedFile.value)
-    }
-
-    const payload: ProgressItem = {
-      title: formData.title,
-      description: formData.description,
-      progress_date: formData.progress_date ? formData.progress_date : null,
-      percentage: formData.percentage,
-      status: formData.status as 'planned' | 'ongoing' | 'completed',
-      image_url: finalImageUrl
-    }
-
-    if (editingId.value) {
-      await progressService.updateProgress(editingId.value, payload)
-
-      if (selectedFile.value && oldImageUrl.value && oldImageUrl.value !== finalImageUrl) {
-        await progressService.deleteImageFile(oldImageUrl.value)
-      }
-
-      message.text = 'Kemajuan berhasil diperbarui!'
-      message.type = 'success'
-    } else {
-      await progressService.createProgress(payload)
-      message.text = 'Kemajuan baru berhasil ditambahkan!'
-      message.type = 'success'
-    }
-
-    await fetchProgress(false)
-
-    setTimeout(() => {
-      isModalOpen.value = false
-    }, 1000)
-  } catch (err: any) {
-    console.error(err)
-    message.text = 'Gagal menyimpan: ' + err.message
-    message.type = 'error'
-  } finally {
-    saving.value = false
-  }
-}
-
-const handleDelete = async (item: ProgressItem) => {
-  if (!window.confirm('Apakah Anda yakin ingin menghapus laporan kemajuan ini?')) return
-
-  try {
-    if (item.id) {
-      await progressService.deleteProgress(item.id, item.image_url)
-      await fetchProgress(false)
-    }
-  } catch (err: any) {
-    console.error(err)
-    alert('Gagal menghapus: ' + err.message)
-  }
-}
+onUnmounted(() => window.removeEventListener('poliland:refresh-progress', handleRefresh))
 </script>
 
 <style scoped>
-.progress-page {
-  background: transparent;
-  width: 100%;
-}
+.progress-section { width: 100%; padding: 28px 16px 0; box-sizing: border-box; }
+.section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.section-heading h2 { margin: 0; color: #1a1a1a; font-size: 20px; line-height: 1.2; font-weight: 800; letter-spacing: -0.3px; }
+.heading-line { display: block; width: 34px; height: 3px; margin-top: 7px; background: #556b2f; border-radius: 999px; }
+.heading-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.see-all { display: flex; align-items: center; gap: 3px; min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: #556b2f; font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.see-all ion-icon { font-size: 14px; }
 
-.progress-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 12px 16px;
-}
+.loading-box { display: flex; justify-content: center; padding: 28px 0; }
+.empty-hint { margin: 0; padding: 16px; border: 1px dashed #d5d0c4; border-radius: 12px; color: #6b6b6b; font-size: 12px; line-height: 1.5; }
 
-.section-header {
-  margin-bottom: 20px;
-}
+.progress-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.progress-card { position: relative; border: 1px solid #e5e5e5; border-radius: 16px; background: #fff; box-shadow: 0 3px 10px rgba(15, 23, 42, .04); }
+.card-open { display: flex; align-items: stretch; gap: 12px; width: 100%; padding: 10px; border: 0; border-radius: 16px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.card-open:focus-visible { outline: 3px solid #556b2f; outline-offset: 2px; }
+.thumb { flex: none; display: grid; place-items: center; width: 92px; min-height: 92px; overflow: hidden; border-radius: 12px; background: #ede6d6; color: #556b2f; font-size: 28px; }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.body { flex: 1; min-width: 0; display: grid; align-content: center; gap: 5px; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.badge { padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; background: #e8eee4; color: #355a2c; }
+.badge-ongoing { background: #fbf0d8; color: #805708; }
+.badge-planned { background: #f5f3ee; color: #717178; }
+.date { display: inline-flex; align-items: center; gap: 4px; color: #717178; font-size: 11px; }
+.title { color: #1a1a1a; font-size: 14px; font-weight: 800; line-height: 1.3; }
+.desc { display: -webkit-box; overflow: hidden; color: #6b6b6b; font-size: 12px; line-height: 1.45; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.track { flex: 1; height: 6px; overflow: hidden; border-radius: 999px; background: #ede6d6; }
+.fill { display: block; height: 100%; border-radius: inherit; background: #556b2f; }
+.pct { color: #355a2c; font-size: 12px; font-weight: 800; }
 
-.section-header h2 {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1A1A1A;
-  margin-bottom: 4px;
-}
-
-.section-header p {
-  font-size: 13px;
-  color: #6B6B6B;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.btn-primary-custom {
-  --background: #556B2F;
-  --background-hover: #4A7C59;
-  --color: #ffffff;
-  --border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: none;
-  box-shadow: 0 4px 12px rgba(85, 107, 47, 0.2);
-  margin-bottom: 0;
-}
-
-.progress-card {
-  background: #ffffff;
-  border: 1px solid #E5E5E5;
-  border-radius: 14px;
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.03);
-  margin-bottom: 14px;
-  position: relative;
-  transition: box-shadow var(--dur-base) var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .progress-card:hover {
-    box-shadow: 0 5px 16px rgba(15, 23, 42, 0.06);
-  }
-}
-
-.admin-actions {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  display: flex;
-  gap: 4px;
-}
-
-.action-btn {
-  --padding-start: 4px;
-  --padding-end: 4px;
-  --padding-top: 4px;
-  --padding-bottom: 4px;
-  --border-radius: 6px;
-  height: 28px;
-  width: 28px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.edit-btn {
-  --color: #d97706;
-  --background: rgba(255, 255, 255, 0.9);
-}
-
-.delete-btn {
-  --color: #dc2626;
-  --background: rgba(255, 255, 255, 0.9);
-}
-
-.image-wrapper {
-  height: 160px;
-  overflow: hidden;
-  background: #E5E5E5;
-  border-top-left-radius: 14px;
-  border-top-right-radius: 14px;
-}
-
-.image-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.placeholder-image {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6B6B6B;
-}
-
-.card-body {
-  padding: 12px 14px;
-}
-
-.meta-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.date-text {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #6B6B6B;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.custom-badge {
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.badge-completed {
-  background: #ecfdf5;
-  color: #059669;
-}
-
-.badge-ongoing {
-  background: #f4f7f0;
-  color: #556B2F;
-}
-
-.text-content h3 {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1A1A1A;
-  margin: 0 0 4px 0;
-}
-
-.text-content p {
-  font-size: 11px;
-  color: #6B6B6B;
-  line-height: 1.4;
-  margin: 0 0 10px 0;
-}
-
-.progress-wrapper {
-  border-top: 1px solid #E5E5E5;
-  padding-top: 8px;
-}
-
-.progress-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  font-weight: 600;
-  color: #1A1A1A;
-  margin-bottom: 4px;
-}
-
-.progress-bar-track {
-  width: 100%;
-  background: #E5E5E5;
-  height: 6px;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  background: #556B2F;
-  height: 100%;
-  border-radius: 999px;
-  transition: width var(--dur-slow) var(--ease-out);
-}
-
-/* Modal Custom Styling */
-.modal-toolbar {
-  --background: #ffffff;
-  --border-color: #E5E5E5;
-}
-
-.modal-title-custom {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1A1A1A;
-}
-
-.modal-content-custom {
-  --background: #ffffff;
-}
-
-.modal-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 4px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.form-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #1A1A1A;
-}
-
-.custom-input {
-  --background: #FAFAF7;
-  --border-radius: 8px;
-  --padding-start: 10px;
-  --padding-end: 10px;
-  border: 1px solid #E5E5E5;
-  border-radius: 8px;
-  font-size: 11px;
-}
-
-.custom-select {
-  --background: #FAFAF7;
-  border: 1px solid #E5E5E5;
-  border-radius: 8px;
-  font-size: 11px;
-  padding-left: 6px;
-}
-
-.upload-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px;
-  border: 2px dashed #E5E5E5;
-  border-radius: 10px;
-  background: #FAFAF7;
-  cursor: pointer;
-  color: #6B6B6B;
-  font-size: 11px;
-  font-weight: 500;
-  transition: border-color var(--dur-fast) var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .upload-box:hover {
-    border-color: #556B2F;
-  }
-}
-
-.upload-icon {
-  font-size: 16px;
-  color: #6B6B6B;
-}
-
-.preview-container {
-  width: 90px;
-  height: 56px;
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1px solid #E5E5E5;
-  margin-top: 6px;
-}
-
-.preview-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.alert-box {
-  padding: 8px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.alert-box.success {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
-}
-
-.alert-box.error {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-  border-top: 1px solid #E5E5E5;
-  padding-top: 12px;
-}
+.card-admin { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
+.mini { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: #fff; color: #966a12; font-size: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, .2); cursor: pointer; }
+.mini.danger { color: #d94b45; }
+.mini:focus-visible { outline: 3px solid #556b2f; outline-offset: 2px; }
+.confirm-text { margin: 0; color: #717178; font-size: 14px; line-height: 1.6; }
 </style>

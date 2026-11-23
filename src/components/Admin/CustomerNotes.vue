@@ -60,13 +60,12 @@
       <p>Memuat catatan...</p>
     </div>
 
-    <div v-else-if="errorMessage" class="notes-state" role="alert">
-      <strong>Catatan gagal dimuat</strong>
-      <p>{{ errorMessage }}</p>
-      <button type="button" class="state-action" @click="loadNotes">
-        Coba lagi
-      </button>
-    </div>
+    <StatusIllustration
+      v-else-if="errorMessage"
+      :variant="resolveErrorVariant(errorMessage)"
+      title="Catatan gagal dimuat"
+      :on-action="loadNotes"
+    />
 
     <template v-else>
       <div v-if="filteredNotes.length" class="note-list">
@@ -106,46 +105,22 @@
         </article>
       </div>
 
-      <div v-else class="notes-state empty-state">
-        <img
-          v-if="!hasActiveFilters"
-          :src="emptyNotesMascot"
-          alt=""
-          class="empty-state-mascot"
-          aria-hidden="true"
-        />
-        <img
-          v-else
-          :src="emptyFilterMascot"
-          alt=""
-          class="empty-state-mascot"
-          aria-hidden="true"
-        />
-        <strong>{{ hasActiveFilters ? 'Catatan tidak ditemukan' : 'Belum ada catatan' }}</strong>
-        <p>
-          {{
-            hasActiveFilters
-              ? 'Coba ubah kata kunci atau filter yang digunakan.'
-              : 'Simpan informasi penting, hasil pertemuan, atau tindak lanjut customer di sini.'
-          }}
-        </p>
-        <button
-          v-if="!hasActiveFilters"
-          type="button"
-          class="state-action"
-          @click="openEditor()"
-        >
-          Tambah catatan
-        </button>
-        <button
-          v-else
-          type="button"
-          class="text-action"
-          @click="clearFilters"
-        >
-          Hapus filter
-        </button>
-      </div>
+      <StatusIllustration
+        v-else-if="hasActiveFilters"
+        variant="no-result"
+        title="Catatan tidak ditemukan"
+        description="Coba ubah kata kunci atau filter yang digunakan."
+        action-label="Hapus Filter"
+        :on-action="clearFilters"
+      />
+      <StatusIllustration
+        v-else
+        variant="creating-data"
+        title="Belum ada catatan"
+        description="Simpan informasi penting, hasil pertemuan, atau tindak lanjut customer di sini."
+        action-label="Tambah Catatan"
+        :on-action="() => openEditor()"
+      />
     </template>
 
     <!-- Editor catatan -->
@@ -319,8 +294,8 @@ import {
 } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
-import emptyFilterMascot from '@/assets/mascot/MascotInvestigatingSearch Filters.png'
-import emptyNotesMascot from '@/assets/mascot/MascotWritingaNewNote.png'
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import {
   customerNotesService,
   type CustomerNote,
@@ -938,15 +913,6 @@ onUnmounted(() => {
   background: var(--surface-muted);
   color: var(--text-secondary);
   font-size: 20px;
-}
-
-.empty-state-mascot {
-  display: block;
-  width: min(180px, 58vw);
-  height: auto;
-  max-height: 150px;
-  object-fit: contain;
-  margin: -4px auto 0;
 }
 
 .state-action,

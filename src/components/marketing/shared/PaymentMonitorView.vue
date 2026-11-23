@@ -14,7 +14,7 @@
     </label>
 
     <SkeletonRowList v-if="loading" :rows="5" :fields="3" :badges="[3]" label="Memuat data pembayaran" />
-    <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Data belum dapat dimuat</strong><span>{{ error }}</span></div>
+    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Data belum dapat dimuat" :on-action="load" />
 
     <!-- Pembayaran -->
     <template v-else-if="tab === 'payments'">
@@ -24,7 +24,7 @@
         <StatCard label="Ditolak / unggah ulang" :value="String(paymentsBy('Rejected').length)" hint="pembayaran" clickable @open="payStatus = 'Rejected'" />
         <StatCard label="Semua pembayaran" :value="String(scopedPayments.length)" hint="tampilkan semua" clickable @open="payStatus = ''" />
       </div>
-      <div v-if="!visiblePayments.length" class="mk-state">Belum ada pembayaran pada filter ini.</div>
+      <StatusIllustration v-if="!visiblePayments.length" variant="no-result" size="sm" title="Pembayaran tidak ditemukan" description="Belum ada pembayaran pada filter ini." />
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
           <thead><tr><th>Klien</th><th v-if="isHead">Marketing</th><th>Jenis</th><th>Kaveling</th><th>Tanggal transfer</th><th class="num">Nominal</th><th>Status verifikasi</th></tr></thead>
@@ -55,7 +55,7 @@
       <div class="mk-chips" role="group" aria-label="Filter jadwal">
         <button v-for="opt in schedOptions" :key="opt.value" type="button" class="mk-chip" :aria-pressed="schedFilter === opt.value" @click="schedFilter = opt.value">{{ opt.label }}</button>
       </div>
-      <div v-if="!visibleSchedules.length" class="mk-state">Tidak ada jadwal cicilan pada filter ini.</div>
+      <StatusIllustration v-if="!visibleSchedules.length" variant="no-result" size="sm" title="Jadwal tidak ditemukan" description="Tidak ada jadwal cicilan pada filter ini." />
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
           <thead><tr><th>Klien</th><th v-if="isHead">Marketing</th><th>Kaveling</th><th>Cicilan</th><th>Jatuh tempo</th><th class="num">Nominal</th><th>Status</th><th class="num">Denda</th></tr></thead>
@@ -79,6 +79,8 @@
 </template>
 
 <script setup lang="ts">
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, onMounted, ref } from 'vue'
 import StatCard from '@/components/ui/StatCard.vue'
