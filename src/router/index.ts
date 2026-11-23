@@ -51,6 +51,14 @@ import HeadPaymentsPage from '@/views/marketing-head/HeadPaymentsPage.vue'
 import HeadReportsPage from '@/views/marketing-head/HeadReportsPage.vue'
 import HeadCommissionPage from '@/views/marketing-head/HeadCommissionPage.vue'
 import HeadMorePage from '@/views/marketing-head/HeadMorePage.vue'
+import BerandaOwnerPage from '@/views/owner/BerandaOwnerPage.vue'
+import KavlingOwnerPage from '@/views/owner/KavlingOwnerPage.vue'
+import OwnerSiteplanPage from '@/views/owner/OwnerSiteplanPage.vue'
+import StatistikOwnerPage from '@/views/owner/StatistikOwnerPage.vue'
+import LaporanOwnerPage from '@/views/owner/LaporanOwnerPage.vue'
+import LainnyaOwnerPage from '@/views/owner/LainnyaOwnerPage.vue'
+import OwnerProfilePage from '@/views/owner/OwnerProfilePage.vue'
+import OwnerDataPage from '@/views/owner/OwnerDataPage.vue'
 import BerandaClientPage from '@/views/client/BerandaClientPage.vue'
 import PembayaranClientPage from '@/views/client/PembayaranClientPage.vue' 
 import AkunPage from '@/views/account/AkunPage.vue'
@@ -105,12 +113,6 @@ const routes: Array<RouteRecordRaw> = [
     name: 'BerandaAdmin',
     component: BerandaAdminPage,
     meta: { requiresAuth: true, role: 'admin' },
-  },
-  {
-    path: '/beranda-owner',
-    name: 'BerandaOwner',
-    component: BerandaAdminPage,
-    meta: { requiresAuth: true, role: 'owner' },
   },
   {
     path: '/admin/kavling',

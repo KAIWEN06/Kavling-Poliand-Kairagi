@@ -10,7 +10,7 @@
         <template v-else-if="kind === 'buyers'">
           <button v-for="customer in filteredCustomers" :key="customer.id" type="button" class="data-card" :aria-label="`Lihat detail ${customer.full_name || 'pembeli'}`" @click="selectedCustomer = customer">
             <span class="avatar"><ion-icon :icon="personOutline" /></span>
-            <div class="data-copy"><strong>{{ customer.full_name || 'Nama belum diisi' }}</strong><small>{{ customer.phone || customer.email || 'Kontak belum tersedia' }}</small><small>{{ customer.marketing?.[0]?.full_name ? `Marketing: ${customer.marketing[0].full_name}` : 'Pendaftaran langsung' }}</small></div>
+            <div class="data-copy"><strong>{{ customer.full_name || 'Nama belum diisi' }}</strong><small>{{ customer.phone || customer.email || 'Kontak belum tersedia' }}</small><small>{{ one(customer.marketing)?.full_name ? `Marketing: ${one(customer.marketing).full_name}` : 'Pendaftaran langsung' }}</small></div>
             <span class="badge" :class="customerStage(customer)">{{ customerStageLabel(customer) }}</span>
             <div v-if="customer.lot_transactions?.length" class="related">{{ lotNumbers(customer) }}</div>
           </button>
@@ -49,7 +49,7 @@
               <div><dt>WhatsApp</dt><dd>{{ selectedCustomer.whatsapp_phone || 'Belum tercatat' }}</dd></div>
               <div><dt>Email</dt><dd>{{ selectedCustomer.email || 'Belum tercatat' }}</dd></div>
               <div><dt>Alamat</dt><dd>{{ selectedCustomer.address || 'Belum tercatat' }}</dd></div>
-              <div><dt>Marketing</dt><dd>{{ selectedCustomer.marketing?.[0]?.full_name || 'Pendaftaran langsung' }}</dd></div>
+              <div><dt>Marketing</dt><dd>{{ one(selectedCustomer.marketing)?.full_name || 'Pendaftaran langsung' }}</dd></div>
               <div><dt>Tanggal terdaftar</dt><dd>{{ dateLabel(selectedCustomer.created_at) }}</dd></div>
             </dl>
           </section>
@@ -57,8 +57,8 @@
           <section v-if="selectedCustomer.lot_transactions?.length" class="buyer-detail-section">
             <h3>Riwayat Kavling</h3>
             <article v-for="transaction in selectedCustomer.lot_transactions" :key="transaction.id" class="buyer-detail-entry">
-              <strong>{{ transaction.lots?.[0]?.lot_number || `Kavling #${transaction.lot_id}` }}</strong>
-              <small>{{ transaction.lots?.[0]?.blocks?.[0]?.code || transaction.lots?.[0]?.blocks?.[0]?.name || 'Blok belum tercatat' }} · {{ transaction.status || 'Status belum tercatat' }}</small>
+              <strong>{{ one(transaction.lots)?.lot_number || `Kavling #${transaction.lot_id}` }}</strong>
+              <small>{{ one(one(transaction.lots)?.blocks)?.code || one(one(transaction.lots)?.blocks)?.name || 'Blok belum tercatat' }} · {{ transaction.status || 'Status belum tercatat' }}</small>
               <small>{{ transaction.payment_type === 'Installment' ? 'Cicilan' : transaction.payment_type || 'Pembayaran belum tercatat' }} · {{ formatAmount(transaction.final_price) }}</small>
               <small v-if="transaction.booking_date || transaction.sold_date">Tanggal: {{ dateLabel(transaction.sold_date || transaction.booking_date) }}</small>
             </article>
@@ -67,9 +67,9 @@
           <section v-if="selectedCustomer.customer_interests?.length" class="buyer-detail-section">
             <h3>Minat Kavling</h3>
             <article v-for="interest in selectedCustomer.customer_interests" :key="interest.id" class="buyer-detail-entry">
-              <strong>{{ interest.lots?.[0]?.lot_number || `Kavling #${interest.lot_id}` }}</strong>
-              <small>{{ interest.lots?.[0]?.blocks?.[0]?.code || interest.lots?.[0]?.blocks?.[0]?.name || 'Blok belum tercatat' }} · {{ interest.payment_type === 'Installment' ? 'Cicilan' : 'Cash' }}</small>
-              <small v-if="interest.payment_plans?.[0]?.plan_name">Rencana: {{ interest.payment_plans[0].plan_name }}</small>
+              <strong>{{ one(interest.lots)?.lot_number || `Kavling #${interest.lot_id}` }}</strong>
+              <small>{{ one(one(interest.lots)?.blocks)?.code || one(one(interest.lots)?.blocks)?.name || 'Blok belum tercatat' }} · {{ interest.payment_type === 'Installment' ? 'Cicilan' : 'Cash' }}</small>
+              <small v-if="one(interest.payment_plans)?.plan_name">Rencana: {{ one(interest.payment_plans).plan_name }}</small>
               <small v-if="interest.notes">Catatan: {{ interest.notes }}</small>
             </article>
           </section>
@@ -107,16 +107,18 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import { customerService } from '@/services/marketing/customerService'
 import { supabase } from '@/services/config/supabase'
 
-type CustomerRow = Awaited<ReturnType<typeof customerService.getAdminCustomers>>[number]
+// Bentuk data fleksibel: relasi Supabase bisa berupa objek tunggal atau array
+type CustomerRow = any
+const one = (value: any) => (Array.isArray(value) ? value[0] : value)
 const route=useRoute();const router=useRouter();const kind=computed(()=>route.params.kind==='marketing'?'marketing':'buyers');const pageTitle=computed(()=>kind.value==='marketing'?'Data Marketing':'Data Pembeli');const customers=ref<CustomerRow[]>([]);const selectedCustomer=ref<CustomerRow|null>(null);const marketing=ref<any[]>([]);const query=ref('');const loading=ref(true);const error=ref('')
 const filteredCustomers=computed(()=>customers.value.filter(row=>`${row.full_name||''} ${row.phone||''} ${row.email||''}`.toLowerCase().includes(query.value.toLowerCase())))
 const filteredMarketing=computed(()=>marketing.value.filter(row=>String(row.full_name||'').toLowerCase().includes(query.value.toLowerCase())))
-function customerStage(customer:CustomerRow){const status=customer.lot_transactions?.map(row=>String(row.status||'').toLowerCase())||[];return status.some(value=>value.includes('sold'))?'sold':status.some(value=>value.includes('book'))?'booking':'prospect'}
+function customerStage(customer:CustomerRow){const status=customer.lot_transactions?.map((row:any)=>String(row.status||'').toLowerCase())||[];return status.some((value:string)=>value.includes('sold'))?'sold':status.some((value:string)=>value.includes('book'))?'booking':'prospect'}
 function customerStageLabel(customer:CustomerRow){const stage=customerStage(customer);return stage==='sold'?'Pembeli':stage==='booking'?'Booking':'Prospek'}
-function lotNumbers(customer:CustomerRow){return customer.lot_transactions?.map(item=>item.lots?.[0]?.lot_number).filter(Boolean).join(', ')||''}
+function lotNumbers(customer:CustomerRow){return customer.lot_transactions?.map((item:any)=>one(item.lots)?.lot_number).filter(Boolean).join(', ')||''}
 function dateLabel(value?:string|null){if(!value)return'Belum tercatat';const date=new Date(value);return Number.isNaN(date.getTime())?'Belum tercatat':date.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}
 function formatAmount(value:number|string|null|undefined){if(value===null||value===undefined||value==='')return'Belum tercatat';const amount=Number(value);return Number.isFinite(amount)?new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(amount):'Belum tercatat'}
-async function load(){loading.value=true;error.value='';try{if(kind.value==='buyers'){customers.value=await customerService.getAdminCustomers()}else{const [{data:profiles,error:profileError},{data:rows,error:rowsError}]=await Promise.all([supabase.from('profiles').select('id,full_name').eq('role','marketing').order('full_name'),supabase.from('customers').select('marketing_id,lot_transactions(status)')]);if(profileError)throw profileError;if(rowsError)throw rowsError;marketing.value=(profiles||[]).map(profile=>{const related=(rows||[]).filter(row=>row.marketing_id===profile.id);return{id:profile.id,full_name:profile.full_name,prospectCount:related.length,bookingCount:related.filter(row=>String(row.lot_transactions?.[0]?.status||'').toLowerCase().includes('book')).length,soldCount:related.filter(row=>String(row.lot_transactions?.[0]?.status||'').toLowerCase().includes('sold')).length}})}}catch(cause){error.value=cause instanceof Error?cause.message: typeof cause==='object'&&cause!==null&&'message' in cause&&typeof cause.message==='string'?cause.message:'Data tidak dapat dimuat.'}finally{loading.value=false}}
+async function load(){loading.value=true;error.value='';try{if(kind.value==='buyers'){customers.value=(await customerService.getAdminCustomers()) as unknown as CustomerRow[]}else{const [{data:profiles,error:profileError},{data:rows,error:rowsError}]=await Promise.all([supabase.from('profiles').select('id,full_name').eq('role','marketing').order('full_name'),supabase.from('customers').select('marketing_id,lot_transactions(status)')]);if(profileError)throw profileError;if(rowsError)throw rowsError;marketing.value=(profiles||[]).map(profile=>{const related=(rows||[]).filter(row=>row.marketing_id===profile.id);return{id:profile.id,full_name:profile.full_name,prospectCount:related.length,bookingCount:related.filter(row=>String(row.lot_transactions?.[0]?.status||'').toLowerCase().includes('book')).length,soldCount:related.filter(row=>String(row.lot_transactions?.[0]?.status||'').toLowerCase().includes('sold')).length}})}}catch(cause){error.value=cause instanceof Error?cause.message: typeof cause==='object'&&cause!==null&&'message' in cause&&typeof cause.message==='string'?cause.message:'Data tidak dapat dimuat.'}finally{loading.value=false}}
 onMounted(()=>void load())
 </script>
 

@@ -374,6 +374,8 @@ import {
   peopleOutline,
   pulseOutline,
   barChartOutline,
+  analyticsOutline,
+  ellipsisHorizontal,
 } from 'ionicons/icons'
 
 const headTabs = [
@@ -394,7 +396,7 @@ import {
 
 withDefaults(
   defineProps<{
-    variant?: 'public' | 'marketing' | 'admin' | 'client' | 'head'
+    variant?: 'public' | 'marketing' | 'admin' | 'client' | 'head' | 'owner'
   }>(),
   {
     variant: 'public',

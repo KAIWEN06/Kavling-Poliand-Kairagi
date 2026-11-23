@@ -13,7 +13,6 @@ const ROLE_HOME: Record<UserRole, string> = {
   marketing_head: '/beranda-kepala-marketing',
   marketing: '/beranda-marketing',
   client: '/beranda-client',
-  owner: '/beranda-owner',
 }
 
 // Harus sama dengan scheme dan host yang didaftarkan di AndroidManifest.xml.
@@ -29,8 +28,7 @@ function normalizeRole(value: unknown): UserRole | null {
     role === 'admin' ||
     role === 'marketing_head' ||
     role === 'marketing' ||
-    role === 'client' ||
-    role === 'owner'
+    role === 'client'
   ) {
     return role
   }
