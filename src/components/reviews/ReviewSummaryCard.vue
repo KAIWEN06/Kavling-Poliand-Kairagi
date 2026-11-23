@@ -218,8 +218,10 @@ const formatAverage = (n: number) => n.toLocaleString('id-ID', { minimumFraction
   cursor: pointer;
 }
 
-.note-link:hover {
-  color: var(--poliland-green);
+@media (hover: hover) and (pointer: fine) {
+  .note-link:hover {
+    color: var(--poliland-green);
+  }
 }
 
 .write-btn {
@@ -237,8 +239,10 @@ const formatAverage = (n: number) => n.toLocaleString('id-ID', { minimumFraction
   transition: background var(--dur-fast) var(--ease-out);
 }
 
-.write-btn:hover {
-  background: var(--green-800);
+@media (hover: hover) and (pointer: fine) {
+  .write-btn:hover {
+    background: var(--green-800);
+  }
 }
 
 .write-btn:focus-visible,

@@ -471,7 +471,9 @@ select:focus { outline: none; border-color: var(--poliland-green); box-shadow: v
 }
 
 button.pg { cursor: pointer; transition: background var(--dur-fast) var(--ease-out); }
-button.pg:hover:not(:disabled) { background: var(--surface-muted); }
+@media (hover: hover) and (pointer: fine) {
+  button.pg:hover:not(:disabled) { background: var(--surface-muted); }
+}
 button.pg:disabled { color: var(--text-tertiary); cursor: default; }
 button.pg:focus-visible { outline: none; box-shadow: var(--ring-focus); position: relative; z-index: 1; }
 .pg--start { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
@@ -511,9 +513,13 @@ button.pg:focus-visible { outline: none; box-shadow: var(--ring-focus); position
 }
 .btn:focus-visible { outline: none; box-shadow: var(--ring-focus); }
 .btn--primary { border: 1px solid var(--poliland-green); background: var(--poliland-green); color: #fff; }
-.btn--primary:hover { background: var(--green-800); }
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover { background: var(--green-800); }
+}
 .btn--neutral { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-primary); }
-.btn--neutral:hover { background: var(--surface-muted); }
+@media (hover: hover) and (pointer: fine) {
+  .btn--neutral:hover { background: var(--surface-muted); }
+}
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 

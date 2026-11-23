@@ -140,7 +140,7 @@
                   <input
                     id="full-name"
                     readonly
-                    v-model.trim="form.fullName"
+                    v-model.trim="form.fullName" data-input="name"
                     type="text"
                     placeholder="Masukkan nama lengkap"
                     autocomplete="name"
@@ -2945,11 +2945,13 @@ export default defineComponent({
   cursor: pointer;
   text-align: left;
   box-sizing: border-box;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
 
-.payment-method-option:hover {
-  border-color: #d4bd86;
+@media (hover: hover) and (pointer: fine) {
+  .payment-method-option:hover {
+    border-color: #d4bd86;
+  }
 }
 
 .payment-method-option:active {
@@ -3283,9 +3285,11 @@ export default defineComponent({
 }
 
 
-.tenor-option:hover {
-  border-color:
-    #d4bd86;
+@media (hover: hover) and (pointer: fine) {
+  .tenor-option:hover {
+    border-color:
+      #d4bd86;
+  }
 }
 
 

@@ -3,14 +3,9 @@
     <div class="cta-card">
       <div class="cta-content">
 
-        <h2>
-          Siap Memiliki<br />
-          Kaveling Impian?
-        </h2>
+        <h2>{{ ctaTitle }}</h2>
 
-        <p>
-          Hubungi tim kami sekarang dan dapatkan informasi lengkap.
-        </p>
+        <p>{{ ctaText }}</p>
 
         <ion-button
           class="whatsapp-button"
@@ -30,6 +25,8 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { contactsService } from '@/services/contactService'
 import {
   IonButton,
   IonIcon
@@ -38,6 +35,21 @@ import {
 import {
   logoWhatsapp
 } from 'ionicons/icons'
+
+const ctaTitle = ref('Siap memiliki kaveling impian?')
+const ctaText = ref('Hubungi tim kami sekarang dan dapatkan informasi lengkap.')
+
+/** Judul & teks ajakan dikelola Admin lewat data Kontak (key cta_title, cta_text). */
+onMounted(async () => {
+  try {
+    const rows = await contactsService.getAll()
+    const valueOf = (key: string) => rows.find((row) => row.key === key)?.value?.trim()
+    ctaTitle.value = valueOf('cta_title') || ctaTitle.value
+    ctaText.value = valueOf('cta_text') || ctaText.value
+  } catch {
+    /* tetap memakai teks bawaan */
+  }
+})
 
 const emit = defineEmits<{
   contactWhatsapp: []

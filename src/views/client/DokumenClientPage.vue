@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Reveal from '@/components/ui/Reveal.vue'
 import { modalEnterAnimation, modalLeaveAnimation, sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import {
@@ -717,31 +718,35 @@ onIonViewWillEnter(handleRouteIntent)
     <AppHeader variant="client" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
       <main class="spk-shell">
-        <section class="spk-stats" aria-label="Ringkasan pengajuan SPK">
-          <button v-for="item in statCards" :key="item.key" type="button"
-            :class="['spk-stat', { 'spk-stat-active': selectedStatus === item.filter }]"
-            @click="selectedStatus = item.filter">
-            <span>{{ item.label }}</span>
-            <strong>{{ stats[item.key] }}</strong>
-          </button>
-        </section>
+        <Reveal :order="1">
+          <section class="spk-stats" aria-label="Ringkasan pengajuan SPK">
+            <button v-for="item in statCards" :key="item.key" type="button"
+              :class="['spk-stat', { 'spk-stat-active': selectedStatus === item.filter }]"
+              @click="selectedStatus = item.filter">
+              <span>{{ item.label }}</span>
+              <strong>{{ stats[item.key] }}</strong>
+            </button>
+          </section>
+        </Reveal>
 
-        <section class="spk-toolbar">
-          <label class="spk-search">
-            <ion-icon :icon="searchOutline" />
-            <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, nama, atau kaveling..." />
-            <button v-if="searchQuery" type="button" aria-label="Hapus pencarian" @click="searchQuery = ''">
-              <ion-icon :icon="closeOutline" />
-            </button>
-          </label>
-          <div class="spk-filters" aria-label="Filter status SPK">
-            <button v-for="filter in statusFilters" :key="filter.value" type="button"
-              :class="{ active: selectedStatus === filter.value }"
-              @click="selectedStatus = filter.value">
-              {{ filter.label }}
-            </button>
-          </div>
-        </section>
+        <Reveal :order="2">
+          <section class="spk-toolbar">
+            <label class="spk-search">
+              <ion-icon :icon="searchOutline" />
+              <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, nama, atau kaveling..." />
+              <button v-if="searchQuery" type="button" aria-label="Hapus pencarian" @click="searchQuery = ''">
+                <ion-icon :icon="closeOutline" />
+              </button>
+            </label>
+            <div class="spk-filters" aria-label="Filter status SPK">
+              <button v-for="filter in statusFilters" :key="filter.value" type="button"
+                :class="{ active: selectedStatus === filter.value }"
+                @click="selectedStatus = filter.value">
+                {{ filter.label }}
+              </button>
+            </div>
+          </section>
+        </Reveal>
 
         <div v-if="loading" class="spk-state">
           <ion-spinner name="crescent" />
@@ -889,7 +894,7 @@ onIonViewWillEnter(handleRouteIntent)
       <form class="spk-create-form" @submit.prevent="submitCreateSPK">
         <section class="spk-form-section">
           <h3>1. Informasi Pembeli</h3>
-          <label>Nama lengkap <b>*</b><input v-model.trim="createBuyer.fullName" required placeholder="Nama sesuai KTP" /></label>
+          <label>Nama lengkap <b>*</b><input v-model.trim="createBuyer.fullName" data-input="name" required placeholder="Nama sesuai KTP" /></label>
           <label>Nomor kontak <b>*</b><input v-model.trim="createBuyer.phone" inputmode="tel" required placeholder="Nomor telepon" /></label>
           <label>Nomor WhatsApp<input v-model.trim="createBuyer.whatsappPhone" inputmode="tel" placeholder="Nomor WhatsApp" /></label>
           <label>Email<input v-model.trim="createBuyer.email" type="email" placeholder="email@contoh.com" /></label>

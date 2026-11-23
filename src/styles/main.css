@@ -102,26 +102,10 @@ ion-button {
 }
 
 /* ---------------------------------------------------------------
-   Transisi halaman (komponen <PageTransition>)
-   --------------------------------------------------------------- */
-.pl-page-enter-active {
-  transition:
-    opacity var(--dur-base) var(--ease-out),
-    transform var(--dur-base) var(--ease-out);
-}
-.pl-page-leave-active {
-  transition: opacity var(--dur-fast) var(--ease-in);
-}
-.pl-page-enter-from {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.pl-page-leave-to {
-  opacity: 0;
-}
-
-/* ---------------------------------------------------------------
-   Reduced motion: hormati preferensi sistem secara global
+   Reduced motion: hormati preferensi sistem secara global.
+   Lebih sedikit gerak, bukan nol: fade opacity dan perubahan warna tetap
+   berjalan sebagai feedback; gerak posisi/scale dibuat instan.
+   Transisi halaman ada di utils/pageTransition.ts (sudah menghormati ini).
    --------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -129,7 +113,8 @@ ion-button {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-property:
+      opacity, visibility, color, background-color, border-color, box-shadow, fill, stroke !important;
     scroll-behavior: auto !important;
   }
 }

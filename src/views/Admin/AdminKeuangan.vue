@@ -587,21 +587,39 @@
               </button>
             </nav>
 
-            <div class="report-toolbar">
-              <label v-if="activeReportTab === 'summary'" class="report-month-picker">
-                <ion-icon :icon="calendarOutline" aria-hidden="true" />
-                <span class="visually-hidden">Pilih bulan laporan</span>
-                <input v-model="reportMonth" type="month" />
-              </label>
-              <button type="button" class="export-button" :disabled="!reportExportRows.length" @click="exportReport">
-                <ion-icon :icon="downloadOutline" aria-hidden="true" />
-                Ekspor CSV
+            <div class="report-toolbar" :class="{ 'report-toolbar--period': activeReportTab === 'summary' }">
+              <div v-if="activeReportTab === 'summary'" class="report-period" role="group" aria-label="Filter periode laporan">
+                <div class="report-granularity" role="tablist" aria-label="Rentang periode">
+                  <button
+                    v-for="option in granularityOptions"
+                    :key="option.value"
+                    type="button"
+                    role="tab"
+                    :aria-selected="reportGranularity === option.value"
+                    :class="{ 'is-active': reportGranularity === option.value }"
+                    @click="setReportGranularity(option.value)"
+                  >{{ option.label }}</button>
+                </div>
+                <div class="report-stepper">
+                  <button type="button" aria-label="Periode sebelumnya" @click="stepReportPeriod(-1)"><ion-icon :icon="chevronBackOutline" aria-hidden="true" /></button>
+                  <button type="button" class="report-stepper__label" :disabled="isCurrentPeriod" :title="isCurrentPeriod ? 'Periode saat ini' : 'Kembali ke periode saat ini'" @click="resetReportPeriod">
+                    <ion-icon :icon="calendarOutline" aria-hidden="true" />
+                    <span>{{ selectedMonthLabel }}</span>
+                  </button>
+                  <button type="button" aria-label="Periode berikutnya" :disabled="isCurrentPeriod" @click="stepReportPeriod(1)"><ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
+                </div>
+              </div>
+              <button type="button" class="export-button" :disabled="pdfExporting" @click="exportReport">
+                <ion-spinner v-if="pdfExporting" name="crescent" />
+                <ion-icon v-else :icon="downloadOutline" aria-hidden="true" />
+                {{ pdfExporting ? 'Menyiapkan PDF...' : 'Unduh PDF' }}
               </button>
             </div>
+            <p v-if="pdfError" class="report-pdf-error" role="alert">{{ pdfError }}</p>
 
-            <div v-if="loading || (activeReportTab === 'summary' && reportLedgerLoading)" class="finance-state" role="status">
-              <ion-spinner name="crescent" />
-              <p>{{ reportLedgerLoading ? 'Memuat arus kas...' : 'Memuat laporan keuangan...' }}</p>
+            <div v-if="loading || (activeReportTab === 'summary' && reportLedgerLoading)" class="finance-skeleton">
+              <SkeletonStatGrid :count="4" :label="reportLedgerLoading ? 'Memuat arus kas' : 'Memuat laporan keuangan'" />
+              <SkeletonRowList :rows="4" :fields="2" :badges="[]" />
             </div>
             <div v-else-if="errorMessage || (activeReportTab === 'summary' && reportLedgerError)" class="finance-state" role="alert">
               <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
@@ -616,7 +634,7 @@
                   <div class="report-total-top">
                     <span><ion-icon :icon="walletOutline" aria-hidden="true" /> PEMASUKAN BRUTO ({{ selectedMonthLabel.toUpperCase() }})</span>
                     <span v-if="monthComparison !== null" class="report-growth" :class="{ 'report-growth--down': monthComparison < 0 }">
-                      {{ monthComparison >= 0 ? '↑' : '↓' }} {{ Math.abs(monthComparison).toFixed(1) }}% vs bulan lalu
+                      {{ monthComparison >= 0 ? '↑' : '↓' }} {{ Math.abs(monthComparison).toFixed(1) }}% vs {{ previousPeriodNounLabel }}
                     </span>
                   </div>
                   <strong>{{ formatCurrency(monthlyIncome) }}</strong>
@@ -643,10 +661,10 @@
 
                 <section class="report-panel report-trend-panel">
                   <div class="panel-heading">
-                    <div><h2>Tren arus kas</h2><p>Pemasukan bruto, pengeluaran, dan nilai bersih per bulan</p></div>
+                    <div><h2>{{ trendTitle }}</h2><p>{{ trendSubtitle }}</p></div>
                     <span class="panel-period">Pemasukan bruto tertinggi: {{ peakMonthLabel }}</span>
                   </div>
-                  <div class="monthly-chart monthly-chart--six" role="img" :aria-label="monthlyChartDescription">
+                  <div class="monthly-chart monthly-chart--trend" :class="{ 'monthly-chart--dense': monthlyReport.length > 6 }" :style="{ gridTemplateColumns: `repeat(${monthlyReport.length}, minmax(0, 1fr))` }" role="img" :aria-label="monthlyChartDescription">
                     <div v-for="month in monthlyReport" :key="month.key" class="chart-column">
                       <strong class="chart-value">Masuk {{ formatCompactCurrency(month.grossIncome) }}</strong>
                       <div class="chart-track"><span class="chart-bar chart-bar--income" :class="{ 'chart-bar--peak': month.key === peakMonthKey }" :style="{ height: `${Math.max((month.grossIncome / monthlyMax) * 100, month.grossIncome > 0 ? 5 : 0)}%` }" /><span class="chart-bar chart-bar--expense" :style="{ height: `${Math.max((month.totalExpenses / monthlyMax) * 100, month.totalExpenses > 0 ? 5 : 0)}%` }" /></div>
@@ -672,7 +690,7 @@
                       <small :class="`report-text-${payment.statusTone}`">{{ payment.statusLabel }}</small>
                     </div>
                   </article>
-                  <div v-if="!recentReportPayments.length" class="report-empty-inline">Belum ada transaksi pada bulan ini.</div>
+                  <div v-if="!recentReportPayments.length" class="report-empty-inline">Belum ada transaksi pada periode ini.</div>
                 </section>
               </template>
 
@@ -900,7 +918,7 @@
             <button v-if="query" type="button" aria-label="Hapus pencarian" @click="query = ''"><ion-icon :icon="closeOutline" aria-hidden="true" /></button>
           </label>
 
-          <div v-if="loading" class="finance-state" role="status"><ion-spinner name="crescent" /><p>Memuat transaksi...</p></div>
+          <SkeletonRowList v-if="loading" :rows="4" :fields="3" :badges="[3]" label="Memuat transaksi" />
           <div v-else-if="errorMessage" class="finance-state" role="alert"><ion-icon :icon="alertCircleOutline" aria-hidden="true" /><strong>Data keuangan gagal dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="loadTransactions()">Coba lagi</AppButton></div>
           <template v-else>
             <section v-if="filteredTransactions.length" class="transaction-list" aria-label="Daftar transaksi pembayaran">
@@ -1111,6 +1129,8 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
+import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
@@ -1125,7 +1145,9 @@ import { paymentInstructionService } from '@/services/Finance/paymentInstruction
 import { bankAccountService, type BankAccountRecord } from '@/services/Finance/bankAccountService'
 import { paymentPlanService, type PaymentPlanRecord } from '@/services/Finance/paymentPlanService'
 import { financialLedgerService, type FinancialLedgerEntry } from '@/services/Finance/financialLedgerService'
-import { cashflowCsvRows, currentMakassarDateTimeLocal, isoToMakassarDateTimeLocal, makassarDateTimeLocalToIso, monthlyCashflowTrend, monthlyTrendRange, postedCashflowForMonth, summarizeCashflow } from '@/utils/financialCashflow'
+import { cashflowTrendForPeriod, currentMakassarDateTimeLocal, currentMakassarDay, isoToMakassarDateTimeLocal, makassarDateTimeLocalToIso, postedCashflowForRange, previousPeriodNoun, reportLoadRange, reportPeriod, shiftReportAnchor, summarizeCashflow, type ReportGranularity } from '@/utils/financialCashflow'
+import { buildCashflowPdfInput, buildReportPdf, formatPdfRupiah, type PdfReportInput } from '@/utils/financialPdf'
+import { saveBlobAsFile } from '@/utils/fileDownload'
 import { purchaseCancellationService, type PurchaseCancellationRequest } from '@/services/Finance/purchaseCancellationService'
 import { paymentService, type InstallmentScheduleRecord, type PaymentDetail } from '@/services/Finance/paymentService'
 import { supabase } from '@/services/config/supabase'
@@ -1345,7 +1367,15 @@ type ReportBuyer = {
   lots: ReportLot[]
 }
 const activeReportTab = ref<ReportTab>('summary')
-const reportMonth = ref(currentMakassarDateTimeLocal().slice(0, 7))
+const reportGranularity = ref<ReportGranularity>('month')
+const reportAnchor = ref(currentMakassarDay())
+const granularityOptions: Array<{ value: ReportGranularity; label: string }> = [
+  { value: 'week', label: 'Minggu' },
+  { value: 'month', label: 'Bulan' },
+  { value: 'year', label: 'Tahun' },
+]
+const pdfExporting = ref(false)
+const pdfError = ref('')
 const reportQuery = ref('')
 const rawCustomers = ref<FinanceCustomerRecord[]>([])
 const directPaymentRecords = ref<FinanceAdminPaymentRecord[]>([])
@@ -1553,7 +1583,10 @@ const reportBuyers = computed<ReportBuyer[]>(() => {
     .sort((a, b) => b.remaining - a.remaining)
 })
 
-const selectedMonthCashflowEntries = computed(() => postedCashflowForMonth(reportLedgerEntries.value, reportMonth.value))
+const reportRange = computed(() => reportPeriod(reportGranularity.value, reportAnchor.value))
+const previousRange = computed(() => reportPeriod(reportGranularity.value, shiftReportAnchor(reportGranularity.value, reportAnchor.value, -1)))
+const isCurrentPeriod = computed(() => reportRange.value.end >= currentMakassarDay())
+const selectedMonthCashflowEntries = computed(() => postedCashflowForRange(reportLedgerEntries.value, reportRange.value.start, reportRange.value.end))
 const monthlyCashflowTotals = computed(() => summarizeCashflow(selectedMonthCashflowEntries.value))
 const monthlyIncome = computed(() => monthlyCashflowTotals.value.grossIncome)
 const monthlyTotalExpenses = computed(() => monthlyCashflowTotals.value.totalExpenses)
@@ -1565,26 +1598,24 @@ const monthlyBookingIncome = computed(() => monthlyBookingPayments.value.reduce(
 const monthlyOtherIncome = computed(() => monthlyOtherPayments.value.reduce((sum, entry) => sum + entry.amount, 0))
 const monthlyBookingCount = computed(() => monthlyBookingPayments.value.length)
 const monthlyOtherCount = computed(() => monthlyOtherPayments.value.length)
-const selectedMonthLabel = computed(() => {
-  if (!reportMonth.value) return 'Periode'
-  return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date(`${reportMonth.value}-01T00:00:00`))
-})
-const previousMonthKey = computed(() => {
-  if (!reportMonth.value) return ''
-  const [year, month] = reportMonth.value.split('-').map(Number)
-  const date = new Date(year, month - 2, 1)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-})
-const previousMonthIncome = computed(() => summarizeCashflow(postedCashflowForMonth(reportLedgerEntries.value, previousMonthKey.value)).grossIncome)
+const selectedMonthLabel = computed(() => reportRange.value.label)
+const previousPeriodNounLabel = computed(() => previousPeriodNoun(reportGranularity.value))
+const previousMonthIncome = computed(() => summarizeCashflow(postedCashflowForRange(reportLedgerEntries.value, previousRange.value.start, previousRange.value.end)).grossIncome)
 const monthComparison = computed<number | null>(() => {
   if (previousMonthIncome.value === 0) return null
   return ((monthlyIncome.value - previousMonthIncome.value) / previousMonthIncome.value) * 100
 })
-const monthlyReport = computed(() => monthlyCashflowTrend(reportLedgerEntries.value, reportMonth.value, 6))
+const monthlyReport = computed(() => cashflowTrendForPeriod(reportLedgerEntries.value, reportRange.value, reportAnchor.value))
+const trendTitle = computed(() => reportGranularity.value === 'week' ? 'Arus kas harian' : 'Tren arus kas')
+const trendSubtitle = computed(() => reportGranularity.value === 'week'
+  ? 'Pemasukan bruto dan pengeluaran per hari pada minggu ini'
+  : reportGranularity.value === 'year'
+    ? 'Pemasukan bruto dan pengeluaran per bulan pada tahun ini'
+    : 'Pemasukan bruto dan pengeluaran 6 bulan terakhir')
 const monthlyMax = computed(() => Math.max(...monthlyReport.value.flatMap((month) => [month.grossIncome, month.totalExpenses]), 1))
 const peakMonth = computed(() => monthlyReport.value.reduce((peak, month) => month.grossIncome > peak.grossIncome ? month : peak, monthlyReport.value[0] || { key: '', label: '-', grossIncome: 0, totalExpenses: 0, refundExpenses: 0, netCashFlow: 0 }))
-const peakMonthKey = computed(() => peakMonth.value.key)
-const peakMonthLabel = computed(() => peakMonth.value.label)
+const peakMonthKey = computed(() => peakMonth.value.grossIncome > 0 ? peakMonth.value.key : '')
+const peakMonthLabel = computed(() => peakMonth.value.grossIncome > 0 ? peakMonth.value.label : '-')
 const monthlyChartDescription = computed(() => monthlyReport.value.map((month) => `${month.label}: pemasukan bruto ${formatCurrency(month.grossIncome)}, pengeluaran ${formatCurrency(month.totalExpenses)}, refund ${formatCurrency(month.refundExpenses)}, arus kas bersih ${formatCurrency(month.netCashFlow)}`).join('. '))
 const recentReportPayments = computed(() => selectedMonthCashflowEntries.value.slice(0, 5).map((entry) => ({
   id: String(entry.id),
@@ -1606,43 +1637,37 @@ const filteredReportBuyers = computed(() => {
   const term = reportQuery.value.trim().toLowerCase()
   return reportBuyers.value.filter((buyer) => !term || `${buyer.name} ${buyer.phone} ${buyer.lots.map((lot) => lot.lotCode).join(' ')}`.toLowerCase().includes(term))
 })
-const reportExportRows = computed(() => {
-  if (activeReportTab.value === 'summary') {
-    return selectedMonthCashflowEntries.value.map((entry) => [
-      entry.occurred_on,
-      entry.flow_direction === 'inflow' ? 'Pemasukan' : 'Pengeluaran',
-      entry.category,
-      entry.source_table,
-      String(entry.source_id),
-      entry.bank_reference ?? '',
-      String(entry.amount),
-    ])
-  }
-  if (activeReportTab.value === 'lots') {
-    return filteredReportLots.value.map((lot) => [lot.lotCode, lot.blockName, lot.customerName, String(lot.finalPrice), String(lot.paid), String(lot.remaining), lot.statusLabel])
-  }
-  if (activeReportTab.value === 'buyers') {
-    return filteredReportBuyers.value.map((buyer) => [buyer.name, buyer.phone, String(buyer.lotCount), String(buyer.paid), String(buyer.remaining)])
-  }
-  return []
-})
-
 watch(activeReportTab, () => { reportQuery.value = '' })
 watch(activeView, (view: typeof activeView.value) => {
   if (view !== 'reports') selectedReportLot.value = null
   if (view !== 'reports') paymentPage.value = 'none'
   if (view === 'reports') void loadReportLedger()
 })
-watch(reportMonth, () => {
+watch([reportGranularity, reportAnchor], () => {
   if (activeView.value === 'reports') void loadReportLedger()
 })
+
+function setReportGranularity(value: ReportGranularity) {
+  if (value === reportGranularity.value) return
+  reportGranularity.value = value
+  // Pastikan periode baru tidak melewati hari ini.
+  const today = currentMakassarDay()
+  if (reportAnchor.value > today) reportAnchor.value = today
+}
+function stepReportPeriod(delta: -1 | 1) {
+  if (delta === 1 && isCurrentPeriod.value) return
+  const next = shiftReportAnchor(reportGranularity.value, reportAnchor.value, delta)
+  const today = currentMakassarDay()
+  reportAnchor.value = next > today ? today : next
+}
+function resetReportPeriod() { reportAnchor.value = currentMakassarDay() }
 
 async function loadReportLedger() {
   const requestId = ++reportLedgerRequestId
   reportLedgerLoading.value = true
   reportLedgerError.value = ''
   try {
-    const range = monthlyTrendRange(reportMonth.value, 7)
+    const range = reportLoadRange(reportRange.value, reportAnchor.value)
     const entries = await financialLedgerService.listBetween(range.startDate, range.endDate)
     if (requestId === reportLedgerRequestId) reportLedgerEntries.value = entries
   } catch (error: any) {
@@ -1804,25 +1829,60 @@ function formatShortDate(value: string) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00+08:00`) : new Date(value)
   return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Makassar' }).format(date)
 }
-function exportReport() {
-  const rows = activeReportTab.value === 'summary'
-    ? cashflowCsvRows(reportLedgerEntries.value, reportMonth.value)
-    : [
-        activeReportTab.value === 'lots'
-          ? ['Kode Kaveling', 'Blok', 'Pembeli', 'Harga Transaksi', 'Total Dibayar', 'Sisa Tagihan', 'Status']
-          : ['Nama Pembeli', 'Telepon', 'Jumlah Kaveling', 'Total Terbayar', 'Sisa Tagihan'],
-        ...reportExportRows.value,
-      ]
-  const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(';')).join('\r\n')
-  const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `laporan-${activeReportTab.value}-poliland-${reportMonth.value || 'semua-periode'}.csv`
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
+function buildPdfInput(): PdfReportInput {
+  const generatedAt = formatMakassarDateTime(new Date().toISOString())
+  if (activeReportTab.value === 'summary') {
+    return buildCashflowPdfInput(selectedMonthCashflowEntries.value, monthlyCashflowTotals.value, reportRange.value, generatedAt)
+  }
+  if (activeReportTab.value === 'lots') {
+    const lots = filteredReportLots.value
+    return {
+      title: 'Laporan Keuangan - Per Kaveling',
+      subtitle: `Posisi pembayaran terkini (bukan per periode)  |  Dicetak: ${generatedAt}`,
+      summary: [
+        ['Jumlah kaveling', String(lots.length)],
+        ['Total harga transaksi', formatPdfRupiah(lots.reduce((sum, lot) => sum + lot.finalPrice, 0))],
+        ['Total dibayar', formatPdfRupiah(lots.reduce((sum, lot) => sum + lot.paid, 0))],
+        ['Total sisa tagihan', formatPdfRupiah(lots.reduce((sum, lot) => sum + lot.remaining, 0))],
+      ],
+      sections: [{
+        title: `Daftar kaveling (${lots.length})`,
+        head: ['Kaveling', 'Blok', 'Pembeli', 'Harga', 'Dibayar', 'Sisa', 'Status'],
+        body: lots.map((lot) => [lot.lotCode, lot.blockName || '-', lot.customerName, formatPdfRupiah(lot.finalPrice), formatPdfRupiah(lot.paid), formatPdfRupiah(lot.remaining), lot.statusLabel]),
+        rightAlign: [3, 4, 5],
+      }],
+    }
+  }
+  const buyers = filteredReportBuyers.value
+  return {
+    title: 'Laporan Keuangan - Per Pembeli',
+    subtitle: `Posisi pembayaran terkini (bukan per periode)  |  Dicetak: ${generatedAt}`,
+    summary: [
+      ['Jumlah pembeli', String(buyers.length)],
+      ['Total terbayar', formatPdfRupiah(buyers.reduce((sum, buyer) => sum + buyer.paid, 0))],
+      ['Total sisa tagihan', formatPdfRupiah(buyers.reduce((sum, buyer) => sum + buyer.remaining, 0))],
+    ],
+    sections: [{
+      title: `Daftar pembeli (${buyers.length})`,
+      head: ['Pembeli', 'Telepon', 'Kaveling', 'Terbayar', 'Sisa'],
+      body: buyers.map((buyer) => [buyer.name, buyer.phone || '-', buyer.lots.map((lot) => lot.lotCode).join(', ') || '-', formatPdfRupiah(buyer.paid), formatPdfRupiah(buyer.remaining)]),
+      rightAlign: [3, 4],
+    }],
+  }
+}
+async function exportReport() {
+  if (pdfExporting.value) return
+  pdfExporting.value = true
+  pdfError.value = ''
+  try {
+    const blob = await buildReportPdf(buildPdfInput())
+    const suffix = activeReportTab.value === 'summary' ? `${reportGranularity.value}-${reportRange.value.start}_${reportRange.value.end}` : currentMakassarDay()
+    await saveBlobAsFile(blob, `laporan-${activeReportTab.value}-poliland-${suffix}.pdf`)
+  } catch (error: any) {
+    if (!/cancel|dismiss/i.test(String(error?.message ?? ''))) pdfError.value = error?.message || 'PDF gagal dibuat. Coba lagi.'
+  } finally {
+    pdfExporting.value = false
+  }
 }
 
 
@@ -2754,7 +2814,7 @@ onMounted(async () => {
 .chart-column { display: grid; grid-template-rows: 20px minmax(70px, 1fr) 16px auto; justify-items: center; gap: 6px; min-width: 0; }
 .chart-value { max-width: 100%; overflow: hidden; color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); text-overflow: ellipsis; white-space: nowrap; }
 .chart-track { display: flex; width: min(100%, 48px); height: 100%; align-items: flex-end; gap: 2px; overflow: hidden; border-radius: 8px 8px 3px 3px; background: var(--surface-muted); }
-.chart-bar { display: block; width: 100%; min-height: 0; border-radius: 7px 7px 2px 2px; background: var(--poliland-green); transition: height .25s ease; }
+.chart-bar { display: block; width: 100%; min-height: 0; border-radius: 7px 7px 2px 2px; background: var(--poliland-green); transition: height var(--dur-base) var(--ease-out); }
 .chart-bar--income, .chart-bar--expense { width: calc(50% - 1px); flex: 0 0 calc(50% - 1px); }
 .chart-bar--expense { background: var(--status-danger); }
 .chart-cashflow-label { color: var(--text-secondary); font-size: 8px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
@@ -2815,7 +2875,9 @@ onMounted(async () => {
 .bank-card-actions { display: grid; gap: 3px; }
 .bank-icon-action { display: grid; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: 17px; cursor: pointer; }
 .bank-icon-action--danger { color: var(--status-danger); }
-.bank-icon-action:hover { background: var(--surface-muted); }
+@media (hover: hover) and (pointer: fine) {
+  .bank-icon-action:hover { background: var(--surface-muted); }
+}
 .bank-account-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 12px; color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
 .bank-primary-label { display: inline-flex; align-items: center; gap: 4px; color: var(--poliland-gold-text-soft); font-weight: var(--font-weight-semibold); }
 .bank-primary-label ion-icon { font-size: 13px; }
@@ -2954,7 +3016,25 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-dot--green { background: var(--poliland-green); }
 .report-trend-panel { margin-top: 14px; padding: 16px; }
 .report-trend-panel .monthly-chart { min-height: 190px; }
-.monthly-chart--six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.monthly-chart--dense { gap: 4px; }
+.monthly-chart--dense .chart-value, .monthly-chart--dense .chart-cashflow-label { display: none; }
+.monthly-chart--dense .chart-column { grid-template-rows: minmax(70px, 1fr) 16px; }
+.monthly-chart--dense .chart-track { width: min(100%, 22px); }
+.monthly-chart--dense .chart-label { font-size: 9px; }
+.report-toolbar--period { flex-direction: column; align-items: stretch; }
+.report-period { display: grid; gap: 8px; }
+.report-granularity { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 999px; background: var(--surface-muted); }
+.report-granularity button { min-height: 36px; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
+.report-granularity button.is-active { background: var(--surface-primary); color: var(--text-primary); box-shadow: 0 1px 4px rgb(37 37 37 / 12%); }
+.report-stepper { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; }
+.report-stepper button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
+.report-stepper button:disabled { opacity: .45; cursor: default; }
+.report-stepper__label { min-width: 0; padding: 0 10px; }
+.report-stepper__label ion-icon { flex: 0 0 auto; color: var(--poliland-gold-text); font-size: 16px; }
+.report-stepper__label span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-toolbar--period .export-button { width: 100%; }
+.report-pdf-error { margin: -8px 0 12px; color: var(--status-danger); font-size: 12px; }
+.export-button ion-spinner { width: 16px; height: 16px; }
 .chart-bar--peak { background: var(--poliland-gold); }
 .report-panel .panel-period { padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-primary); font-size: 10px; }
 .report-recent-section { display: grid; gap: 10px; margin-top: 24px; }
@@ -3272,4 +3352,5 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
   .payment-schedule-amount { font-size: 10px; }
 }
 
+.finance-skeleton { display: grid; gap: 12px; }
 </style>

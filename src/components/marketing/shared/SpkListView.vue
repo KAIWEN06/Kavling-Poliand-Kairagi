@@ -16,7 +16,7 @@
       </label>
     </div>
 
-    <div v-if="loading" class="mk-state" role="status">Memuat pengajuan SPK…</div>
+    <SkeletonRowList v-if="loading" :rows="5" :fields="3" :badges="[3]" label="Memuat pengajuan SPK" />
     <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Pengajuan SPK belum dapat dimuat</strong><span>{{ error }}</span></div>
     <div v-else-if="!filtered.length" class="mk-state"><strong>Belum ada pengajuan</strong><span>Pengajuan SPK klien akan tampil di sini setelah diajukan.</span></div>
 
@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getTeamMembers, listSpkRequests, type TeamMember } from '@/services/marketing/marketingCrmService'
@@ -68,6 +69,7 @@ const isHead = computed(() => props.role === 'head')
 const rows = ref<any[]>([])
 const members = ref<TeamMember[]>([])
 const loading = ref(true)
+const loaded = ref(false)
 const error = ref('')
 const status = ref<'all' | 'pending' | 'approved' | 'rejected'>('all')
 const search = ref('')
@@ -101,13 +103,14 @@ function memberName(id: string | null) {
 }
 
 async function load() {
-  loading.value = true
+  if (!loaded.value) loading.value = true
   error.value = ''
   try {
     const [spks, team] = await Promise.all([listSpkRequests(), getTeamMembers()])
     // Hanya SPK yang dapat diatribusikan ke tim Marketing (RLS sudah membatasi baris).
     rows.value = spks.filter((row) => row.owner_id && team.some((m) => m.id === row.owner_id))
     members.value = team
+    loaded.value = true
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {

@@ -444,8 +444,8 @@ onBeforeUnmount(() => {
 }
 
 .app-modal {
-  --modal-ease-in: cubic-bezier(0.32, 0.72, 0, 1);
-  --modal-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --modal-ease-in: var(--ease-drawer);
+  --modal-ease-out: var(--ease-out);
   /* jarak awal: selalu dari tepi bawah layar, juga untuk dialog di tengah */
   --modal-offscreen: translateY(max(100%, 60dvh));
 }
@@ -456,7 +456,7 @@ onBeforeUnmount(() => {
 }
 
 .app-modal-enter-active {
-  --modal-dur: 520ms;
+  --modal-dur: 500ms;
   --modal-ease: var(--modal-ease-in);
 }
 

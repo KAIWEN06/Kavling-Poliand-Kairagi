@@ -313,7 +313,7 @@
           @close="closeEditor"
         >
           <form class="edit-modal-form" @submit.prevent="saveCustomer">
-            <label for="edit-full-name">Nama lengkap<input id="edit-full-name" v-model.trim="editForm.full_name" type="text" autocomplete="name" required /></label>
+            <label for="edit-full-name">Nama lengkap<input id="edit-full-name" v-model.trim="editForm.full_name" data-input="name" type="text" autocomplete="name" required /></label>
             <label for="edit-phone">Nomor telepon<input id="edit-phone" v-model.trim="editForm.phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
             <label for="edit-whatsapp">Nomor WhatsApp<input id="edit-whatsapp" v-model.trim="editForm.whatsapp_phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
             <label for="edit-email">Email<input id="edit-email" v-model.trim="editForm.email" type="email" inputmode="email" autocomplete="email" /></label>
@@ -764,7 +764,17 @@ onMounted(loadCustomer)
 .detail-action ion-icon { color: var(--poliland-green); font-size: 20px; }
 .detail-action--danger { color: var(--status-danger); cursor: pointer; }
 .detail-action--danger ion-icon { color: var(--status-danger); }
-.detail-action--danger:hover, .detail-action--danger:active { border-color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 9%, white); }
+.detail-action--danger:active {
+  border-color: var(--status-danger);
+  background: color-mix(in srgb, var(--status-danger) 9%, white);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .detail-action--danger:hover {
+    border-color: var(--status-danger);
+    background: color-mix(in srgb, var(--status-danger) 9%, white);
+  }
+}
 .detail-action--danger:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .detail-tabs { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 -16px; border-bottom: 1px solid var(--border-default); }
 .detail-tabs button { min-height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); }
@@ -821,9 +831,29 @@ onMounted(loadCustomer)
 .lot-card-actions { flex-shrink: 0; }
 .btn-nav-lot { display: inline-flex; align-items: center; gap: 4px; min-height: 38px; padding: 0 12px; border: 1px solid var(--poliland-green); border-radius: var(--radius-control); background: var(--status-success-bg); color: var(--poliland-green); font: inherit; font-size: 12px; font-weight: var(--font-weight-bold); cursor: pointer; text-decoration: none; }
 .btn-nav-lot ion-icon { font-size: 14px; }
-.btn-nav-lot:hover, .btn-nav-lot:focus-visible { background: var(--poliland-green); color: #fff; }
+.btn-nav-lot:focus-visible {
+  background: var(--poliland-green);
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-nav-lot:hover {
+    background: var(--poliland-green);
+    color: #fff;
+  }
+}
 .btn-remove-lot { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; min-height: 38px; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--status-danger); font-size: 16px; cursor: pointer; }
-.btn-remove-lot:hover, .btn-remove-lot:focus-visible { border-color: var(--status-danger); background: #fdf2f2; }
+.btn-remove-lot:focus-visible {
+  border-color: var(--status-danger);
+  background: #fdf2f2;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-remove-lot:hover {
+    border-color: var(--status-danger);
+    background: #fdf2f2;
+  }
+}
 
 .field-label-custom { display: grid; gap: 6px; color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); margin-top: 12px; }
 .field-label-custom select { min-height: 44px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px; }
@@ -841,7 +871,17 @@ onMounted(loadCustomer)
 
 .btn-nav-lot-sm { display: inline-flex; align-items: center; gap: 3px; min-height: 32px; padding: 0 10px; border: 1px solid var(--poliland-green); border-radius: 20px; background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size: 11px; font-weight: var(--font-weight-bold); cursor: pointer; }
 .btn-nav-lot-sm ion-icon { font-size: 13px; }
-.btn-nav-lot-sm:hover, .btn-nav-lot-sm:focus-visible { background: var(--poliland-green); color: #fff; }
+.btn-nav-lot-sm:focus-visible {
+  background: var(--poliland-green);
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-nav-lot-sm:hover {
+    background: var(--poliland-green);
+    color: #fff;
+  }
+}
 
 .tx-body { display: grid; gap: 10px; }
 .tx-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-primary); border: 1px solid var(--border-default); }

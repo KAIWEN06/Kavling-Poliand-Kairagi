@@ -531,7 +531,7 @@ onMounted(() => {
                   <ion-icon :icon="personOutline" aria-hidden="true" />
                   <input
                     id="spk-full-name"
-                    v-model.trim="form.fullName"
+                    v-model.trim="form.fullName" data-input="name"
                     type="text"
                     autocomplete="name"
                     placeholder="Masukkan nama lengkap"

@@ -6,7 +6,9 @@
       <button type="button" role="tab" :aria-selected="tab === 'performance'" @click="tab = 'performance'">Performa Marketing</button>
     </nav>
 
-    <PeriodFilter :members="tab === 'performance' ? [] : members" @change="load" />
+    <Reveal :order="1">
+      <PeriodFilter :members="tab === 'performance' ? [] : members" @change="load" />
+    </Reveal>
 
     <div v-if="loading && !report" class="mk-state" role="status">Memuat laporan…</div>
     <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Laporan belum dapat dimuat</strong><span>{{ error }}</span></div>
@@ -145,6 +147,7 @@
 </template>
 
 <script setup lang="ts">
+import Reveal from '@/components/ui/Reveal.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'

@@ -46,7 +46,9 @@ const kindLabel: Record<string, string> = { crm: 'ST', followup: 'FU', note: 'CT
 .mk-feed li + li { border-top: 1px solid var(--border-default); }
 .mk-feed button { width: 100%; display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .mk-feed button:disabled { cursor: default; }
-.mk-feed button:not(:disabled):hover .mk-feed__body strong { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) {
+  .mk-feed button:not(:disabled):hover .mk-feed__body strong { text-decoration: underline; }
+}
 .mk-feed button:focus-visible { box-shadow: var(--ring-focus); border-radius: var(--radius-xs); outline: none; }
 .mk-feed__kind { flex: 0 0 40px; height: 40px; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--surface-muted); color: var(--text-secondary); font-size: var(--text-2xs); font-weight: 700; }
 .mk-feed__kind[data-kind='spk'] { background: var(--green-100); color: var(--green-700); }

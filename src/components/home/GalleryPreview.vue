@@ -43,7 +43,7 @@
       <div :class="showAll ? 'gallery-grid' : 'gallery-scroll'">
         <div v-for="item in filteredItems" :key="item.id" class="gallery-item">
           <!-- ADMIN ACTION BUTTONS -->
-          <div v-if="isAdmin" class="admin-item-actions">
+          <div v-if="isAdmin && !isSample(item)" class="admin-item-actions">
             <button @click="handleOpenEditModal(item)" class="action-btn edit-btn" title="Edit">
               <ion-icon :icon="createOutline" />
             </button>
@@ -184,6 +184,11 @@ import {
 } from 'ionicons/icons'
 import { supabase } from '@/services/config/supabase'
 import { galleryService } from '@/services/galleryService'
+import hero1 from '@/assets/images/hero.jpg'
+import hero2 from '@/assets/images/hero2.jpg'
+import hero3 from '@/assets/images/hero3.jpg'
+import hero4 from '@/assets/images/hero4.jpg'
+import hero5 from '@/assets/images/hero5.jpg'
 
 interface GalleryItem {
   id: string
@@ -194,6 +199,18 @@ interface GalleryItem {
   sort_order?: number
   is_active?: boolean
 }
+
+// Foto contoh, tampil hanya selama galeri di database masih kosong.
+// Ganti dengan foto asli lewat tombol "Tambah Galeri" (admin).
+const SAMPLE_PREFIX = 'sample-'
+const sampleItems: GalleryItem[] = [
+  { id: 'sample-1', title: 'Gerbang Utama Kawasan', category: 'Fasilitas', description: 'Pintu masuk kawasan dengan akses jalan yang lebar dan tertata.', image_url: hero1 },
+  { id: 'sample-2', title: 'Jalan Lingkungan', category: 'Fasilitas', description: 'Jalan lingkungan yang sudah dikeraskan di setiap blok kavling.', image_url: hero2 },
+  { id: 'sample-3', title: 'Area Hijau & Taman', category: 'Lingkungan', description: 'Ruang terbuka hijau yang menjaga udara tetap sejuk dan asri.', image_url: hero3 },
+  { id: 'sample-4', title: 'Kavling Siap Bangun', category: 'Unit', description: 'Kavling kontur rata dengan batas yang jelas dan legalitas SHM.', image_url: hero4 },
+  { id: 'sample-5', title: 'Pemandangan Kawasan', category: 'Lingkungan', description: 'Suasana kawasan dengan panorama alam yang menenangkan.', image_url: hero5 },
+]
+const isSample = (item: GalleryItem) => item.id.startsWith(SAMPLE_PREFIX)
 
 const galleryItems = ref<GalleryItem[]>([])
 const loading = ref(true)
@@ -225,13 +242,12 @@ const fetchGallery = async (forceRefresh = false) => {
 
     const data = await galleryService.getGallery(true)
 
-    if (data) {
-      galleryItems.value = data
-    }
+    galleryItems.value = data && data.length ? data : sampleItems
 
     return true
   } catch (error) {
     console.error('Gagal mengambil data galeri:', error)
+    galleryItems.value = sampleItems
     return false
   } finally {
     loading.value = false
@@ -486,7 +502,7 @@ const handleDelete = async (item: GalleryItem) => {
 /* Category Filter Chips */
 .category-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-right: -16px; padding-right: 16px; scrollbar-width: none; }
 .category-scroll::-webkit-scrollbar { display: none; }
-.category-chip { flex: 0 0 auto; padding: 5px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; cursor: pointer; transition: all 0.2s; }
+.category-chip { flex: 0 0 auto; padding: 5px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out); }
 .category-chip.active { background: #556B2F; color: #ffffff; border-color: #556B2F; box-shadow: 0 2px 8px rgba(85, 107, 47, 0.25); }
 
 .loading-container { display: flex; justify-content: center; padding: 30px 0; }
@@ -498,8 +514,10 @@ const handleDelete = async (item: GalleryItem) => {
 
 .gallery-item { position: relative; flex: 0 0 160px; height: 115px; overflow: hidden; border-radius: 12px; background: #e2e8f0; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); }
 .gallery-grid .gallery-item { flex: unset; width: 100%; height: 125px; }
-.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
-.gallery-item:hover img { transform: scale(1.05); }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--dur-base) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .gallery-item:hover img { transform: scale(1.05); }
+}
 
 .category-badge { position: absolute; top: 8px; left: 8px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); color: #ffffff; font-size: 8px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
 
@@ -596,7 +614,7 @@ const handleDelete = async (item: GalleryItem) => {
   outline: none; 
   background: #f8fafc; 
   color: #1e293b; 
-  transition: border-color 0.2s;
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
 
 .custom-input-field:focus,
@@ -617,9 +635,11 @@ const handleDelete = async (item: GalleryItem) => {
   background: #f8fafc; 
   cursor: pointer; 
   text-align: center; 
-  transition: border-color 0.2s;
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
-.upload-dropzone:hover { border-color: #556B2F; }
+@media (hover: hover) and (pointer: fine) {
+  .upload-dropzone:hover { border-color: #556B2F; }
+}
 .drop-icon { font-size: 20px; color: #64748b; margin-bottom: 4px; }
 .drop-text { font-size: 12px; font-weight: 500; color: #334155; }
 .drop-hint { font-size: 10px; color: #94a3b8; margin-top: 2px; }
@@ -661,5 +681,7 @@ const handleDelete = async (item: GalleryItem) => {
   box-shadow: 0 4px 12px rgba(85, 107, 47, 0.2);
   cursor: pointer; 
 }
-.btn-save:hover { background: #4a5d28; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-save:hover { background: #4a5d28; }
+}
 </style>

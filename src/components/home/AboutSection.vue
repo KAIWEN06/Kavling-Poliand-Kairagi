@@ -525,7 +525,9 @@ import {
   IonSpinner
 } from '@ionic/vue'
 
+import { useRouter } from 'vue-router'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import sampleThumbnail from '@/assets/images/hero2.jpg'
 
 import {
   checkmarkCircleOutline,
@@ -556,6 +558,17 @@ import {
 // ==========================================
 // STATE
 // ==========================================
+
+const router = useRouter()
+
+// Video contoh, tampil selama video profil di database belum diatur.
+// Admin bisa menggantinya lewat tombol "Tambah Video".
+const sampleVideo: VideoItem = {
+  title: 'Profil PoliLand Kairagi (Contoh)',
+  description: 'PoliLand Kairagi hadir untuk memberikan solusi investasi tanah yang aman, nyaman, dan menguntungkan. Kami berkomitmen untuk menghadirkan kawasan hunian dan investasi terbaik di Manado.',
+  video_url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+  thumbnail_url: sampleThumbnail,
+}
 
 const videoData = ref<VideoItem | null>(null)
 
@@ -671,6 +684,11 @@ const fetchData = async () => {
 
   } finally {
 
+    if (!videoData.value) {
+      videoData.value = sampleVideo
+    }
+
+
     loading.value = false
 
   }
@@ -742,9 +760,7 @@ const thumbnail = computed(() => {
 // ==========================================
 
 const handleSeeAll = () => {
-
-  // Aksi ketika tombol selengkapnya diklik
-
+  router.push('/about')
 }
 
 

@@ -6,7 +6,6 @@
       <main class="shell">
         <PageBackButton fallback="/admin/lainnya" />
         <header class="intro">
-          <p class="eyebrow">Moderasi</p>
           <h1>Ulasan Pelanggan</h1>
           <p>Periksa ulasan klien sebelum ditampilkan di halaman Beranda.</p>
           <AppButton class="terms-open" size="small" variant="neutral" fill="outline" @click="openTerms">Kelola kata terlarang</AppButton>
@@ -119,32 +118,55 @@
     <AppModal
       v-model="termsOpen"
       title="Kata terlarang"
-      variant="dialog"
-      :show-footer="false"
-      max-width="520px"
+      cancel-text="Tutup"
+      :show-confirm="false"
     >
       <div class="terms">
-        <p class="meta">
+        <p class="terms-note">
           Kata yang cocok hanya menandai ulasan sebagai "perlu pemeriksaan". Ulasan tidak pernah ditolak atau
           dipublikasikan otomatis, karena konteks kata bisa berbeda.
         </p>
+
         <form class="terms-add" @submit.prevent="addTerm">
-          <input v-model="newTerm" type="text" maxlength="60" placeholder="Kata atau frasa" aria-label="Kata atau frasa baru" />
-          <select v-model="newCategory" aria-label="Kategori">
-            <option v-for="(label, key) in CATEGORY_LABEL" :key="key" :value="key">{{ label }}</option>
-          </select>
-          <AppButton size="small" type="submit" :disabled="!newTerm.trim() || termsBusy">Tambah</AppButton>
+          <AppInput v-model="newTerm" label="Kata atau frasa" placeholder="Contoh: kata kasar" />
+          <label class="form-label">
+            Kategori
+            <select v-model="newCategory">
+              <option v-for="(label, key) in CATEGORY_LABEL" :key="key" :value="key">{{ label }}</option>
+            </select>
+          </label>
+          <AppButton class="terms-submit" type="submit" :loading="termsBusy" :disabled="!newTerm.trim() || termsBusy">Tambah kata</AppButton>
         </form>
-        <p v-if="termsError" class="state state--error" role="alert">{{ termsError }}</p>
-        <p v-if="termsLoading" class="state">Memuat…</p>
+
+        <p v-if="termsError" class="state state--error terms-msg" role="alert">{{ termsError }}</p>
+
+        <div class="terms-head">
+          <h3>Daftar kata</h3>
+          <span v-if="!termsLoading" class="meta">{{ activeTermCount }} aktif dari {{ terms.length }}</span>
+        </div>
+
+        <p v-if="termsLoading" class="state terms-msg">Memuat…</p>
+        <p v-else-if="!terms.length" class="state terms-msg">Belum ada kata terlarang. Tambahkan kata pertama di atas.</p>
         <ul v-else class="terms-list">
-          <li v-for="t in terms" :key="t.id" :class="{ 'term--off': !t.is_active }">
-            <span class="term-text">{{ t.term }}</span>
-            <span class="meta">{{ CATEGORY_LABEL[t.category] }}</span>
-            <AppButton size="small" variant="neutral" fill="clear" :disabled="termsBusy" @click="toggleTerm(t)">
-              {{ t.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
-            </AppButton>
-            <AppButton size="small" variant="danger" fill="clear" :disabled="termsBusy" @click="deleteTerm(t)">Hapus</AppButton>
+          <li v-for="t in terms" :key="t.id" class="term" :class="{ 'term--off': !t.is_active }">
+            <div class="term-main">
+              <span class="term-text">{{ t.term }}</span>
+              <span class="term-cat">{{ CATEGORY_LABEL[t.category] }}</span>
+            </div>
+            <div class="term-actions">
+              <button
+                type="button"
+                class="switch"
+                role="switch"
+                :aria-checked="t.is_active"
+                :aria-label="`${t.is_active ? 'Nonaktifkan' : 'Aktifkan'} kata ${t.term}`"
+                :disabled="termsBusy"
+                @click="toggleTerm(t)"
+              >
+                <span class="switch-thumb" />
+              </button>
+              <button type="button" class="term-delete" :aria-label="`Hapus kata ${t.term}`" :disabled="termsBusy" @click="deleteTerm(t)">Hapus</button>
+            </div>
           </li>
         </ul>
       </div>
@@ -178,6 +200,7 @@ import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { BadgeTone } from '@/components/ui/StatusBadge.vue'
 import ReviewAvatar from '@/components/reviews/ReviewAvatar.vue'
@@ -278,6 +301,7 @@ const noteTarget = ref<AdminReview | null>(null)
 const note = ref('')
 const noteSubmitting = ref(false)
 
+const activeTermCount = computed(() => terms.value.filter((t) => t.is_active).length)
 const totalPages = computed(() => Math.ceil(total.value / PAGE_SIZE))
 const noteRequired = computed(() => noteAction.value === 'reject')
 const noteTitle = computed(
@@ -466,18 +490,62 @@ onMounted(load)
 .mini p { margin: 2px 0 0; color: var(--text-secondary); font-size: var(--font-size-xs); overflow-wrap: anywhere; }
 
 .terms-open { margin-top: 12px; }
-.terms { display: grid; gap: 12px; }
-.terms-add { display: flex; flex-wrap: wrap; gap: 8px; }
-.terms-add input, .terms-add select {
-  min-width: 0; padding: 8px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-sm);
-  background: var(--surface-muted); color: var(--text-primary); font: inherit; font-size: var(--font-size-sm);
+.terms { display: grid; gap: 12px; min-width: 0; }
+.terms-note { margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
+.terms-msg { margin: 0; }
+
+.terms-add { display: grid; gap: 12px; }
+.form-label { display: grid; gap: 6px; color: var(--text-secondary); font-size: 10px; font-weight: 600; }
+.form-label select {
+  width: 100%; min-height: 44px; box-sizing: border-box; padding: 0 10px;
+  border: 1px solid var(--border-default); border-radius: var(--radius-control);
+  background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px;
 }
-.terms-add input { flex: 1 1 160px; }
-.terms-add input:focus, .terms-add select:focus { outline: none; border-color: var(--poliland-green); box-shadow: var(--ring-focus); }
-.terms-list { display: grid; margin: 0; padding: 0; list-style: none; max-height: 40dvh; overflow-y: auto; }
-.terms-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border-default); }
-.term-text { flex: 1 1 120px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); overflow-wrap: anywhere; }
+.form-label select:focus { outline: none; border-color: var(--poliland-green); box-shadow: var(--ring-focus); }
+.terms-submit { width: 100%; }
+
+.terms-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-top: 4px; border-top: 1px solid var(--border-default); }
+.terms-head h3 { margin: 12px 0 0; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
+.terms-head .meta { margin-top: 12px; font-variant-numeric: tabular-nums; }
+
+.terms-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; max-height: 42dvh; overflow-y: auto; overscroll-behavior: contain; }
+.term { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-primary); }
+.term-main { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.term-text { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); line-height: 1.35; overflow-wrap: anywhere; }
+.term-cat { color: var(--text-secondary); font-size: var(--font-size-xs); line-height: 1.3; }
+.term--off { background: var(--surface-sunken); }
 .term--off .term-text { color: var(--text-tertiary); text-decoration: line-through; }
+
+.term-actions { display: flex; flex: none; align-items: center; gap: 4px; }
+.switch {
+  position: relative; flex: none; width: 44px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer;
+}
+.switch::before {
+  content: ''; position: absolute; top: 50%; left: 50%; width: 38px; height: 22px; transform: translate(-50%, -50%);
+  border-radius: var(--radius-pill); background: var(--border-strong, var(--border-default)); transition: background-color var(--dur-fast) var(--ease-out);
+}
+.switch-thumb {
+  position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -16px;
+  border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform var(--dur-fast) var(--ease-out);
+}
+.switch[aria-checked='true']::before { background: var(--poliland-green); }
+.switch[aria-checked='true'] .switch-thumb { transform: translateX(16px); }
+.switch:focus-visible { outline: none; }
+.switch:focus-visible::before { box-shadow: var(--ring-focus); }
+.switch:disabled { opacity: 0.5; cursor: not-allowed; }
+.term-delete {
+  min-height: 44px; padding: 0 8px; border: 0; background: none; color: var(--danger-text);
+  font: inherit; font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .term-delete:hover { text-decoration: underline; }
+}
+.term-delete:focus-visible { outline: none; box-shadow: var(--ring-focus); border-radius: var(--radius-sm); }
+.term-delete:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .switch::before, .switch-thumb { transition: none; }
+}
 
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
 

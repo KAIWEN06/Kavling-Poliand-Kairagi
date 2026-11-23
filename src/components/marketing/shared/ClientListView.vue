@@ -60,7 +60,7 @@
       <button v-if="hasFilter" type="button" class="mk-link" @click="resetFilters">Hapus semua filter</button>
     </div>
 
-    <div v-if="loading" class="mk-state" role="status">Memuat data klien…</div>
+    <SkeletonRowList v-if="loading" :rows="5" :fields="4" :badges="[3]" label="Memuat data klien" />
     <div v-else-if="error" class="mk-state mk-state--error" role="alert">
       <strong>Data klien belum dapat dimuat</strong>
       <span>{{ error }}</span>
@@ -131,6 +131,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import WhatsAppButton from './WhatsAppButton.vue'
@@ -165,6 +166,7 @@ const PAGE_SIZE = 15
 const rows = ref<ClientListItem[]>([])
 const members = ref<TeamMember[]>([])
 const loading = ref(true)
+const loaded = ref(false)
 const error = ref('')
 const page = ref(1)
 
@@ -193,12 +195,14 @@ function interestPlan(row: ClientListItem) {
 }
 
 async function load() {
-  loading.value = true
+  // Skeleton hanya pada muat awal; saat refresh data lama tetap tampil.
+  if (!loaded.value) loading.value = true
   error.value = ''
   try {
     const [clients, team] = await Promise.all([listClients(), isHead.value ? getTeamMembers() : Promise.resolve([])])
     rows.value = clients
     members.value = team
+    loaded.value = true
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {

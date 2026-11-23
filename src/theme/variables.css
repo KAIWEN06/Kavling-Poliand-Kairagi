@@ -121,8 +121,9 @@
   --ring-focus: 0 0 0 3px rgba(203, 160, 68, 0.55);
 
   /* Motion */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* cermin MOTION_EASE_OUT di utils/motionTokens.ts */
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); /* modal & sheet masuk; cermin MOTION_EASE_DRAWER */
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --dur-instant: 90ms;
   --dur-fast: 160ms;

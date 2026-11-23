@@ -1550,7 +1550,7 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 1000;
   pointer-events: none;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
+  transition: opacity var(--dur-fast) var(--ease-out), visibility var(--dur-fast) var(--ease-out);
 }
 
 .siteplan-map.detail-open .siteplan-controls {

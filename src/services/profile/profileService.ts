@@ -1,3 +1,4 @@
+import { validateName } from '@/utils/inputValidation'
 import { supabase } from '@/services/config/supabase'
 import type { UserRole } from '@/services/auth/authService'
 
@@ -90,7 +91,8 @@ export const profileService = {
 
   async updateName(userId: string, fullName: string): Promise<void> {
     const name = fullName.trim()
-    if (name.length < 2) throw new Error('Nama lengkap minimal 2 karakter.')
+    const nameProblem = validateName(name, 'Nama lengkap')
+    if (nameProblem) throw new Error(nameProblem)
     if (name.length > 100) throw new Error('Nama lengkap maksimal 100 karakter.')
     // Hanya full_name yang dikirim; role dilindungi trigger di database.
     const { error } = await supabase

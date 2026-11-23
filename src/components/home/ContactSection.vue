@@ -119,7 +119,7 @@
           <div class="form-group">
             <label class="form-label">Nomor Telepon</label>
             <ion-input 
-              type="text" 
+              type="tel" 
               v-model="formData.phone" 
               class="custom-input"
             ></ion-input>
@@ -128,7 +128,7 @@
           <div class="form-group">
             <label class="form-label">Nomor WhatsApp (Format: 628xxx)</label>
             <ion-input 
-              type="text" 
+              type="tel" 
               v-model="formData.whatsapp" 
               class="custom-input"
             ></ion-input>
@@ -382,9 +382,11 @@ const handleSave = async () => {
   flex-direction: column;
   gap: 6px;
 }
-.contact-card.clickable { cursor: pointer; transition: border-color 0.2s ease; }
-.contact-card.clickable:hover { border-color: #8CA072; }
+.contact-card.clickable { cursor: pointer; transition: border-color var(--dur-fast) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .contact-card.clickable:hover { border-color: #8CA072; }
 
+}
 .contact-icon { width: 33px; height: 33px; flex: 0 0 33px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
 .contact-icon.success-bg { background: #ECFDF5; color: #2E7D32; }
 .contact-icon.info-bg { background: #F2F6FEB2; color: #2F6FEB; }

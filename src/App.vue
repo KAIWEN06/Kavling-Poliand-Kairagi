@@ -227,6 +227,7 @@ let backButtonListener: Awaited<
 /** Halaman beranda tiap role: tombol Back di sini menutup aplikasi. */
 const ROOT_PATHS = new Set([
   '/home',
+  '/welcome',
   '/login',
   '/beranda-admin',
   '/beranda-owner',

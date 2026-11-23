@@ -5,11 +5,12 @@
 
     <div class="hero-content">
       <h1>{{ hero.title || 'Investasi Tanah Masa Depan Anda' }}</h1>
+      <p v-if="hero.subtitle" class="hero-subtitle">{{ hero.subtitle }}</p>
       <p>{{ hero.description || 'Miliki kavling strategis di kawasan berkembang dengan legalitas jelas, akses jalan yang baik, dan prospek investasi jangka panjang.' }}</p>
 
       <div class="hero-actions">
         <ion-button class="primary-button" @click="$emit('goToSiteplan')">
-          Lihat Siteplan
+          Lihat Denah Kavling
           <ion-icon slot="end" :icon="arrowForwardOutline" />
         </ion-button>
 
@@ -19,7 +20,7 @@
         </div>
 
         <!-- DATA SELESAI -->
-        <ion-button v-else class="outline-button" fill="outline" :disabled="!whatsappNumber" @click="contactWhatsapp">
+        <ion-button v-else class="outline-button" fill="outline" :disabled="ctaDisabled" @click="handleCta">
           {{ hero.cta_text || 'Hubungi Kami' }}
         </ion-button>
       </div>
@@ -28,7 +29,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { IonButton, IonIcon } from '@ionic/vue'
 import { arrowForwardOutline } from 'ionicons/icons'
 import Skeleton from '@/components/ui/Skeleton.vue'
@@ -41,6 +43,19 @@ defineEmits(['goToSiteplan'])
 const loading = ref(true)
 const whatsappNumber = ref('')
 const hero = ref<CmsHero>({ title: '', subtitle: '', description: '', cta_text: 'Hubungi Kami', cta_url: '/contact', is_active: true })
+
+const router = useRouter()
+const ctaTarget = computed(() => (hero.value.cta_url || '').trim())
+const ctaIsWhatsapp = computed(() => !ctaTarget.value || ctaTarget.value === 'whatsapp')
+const ctaDisabled = computed(() => ctaIsWhatsapp.value && !whatsappNumber.value)
+
+/** Tombol ajakan mengikuti pilihan Admin: WhatsApp, halaman dalam aplikasi, atau tautan luar. */
+const handleCta = () => {
+  const target = ctaTarget.value
+  if (ctaIsWhatsapp.value) return contactWhatsapp()
+  if (target.startsWith('/')) return void router.push(target)
+  if (/^https?:\/\//i.test(target)) window.open(target, '_blank', 'noopener')
+}
 
 const cleanWhatsapp = () => whatsappNumber.value.replace(/\D/g, '')
 
@@ -126,6 +141,14 @@ onMounted(() => {
   color: #FAF7D7;
   font-size: 13px;
   line-height: 1.65;
+}
+
+.hero-content p.hero-subtitle {
+  margin: 10px 0 0;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 /* BUTTONS */

@@ -109,8 +109,10 @@ function step(delta: number) {
   transition: transform var(--dur-fast) var(--ease-out);
 }
 
-.star-btn:hover {
-  transform: scale(1.12);
+@media (hover: hover) and (pointer: fine) {
+  .star-btn:hover {
+    transform: scale(1.12);
+  }
 }
 
 .star-btn:focus-visible {
@@ -123,8 +125,10 @@ function step(delta: number) {
     transition: none;
   }
 
+  @media (hover: hover) and (pointer: fine) {
   .star-btn:hover {
-    transform: none;
-  }
+      transform: none;
+    }
+}
 }
 </style>

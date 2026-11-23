@@ -1,20 +1,24 @@
 <template>
   <MarketingPageLayout title="Perkembangan Klien" tab-variant="head" @refresh="load">
-    <section class="mk-intro">
-      <p>Monitoring CRM</p>
-      <h1>Perkembangan klien tim</h1>
-      <span>Status perkembangan terpisah dari status SPK dan pembayaran. Setiap perubahan mencatat pengguna dan waktunya.</span>
-    </section>
+    <Reveal :order="1">
+      <section class="mk-intro">
+        <p>Monitoring CRM</p>
+        <h1>Perkembangan klien tim</h1>
+        <span>Status perkembangan terpisah dari status SPK dan pembayaran. Setiap perubahan mencatat pengguna dan waktunya.</span>
+      </section>
+    </Reveal>
 
-    <label class="mk-field mk-narrow">
-      <span>Marketing</span>
-      <select v-model="marketingId" class="mk-input" @change="loadActivity">
-        <option value="">Semua Marketing</option>
-        <option v-for="m in members" :key="m.id" :value="m.id">{{ m.full_name }}</option>
-      </select>
-    </label>
+    <Reveal :order="2">
+      <label class="mk-field mk-narrow">
+        <span>Marketing</span>
+        <select v-model="marketingId" class="mk-input" @change="loadActivity">
+          <option value="">Semua Marketing</option>
+          <option v-for="m in members" :key="m.id" :value="m.id">{{ m.full_name }}</option>
+        </select>
+      </label>
+    </Reveal>
 
-    <div v-if="loading" class="mk-state" role="status">Memuat perkembangan klien…</div>
+    <SkeletonRowList v-if="loading" :rows="5" :fields="3" :badges="[2]" label="Memuat perkembangan klien" />
     <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Data belum dapat dimuat</strong><span>{{ error }}</span></div>
 
     <template v-else>
@@ -76,6 +80,8 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
+import Reveal from '@/components/ui/Reveal.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useIonRouter } from '@ionic/vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
@@ -96,6 +102,7 @@ const clients = ref<ClientListItem[]>([])
 const members = ref<TeamMember[]>([])
 const activity = ref<ActivityItem[]>([])
 const loading = ref(true)
+const loaded = ref(false)
 const error = ref('')
 const activityLoading = ref(false)
 const activityError = ref('')
@@ -131,12 +138,13 @@ async function loadActivity() {
 }
 
 async function load() {
-  loading.value = true
+  if (!loaded.value) loading.value = true
   error.value = ''
   try {
     const [rows, team] = await Promise.all([listClients(), getTeamMembers()])
     clients.value = rows
     members.value = team.filter((m) => m.role === 'marketing')
+    loaded.value = true
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {

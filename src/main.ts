@@ -8,6 +8,7 @@ import { initializeAuthDeepLinks } from '@/services/authDeepLink'
 import { authService } from '@/services/auth/authService'
 import { consumeOAuthUrlError } from '@/services/auth/authUrlError'
 import { poliPageTransition } from '@/utils/pageTransition'
+import { installInputGuard } from '@/utils/inputGuard'
 
 // Ionic Core
 import '@ionic/vue/css/core.css'
@@ -40,6 +41,9 @@ import './styles/marketing-module.css'
 
 // Global Theme
 import './theme/variables.css'
+
+// Filter input global (angka/huruf/email sesuai jenis field)
+installInputGuard()
 
 // Create application
 const app = createApp(App)

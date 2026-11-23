@@ -26,10 +26,7 @@
           </button>
         </div>
 
-        <div v-if="loading" class="buyers-state" role="status" aria-live="polite">
-          <ion-spinner name="crescent" />
-          <p>Memuat calon pembeli...</p>
-        </div>
+        <SkeletonCardList v-if="loading" :count="5" :lines="3" label="Memuat calon pembeli" />
 
         <div v-else-if="errorMessage" class="buyers-state" role="alert">
           <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
@@ -169,7 +166,7 @@
 
           <label class="add-field">
             <span>Nama lengkap <b>*</b></span>
-            <input v-model.trim="addForm.full_name" type="text" autocomplete="name" placeholder="Masukkan nama lengkap" required />
+            <input v-model.trim="addForm.full_name" data-input="name" type="text" autocomplete="name" placeholder="Masukkan nama lengkap" required />
           </label>
 
           <div class="add-field-grid">
@@ -183,18 +180,74 @@
             </label>
           </div>
           <label class="add-field">
-            <span>NIK</span>
-            <input v-model.trim="addForm.nik" type="text" inputmode="numeric" maxlength="16" placeholder="16 digit NIK" />
-          </label>
-
-          <label class="add-field">
             <span>Email</span>
             <input v-model.trim="addForm.email" type="email" autocomplete="email" placeholder="nama@email.com" />
           </label>
+        </section>
+
+        <section class="add-form-section" aria-labelledby="add-customer-address-title">
+          <div class="add-form-section-head">
+            <h3 id="add-customer-address-title">Alamat</h3>
+            <p>Pilih alamat secara berurutan, dari negara sampai detail alamat.</p>
+          </div>
 
           <label class="add-field">
-            <span>Alamat</span>
-            <textarea v-model.trim="addForm.address" rows="2" autocomplete="street-address" placeholder="Masukkan alamat pembeli"></textarea>
+            <span>Negara</span>
+            <select :value="addForm.country_code" @change="selectCountry(($event.target as HTMLSelectElement).value)">
+              <option v-for="country in countries" :key="country.code" :value="country.code">{{ country.name }}</option>
+            </select>
+          </label>
+
+          <div v-if="isIndonesia" class="add-field-grid">
+            <label class="add-field">
+              <span>Provinsi</span>
+              <select :value="addForm.province_code" :disabled="regionsLoading && !provinces.length" @change="selectProvince(($event.target as HTMLSelectElement).value)">
+                <option value="">Pilih provinsi</option>
+                <option v-for="region in provinces" :key="region.code" :value="region.code">{{ region.name }}</option>
+              </select>
+            </label>
+            <label class="add-field">
+              <span>Kabupaten/Kota</span>
+              <select :value="addForm.city_code" :disabled="!addForm.province_code || regionsLoading" @change="selectCity(($event.target as HTMLSelectElement).value)">
+                <option value="">Pilih kabupaten/kota</option>
+                <option v-for="region in cities" :key="region.code" :value="region.code">{{ region.name }}</option>
+              </select>
+            </label>
+            <label class="add-field">
+              <span>Kecamatan</span>
+              <select :value="addForm.district_code" :disabled="!addForm.city_code || regionsLoading" @change="selectDistrict(($event.target as HTMLSelectElement).value)">
+                <option value="">Pilih kecamatan</option>
+                <option v-for="region in districts" :key="region.code" :value="region.code">{{ region.name }}</option>
+              </select>
+            </label>
+            <label class="add-field">
+              <span>Desa/Kelurahan</span>
+              <select :value="addForm.village_code" :disabled="!addForm.district_code || regionsLoading" @change="selectVillage(($event.target as HTMLSelectElement).value)">
+                <option value="">Pilih desa/kelurahan</option>
+                <option v-for="region in villages" :key="region.code" :value="region.code">{{ region.name }}</option>
+              </select>
+            </label>
+          </div>
+
+          <div v-else class="add-field-grid">
+            <label class="add-field">
+              <span>Province/State</span>
+              <input v-model.trim="addForm.province_name" type="text" placeholder="Province / State" />
+            </label>
+            <label class="add-field">
+              <span>City</span>
+              <input v-model.trim="addForm.city_name" type="text" placeholder="City" />
+            </label>
+            <label class="add-field">
+              <span>District/Area</span>
+              <input v-model.trim="addForm.district_name" type="text" placeholder="District / Area" />
+            </label>
+          </div>
+          <p v-if="regionsLoading" class="add-form-hint" role="status">Memuat data wilayah...</p>
+
+          <label class="add-field">
+            <span>Detail alamat</span>
+            <textarea v-model.trim="addForm.street_address" rows="3" autocomplete="street-address" placeholder="Nama jalan, nomor rumah, gedung, dan detail lainnya"></textarea>
           </label>
         </section>
 
@@ -290,6 +343,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useIonRouter, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import {
@@ -308,6 +362,8 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { customerService } from '@/services/marketing/customerService'
+import { getRegions } from '@/services/address/addressService'
+import type { Region } from '@/types/address'
 import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.png'
 import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.png'
 
@@ -570,12 +626,126 @@ const addForm = reactive({
   phone: '',
   whatsapp_phone: '',
   email: '',
-  nik: '',
-  address: '',
+  country_code: 'ID',
+  country_name: 'Indonesia',
+  province_code: '',
+  province_name: '',
+  city_code: '',
+  city_name: '',
+  district_code: '',
+  district_name: '',
+  village_code: '',
+  village_name: '',
+  street_address: '',
   marketing_id: '',
   lot_ids: [] as number[],
   payment_type: 'Cash' as 'Cash' | 'Installment',
 })
+
+const countries = [
+  { code: 'ID', name: 'Indonesia' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'US', name: 'United States' },
+  { code: 'JP', name: 'Japan' },
+]
+const provinces = ref<Region[]>([])
+const cities = ref<Region[]>([])
+const districts = ref<Region[]>([])
+const villages = ref<Region[]>([])
+const regionsLoading = ref(false)
+const isIndonesia = computed(() => addForm.country_code === 'ID')
+
+async function loadRegions(level: 1 | 2 | 3 | 4, parentId?: number | null) {
+  regionsLoading.value = true
+  try {
+    return await getRegions(level, parentId)
+  } finally {
+    regionsLoading.value = false
+  }
+}
+
+function resetAddressFields() {
+  Object.assign(addForm, {
+    province_code: '', province_name: '',
+    city_code: '', city_name: '',
+    district_code: '', district_name: '',
+    village_code: '', village_name: '',
+  })
+  cities.value = []
+  districts.value = []
+  villages.value = []
+}
+
+async function selectCountry(code: string) {
+  const country = countries.find((item) => item.code === code)
+  addForm.country_code = code
+  addForm.country_name = country?.name ?? ''
+  resetAddressFields()
+  provinces.value = []
+  addError.value = ''
+  if (code === 'ID') await loadProvinces()
+}
+
+async function loadProvinces() {
+  try {
+    provinces.value = await loadRegions(1)
+  } catch (error) {
+    addError.value = error instanceof Error ? error.message : 'Gagal memuat daftar provinsi.'
+  }
+}
+
+async function selectProvince(code: string) {
+  const region = provinces.value.find((item) => item.code === code)
+  resetAddressFields()
+  addForm.province_code = region?.code ?? ''
+  addForm.province_name = region?.name ?? ''
+  if (!region) return
+  try {
+    cities.value = await loadRegions(2, region.id)
+  } catch (error) {
+    addError.value = error instanceof Error ? error.message : 'Gagal memuat kabupaten/kota.'
+  }
+}
+
+async function selectCity(code: string) {
+  const region = cities.value.find((item) => item.code === code)
+  Object.assign(addForm, {
+    city_code: region?.code ?? '', city_name: region?.name ?? '',
+    district_code: '', district_name: '',
+    village_code: '', village_name: '',
+  })
+  districts.value = []
+  villages.value = []
+  if (!region) return
+  try {
+    districts.value = await loadRegions(3, region.id)
+  } catch (error) {
+    addError.value = error instanceof Error ? error.message : 'Gagal memuat kecamatan.'
+  }
+}
+
+async function selectDistrict(code: string) {
+  const region = districts.value.find((item) => item.code === code)
+  Object.assign(addForm, {
+    district_code: region?.code ?? '', district_name: region?.name ?? '',
+    village_code: '', village_name: '',
+  })
+  villages.value = []
+  if (!region) return
+  try {
+    villages.value = await loadRegions(4, region.id)
+  } catch (error) {
+    addError.value = error instanceof Error ? error.message : 'Gagal memuat desa/kelurahan.'
+  }
+}
+
+function selectVillage(code: string) {
+  const region = villages.value.find((item) => item.code === code)
+  addForm.village_code = region?.code ?? ''
+  addForm.village_name = region?.name ?? ''
+}
 
 const filteredAddLots = computed(() => {
   const term = addLotSearch.value.trim().toLowerCase()
@@ -602,12 +772,14 @@ function resetAddForm() {
     phone: '',
     whatsapp_phone: '',
     email: '',
-    nik: '',
-    address: '',
+    country_code: 'ID',
+    country_name: 'Indonesia',
+    street_address: '',
     marketing_id: '',
     lot_ids: [],
     payment_type: 'Cash',
   })
+  resetAddressFields()
   addError.value = ''
   addLotsError.value = ''
   addLotSearch.value = ''
@@ -650,6 +822,7 @@ async function openAddCustomer() {
   await Promise.all([
     loadAddAvailableLots(),
     loadMarketingOptions(),
+    provinces.value.length ? Promise.resolve() : loadProvinces(),
   ])
 }
 
@@ -666,7 +839,6 @@ async function saveNewCustomer() {
   const phone = addForm.phone.trim()
   const whatsappPhone = addForm.whatsapp_phone.trim()
   const email = addForm.email.trim()
-  const nik = addForm.nik.trim()
 
   if (!fullName || (!phone && !whatsappPhone)) {
     addError.value = 'Nama lengkap dan minimal salah satu nomor telepon atau WhatsApp wajib diisi.'
@@ -678,17 +850,17 @@ async function saveNewCustomer() {
     return
   }
 
-  if (nik && !/^\d{16}$/.test(nik)) {
-    addError.value = 'NIK harus terdiri dari 16 digit angka.'
-    return
-  }
-
   const selectedIds = [...new Set(addForm.lot_ids)]
   const selectedLots = addAvailableLots.value.filter((lot) => selectedIds.includes(Number(lot.id)))
   if (selectedLots.length !== selectedIds.length) {
     addError.value = 'Ada kaveling yang sudah tidak tersedia. Muat ulang daftar kaveling.'
     return
   }
+
+  const fullAddress = [
+    addForm.street_address.trim(), addForm.village_name, addForm.district_name,
+    addForm.city_name, addForm.province_name, addForm.country_name,
+  ].filter(Boolean).join(', ')
 
   addSaving.value = true
   addError.value = ''
@@ -700,8 +872,18 @@ async function saveNewCustomer() {
         phone: phone || null,
         whatsapp_phone: whatsappPhone || null,
         email: email || null,
-        nik: nik || null,
-        address: addForm.address.trim() || null,
+        country_code: addForm.country_code,
+        country_name: addForm.country_name,
+        province_code: addForm.province_code || null,
+        province_name: addForm.province_name.trim() || null,
+        city_code: addForm.city_code || null,
+        city_name: addForm.city_name.trim() || null,
+        district_code: addForm.district_code || null,
+        district_name: addForm.district_name.trim() || null,
+        village_code: addForm.village_code || null,
+        village_name: addForm.village_name.trim() || null,
+        street_address: addForm.street_address.trim() || null,
+        address: fullAddress || null,
         marketing_id: addForm.marketing_id || null,
       } as any),
       interests: selectedIds.map((lotId) => ({
@@ -892,6 +1074,7 @@ onMounted(() => loadCustomers())
 .add-field input:focus-visible, .add-field textarea:focus-visible, .add-field select:focus-visible {
   outline: 3px solid var(--poliland-green); outline-offset: 2px;
 }
+.add-form-hint { margin: 0; color: var(--text-secondary); font-size: 11px; }
 .add-form-error { margin: 0; padding: 10px 12px; border: 1px solid var(--status-danger); border-radius: var(--radius-control); color: var(--status-danger); background: var(--surface-muted); font-size: 12px; line-height: 1.5; }
 .add-customer-form .lot-picker-head { display: grid; gap: 6px; }
 .add-customer-form .lot-picker-head label { color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }

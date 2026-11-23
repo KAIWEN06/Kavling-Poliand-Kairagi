@@ -169,7 +169,7 @@ function glowStyle(i: number) {
   stroke: var(--poliland-gold, #cba044);
   stroke-width: 1.4;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
   pointer-events: none;
 }
 
@@ -195,7 +195,7 @@ function glowStyle(i: number) {
   color: var(--poliland-gold-text, #966a12);
   white-space: nowrap;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 .kv-label.is-on { opacity: 1; }
 

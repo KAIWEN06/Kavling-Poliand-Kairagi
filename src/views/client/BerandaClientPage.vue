@@ -415,7 +415,9 @@ function goTo(path: string) {
   cursor: pointer;
   transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
-.icon-btn:hover { color: var(--danger-text); border-color: var(--status-danger); }
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover { color: var(--danger-text); border-color: var(--status-danger); }
+}
 .icon-btn:active { transform: scale(0.94); }
 
 /* ---------- card ---------- */
@@ -435,7 +437,9 @@ function goTo(path: string) {
 .card__title { margin: 0; font-size: var(--text-lg); font-weight: 700; }
 .count { display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--green-100); color: var(--green-700); font-size: var(--text-sm); font-weight: 700; }
 .link { min-height: 44px; padding: 0 var(--space-2); border: 0; background: none; color: var(--green-700); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
-.link:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) {
+  .link:hover { text-decoration: underline; }
+}
 .skel { display: grid; gap: var(--space-3); }
 .skel__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 
@@ -470,7 +474,9 @@ function goTo(path: string) {
 .hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding-top: var(--space-3); border-top: 1px solid rgba(244, 241, 232, 0.14); }
 .hero__note { color: var(--gold-100); font-size: var(--text-sm); }
 .hero__link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: auto; padding: 0 var(--space-2); border: 0; background: none; color: var(--gold-100); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
-.hero__link:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) {
+  .hero__link:hover { text-decoration: underline; }
+}
 .hero__more { justify-self: start; min-height: 44px; border: 0; background: none; color: var(--on-forest-muted); font: inherit; font-size: var(--text-sm); text-decoration: underline; cursor: pointer; }
 
 /* ---------- pembayaran berikutnya ---------- */
@@ -502,7 +508,9 @@ function goTo(path: string) {
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
-.row:hover { background: var(--surface-sunken); }
+@media (hover: hover) and (pointer: fine) {
+  .row:hover { background: var(--surface-sunken); }
+}
 .row:active { transform: scale(0.99); }
 .row__icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--green-100); color: var(--green-700); font-size: 19px; }
 .row__copy { display: grid; min-width: 0; gap: 2px; }
@@ -511,7 +519,9 @@ function goTo(path: string) {
 
 /* ---------- dokumen ---------- */
 .docs { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); cursor: pointer; transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out); }
-.docs:hover { border-color: var(--green-500); }
+@media (hover: hover) and (pointer: fine) {
+  .docs:hover { border-color: var(--green-500); }
+}
 .docs:active { transform: scale(0.99); }
 .docs__copy { display: grid; gap: 2px; min-width: 0; }
 .docs__copy strong { font-size: var(--text-md); font-weight: 600; }

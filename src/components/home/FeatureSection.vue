@@ -12,9 +12,9 @@
     </div>
 
     <div class="horizontal-scroll">
-      <article v-for="feature in features" :key="feature.title" class="feature-card">
+      <article v-for="feature in features" :key="feature.id || feature.title" class="feature-card">
         <div class="feature-icon green">
-          <ion-icon :icon="feature.icon" />
+          <ion-icon :icon="resolveCmsIcon(feature.icon)" />
         </div>
         <h3>{{ feature.title }}</h3>
         <p>{{ feature.description }}</p>
@@ -28,9 +28,9 @@ import { IonIcon } from '@ionic/vue'
 import { chevronForwardOutline } from 'ionicons/icons'
 import { ref, onMounted } from 'vue'
 import { cmsService, type CmsFeature } from '@/services/cmsService'
-import { leafOutline, homeOutline, shieldCheckmarkOutline } from 'ionicons/icons'
+import { resolveCmsIcon } from '@/utils/cmsIcons'
 const features = ref<CmsFeature[]>([])
-const fallback = [{ icon: leafOutline, title: 'Lingkungan nyaman', description: 'Ruang hidup yang dirancang untuk keluarga.' }, { icon: homeOutline, title: 'Lokasi strategis', description: 'Akses mudah menuju fasilitas penting.' }, { icon: shieldCheckmarkOutline, title: 'Legalitas jelas', description: 'Informasi properti transparan dan mudah dipahami.' }]
+const fallback = [{ icon: 'leaf', title: 'Lingkungan nyaman', description: 'Ruang hidup yang dirancang untuk keluarga.' }, { icon: 'home', title: 'Lokasi strategis', description: 'Akses mudah menuju fasilitas penting.' }, { icon: 'shield', title: 'Legalitas jelas', description: 'Informasi properti transparan dan mudah dipahami.' }]
 onMounted(async () => { try { const saved = await cmsService.getFeatures(false); features.value = saved.length ? saved : fallback as CmsFeature[] } catch { features.value = fallback as CmsFeature[] } })
 </script>
 

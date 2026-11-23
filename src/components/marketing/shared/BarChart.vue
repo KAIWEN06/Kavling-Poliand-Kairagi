@@ -128,8 +128,15 @@ function showTick(index: number) {
 .mk-col { flex: 1 1 0; min-width: 0; height: 100%; display: grid; grid-template-rows: 1fr auto; gap: 6px; position: relative; outline: none; }
 .mk-col__track { display: flex; align-items: flex-end; border-bottom: 1px solid var(--border-default); }
 .mk-col__bar { width: 100%; max-width: 28px; margin: 0 auto; background: var(--green-700); border-radius: 4px 4px 0 0; min-height: 0; transform-origin: bottom; animation: bar-grow var(--dur-slow) var(--ease-out) both; transition: background var(--dur-fast) var(--ease-out); }
-.mk-col:hover .mk-col__bar,
-.mk-col:focus-visible .mk-col__bar { background: var(--gold-700); }
+.mk-col:focus-visible .mk-col__bar {
+  background: var(--gold-700);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mk-col:hover .mk-col__bar {
+    background: var(--gold-700);
+  }
+}
 .mk-col:focus-visible { box-shadow: var(--ring-focus); border-radius: var(--radius-xs); }
 .mk-col__label { font-size: var(--text-2xs); color: var(--text-secondary); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mk-col__label--hidden { visibility: hidden; }
@@ -145,8 +152,15 @@ function showTick(index: number) {
 .mk-rows__label { font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mk-rows__track { height: 10px; background: var(--surface-muted); border-radius: var(--radius-pill); overflow: hidden; }
 .mk-rows__bar { display: block; height: 100%; background: var(--green-700); border-radius: var(--radius-pill); transform-origin: left; animation: bar-grow-x var(--dur-slow) var(--ease-out) both; transition: background var(--dur-fast) var(--ease-out); }
-.mk-rows li:hover .mk-rows__bar,
-.mk-rows li:focus-visible .mk-rows__bar { background: var(--gold-700); }
+.mk-rows li:focus-visible .mk-rows__bar {
+  background: var(--gold-700);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mk-rows li:hover .mk-rows__bar {
+    background: var(--gold-700);
+  }
+}
 .mk-rows__value { font-size: var(--text-sm); font-weight: 600; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
 .mk-rows__note { grid-column: 1 / -1; color: var(--text-secondary); font-size: var(--text-xs); }
 

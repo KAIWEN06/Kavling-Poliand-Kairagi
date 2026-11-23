@@ -223,7 +223,7 @@
         </label>
         <div v-if="form.role === 'owner'" class="security-note"><strong>Perhatian: akun Owner</strong><p>Owner memiliki hak akses tertinggi. Akun Owner yang sudah ada tidak dapat diubah atau dinonaktifkan melalui halaman ini.</p></div>
         <div v-if="form.role === 'admin'" class="security-note"><strong>Perhatian: akun Admin</strong><p>Admin dapat membuat Owner dan mengelola Marketing, tetapi tidak dapat mengelola akun Admin atau Owner yang sudah ada.</p></div>
-        <AppInput v-model="form.fullName" label="Nama lengkap" required />
+        <AppInput v-model="form.fullName" data-input="name" label="Nama lengkap" required />
         <AppInput v-model="form.email" label="Email" type="email" required />
         <template v-if="form.role === 'marketing'">
           <AppInput v-model="form.phone" label="Nomor telepon" type="tel" />
@@ -249,7 +249,7 @@
     >
       <form class="create-form" @submit.prevent>
         <p class="edit-description">Perbarui informasi anggota Marketing. Perubahan akan disimpan ke profil dan data Marketing.</p>
-        <AppInput v-model="editForm.fullName" label="Nama lengkap" required />
+        <AppInput v-model="editForm.fullName" data-input="name" label="Nama lengkap" required />
         <AppInput v-model="editForm.phone" label="Nomor telepon" type="tel" />
         <AppInput v-model="editForm.whatsappPhone" label="Nomor WhatsApp" type="tel" />
         <AppInput v-model="editForm.address" label="Alamat" />

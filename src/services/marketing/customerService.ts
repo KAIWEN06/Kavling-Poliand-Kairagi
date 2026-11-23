@@ -1,3 +1,4 @@
+import { assertCustomerFields } from '@/utils/inputValidation'
 import { supabase } from '@/services/config/supabase'
 import type { FinanceAdminPaymentRecord, FinanceLotRecord, FinancePaymentRecord } from '@/types/finance'
 import type { FinanceCustomerRecord } from '@/types/finance'
@@ -9,6 +10,13 @@ export interface Customer {
   whatsapp_phone?: string | null
   email?: string | null
   address?: string | null
+  street_address?: string | null
+  country_code?: string | null
+  country_name?: string | null
+  district_code?: string | null
+  district_name?: string | null
+  village_code?: string | null
+  village_name?: string | null
   province_code?: string | null
   province_name?: string | null
   city_code?: string | null
@@ -413,6 +421,8 @@ export const customerService = {
       throw new Error('Role akun tidak memiliki izin untuk menambahkan pembeli.')
     }
 
+    assertCustomerFields(payload.customer)
+
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .insert({
@@ -421,11 +431,17 @@ export const customerService = {
         whatsapp_phone: payload.customer.whatsapp_phone?.trim() || null,
         email: payload.customer.email?.trim() || null,
         address: payload.customer.address?.trim() || null,
-        street_address: payload.customer.address?.trim() || null,
+        street_address: (payload.customer.street_address ?? payload.customer.address)?.trim() || null,
+        country_code: payload.customer.country_code ?? null,
+        country_name: payload.customer.country_name ?? null,
         province_code: payload.customer.province_code ?? null,
         province_name: payload.customer.province_name ?? null,
         city_code: payload.customer.city_code ?? null,
         city_name: payload.customer.city_name ?? null,
+        district_code: payload.customer.district_code ?? null,
+        district_name: payload.customer.district_name ?? null,
+        village_code: payload.customer.village_code ?? null,
+        village_name: payload.customer.village_name ?? null,
         notes: payload.customer.notes?.trim() || null,
         marketing_id: marketingId,
         registration_source: profile.role !== 'admin' || marketingId ? 'Marketing' : 'Admin',

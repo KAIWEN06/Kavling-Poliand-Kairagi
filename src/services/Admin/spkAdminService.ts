@@ -1,3 +1,4 @@
+import { assertCustomerFields } from '@/utils/inputValidation'
 import { supabase } from '@/services/config/supabase'
 import { DEFAULT_SPK_BOOKING_FEE, paymentService } from '@/services/Finance/paymentService'
 
@@ -385,9 +386,20 @@ export async function createCustomerForAdminSPK(input: {
   whatsapp_phone: string | null
   email: string | null
   address: string | null
+  country_code?: string | null
+  country_name?: string | null
+  province_code?: string | null
+  province_name?: string | null
+  city_code?: string | null
+  city_name?: string | null
+  district_code?: string | null
+  district_name?: string | null
+  village_code?: string | null
+  village_name?: string | null
+  street_address?: string | null
 }): Promise<number> {
   const fullName = input.full_name.trim()
-  if (!fullName) throw new Error('Nama customer wajib diisi.')
+  assertCustomerFields(input)
   if (!input.phone && !input.whatsapp_phone) {
     throw new Error('Nomor telepon atau WhatsApp wajib diisi.')
   }
@@ -400,6 +412,17 @@ export async function createCustomerForAdminSPK(input: {
       whatsapp_phone: input.whatsapp_phone,
       email: input.email,
       address: input.address,
+      country_code: input.country_code ?? null,
+      country_name: input.country_name ?? null,
+      province_code: input.province_code ?? null,
+      province_name: input.province_name ?? null,
+      city_code: input.city_code ?? null,
+      city_name: input.city_name ?? null,
+      district_code: input.district_code ?? null,
+      district_name: input.district_name ?? null,
+      village_code: input.village_code ?? null,
+      village_name: input.village_name ?? null,
+      street_address: input.street_address ?? null,
       registration_source: 'Admin',
     })
     .select('id')

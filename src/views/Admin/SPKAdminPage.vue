@@ -3,33 +3,37 @@
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
       <main class="spk-shell">
-        <section class="spk-stats" aria-label="Ringkasan pengajuan SPK">
-          <button v-for="item in statCards" :key="item.key" type="button"
-            :class="['spk-stat', { 'spk-stat-active': selectedStatus === item.filter }]"
-            @click="selectedStatus = item.filter">
-            <span>{{ item.label }}</span><strong>{{ stats[item.key] }}</strong>
-          </button>
-        </section>
-
-        <section class="spk-toolbar">
-          <label class="spk-search">
-            <ion-icon :icon="searchOutline" />
-            <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, pembeli, marketing, kaveling..." />
-            <button v-if="searchQuery" type="button" aria-label="Hapus pencarian" @click="searchQuery = ''"><ion-icon :icon="closeOutline" /></button>
-          </label>
-          <div class="spk-source-filters" aria-label="Filter sumber SPK">
-            <span>Sumber:</span>
-            <button v-for="source in sourceFilters" :key="source.value" type="button"
-              :class="{ active: selectedSource === source.value }"
-              @click="selectedSource = source.value">{{ source.label }}</button>
-          </div>
-          <div class="spk-filters" aria-label="Filter status SPK">
-            <button v-for="filter in statusFilters" :key="filter.value" type="button"
-              :class="{ active: selectedStatus === filter.value }" @click="selectedStatus = filter.value">
-              {{ filter.label }}
+        <Reveal :order="1">
+          <section class="spk-stats" aria-label="Ringkasan pengajuan SPK">
+            <button v-for="item in statCards" :key="item.key" type="button"
+              :class="['spk-stat', { 'spk-stat-active': selectedStatus === item.filter }]"
+              @click="selectedStatus = item.filter">
+              <span>{{ item.label }}</span><strong>{{ stats[item.key] }}</strong>
             </button>
-          </div>
-        </section>
+          </section>
+        </Reveal>
+
+        <Reveal :order="2">
+          <section class="spk-toolbar">
+            <label class="spk-search">
+              <ion-icon :icon="searchOutline" />
+              <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, pembeli, marketing, kaveling..." />
+              <button v-if="searchQuery" type="button" aria-label="Hapus pencarian" @click="searchQuery = ''"><ion-icon :icon="closeOutline" /></button>
+            </label>
+            <div class="spk-source-filters" aria-label="Filter sumber SPK">
+              <span>Sumber:</span>
+              <button v-for="source in sourceFilters" :key="source.value" type="button"
+                :class="{ active: selectedSource === source.value }"
+                @click="selectedSource = source.value">{{ source.label }}</button>
+            </div>
+            <div class="spk-filters" aria-label="Filter status SPK">
+              <button v-for="filter in statusFilters" :key="filter.value" type="button"
+                :class="{ active: selectedStatus === filter.value }" @click="selectedStatus = filter.value">
+                {{ filter.label }}
+              </button>
+            </div>
+          </section>
+        </Reveal>
 
         <div v-if="loading" class="spk-state"><ion-spinner name="crescent" /><p>Memuat pengajuan SPK...</p></div>
         <div v-else-if="errorMessage" class="spk-state spk-error" role="alert">
@@ -354,11 +358,48 @@
                   {{ showNewCustomerForm ? 'Tutup form client baru' : '+ Tambah client baru' }}
                 </button>
                 <div v-if="showNewCustomerForm" class="spk-new-customer-form">
-                <label>Nama lengkap <b>*</b><input v-model.trim="newCustomer.full_name" required placeholder="Nama sesuai KTP" /></label>
+                <label>Nama lengkap <b>*</b><input v-model.trim="newCustomer.full_name" data-input="name" required placeholder="Nama sesuai KTP" /></label>
                 <label>Nomor telepon biasa<input v-model.trim="newCustomer.phone" inputmode="tel" placeholder="Nomor telepon utama" /></label>
                 <label>Nomor WhatsApp<input v-model.trim="newCustomer.whatsapp_phone" inputmode="tel" placeholder="Nomor WhatsApp" /></label>
                 <label>Email<input v-model.trim="newCustomer.email" type="email" placeholder="email@contoh.com" /></label>
-                <label>Alamat<textarea v-model.trim="newCustomer.address" rows="2" placeholder="Alamat lengkap klien" /></label>
+                <label>Negara
+                  <select v-model="newCustomer.country_code" @change="onNewCustomerCountry">
+                    <option v-for="country in addressCountries" :key="country.code" :value="country.code">{{ country.name }}</option>
+                  </select>
+                </label>
+                <template v-if="newCustomerIsIndonesia">
+                  <label>Provinsi
+                    <select :value="newCustomer.province_code" :disabled="newCustomerRegionsLoading" @change="onNewCustomerProvince(($event.target as HTMLSelectElement).value)">
+                      <option value="">Pilih provinsi</option>
+                      <option v-for="region in newCustomerProvinces" :key="region.code" :value="region.code">{{ region.name }}</option>
+                    </select>
+                  </label>
+                  <label>Kabupaten/Kota
+                    <select :value="newCustomer.city_code" :disabled="!newCustomer.province_code || newCustomerRegionsLoading" @change="onNewCustomerCity(($event.target as HTMLSelectElement).value)">
+                      <option value="">Pilih kabupaten/kota</option>
+                      <option v-for="region in newCustomerCities" :key="region.code" :value="region.code">{{ region.name }}</option>
+                    </select>
+                  </label>
+                  <label>Kecamatan
+                    <select :value="newCustomer.district_code" :disabled="!newCustomer.city_code || newCustomerRegionsLoading" @change="onNewCustomerDistrict(($event.target as HTMLSelectElement).value)">
+                      <option value="">Pilih kecamatan</option>
+                      <option v-for="region in newCustomerDistricts" :key="region.code" :value="region.code">{{ region.name }}</option>
+                    </select>
+                  </label>
+                  <label>Desa/Kelurahan
+                    <select :value="newCustomer.village_code" :disabled="!newCustomer.district_code || newCustomerRegionsLoading" @change="onNewCustomerVillage(($event.target as HTMLSelectElement).value)">
+                      <option value="">Pilih desa/kelurahan</option>
+                      <option v-for="region in newCustomerVillages" :key="region.code" :value="region.code">{{ region.name }}</option>
+                    </select>
+                  </label>
+                </template>
+                <template v-else>
+                  <label>Province/State<input v-model.trim="newCustomer.province_name" placeholder="Province / State" /></label>
+                  <label>City<input v-model.trim="newCustomer.city_name" placeholder="City" /></label>
+                  <label>District/Area<input v-model.trim="newCustomer.district_name" placeholder="District / Area" /></label>
+                </template>
+                <small v-if="newCustomerRegionsLoading" role="status">Memuat data wilayah...</small>
+                <label>Detail alamat<textarea v-model.trim="newCustomer.street_address" rows="2" placeholder="Nama jalan, nomor rumah, gedung, dan detail lainnya" /></label>
                   <button type="button" class="spk-add-customer-save" :disabled="!newCustomer.full_name.trim() || (!newCustomer.phone.trim() && !newCustomer.whatsapp_phone.trim())" @click="saveNewCustomerForSPK">Simpan dan pilih klien</button>
                 </div>
               </template>
@@ -493,6 +534,7 @@
 </template>
 
 <script setup lang="ts">
+import Reveal from '@/components/ui/Reveal.vue'
 import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { IonContent, IonIcon, IonModal, IonPage, IonSpinner } from '@ionic/vue'
@@ -503,6 +545,8 @@ import {
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import { getRegions } from '@/services/address/addressService'
+import type { Region } from '@/types/address'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import mascotImage from '@/assets/mascot/Curious Mascot Investigates Handshake Files.png'
@@ -571,7 +615,89 @@ const customerSearchQuery = ref('')
 const selectedCustomerSource = ref<CustomerSource>('Admin')
 const selectedCustomerId = ref<number | null>(null)
 const showNewCustomerForm = ref(false)
-const newCustomer = reactive({ full_name: '', phone: '', whatsapp_phone: '', email: '', address: '' })
+const emptyNewCustomer = () => ({
+  full_name: '', phone: '', whatsapp_phone: '', email: '',
+  country_code: 'ID', country_name: 'Indonesia',
+  province_code: '', province_name: '',
+  city_code: '', city_name: '',
+  district_code: '', district_name: '',
+  village_code: '', village_name: '',
+  street_address: '',
+})
+const newCustomer = reactive(emptyNewCustomer())
+const addressCountries = [
+  { code: 'ID', name: 'Indonesia' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'US', name: 'United States' },
+  { code: 'JP', name: 'Japan' },
+]
+const newCustomerProvinces = ref<Region[]>([])
+const newCustomerCities = ref<Region[]>([])
+const newCustomerDistricts = ref<Region[]>([])
+const newCustomerVillages = ref<Region[]>([])
+const newCustomerRegionsLoading = ref(false)
+const newCustomerIsIndonesia = computed(() => newCustomer.country_code === 'ID')
+
+async function loadNewCustomerRegions(level: 1 | 2 | 3 | 4, parentId?: number | null) {
+  newCustomerRegionsLoading.value = true
+  try { return await getRegions(level, parentId) }
+  catch (error) {
+    createError.value = error instanceof Error ? error.message : 'Data wilayah gagal dimuat.'
+    return []
+  }
+  finally { newCustomerRegionsLoading.value = false }
+}
+function resetNewCustomerRegions(from: 1 | 2 | 3 | 4) {
+  if (from <= 1) { newCustomer.province_code = ''; newCustomer.province_name = '' }
+  if (from <= 2) { newCustomer.city_code = ''; newCustomer.city_name = ''; newCustomerCities.value = [] }
+  if (from <= 3) { newCustomer.district_code = ''; newCustomer.district_name = ''; newCustomerDistricts.value = [] }
+  if (from <= 4) { newCustomer.village_code = ''; newCustomer.village_name = ''; newCustomerVillages.value = [] }
+}
+async function ensureNewCustomerProvinces() {
+  if (newCustomerIsIndonesia.value && !newCustomerProvinces.value.length) {
+    newCustomerProvinces.value = await loadNewCustomerRegions(1)
+  }
+}
+async function onNewCustomerCountry() {
+  newCustomer.country_name = addressCountries.find(c => c.code === newCustomer.country_code)?.name ?? ''
+  resetNewCustomerRegions(1)
+  await ensureNewCustomerProvinces()
+}
+async function onNewCustomerProvince(code: string) {
+  const region = newCustomerProvinces.value.find(r => r.code === code)
+  resetNewCustomerRegions(2)
+  newCustomer.province_code = region?.code ?? ''
+  newCustomer.province_name = region?.name ?? ''
+  if (region) newCustomerCities.value = await loadNewCustomerRegions(2, region.id)
+}
+async function onNewCustomerCity(code: string) {
+  const region = newCustomerCities.value.find(r => r.code === code)
+  resetNewCustomerRegions(3)
+  newCustomer.city_code = region?.code ?? ''
+  newCustomer.city_name = region?.name ?? ''
+  if (region) newCustomerDistricts.value = await loadNewCustomerRegions(3, region.id)
+}
+async function onNewCustomerDistrict(code: string) {
+  const region = newCustomerDistricts.value.find(r => r.code === code)
+  resetNewCustomerRegions(4)
+  newCustomer.district_code = region?.code ?? ''
+  newCustomer.district_name = region?.name ?? ''
+  if (region) newCustomerVillages.value = await loadNewCustomerRegions(4, region.id)
+}
+function onNewCustomerVillage(code: string) {
+  const region = newCustomerVillages.value.find(r => r.code === code)
+  newCustomer.village_code = region?.code ?? ''
+  newCustomer.village_name = region?.name ?? ''
+}
+function resetNewCustomerForm() {
+  Object.assign(newCustomer, emptyNewCustomer())
+  newCustomerCities.value = []
+  newCustomerDistricts.value = []
+  newCustomerVillages.value = []
+}
+watch(showNewCustomerForm, open => { if (open) void ensureNewCustomerProvinces() })
 const selectedLotIds = ref<number[]>([])
 const lotPlans = reactive<Record<number, AdminLotInstallmentOption[]>>({})
 const lotPlanIds = reactive<Record<number, string>>({})
@@ -957,7 +1083,7 @@ async function openCreateForm() {
   selectedLotIds.value = []
   showNewCustomerForm.value = false
   customers.value = []
-  Object.assign(newCustomer, { full_name: '', phone: '', whatsapp_phone: '', email: '', address: '' })
+  resetNewCustomerForm()
   Object.keys(createFiles).forEach(key => { createFiles[key as SPKDocumentType] = null })
   Object.keys(lotPlans).forEach(key => delete lotPlans[Number(key)])
   Object.keys(lotPlanIds).forEach(key => delete lotPlanIds[Number(key)])
@@ -1028,17 +1154,33 @@ async function saveNewCustomerForSPK() {
   creating.value = true
   createError.value = ''
   try {
+    const street = newCustomer.street_address.trim()
+    const fullAddress = [
+      street, newCustomer.village_name, newCustomer.district_name,
+      newCustomer.city_name, newCustomer.province_name, newCustomer.country_name,
+    ].map(part => part.trim()).filter(Boolean).join(', ')
     const id = await createCustomerForAdminSPK({
       full_name: newCustomer.full_name.trim(),
       phone: newCustomer.phone.trim() || null,
       whatsapp_phone: newCustomer.whatsapp_phone.trim() || null,
       email: newCustomer.email.trim() || null,
-      address: newCustomer.address.trim() || null,
+      address: fullAddress || null,
+      country_code: newCustomer.country_code,
+      country_name: newCustomer.country_name,
+      province_code: newCustomer.province_code || null,
+      province_name: newCustomer.province_name.trim() || null,
+      city_code: newCustomer.city_code || null,
+      city_name: newCustomer.city_name.trim() || null,
+      district_code: newCustomer.district_code || null,
+      district_name: newCustomer.district_name.trim() || null,
+      village_code: newCustomer.village_code || null,
+      village_name: newCustomer.village_name.trim() || null,
+      street_address: street || null,
     })
     await loadSPKCustomers()
     selectedCustomerId.value = id
     customerSearchQuery.value = newCustomer.full_name.trim()
-    Object.assign(newCustomer, { full_name: '', phone: '', whatsapp_phone: '', email: '', address: '' })
+    resetNewCustomerForm()
     showNewCustomerForm.value = false
   } catch (error) {
     createError.value = error instanceof Error ? error.message : 'Klien gagal disimpan.'
@@ -1220,7 +1362,9 @@ watch(
 .spk-pager-btn,.spk-pager-number { min-width:44px; height:44px; padding:0 10px; border:1px solid var(--border-default); border-radius:10px; background:var(--surface-primary); color:var(--text-primary); font:inherit; font-weight:var(--font-weight-bold); cursor:pointer; }
 .spk-pager-btn { display:inline-flex; align-items:center; justify-content:center; font-size:20px; }
 .spk-pager-number.active { border-color:var(--poliland-green); background:var(--poliland-green); color:#fff; }
-.spk-pager-btn:not(:disabled):hover,.spk-pager-number:not(:disabled):not(.active):hover { border-color:var(--poliland-green); background:var(--status-success-bg); }
+@media (hover: hover) and (pointer: fine) {
+  .spk-pager-btn:not(:disabled):hover,.spk-pager-number:not(:disabled):not(.active):hover { border-color:var(--poliland-green); background:var(--status-success-bg); }
+}
 .spk-pager-btn:disabled,.spk-pager-number:disabled { cursor:default; opacity:1; border-color:transparent; background:transparent; }
 .spk-pager-btn:focus-visible,.spk-pager-number:focus-visible { outline:3px solid var(--poliland-green); outline-offset:2px; }
 @media (max-width:560px) {
@@ -1278,7 +1422,9 @@ watch(
 .spk-booking-action { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; min-height:44px; margin-top:2px; border:1px solid #355a2c; border-radius:10px; background:#355a2c; color:#fff; font:inherit; font-size:11px; font-weight:800; cursor:pointer; }
 .spk-booking-action ion-icon:first-child { font-size:16px; }
 .spk-booking-action ion-icon:last-child { margin-left:auto; font-size:16px; }
-.spk-booking-action:hover { background:#294722; }
+@media (hover: hover) and (pointer: fine) {
+  .spk-booking-action:hover { background:#294722; }
+}
 .spk-booking-action:focus-visible { outline:3px solid #78936d; outline-offset:2px; }
 .spk-detail-section dl { display:grid; gap:0; margin:0; border:1px solid #edf0eb; border-radius:12px; padding:0 12px; }
 .spk-detail-section dl div { display:grid; grid-template-columns: minmax(105px, .8fr) 1.2fr; gap:12px; padding:10px 0; border-bottom:1px solid #f0f2ee; }
@@ -1321,7 +1467,17 @@ watch(
 .spk-lot-search input:focus-visible { border-color:var(--poliland-green); box-shadow:0 0 0 3px color-mix(in srgb,var(--poliland-green) 22%,transparent); }
 .spk-lot-list { display:grid; gap:8px; max-height:260px; overflow:auto; padding:2px; }
 .spk-lot-option { display:grid; grid-template-columns:24px minmax(0,1fr) auto; align-items:center; gap:9px; width:100%; min-height:58px; border:1px solid var(--border-default); border-radius:var(--radius-control); padding:9px 10px; background:var(--surface-primary); color:var(--text-primary); text-align:left; font:inherit; cursor:pointer; }
-.spk-lot-option:hover,.spk-lot-option.selected { border-color:var(--poliland-green); background:var(--status-success-bg); }
+.spk-lot-option.selected {
+  border-color:var(--poliland-green);
+  background:var(--status-success-bg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spk-lot-option:hover {
+    border-color:var(--poliland-green);
+    background:var(--status-success-bg);
+  }
+}
 .spk-lot-option:focus-visible { outline:3px solid var(--poliland-green); outline-offset:2px; }
 .spk-lot-option > span:nth-child(2) { display:grid; min-width:0; gap:3px; }
 .spk-lot-option small { color:var(--text-secondary); font-size:10px; }
@@ -1374,7 +1530,7 @@ watch(
 .spk-preview-error { color:#ffaaa3; }
 .spk-image-stage { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; }
 .spk-image-viewport { display:flex; flex:1; min-height:0; align-items:center; justify-content:center; overflow:auto; padding:14px; touch-action:pan-x pan-y; }
-.spk-image-viewport img { display:block; max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; transform-origin:center center; transition:transform .15s ease; }
+.spk-image-viewport img { display:block; max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; transform-origin:center center; transition:transform var(--dur-fast) var(--ease-out); }
 .spk-zoom-controls { display:flex; align-items:center; justify-content:center; gap:12px; padding:12px; background:#1b241d; }
 .spk-zoom-controls button { display:grid; place-items:center; width:38px; height:38px; border:1px solid #465348; border-radius:10px; background:#29352b; color:#fff; font-size:18px; }
 .spk-zoom-controls button:disabled { opacity:.35; }
@@ -1398,6 +1554,8 @@ watch(
 .spk-add-customer-toggle,.spk-add-customer-save,.spk-cancel-customer { min-height:44px; border:1px solid #355a2c; border-radius:9px; padding:10px; background:#fff; color:#355a2c; font-size:11px; font-weight:800; cursor:pointer; }
 .spk-new-customer-form { display:grid; gap:9px; padding:12px; border:1px solid #e5e9e2; border-radius:12px; background:#fafbf9; }
 .spk-new-customer-form label { display:grid; gap:5px; font-size:10px; }
+.spk-new-customer-form select { min-height:40px; border:1px solid #d9dfd5; border-radius:9px; padding:8px 10px; background:#fff; color:inherit; font:inherit; }
+.spk-new-customer-form select:disabled { opacity:.6; }
 .spk-selected-customer { display:grid; gap:5px; padding:11px; border-radius:10px; background:#f1f6ee; color:#50604e; font-size:10px; }
 .spk-cancel-customer { width:100%; }
 .spk-lot-payment-card { display:grid; gap:9px; padding:12px; border:1px solid #e5e9e2; border-radius:12px; background:#fff; }

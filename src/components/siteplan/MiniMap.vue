@@ -356,7 +356,7 @@ watch(
   width: 100%;
   height: 100%;
   transform-origin: center center;
-  transition: transform 0.2s ease;
+  transition: transform var(--dur-fast) var(--ease-out);
 }
 
 .minimap-background {

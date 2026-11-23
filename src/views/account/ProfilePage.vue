@@ -89,7 +89,7 @@
                 <ion-item lines="none" class="input-item">
                   <ion-input
                     id="pf-full-name"
-                    v-model="form.fullName"
+                    v-model="form.fullName" data-input="name"
                     :maxlength="100"
                     placeholder="Masukkan nama lengkap"
                     autocomplete="name"
@@ -401,8 +401,10 @@ onBeforeUnmount(revokePreview)
   transition: transform 150ms ease-out, border-color 150ms ease-out;
 }
 
-.avatar-picker:hover:not(:disabled) {
-  border-color: var(--poliland-green, #355a2c);
+@media (hover: hover) and (pointer: fine) {
+  .avatar-picker:hover:not(:disabled) {
+    border-color: var(--poliland-green, #355a2c);
+  }
 }
 
 .avatar-picker:active:not(:disabled) {
@@ -504,8 +506,10 @@ onBeforeUnmount(revokePreview)
   transition: background-color 150ms ease-out;
 }
 
-.avatar-change-btn:hover:not(:disabled) {
-  background: #ebe7de;
+@media (hover: hover) and (pointer: fine) {
+  .avatar-change-btn:hover:not(:disabled) {
+    background: #ebe7de;
+  }
 }
 
 .avatar-change-btn:disabled {
@@ -822,8 +826,10 @@ onBeforeUnmount(revokePreview)
   color: #ffffff;
 }
 
-.avatar-change-btn--primary:hover:not(:disabled) {
-  background: #2b4a24;
+@media (hover: hover) and (pointer: fine) {
+  .avatar-change-btn--primary:hover:not(:disabled) {
+    background: #2b4a24;
+  }
 }
 
 .input-item--readonly {

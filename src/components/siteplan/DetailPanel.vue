@@ -170,7 +170,7 @@
                 <input
                   id="down-payment-input"
                   type="text"
-                  inputmode="numeric"
+                  inputmode="numeric" data-input="free"
                   :value="formatNominal(downPayment)"
                   placeholder="Masukkan nominal uang muka"
                   @input="updateDownPayment"
@@ -1125,7 +1125,7 @@ function getBlockCode(
   opacity: 0;
   visibility: hidden;
 
-  transition: all 0.25s ease;
+  transition: opacity var(--dur-base) var(--ease-out), visibility var(--dur-base) var(--ease-out);
 }
 
 .detail-backdrop.open {

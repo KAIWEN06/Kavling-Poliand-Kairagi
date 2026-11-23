@@ -9,8 +9,8 @@
         <GalleryPreview />
         <section class="section siteplan-section">
           <div class="section-heading">
-            <div><h2>Lokasi & Siteplan</h2><span class="heading-line"></span></div>
-            <button class="see-all" type="button" @click="goToSiteplan">Siteplan <ion-icon :icon="chevronForwardOutline" /></button>
+            <div><h2>Lokasi & Denah Kavling</h2><span class="heading-line"></span></div>
+            <button class="see-all" type="button" @click="goToSiteplan">Denah <ion-icon :icon="chevronForwardOutline" /></button>
           </div>
           <LocationSection />
           <SiteplanPreview :lots="lots" @goToSiteplan="goToSiteplan" />
@@ -51,6 +51,7 @@ import CTASection from '@/components/home/CTASection.vue'
 import ContactSection from '@/components/home/ContactSection.vue'
 import HomeSkeleton from '@/components/ui/skeletons/HomeSkeleton.vue'
 import { useSiteplan } from '../composables/useSiteplant'
+import { contactsService } from '@/services/contactService'
 
 const router = useRouter()
 const isLoading = ref(true)
@@ -126,16 +127,34 @@ const goToSiteplan = () => {
   router.push('/siteplan')
 }
 
+const DEFAULT_WHATSAPP = '6281234567890'
+const contactSettings = ref({ whatsapp: '', phone: '' })
+
+/** Nomor WhatsApp & telepon diambil dari data Kontak yang dikelola Admin. */
+const loadContactSettings = async () => {
+  try {
+    const rows = await contactsService.getAll()
+    const valueOf = (...keys: string[]) => rows.find((row) => keys.includes(row.key.toLowerCase()))?.value?.trim() || ''
+    contactSettings.value = { whatsapp: valueOf('whatsapp'), phone: valueOf('phone', 'telepon') }
+  } catch {
+    contactSettings.value = { whatsapp: '', phone: '' }
+  }
+}
+onMounted(loadContactSettings)
+
+const toWaNumber = (value: string) => {
+  const digits = value.replace(/\D/g, '')
+  return digits.startsWith('0') ? `62${digits.slice(1)}` : digits
+}
+
 const contactWhatsapp = () => {
-  window.open(
-    'https://wa.me/6281234567890',
-    '_blank'
-  )
+  const number = toWaNumber(contactSettings.value.whatsapp) || DEFAULT_WHATSAPP
+  window.open(`https://wa.me/${number}`, '_blank')
 }
 
 const callUs = () => {
-  window.location.href =
-    'tel:+6281234567890'
+  const phone = contactSettings.value.phone.replace(/[^\d+]/g, '') || `+${DEFAULT_WHATSAPP}`
+  window.location.href = `tel:${phone}`
 }
 </script>
 
@@ -283,7 +302,7 @@ const callUs = () => {
 
 .refresh-fade-enter-active,
 .refresh-fade-leave-active {
-  transition: opacity 0.25s ease;
+  transition: opacity var(--dur-base) var(--ease-out);
 }
 
 .refresh-fade-enter-from,

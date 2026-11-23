@@ -7,10 +7,12 @@ import SiteplanPage from '@/views/SiteplanPage.vue'
 import ProgressPage from '@/views/ProgressPage.vue'
 import ProgressDetailPage from '@/views/ProgressDetailPage.vue'
 import GalleryPage from '@/views/GalleryPage.vue'
+import AboutPage from '@/views/AboutPage.vue'
 import ContactPage from '@/views/ContactPage.vue'
 import PanoramaPage from '@/views/PanoramaPage.vue'
 import NotFoundPage from '@/views/NotFoundPage.vue'
 import MaintenancePage from '@/views/MaintenancePage.vue'
+import WelcomePage from '@/views/WelcomePage.vue'
 import SplashVideoPage from '@/components/common/SplashVideoPage.vue'
 
 import LoginPage from '@/views/auth/LoginPage.vue'
@@ -27,6 +29,7 @@ import AdminPembeliDetailPage from '@/views/Admin/AdminPembeliDetail.vue'
 import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
 import AdminLainnyaPage from '@/views/Admin/AdminLainnya.vue'
 import AdminContentPage from '@/views/Admin/AdminContentPage.vue'
+import AdminSurveyRequestsPage from '@/views/Admin/AdminSurveyRequestsPage.vue'
 import SPKAdminPage from '@/views/Admin/SPKAdminPage.vue'
 import AdminReviewsPage from '@/views/Admin/AdminReviewsPage.vue'
 import TinjauSPKPage from '@/views/Admin/TinjauSPKPage.vue'
@@ -67,6 +70,14 @@ const routes: Array<RouteRecordRaw> = [
     path: '/splash',
     name: 'Splash',
     component: SplashVideoPage,
+  },
+
+  // Welcome: tampil setelah splash. Pengguna yang sudah login langsung diarahkan ke beranda role-nya (publicOnly).
+  {
+    path: '/welcome',
+    name: 'Welcome',
+    component: WelcomePage,
+    meta: { publicOnly: true },
   },
 
   // Authentication pages
@@ -157,6 +168,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/admin/konten',
     name: 'AdminKonten',
     component: AdminContentPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/survei',
+    name: 'AdminSurvei',
+    component: AdminSurveyRequestsPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {
@@ -421,6 +438,7 @@ const routes: Array<RouteRecordRaw> = [
       { path: 'progress', name: 'Progress', component: ProgressPage },
       { path: 'progress/:id', name: 'ProgressDetails', component: ProgressDetailPage },
       { path: 'gallery', name: 'Gallery', component: GalleryPage },
+      { path: 'about', name: 'About', component: AboutPage },
       { path: 'contact', name: 'Contact', component: ContactPage },
     ],
   },

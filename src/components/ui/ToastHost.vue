@@ -80,7 +80,7 @@ const { items, dismiss } = useToast()
 .ui-toast__close svg { width: 16px; height: 16px; }
 
 .ui-toast-enter-active { transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-spring); }
-.ui-toast-leave-active { transition: opacity var(--dur-fast) var(--ease-in), transform var(--dur-fast) var(--ease-in); position: absolute; width: 100%; }
+.ui-toast-leave-active { transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); position: absolute; width: 100%; }
 .ui-toast-enter-from { opacity: 0; transform: translateY(16px) scale(0.97); }
 .ui-toast-leave-to { opacity: 0; transform: translateY(6px); }
 .ui-toast-move { transition: transform var(--dur-base) var(--ease-out); }

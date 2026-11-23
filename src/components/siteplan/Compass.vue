@@ -66,11 +66,13 @@ defineEmits(['rotate'])
     box-shadow 0.18s ease;
 }
 
-.compass:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 14px 28px rgba(26, 26, 26, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+@media (hover: hover) and (pointer: fine) {
+  .compass:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 28px rgba(26, 26, 26, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
 }
 
 .compass:active {

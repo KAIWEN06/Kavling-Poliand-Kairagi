@@ -166,9 +166,14 @@ async function logout() {
   cursor: pointer;
 }
 
-.user-menu__item:active,
-.user-menu__item:hover {
+.user-menu__item:active {
   background: var(--surface-muted, #f5f3ee);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .user-menu__item:hover {
+    background: var(--surface-muted, #f5f3ee);
+  }
 }
 
 .user-menu__item:focus-visible {

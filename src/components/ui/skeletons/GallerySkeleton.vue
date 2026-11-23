@@ -476,7 +476,7 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 750;
   cursor: pointer;
-  transition: .2s ease;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .category-chip ion-icon { font-size: 17px; }
@@ -521,10 +521,12 @@ onBeforeUnmount(() => {
   height: 100%;
   display: block;
   object-fit: cover;
-  transition: transform .45s ease;
+  transition: transform var(--dur-slow) var(--ease-out);
 }
 
-.photo-card:hover .photo-image img { transform: scale(1.045); }
+@media (hover: hover) and (pointer: fine) {
+  .photo-card:hover .photo-image img { transform: scale(1.045); }
+}
 
 .photo-overlay {
   position: absolute;

@@ -42,6 +42,7 @@ const REFRESH_THRESHOLD = 80
 const REFRESH_HOLD = 76 // tinggi ruang loading saat refresh berlangsung
 const PULL_RESISTANCE = 0.5
 const MIN_REFRESH_MS = 1200
+const MAX_WAIT_COMPLETE_MS = 5000 // batas aman bila halaman tidak mengirim 'poliland:refresh-complete'
 
 const isVisible = ref(false)
 const isReady = ref(false)
@@ -53,7 +54,7 @@ const progress = computed(() => Math.min(1, pullDistance.value / REFRESH_THRESHO
 
 // Halaman interaktif yang gesturnya tidak boleh diganggu pull-to-refresh
 const route = useRoute()
-const EXCLUDED_PATHS = ['/panorama', '/siteplan', '/admin/siteplan', '/kepala-marketing/siteplan', '/login', '/register', '/splash']
+const EXCLUDED_PATHS = ['/panorama', '/siteplan', '/admin/siteplan', '/kepala-marketing/siteplan', '/login', '/register', '/splash', '/welcome']
 function isExcludedRoute() {
   const path = route.path
   return EXCLUDED_PATHS.some(p => path === p || path.startsWith(`${p}/`))
@@ -230,6 +231,18 @@ async function startRefresh() {
       .then(() => props.refreshHandler?.())
       .catch(error => console.error('Gagal memuat ulang data:', error))
   } else {
+    // Halaman yang mendengarkan 'poliland:refresh' wajib mengirim 'poliland:refresh-complete'
+    // saat selesai. Dengan menunggu sinyal itu, loader tarik-segarkan berakhir BERSAMAAN dengan
+    // skeleton halaman (tidak ada skeleton yang muncul setelah loader hilang = tanpa flicker).
+    task = new Promise<void>(resolve => {
+      const done = () => {
+        window.removeEventListener('poliland:refresh-complete', done)
+        window.clearTimeout(timer)
+        resolve()
+      }
+      const timer = window.setTimeout(done, MAX_WAIT_COMPLETE_MS)
+      window.addEventListener('poliland:refresh-complete', done, { once: true })
+    })
     window.dispatchEvent(new CustomEvent('poliland:refresh'))
   }
   await Promise.all([settle, wait(MIN_REFRESH_MS), task])

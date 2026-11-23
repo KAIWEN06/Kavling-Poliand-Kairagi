@@ -71,7 +71,7 @@ async function load() {
 
 function open(item: SurveyAgendaItem) {
   if (props.variant === 'admin') {
-    ionRouter.push(`/admin/konten?tab=surveys&status=${item.status}`)
+    ionRouter.push(`/admin/survei?status=${item.status}`)
   } else if (props.variant === 'client') {
     ionRouter.push(`/client/kavling/${item.lot_id}`)
   } else {
@@ -82,7 +82,7 @@ function open(item: SurveyAgendaItem) {
 /** Admin: ke halaman permintaan survei (tab Menunggu bila ada yang belum dikonfirmasi). */
 function openAll() {
   if (props.variant === 'admin') {
-    ionRouter.push(`/admin/konten?tab=surveys${pendingCount.value > 0 ? '&status=pending' : ''}`)
+    ionRouter.push(`/admin/survei${pendingCount.value > 0 ? '?status=pending' : ''}`)
   } else if (props.variant === 'client') {
     ionRouter.push('/client/kavling')
   } else {

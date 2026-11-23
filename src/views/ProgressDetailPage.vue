@@ -1729,7 +1729,7 @@ async function shareProgress() {
 
 .refresh-fade-enter-active,
 .refresh-fade-leave-active {
-  transition: opacity .25s ease;
+  transition: opacity var(--dur-base) var(--ease-out);
 }
 
 .refresh-fade-enter-from,

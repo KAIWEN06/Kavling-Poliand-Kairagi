@@ -31,11 +31,19 @@ export const financialLedgerService = {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || startDate > endDate) {
       throw new Error('Periode laporan tidak valid.')
     }
-    return fetchLedger((query) => query
-      .gte('occurred_on', startDate)
-      .lte('occurred_on', endDate)
-      .order('occurred_on', { ascending: false })
-      .order('id', { ascending: false }))
+    // PostgREST membatasi 1000 baris per permintaan; ambil per halaman agar laporan tahunan tidak terpotong.
+    const pageSize = 1000
+    const all: FinancialLedgerEntry[] = []
+    for (let from = 0; ; from += pageSize) {
+      const page = await fetchLedger((query) => query
+        .gte('occurred_on', startDate)
+        .lte('occurred_on', endDate)
+        .order('occurred_on', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, from + pageSize - 1))
+      all.push(...page)
+      if (page.length < pageSize) return all
+    }
   },
 }
 

@@ -541,7 +541,7 @@ onMounted(loadCustomerProfile)
                 <ion-item lines="none" class="input-item">
                   <ion-input
                     id="client-full-name"
-                    v-model="form.full_name"
+                    v-model="form.full_name" data-input="name"
                     placeholder="Masukkan nama sesuai KTP/identitas"
                     autocomplete="name"
                     required
@@ -793,8 +793,10 @@ onMounted(loadCustomerProfile)
   transition: transform 150ms ease-out, border-color 150ms ease-out;
 }
 
-.avatar-picker:hover:not(:disabled) {
-  border-color: var(--poliland-green, #355a2c);
+@media (hover: hover) and (pointer: fine) {
+  .avatar-picker:hover:not(:disabled) {
+    border-color: var(--poliland-green, #355a2c);
+  }
 }
 
 .avatar-picker:active:not(:disabled) {
@@ -896,8 +898,10 @@ onMounted(loadCustomerProfile)
   transition: background-color 150ms ease-out;
 }
 
-.avatar-change-btn:hover:not(:disabled) {
-  background: #ebe7de;
+@media (hover: hover) and (pointer: fine) {
+  .avatar-change-btn:hover:not(:disabled) {
+    background: #ebe7de;
+  }
 }
 
 .avatar-change-btn:disabled {

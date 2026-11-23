@@ -460,7 +460,9 @@ function goToCommission() {
   font-weight: 600;
   cursor: pointer;
 }
-.link:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) {
+  .link:hover { text-decoration: underline; }
+}
 .alert {
   margin: 0 0 var(--space-3);
   padding: var(--space-3);
@@ -564,7 +566,9 @@ function goToCommission() {
   cursor: pointer;
   transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
-.shortcut:hover { border-color: var(--green-500); }
+@media (hover: hover) and (pointer: fine) {
+  .shortcut:hover { border-color: var(--green-500); }
+}
 .shortcut:active { transform: scale(0.97); }
 .shortcut__icon {
   display: grid;

@@ -115,9 +115,13 @@
 
 .mk-btn:active:not([disabled]) { transform: scale(0.97); }
 .mk-btn--primary { background: var(--green-700); color: #fff; }
-.mk-btn--primary:hover { background: var(--green-800); }
+@media (hover: hover) and (pointer: fine) {
+  .mk-btn--primary:hover { background: var(--green-800); }
+}
 .mk-btn--ghost { background: var(--surface-primary); border-color: var(--border-default); color: var(--text-primary); }
-.mk-btn--ghost:hover { background: var(--surface-muted); }
+@media (hover: hover) and (pointer: fine) {
+  .mk-btn--ghost:hover { background: var(--surface-muted); }
+}
 .mk-btn--wa { background: #1f7a4a; color: #fff; }
 .mk-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
 .mk-btn:focus-visible,
@@ -140,7 +144,9 @@
   cursor: pointer;
   text-decoration: none;
 }
-.mk-link:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) {
+  .mk-link:hover { text-decoration: underline; }
+}
 
 /* --- Chip / segmented filter --- */
 .mk-chips {
@@ -166,7 +172,9 @@
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
-.mk-chip:hover { border-color: var(--green-500); }
+@media (hover: hover) and (pointer: fine) {
+  .mk-chip:hover { border-color: var(--green-500); }
+}
 .mk-chip[aria-pressed='true'] {
   background: var(--green-700);
   border-color: var(--green-700);
@@ -191,7 +199,9 @@
   font-size: var(--text-md);
   transition: border-color var(--dur-fast) var(--ease-out);
 }
-.mk-input:hover { border-color: var(--border-strong); }
+@media (hover: hover) and (pointer: fine) {
+  .mk-input:hover { border-color: var(--border-strong); }
+}
 .mk-input:focus { border-color: var(--gold-500); }
 textarea.mk-input { min-height: 96px; resize: vertical; }
 
@@ -229,7 +239,9 @@ textarea.mk-input { min-height: 96px; resize: vertical; }
 
 .mk-table .num { text-align: right; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
 .mk-table tr.mk-row-link { cursor: pointer; }
-.mk-table tr.mk-row-link:hover td { background: var(--surface-muted); }
+@media (hover: hover) and (pointer: fine) {
+  .mk-table tr.mk-row-link:hover td { background: var(--surface-muted); }
+}
 
 @media (max-width: 719px) {
   .mk-table--stack thead { display: none; }
@@ -299,7 +311,9 @@ textarea.mk-input { min-height: 96px; resize: vertical; }
   cursor: pointer;
   transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
-.mk-tabs button:hover { color: var(--text-primary); }
+@media (hover: hover) and (pointer: fine) {
+  .mk-tabs button:hover { color: var(--text-primary); }
+}
 .mk-tabs button[aria-selected='true'] {
   color: var(--green-700);
   border-bottom-color: var(--green-700);

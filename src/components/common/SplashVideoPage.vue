@@ -82,7 +82,7 @@ const preloadFrames = async () => {
 
 const startAnimation = () => {
   if (frames.length === 0) {
-    router.replace('/home')
+    router.replace('/welcome')
     return
   }
 
@@ -105,7 +105,7 @@ const finishSplash = () => {
     animationTimer = null
   }
 
-  router.replace('/home')
+  router.replace('/welcome')
 }
 
 /* ================================

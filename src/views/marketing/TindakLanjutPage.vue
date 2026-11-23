@@ -1060,8 +1060,10 @@ button {
   box-shadow: 0 2px 4px rgba(164, 130, 54, 0.18);
 }
 
-.submit-button:hover:not(:disabled) {
-  background: #be9a4b;
+@media (hover: hover) and (pointer: fine) {
+  .submit-button:hover:not(:disabled) {
+    background: #be9a4b;
+  }
 }
 
 .submit-button:disabled {

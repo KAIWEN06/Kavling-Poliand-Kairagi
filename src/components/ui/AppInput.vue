@@ -199,11 +199,13 @@ function togglePassword() {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-control);
   background: var(--surface-primary);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
 }
 
-.app-field__control:hover:not(:has(.app-field__input[disabled])) {
-  border-color: var(--text-secondary);
+@media (hover: hover) and (pointer: fine) {
+  .app-field__control:hover:not(:has(.app-field__input[disabled])) {
+    border-color: var(--text-secondary);
+  }
 }
 
 .app-field__control:focus-within {

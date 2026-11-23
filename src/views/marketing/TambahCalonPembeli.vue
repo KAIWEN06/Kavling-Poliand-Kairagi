@@ -23,7 +23,7 @@
                 <path d="M4 21a8 8 0 0 1 16 0" />
               </svg>
               <input
-                v-model="form.full_name"
+                v-model="form.full_name" data-input="name"
                 type="text"
                 autocomplete="name"
                 placeholder="Masukan nama lengkap"
@@ -951,9 +951,14 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.lot-option:hover,
 .lot-option.checked {
   background: var(--status-success-bg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lot-option:hover {
+    background: var(--status-success-bg);
+  }
 }
 
 .check-box {

@@ -5,7 +5,7 @@
       <div class="map-container">
         <iframe
           title="Peta Satelit Kaveling Poliland Kairagi"
-          src="https://maps.google.com/maps?q=1.5107731,124.8848806&t=k&z=17&output=embed"
+          :src="embedUrl"
           class="w-full h-full border-0"
           allowfullscreen
           loading="lazy"
@@ -14,7 +14,7 @@
         <!-- Tombol Buka Maps dipindah ke dalam map-container agar melayang rapi di atas peta -->
         <div class="absolute top-3 left-3 z-10">
           <a 
-            href="https://www.google.com/maps/place/Kavling+Poliland+Kairagi/@1.5108754,124.884911,356m/data=!3m1!1e3!4m14!1m7!3m6!1s0x3287a17f6f7d8a4b:0x38b06b5f538ada2e!2sKavling+Poliland+Kairagi!8m2!3d1.5107731!4d124.8848806!16s%2Fg%2F11yt3vvqs4!3m5!1s0x3287a17f6f7d8a4b:0x38b06b5f538ada2e!8m2!3d1.5107731!4d124.8848806!16s%2Fg%2F11yt3vvqs4?entry=ttu" 
+            :href="openUrl" 
             target="_blank" 
             rel="noopener noreferrer"
             class="map-float-btn"
@@ -37,22 +37,22 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import { IonIcon } from '@ionic/vue'
-import { 
-  schoolOutline, 
-  airplaneOutline, 
-  businessOutline, 
-  storefrontOutline, 
-  locationOutline 
-} from 'ionicons/icons'
+import { locationOutline } from 'ionicons/icons'
+import { contactsService } from '@/services/contactService'
+import { resolvePlaceIcon } from '@/utils/cmsIcons'
+import { DEFAULT_LOCATION_SETTINGS, mapEmbedUrl, mapOpenUrl, type LocationSettings } from '@/utils/locationSettings'
 
-const nearbyPlaces = [
-  { icon: schoolOutline, name: 'Politeknik Negeri Manado (Polimdo)', time: '± 5 menit' },
-  { icon: airplaneOutline, name: 'Bandara Sam Ratulangi', time: '± 15 menit' },
-  { icon: businessOutline, name: 'Jl. Politeknik Permai & Akses Utama', time: '± 3 menit' },
-  { icon: storefrontOutline, name: 'Pusat Perbelanjaan & Minimarket Lokal', time: '± 5 menit' },
-  { icon: locationOutline, name: 'Pusat Kota Manado', time: '± 20 menit' },
-];
+/** Koordinat peta dan daftar tempat terdekat dikelola Admin (tab Lokasi). */
+const settings = ref<LocationSettings>(structuredClone(DEFAULT_LOCATION_SETTINGS))
+const embedUrl = computed(() => mapEmbedUrl(settings.value))
+const openUrl = computed(() => mapOpenUrl(settings.value))
+const nearbyPlaces = computed(() => settings.value.places.map((place) => ({ ...place, icon: resolvePlaceIcon(place.icon) })))
+
+onMounted(async () => {
+  try { settings.value = await contactsService.getLocationSettings() } catch { /* tetap memakai bawaan */ }
+})
 </script>
 
 <style scoped>
@@ -92,12 +92,14 @@ const nearbyPlaces = [
   text-decoration: none;
   backdrop-filter: blur(4px);
   border: 1px solid #E5E5E5;
-  transition: all 0.2s ease;
+  transition: background-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.map-float-btn:hover {
-  background: #FFFFFF;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+@media (hover: hover) and (pointer: fine) {
+  .map-float-btn:hover {
+    background: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
 }
 
 .map-btn-icon {

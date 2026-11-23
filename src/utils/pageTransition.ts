@@ -1,5 +1,6 @@
 import { createAnimation } from '@ionic/vue'
 import type { Animation } from '@ionic/vue'
+import { MOTION_EASE_OUT_CSS } from '@/utils/motionTokens'
 
 /**
  * Transisi halaman PoliLand: fade + slide halus (8px).
@@ -14,7 +15,7 @@ export function poliPageTransition(
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-  const root = createAnimation().duration(reduced ? 0 : 240).easing('cubic-bezier(0.22, 1, 0.36, 1)')
+  const root = createAnimation().duration(reduced ? 0 : 240).easing(MOTION_EASE_OUT_CSS)
 
   const entering = createAnimation()
     .addElement(opts.enteringEl)

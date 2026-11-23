@@ -1,4 +1,5 @@
 import { createAnimation } from '@ionic/vue'
+import { MOTION_EASE_DRAWER_CSS, MOTION_EASE_OUT_CSS } from '@/utils/motionTokens'
 // @ts-expect-error — builder internal Ionic tidak punya deklarasi tipe untuk path ini
 import { mdEnterAnimation } from '@ionic/core/dist/collection/components/modal/animations/md.enter.js'
 // @ts-expect-error — idem
@@ -7,12 +8,12 @@ import { mdLeaveAnimation } from '@ionic/core/dist/collection/components/modal/a
 /**
  * Animasi modal bersama untuk <IonModal> non-sheet.
  * Durasi & easing HARUS sama dengan AppModal.vue agar semua modal terasa konsisten.
- * Arah: selalu naik dari bawah ke atas. Enter 520ms (terlihat jelas), leave 340ms (lebih singkat).
+ * Arah: selalu naik dari bawah ke atas. Enter 500ms (terlihat jelas), leave 340ms (lebih singkat).
  */
-export const MODAL_ENTER_MS = 520
+export const MODAL_ENTER_MS = 500
 export const MODAL_LEAVE_MS = 340
-export const MODAL_ENTER_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)'
-export const MODAL_LEAVE_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)'
+export const MODAL_ENTER_EASING = MOTION_EASE_DRAWER_CSS
+export const MODAL_LEAVE_EASING = MOTION_EASE_OUT_CSS
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&

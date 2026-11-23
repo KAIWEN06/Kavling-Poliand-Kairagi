@@ -156,7 +156,51 @@ Bayangan digunakan secara halus untuk membedakan lapisan permukaan tanpa membuat
 3. **Umpan Balik Instan & Skeleton Loading**:
    - **Tactile Feedback**: Setiap penekanan tombol memberikan umpan balik visual instan (perubahan skala halus `scale(0.98)` / efek _ripple_ dan perubahan warna state).
    - **Skeleton Screen**: Saat memuat data dari Supabase (daftar kavling, profil, riwayat), tampilkan kerangka _skeleton loading_ yang menyerupai bentuk kartu asli, **bukan** layar kosong atau sekadar _spinner_ di tengah layar.
-   - **Transisi Halus**: Gunakan durasi animasi `150ms–250ms` (_ease-out_) untuk _bottom sheet_ dan transisi tab, serta patuhi preferensi sistem `prefers-reduced-motion`.
+   - **Transisi Halus**: Gunakan token gerak (lihat bagian 6.1): umumnya `160ms–240ms` dengan `--ease-out`, modal/bottom sheet `500ms` masuk dan `340ms` keluar, serta patuhi preferensi sistem `prefers-reduced-motion`.
+
+---
+
+## 6.1 Motion & Animasi
+
+Gerak dipakai untuk memberi umpan balik, menunjukkan asal-usul elemen, atau menghindari perubahan yang terasa melompat. Bukan untuk dekorasi pada elemen yang sering dilihat.
+
+### Token gerak (sumber tunggal: `src/theme/variables.css`)
+
+| Token            | Nilai                          | Penggunaan                                         |
+| :--------------- | :----------------------------- | :------------------------------------------------- |
+| `--ease-out`     | `cubic-bezier(0.22, 1, 0.36, 1)` | Standar untuk masuk, keluar, dan hover             |
+| `--ease-drawer`  | `cubic-bezier(0.32, 0.72, 0, 1)` | Modal dan sheet saat masuk                         |
+| `--ease-spring`  | `cubic-bezier(0.34, 1.4, 0.64, 1)` | Hanya untuk momen yang memang playful (mis. toast masuk) |
+| `--dur-instant`  | `90ms`                         | Umpan balik tekan (`:active`)                      |
+| `--dur-fast`     | `160ms`                        | Hover, perubahan warna, chip, tooltip kecil        |
+| `--dur-base`     | `240ms`                        | Dropdown, tab, transisi halaman, backdrop          |
+| `--dur-slow`     | `380ms`                        | Gerak ilustratif yang jarang dilihat               |
+
+Kode JS memakai cermin nilai yang sama di `src/utils/motionTokens.ts` (`MOTION_EASE_OUT`, `MOTION_EASE_DRAWER`). Ubah token CSS dan file ini bersamaan.
+
+### Aturan
+
+1. **Jangan menulis durasi atau kurva manual** (`0.2s ease`, `cubic-bezier(...)`). Pakai token di atas.
+2. **Dilarang `transition: all`.** Sebut properti satu per satu.
+3. **Keluar memakai `--ease-out`**, bukan `ease-in`. `ease-in` membuat awal gerak terasa lambat.
+4. **Gerak hover wajib dibungkus** `@media (hover: hover) and (pointer: fine)` agar tidak menempel di layar sentuh. `:active` tidak dibungkus.
+5. **Utamakan `transform` dan `opacity`.** Hindari menganimasikan `width`/`height`/`margin`/`padding` pada elemen baru.
+6. **Jangan mulai dari `scale(0)`.** Gunakan `scale(0.6–0.97)` dengan `opacity: 0`.
+7. **Tidak ada animasi** pada aksi lewat keyboard atau aksi yang dilakukan ratusan kali sehari.
+8. **Modal selalu naik dari bawah.** `AppModal.vue` dan `src/utils/modalAnimation.ts` harus memakai durasi yang sama: masuk `500ms` (`--ease-drawer`), keluar `340ms` (`--ease-out`).
+9. **Transisi halaman** dikelola oleh `src/utils/pageTransition.ts` (Ionic `navAnimation`): `240ms`, keluar `160ms`. Jangan menambah sistem transisi halaman kedua.
+
+### Entrance bertahap: `Reveal`
+
+`src/components/ui/Reveal.vue` memberi fade dan naik `10px` (`0.38s`, jeda `0.07s` per `order`). Aturan pemakaian:
+
+- Bungkus **1–3 blok teratas** halaman, bukan tiap baris daftar. Header halaman = `order` 0 (atau tidak dibungkus); blok berikutnya 1, 2, 3.
+- **Jangan membungkus** kontrol interaktif (pencarian, tab, chip, filter), elemen `sticky`/`absolute`/`grid-area`, atau blok yang bagian dari rantai `v-if`/`v-else`.
+- Terpasang di dashboard keempat role dan halaman utama Client, Marketing, Kepala Marketing, dan Admin. Halaman dengan struktur penuh kondisi (mis. Keuangan, Pembeli, Detail Pembeli, Akun Client) belum memakainya.
+
+### Reduced motion
+
+Aturan global di `src/styles/main.css`: animasi dipotong ke `0.01ms`; transisi yang tersisa hanya `opacity`, `visibility`, warna, `background-color`, `border-color`, `box-shadow`, `fill`, `stroke`. Gerak posisi dan scale menjadi instan. `Reveal` tidak dianimasikan, dan komponen JS memakai `useReducedMotion()`.
 
 ---
 
@@ -266,6 +310,7 @@ Sebelum menyelesaikan pembaruan UI/UX maupun fitur data:
 1. **Responsivitas & Ergonomi**: Uji tampilan pada lebar **375px** dan **430px**, pastikan tidak ada _horizontal overflow_, tombol minimal **44×44px**, dan _safe area_ bawah tidak menutupi aksi.
 2. **Kontras & Aksesibilitas**: Pastikan rasio kontras teks minimal **4.5:1**, `:focus-visible` terlihat jelas, dan state _loading/empty/error_ informatif.
 3. **Integritas Audit & Build**: Pastikan trigger audit berjalan akurat tanpa duplikasi, lalu jalankan validasi TypeScript (`vue-tsc`), _production build_, dan `git diff --check`.
+4. **Motion**: Tidak ada `transition: all`, durasi/kurva manual, `ease-in` pada UI, atau hover bergerak tanpa `@media (hover: hover) and (pointer: fine)` (lihat bagian 6.1).
 
 ---
 
@@ -1068,3 +1113,43 @@ Before modifying existing implementation:
 - Avoid duplicate triggers and duplicate audit services.
 - Do not assume a field or database relationship exists without checking the actual schema.
 - Run production build, TypeScript validation, and `git diff --check` after implementation.
+
+## 22. Motion Implementation
+
+This section records the implemented motion system. The rules and values match Bagian I, section 6.1.
+
+### Tokens
+
+Defined in `src/theme/variables.css`: `--ease-out`, `--ease-in`, `--ease-drawer`, `--ease-spring`, `--dur-instant` (90ms), `--dur-fast` (160ms), `--dur-base` (240ms), `--dur-slow` (380ms). JavaScript mirrors `--ease-out` and `--ease-drawer` in `src/utils/motionTokens.ts`; both must be updated together. `--ease-in` exists but is not used for UI exits.
+
+### Where motion lives
+
+| Concern                | File                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| Page transition        | `src/utils/pageTransition.ts` (registered in `src/main.ts`) |
+| Shared modal (Vue)     | `src/components/ui/AppModal.vue`                           |
+| Ionic modal and sheet  | `src/utils/modalAnimation.ts` (must match `AppModal.vue`)  |
+| Staggered entrance     | `src/components/ui/Reveal.vue`                             |
+| Reduced-motion global  | `src/styles/main.css`                                      |
+| JS reduced-motion      | `src/composables/useReducedMotion.ts`                      |
+| Toast                  | `src/components/ui/ToastHost.vue`                          |
+
+### Implemented conventions
+
+- No `transition: all`; hand-typed durations and easings on UI transitions were replaced with tokens. Loading spinners and skeleton shimmers keep their own `linear` and `ease-in-out` loops.
+- Hover motion across the app is wrapped in `@media (hover: hover) and (pointer: fine)`. Mixed selectors such as `:active, :hover` are split so `:active` still applies on touch.
+- Exits (toast, page leave, modal leave) use `--ease-out`.
+- Modal enter is 500ms with `--ease-drawer`; leave is 340ms with `--ease-out`.
+- The active tab indicator animates from `scale(0.6)`, not `scale(0)`.
+- `Reveal` is used on the dashboards and on the top blocks of the main Client, Marketing, Kepala Marketing, and Admin pages (`order` starts at 1 when the page header is not wrapped).
+
+### Known gaps
+
+- Progress and chart bars still animate layout properties: `ProgressPreview.vue` (`width`), `AdminKeuangan.vue` `.chart-bar` (`height`), `BerandaClientPage.vue` `.hero__fill` (`width`), `AdminDashboard.vue` `.inv__seg` (`width`), `BerandaMarketingPage.vue` `.funnel__seg` (`flex-grow`). Converting them to `scaleX`/`scaleY` distorts rounded corners, so they are left as is.
+- `SearchBox.vue` and `MobileTabBar.vue` (`.icon-wrap`) animate `width`, `height`, or `padding`.
+- `Reveal` is not applied to pages whose top level is a `v-if`/`v-else` chain: SPK Client, Akun Client, Detail Kaveling, Keuangan, Pembeli, Detail Pembeli, Reviews, Akses Tim, Tinjau SPK, Profile, Settings, Tambah Calon Pembeli, Tindak Lanjut.
+- Motion feel has not been checked on a physical device.
+
+### Review tooling
+
+Motion audits use the project skills in `.claude/skills/`: `find-animation-opportunities`, `improve-animations`, and `review-animations`. Run `review-animations` on any change that touches motion.

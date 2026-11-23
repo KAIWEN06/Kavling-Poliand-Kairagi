@@ -423,11 +423,13 @@ const handleDelete = async (item: ProgressItem) => {
   box-shadow: 0 3px 10px rgba(15, 23, 42, 0.03);
   margin-bottom: 14px;
   position: relative;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow var(--dur-base) var(--ease-out);
 }
 
-.progress-card:hover {
-  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.06);
+@media (hover: hover) and (pointer: fine) {
+  .progress-card:hover {
+    box-shadow: 0 5px 16px rgba(15, 23, 42, 0.06);
+  }
 }
 
 .admin-actions {
@@ -561,7 +563,7 @@ const handleDelete = async (item: ProgressItem) => {
   background: #556B2F;
   height: 100%;
   border-radius: 999px;
-  transition: width 0.5s ease;
+  transition: width var(--dur-slow) var(--ease-out);
 }
 
 /* Modal Custom Styling */
@@ -636,11 +638,13 @@ const handleDelete = async (item: ProgressItem) => {
   color: #6B6B6B;
   font-size: 11px;
   font-weight: 500;
-  transition: border-color 0.2s;
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
 
-.upload-box:hover {
-  border-color: #556B2F;
+@media (hover: hover) and (pointer: fine) {
+  .upload-box:hover {
+    border-color: #556B2F;
+  }
 }
 
 .upload-icon {

@@ -24,7 +24,6 @@
       </label>
 
       <div class="toolbar-controls">
-        <label class="visually-hidden" for="notes-category-filter">Filter kategori</label>
         <select id="notes-category-filter" v-model="categoryFilter">
           <option value="all">Semua kategori</option>
           <option v-for="category in categories" :key="category" :value="category">
@@ -850,8 +849,10 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.icon-button:hover {
-  background: var(--surface-muted);
+@media (hover: hover) and (pointer: fine) {
+  .icon-button:hover {
+    background: var(--surface-muted);
+  }
 }
 
 .note-menu-trigger {
@@ -1184,8 +1185,10 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.note-popover button:hover {
-  background: var(--surface-muted);
+@media (hover: hover) and (pointer: fine) {
+  .note-popover button:hover {
+    background: var(--surface-muted);
+  }
 }
 
 .note-popover ion-icon {

@@ -654,7 +654,9 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
-.icon-btn:hover { color: var(--danger-text); border-color: var(--status-danger); }
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover { color: var(--danger-text); border-color: var(--status-danger); }
+}
 .icon-btn:active { transform: scale(0.94); }
 .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -718,7 +720,9 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out);
 }
-.inv__refresh:hover { background: rgba(244, 241, 232, 0.1); }
+@media (hover: hover) and (pointer: fine) {
+  .inv__refresh:hover { background: rgba(244, 241, 232, 0.1); }
+}
 .inv__refresh:disabled { opacity: 0.6; cursor: progress; }
 .is-spinning { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -812,7 +816,9 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
-.row:hover { background: var(--surface-sunken); border-color: var(--border-strong); }
+@media (hover: hover) and (pointer: fine) {
+  .row:hover { background: var(--surface-sunken); border-color: var(--border-strong); }
+}
 .row:active { transform: scale(0.99); }
 .row__icon {
   display: grid;
@@ -837,7 +843,9 @@ onBeforeUnmount(() => {
 }
 .row__time { color: var(--text-secondary); font-size: var(--text-xs); white-space: nowrap; }
 .row__chev { color: var(--text-tertiary); font-size: 16px; transition: transform var(--dur-fast) var(--ease-out); }
-.row:hover .row__chev { transform: translateX(3px); }
+@media (hover: hover) and (pointer: fine) {
+  .row:hover .row__chev { transform: translateX(3px); }
+}
 
 @media (max-width: 479px) {
   .row { grid-template-columns: 40px minmax(0, 1fr) auto; }
@@ -900,7 +908,9 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
-.quick__item:hover:not(:disabled) { border-color: var(--green-500); box-shadow: var(--shadow-sm); }
+@media (hover: hover) and (pointer: fine) {
+  .quick__item:hover:not(:disabled) { border-color: var(--green-500); box-shadow: var(--shadow-sm); }
+}
 .quick__item:active:not(:disabled) { transform: scale(0.985); }
 .quick__item:disabled { opacity: 0.55; cursor: not-allowed; }
 .quick__icon {

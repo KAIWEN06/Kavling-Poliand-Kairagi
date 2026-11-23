@@ -1,4 +1,5 @@
 import { supabase } from './config/supabase'
+import { LOCATION_SETTINGS_KEY, normalizeLocationSettings, type LocationSettings } from '@/utils/locationSettings'
 
 export type DayKey =
   | 'monday'
@@ -97,6 +98,30 @@ export const contactsService = {
 
     if (error) throw error
     return (data ?? []) as ContactRecord[]
+  },
+
+  /** Simpan banyak pengaturan sekaligus (kunci unik). Dipakai panel Kontak dan teks ajakan di Beranda. */
+  async saveMany(entries: { key: string; label: string; value: string; icon?: string | null }[]): Promise<void> {
+    const now = new Date().toISOString()
+    const rows = entries.map((entry) => ({
+      key: entry.key,
+      label: entry.label,
+      value: entry.value.trim(),
+      ...(entry.icon !== undefined ? { icon: entry.icon } : {}),
+      updated_at: now,
+    }))
+    const { error } = await supabase.from('contacts').upsert(rows, { onConflict: 'key' })
+    if (error) throw error
+  },
+
+  async getLocationSettings(): Promise<LocationSettings> {
+    const { data, error } = await supabase.from('contacts').select('value').eq('key', LOCATION_SETTINGS_KEY).maybeSingle()
+    if (error) throw error
+    return normalizeLocationSettings(data?.value)
+  },
+
+  async saveLocationSettings(settings: LocationSettings): Promise<void> {
+    await this.saveMany([{ key: LOCATION_SETTINGS_KEY, label: 'Pengaturan Lokasi', value: JSON.stringify(settings), icon: 'location' }])
   },
 
   async getOperatingHours(): Promise<OperatingHoursConfig> {

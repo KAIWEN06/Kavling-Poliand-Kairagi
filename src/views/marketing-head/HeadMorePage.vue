@@ -1,21 +1,27 @@
 <template>
   <MarketingPageLayout title="Lainnya" tab-variant="head" :refreshable="false">
-    <section class="mk-intro">
-      <p>Kepala Bagian · Departemen Marketing</p>
-      <h1>{{ profile?.full_name || 'Kepala Bagian' }}</h1>
-    </section>
+    <Reveal :order="1">
+      <section class="mk-intro">
+        <p>Kepala Bagian · Departemen Marketing</p>
+        <h1>{{ profile?.full_name || 'Kepala Bagian' }}</h1>
+      </section>
+    </Reveal>
 
-    <nav class="mk-card mk-menu" aria-label="Menu Kepala Bagian Marketing">
-      <button v-for="item in items" :key="item.path" type="button" @click="router.push(item.path)">
-        <span><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></span>
-        <span aria-hidden="true">›</span>
-      </button>
-    </nav>
+    <Reveal :order="2">
+      <nav class="mk-card mk-menu" aria-label="Menu Kepala Bagian Marketing">
+        <button v-for="item in items" :key="item.path" type="button" @click="router.push(item.path)">
+          <span><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></span>
+          <span aria-hidden="true">›</span>
+        </button>
+      </nav>
+    </Reveal>
 
-    <section class="mk-card mk-scope">
-      <strong>Batas kewenangan</strong>
-      <p>Kepala Bagian Marketing dapat memantau seluruh tim, mengelola perkembangan klien, dan memberi arahan. Konfirmasi SPK, verifikasi pembayaran, perubahan nominal atau jadwal resmi, dan refund tetap menjadi kewenangan Admin.</p>
-    </section>
+    <Reveal :order="3">
+      <section class="mk-card mk-scope">
+        <strong>Batas kewenangan</strong>
+        <p>Kepala Bagian Marketing dapat memantau seluruh tim, mengelola perkembangan klien, dan memberi arahan. Konfirmasi SPK, verifikasi pembayaran, perubahan nominal atau jadwal resmi, dan refund tetap menjadi kewenangan Admin.</p>
+      </section>
+    </Reveal>
 
     <button type="button" class="mk-btn mk-btn--ghost mk-logout" :disabled="loggingOut" @click="logout">
       {{ loggingOut ? 'Keluar…' : 'Keluar dari akun' }}
@@ -25,6 +31,7 @@
 </template>
 
 <script setup lang="ts">
+import Reveal from '@/components/ui/Reveal.vue'
 import { onMounted, ref } from 'vue'
 import { useIonRouter } from '@ionic/vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'

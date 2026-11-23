@@ -2,7 +2,7 @@
   <div class="siteplan-preview-card">
     <div class="siteplan-header">
       <div>
-        <span class="eyebrow">SITEPLAN INTERAKTIF</span>
+        <span class="eyebrow">DENAH INTERAKTIF</span>
         <h3>Temukan Kaveling Anda</h3>
       </div>
       <ion-icon :icon="mapOutline" />
@@ -11,7 +11,7 @@
     <div class="mini-siteplan">
       <img
         :src="siteplanImage"
-        alt="Siteplan PoliLand Kairagi"
+        alt="Denah kavling PoliLand Kairagi"
         class="siteplan-image"
       />
       <div
@@ -28,7 +28,7 @@
     </div>
 
     <ion-button class="primary-button full-button" @click="$emit('goToSiteplan')">
-      Lihat Siteplan
+      Lihat Denah Kavling
       <ion-icon slot="end" :icon="arrowForwardOutline" />
     </ion-button>
   </div>

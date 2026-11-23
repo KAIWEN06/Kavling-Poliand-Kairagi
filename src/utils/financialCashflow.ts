@@ -132,3 +132,124 @@ function assertUniqueSources(entries: CashflowEntry[]): void {
     seen.add(source)
   }
 }
+
+/* ---------- Filter periode laporan: minggu / bulan / tahun ---------- */
+
+export type ReportGranularity = 'week' | 'month' | 'year'
+
+export interface ReportPeriod {
+  granularity: ReportGranularity
+  /** YYYY-MM-DD, inklusif */
+  start: string
+  /** YYYY-MM-DD, inklusif */
+  end: string
+  label: string
+}
+
+export interface CashflowBucket extends CashflowTotals {
+  key: string
+  label: string
+}
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
+const DAY_MS = 86_400_000
+
+// Seluruh perhitungan tanggal memakai UTC pada string YYYY-MM-DD agar tidak bergeser oleh zona waktu perangkat.
+function parseDay(value: string): Date {
+  if (!ISO_DAY.test(value)) throw new Error('Periode laporan tidak valid.')
+  const [y, m, d] = value.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d))
+}
+function formatDay(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+function addDays(value: string, days: number): string {
+  return formatDay(new Date(parseDay(value).getTime() + days * DAY_MS))
+}
+function addMonths(value: string, months: number): string {
+  const d = parseDay(value)
+  return formatDay(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + months, 1)))
+}
+
+export function currentMakassarDay(now = new Date()): string {
+  return currentMakassarDateTimeLocal(now).slice(0, 10)
+}
+
+const dayLabel = (value: string, options: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', ...options }).format(parseDay(value))
+
+/** Periode yang memuat tanggal `anchor`. Minggu dimulai hari Senin. */
+export function reportPeriod(granularity: ReportGranularity, anchor: string): ReportPeriod {
+  const date = parseDay(anchor)
+  if (granularity === 'week') {
+    const offset = (date.getUTCDay() + 6) % 7
+    const start = addDays(anchor, -offset)
+    const end = addDays(start, 6)
+    const sameYear = start.slice(0, 4) === end.slice(0, 4)
+    const from = dayLabel(start, sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' })
+    const to = dayLabel(end, { day: 'numeric', month: 'short', year: 'numeric' })
+    return { granularity, start, end, label: `${from} – ${to}` }
+  }
+  if (granularity === 'month') {
+    const start = `${anchor.slice(0, 7)}-01`
+    const end = addDays(addMonths(start, 1), -1)
+    return { granularity, start, end, label: dayLabel(start, { month: 'long', year: 'numeric' }) }
+  }
+  const year = anchor.slice(0, 4)
+  return { granularity, start: `${year}-01-01`, end: `${year}-12-31`, label: year }
+}
+
+export function shiftReportAnchor(granularity: ReportGranularity, anchor: string, delta: number): string {
+  if (granularity === 'week') return addDays(anchor, delta * 7)
+  if (granularity === 'month') return addMonths(`${anchor.slice(0, 7)}-01`, delta)
+  return `${Number(anchor.slice(0, 4)) + delta}-01-01`
+}
+
+export function previousPeriodNoun(granularity: ReportGranularity): string {
+  return granularity === 'week' ? 'minggu lalu' : granularity === 'month' ? 'bulan lalu' : 'tahun lalu'
+}
+
+export function postedCashflowForRange(entries: CashflowEntry[], start: string, end: string): CashflowEntry[] {
+  assertUniqueSources(entries)
+  return entries.filter((entry) => {
+    const day = entry.occurred_on.slice(0, 10)
+    return entry.status === 'posted' && day >= start && day <= end
+  })
+}
+
+/** Rentang data yang perlu dimuat: periode terpilih, periode pembanding, dan seluruh bucket tren. */
+export function reportLoadRange(period: ReportPeriod, anchor: string): { startDate: string; endDate: string } {
+  const previous = reportPeriod(period.granularity, shiftReportAnchor(period.granularity, anchor, -1))
+  const buckets = cashflowTrendBuckets(period, anchor)
+  const starts = [previous.start, period.start, ...buckets.map((b) => b.start)]
+  return { startDate: starts.sort()[0], endDate: period.end }
+}
+
+interface BucketSpec { key: string; label: string; start: string; end: string }
+
+/**
+ * Bucket tren per granularitas:
+ * minggu → 7 hari pada minggu itu, bulan → 6 bulan terakhir hingga bulan terpilih, tahun → 12 bulan pada tahun itu.
+ */
+export function cashflowTrendBuckets(period: ReportPeriod, anchor: string): BucketSpec[] {
+  if (period.granularity === 'week') {
+    return Array.from({ length: 7 }, (_, i) => {
+      const day = addDays(period.start, i)
+      return { key: day, label: dayLabel(day, { weekday: 'short' }), start: day, end: day }
+    })
+  }
+  const monthCount = period.granularity === 'year' ? 12 : 6
+  const lastMonth = period.granularity === 'year' ? `${period.start.slice(0, 4)}-12-01` : `${anchor.slice(0, 7)}-01`
+  return Array.from({ length: monthCount }, (_, i) => {
+    const start = addMonths(lastMonth, i - (monthCount - 1))
+    return { key: start.slice(0, 7), label: dayLabel(start, { month: 'short' }), start, end: addDays(addMonths(start, 1), -1) }
+  })
+}
+
+export function cashflowTrendForPeriod(entries: CashflowEntry[], period: ReportPeriod, anchor: string): CashflowBucket[] {
+  return cashflowTrendBuckets(period, anchor).map((bucket) => ({
+    key: bucket.key,
+    label: bucket.label,
+    ...summarizeCashflow(postedCashflowForRange(entries, bucket.start, bucket.end)),
+  }))
+}

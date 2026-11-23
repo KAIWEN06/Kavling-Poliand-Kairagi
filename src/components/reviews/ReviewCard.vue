@@ -183,7 +183,9 @@ const formattedDate = computed(() =>
   transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
 
-.helpful:hover:not(:disabled) { background: var(--surface-sunken); }
+@media (hover: hover) and (pointer: fine) {
+  .helpful:hover:not(:disabled) { background: var(--surface-sunken); }
+}
 .helpful--on { border-color: var(--poliland-green); background: var(--green-50); color: var(--poliland-green); }
 .helpful:disabled { opacity: 0.6; cursor: default; }
 
@@ -201,7 +203,9 @@ const formattedDate = computed(() =>
   cursor: pointer;
 }
 
-.report:hover { color: var(--danger-text); }
+@media (hover: hover) and (pointer: fine) {
+  .report:hover { color: var(--danger-text); }
+}
 
 .helpful:focus-visible,
 .report:focus-visible,

@@ -622,9 +622,11 @@ async function loginWithGoogle() {
     transform .15s ease;
 }
 
-.back-home-button:hover {
-  background: #B8860B;
-  color: #FFFFFF;
+@media (hover: hover) and (pointer: fine) {
+  .back-home-button:hover {
+    background: #B8860B;
+    color: #FFFFFF;
+  }
 }
 
 .back-home-button:active {
@@ -760,12 +762,19 @@ ion-input {
 }
 
 ion-input input:-webkit-autofill,
-ion-input input:-webkit-autofill:hover,
 ion-input input:-webkit-autofill:focus,
 ion-input input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px #fff inset !important;
   -webkit-text-fill-color: #77806f !important;
   background-clip: text !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  ion-input input:-webkit-autofill:hover {
+    -webkit-box-shadow: 0 0 0 30px #fff inset !important;
+    -webkit-text-fill-color: #77806f !important;
+    background-clip: text !important;
+  }
 }
 
 ion-input::part(native) {
@@ -1096,7 +1105,7 @@ ion-input.has-focus {
 
 .login-skeleton-fade-enter-active,
 .login-skeleton-fade-leave-active {
-  transition: opacity .25s ease;
+  transition: opacity var(--dur-base) var(--ease-out);
 }
 
 .login-skeleton-fade-enter-from,

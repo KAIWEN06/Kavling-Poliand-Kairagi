@@ -21,8 +21,6 @@
               <Skeleton width="85px" height="8px" border-radius="4px" />
             </div>
 
-            <div v-else class="filter-label">Filter kategori</div>
-
             <div v-if="isLoading" class="filter-scroll skeleton-filter-scroll">
               <Skeleton
                 v-for="i in 5"

@@ -261,13 +261,15 @@ defineEmits<{
   font-size: 20px;
 }
 
-.legend-toggle:hover {
-  background: #ffffff;
-
-  box-shadow:
-    0 10px 24px rgba(15, 23, 42, 0.16);
-
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .legend-toggle:hover {
+    background: #ffffff;
+  
+    box-shadow:
+      0 10px 24px rgba(15, 23, 42, 0.16);
+  
+    transform: translateY(-1px);
+  }
 }
 
 .legend-toggle:active {
@@ -443,10 +445,12 @@ defineEmits<{
   font-size: 17px;
 }
 
-.legend-close:hover {
-  background: #f3f4f6;
-
-  color: #111827;
+@media (hover: hover) and (pointer: fine) {
+  .legend-close:hover {
+    background: #f3f4f6;
+  
+    color: #111827;
+  }
 }
 
 
@@ -500,8 +504,10 @@ defineEmits<{
     background 150ms ease;
 }
 
-.legend-item:hover {
-  background: #f8fafc;
+@media (hover: hover) and (pointer: fine) {
+  .legend-item:hover {
+    background: #f8fafc;
+  }
 }
 
 

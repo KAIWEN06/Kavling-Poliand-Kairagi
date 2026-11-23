@@ -279,24 +279,27 @@ const socialItems = computed<SocialItem[]>(() => {
   return items
 })
 
-async function loadContacts() {
-  isLoading.value = true
+async function loadContacts(silent = false) {
+  // Skeleton hanya saat belum ada data; pull-to-refresh mempertahankan kontak yang sudah tampil.
+  if (!silent || contacts.value.length === 0) isLoading.value = true
   loadError.value = false
   try {
     contacts.value = await contactsService.getAll()
   } catch {
-    contacts.value = []
-    loadError.value = true
+    if (!silent) contacts.value = []
+    loadError.value = contacts.value.length === 0
   } finally {
     isLoading.value = false
   }
 }
 
 const handleRefresh = () => {
-  void loadContacts()
+  void loadContacts(true).finally(() => {
+    window.dispatchEvent(new CustomEvent('poliland:refresh-complete'))
+  })
 }
 
-onMounted(loadContacts)
+onMounted(() => loadContacts())
 window.addEventListener('poliland:refresh', handleRefresh)
 onBeforeUnmount(() => {
   window.removeEventListener('poliland:refresh', handleRefresh)
@@ -567,7 +570,7 @@ onBeforeUnmount(() => {
   background: #ffffff;
   text-decoration: none;
   box-shadow: 0 5px 18px rgba(26, 26, 26, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .social-card:active {

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="loading" class="mk-state" role="status">Memuat detail klien…</div>
+  <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail klien" />
   <div v-else-if="error" class="mk-state mk-state--error" role="alert">
     <strong>Detail klien belum dapat dimuat</strong>
     <span>{{ error }}</span>
@@ -303,7 +303,7 @@
     <!-- Modal: edit informasi -->
     <AppModal v-model="editModal" title="Ubah informasi klien" confirm-text="Simpan perubahan" :loading="saving" @confirm="saveEdit">
       <div class="mk-form">
-        <label class="mk-field"><span>Nama lengkap</span><input v-model="editForm.full_name" class="mk-input" /></label>
+        <label class="mk-field"><span>Nama lengkap</span><input v-model="editForm.full_name" data-input="name" class="mk-input" /></label>
         <div class="mk-filters">
           <label class="mk-field"><span>Nomor telepon</span><input v-model="editForm.phone" class="mk-input" inputmode="tel" /></label>
           <label class="mk-field"><span>WhatsApp</span><input v-model="editForm.whatsapp_phone" class="mk-input" inputmode="tel" /></label>
@@ -319,6 +319,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useIonRouter } from '@ionic/vue'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -376,6 +377,7 @@ const activeTab = ref<(typeof tabs)[number]['id']>('info')
 
 const detail = ref<ClientDetail | null>(null)
 const loading = ref(true)
+const loaded = ref(false)
 const error = ref('')
 const saving = ref(false)
 const formError = ref('')
@@ -420,10 +422,11 @@ function penaltyOf(schedule: any) {
 }
 
 async function load() {
-  loading.value = true
+  if (!loaded.value) loading.value = true
   error.value = ''
   try {
     detail.value = await getClientDetail(props.customerId)
+    loaded.value = true
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {
@@ -583,7 +586,11 @@ async function saveEdit() {
   }
 }
 
-watch(() => props.customerId, load)
+watch(() => props.customerId, () => {
+  loaded.value = false // klien berbeda → tampilkan skeleton, bukan data klien sebelumnya
+  detail.value = null
+  return load()
+})
 onMounted(load)
 defineExpose({ reload: load })
 </script>

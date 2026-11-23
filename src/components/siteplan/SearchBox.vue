@@ -1780,9 +1780,9 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 
   transition:
-    width 300ms cubic-bezier(0.22, 1, 0.36, 1),
-    padding 300ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 300ms ease-out;
+    width var(--dur-base) var(--ease-out),
+    padding var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
 
   will-change: width;
 }
@@ -2379,9 +2379,14 @@ onBeforeUnmount(() => {
   border-bottom: none;
 }
 
-.search-result.active,
-.search-result:hover {
+.search-result.active {
   background: #eff6ff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .search-result:hover {
+    background: #eff6ff;
+  }
 }
 
 .result-main {

@@ -66,7 +66,9 @@ defineProps<{
   font-weight: 600;
   text-decoration: none;
 }
-.ui-page-header__crumbs a:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) {
+  .ui-page-header__crumbs a:hover { text-decoration: underline; }
+}
 .ui-page-header__sep { color: var(--border-strong); }
 
 .ui-page-header__row {

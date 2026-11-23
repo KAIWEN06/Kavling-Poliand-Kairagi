@@ -1,3 +1,4 @@
+import { assertCustomerFields } from '@/utils/inputValidation'
 /**
  * Service data bersama Marketing & Kepala Bagian Marketing.
  *
@@ -377,7 +378,7 @@ export interface EditableClientFields {
 }
 
 export async function updateClientInfo(customerId: number, fields: EditableClientFields) {
-  if (!fields.full_name.trim()) throw new Error('Nama klien wajib diisi.')
+  assertCustomerFields(fields)
   if (!fields.phone?.trim() && !fields.whatsapp_phone?.trim()) throw new Error('Nomor kontak atau WhatsApp wajib diisi.')
   // marketing_id, user_id, registration_source sengaja tidak dikirim (dijaga trigger DB).
   const { error } = await supabase.from('customers').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', customerId)

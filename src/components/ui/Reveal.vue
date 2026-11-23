@@ -11,7 +11,7 @@
     class="ui-reveal"
     :initial="{ opacity: 0, y: distance }"
     :animate="{ opacity: 1, y: 0 }"
-    :transition="{ duration: 0.38, delay: order * step, ease: [0.22, 1, 0.36, 1] }"
+    :transition="{ duration: 0.38, delay: order * step, ease: MOTION_EASE_OUT }"
   >
     <slot />
   </motion.div>
@@ -20,6 +20,7 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
 import { useReducedMotion } from '@/composables/useReducedMotion'
+import { MOTION_EASE_OUT } from '@/utils/motionTokens'
 
 /**
  * Entrance bertahap. Beri `order` 0,1,2... pada blok utama halaman:

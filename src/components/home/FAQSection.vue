@@ -6,7 +6,7 @@
 
       <div class="faq-header">
         <div>
-          <h2>FAQ</h2>
+          <h2>Pertanyaan Umum</h2>
           <span class="faq-line"></span>
         </div>
       </div>

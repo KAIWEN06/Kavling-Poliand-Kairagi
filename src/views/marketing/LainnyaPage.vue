@@ -4,12 +4,14 @@
 
     <ion-content :fullscreen="true">
       <main class="more-shell">
-        <section class="quick-grid" aria-label="Menu Marketing">
-          <button v-for="action in actions" :key="action.label" type="button" class="quick-card" :class="`quick-card--${action.tone}`" @click="router.push(action.route)">
-            <span class="quick-icon"><ion-icon :icon="action.icon" aria-hidden="true" /></span>
-            <strong>{{ action.label }}</strong>
-          </button>
-        </section>
+        <Reveal :order="1">
+          <section class="quick-grid" aria-label="Menu Marketing">
+            <button v-for="action in actions" :key="action.label" type="button" class="quick-card" :class="`quick-card--${action.tone}`" @click="router.push(action.route)">
+              <span class="quick-icon"><ion-icon :icon="action.icon" aria-hidden="true" /></span>
+              <strong>{{ action.label }}</strong>
+            </button>
+          </section>
+        </Reveal>
       </main>
     </ion-content>
 
@@ -18,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+import Reveal from '@/components/ui/Reveal.vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { documentTextOutline, personOutline, walletOutline, cashOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
@@ -39,8 +42,10 @@ const actions: QuickAction[] = [
 .more-shell { min-height: 100%; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); background: var(--app-background); }
 .quick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .quick-card { position: relative; display: flex; min-height: 142px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 13px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
-.quick-card:hover { border-color: var(--poliland-green); }
-.quick-card:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .quick-card:hover { border-color: var(--poliland-green); }
+
+}.quick-card:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .quick-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-secondary); font-size: 20px; }
 .quick-card strong { font-size: 13px; line-height: 1.3; }
 .quick-card--green .quick-icon { background: var(--status-success-bg); color: var(--poliland-green); }

@@ -587,19 +587,9 @@ function isActive(path: string) {
   -webkit-tap-highlight-color: transparent;
 
   transition:
-    color 260ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    ),
+    color 260ms var(--ease-out),
 
-    transform 260ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    );
+    transform 260ms var(--ease-out);
 }
 
 .nav-item:focus-visible {
@@ -625,40 +615,15 @@ function isActive(path: string) {
   border-radius: 50%;
 
   transition:
-    width 320ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    ),
+    width var(--dur-base) var(--ease-out),
 
-    height 320ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    ),
+    height var(--dur-base) var(--ease-out),
 
-    transform 320ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    ),
+    transform var(--dur-base) var(--ease-out),
 
-    background 320ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    ),
+    background var(--dur-base) var(--ease-out),
 
-    box-shadow 320ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    );
+    box-shadow var(--dur-base) var(--ease-out);
 }
 
 
@@ -666,12 +631,7 @@ function isActive(path: string) {
   font-size: 21px;
 
   transition:
-    transform 300ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    ),
+    transform 300ms var(--ease-out),
 
     color 260ms ease,
 
@@ -693,12 +653,7 @@ function isActive(path: string) {
   transform: translateY(0);
 
   transition:
-    transform 300ms cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    ),
+    transform 300ms var(--ease-out),
 
     opacity 220ms ease,
 
@@ -770,13 +725,8 @@ function isActive(path: string) {
 
   animation:
     active-dot-in
-    320ms
-    cubic-bezier(
-      0.22,
-      1,
-      0.36,
-      1
-    );
+    var(--dur-base)
+    var(--ease-out);
 }
 
 
@@ -843,9 +793,11 @@ function isActive(path: string) {
     font-size: var(--text-md);
   }
 
+  @media (hover: hover) and (pointer: fine) {
   .nav-item:hover {
-    background: var(--surface-muted);
-  }
+      background: var(--surface-muted);
+    }
+}
 
   .nav-item.active {
     background: var(--green-100);
@@ -884,7 +836,7 @@ function isActive(path: string) {
 
     transform:
       translateX(-50%)
-      scale(0);
+      scale(0.6);
   }
 
   70% {

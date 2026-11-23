@@ -153,7 +153,7 @@ async function registerWithGoogle() {
             <form class="register-form" @submit.prevent="submitRegistration">
               <div class="input-wrap">
                 <AppInput
-                  v-model="fullName"
+                  v-model="fullName" data-input="name"
                   input-id="full-name"
                   label="Nama Lengkap"
                   placeholder="Masukkan nama lengkap..."
@@ -316,9 +316,11 @@ async function registerWithGoogle() {
     transform .15s ease;
 }
 
-.back-home-button:hover {
-  background: #B8860B;
-  color: #FFFFFF;
+@media (hover: hover) and (pointer: fine) {
+  .back-home-button:hover {
+    background: #B8860B;
+    color: #FFFFFF;
+  }
 }
 
 .back-home-button:active {

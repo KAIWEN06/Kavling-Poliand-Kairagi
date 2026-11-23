@@ -13,7 +13,7 @@
       </select>
     </label>
 
-    <div v-if="loading" class="mk-state" role="status">Memuat data pembayaran…</div>
+    <SkeletonRowList v-if="loading" :rows="5" :fields="3" :badges="[3]" label="Memuat data pembayaran" />
     <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Data belum dapat dimuat</strong><span>{{ error }}</span></div>
 
     <!-- Pembayaran -->
@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, onMounted, ref } from 'vue'
 import StatCard from '@/components/ui/StatCard.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -104,6 +105,7 @@ const payments = ref<any[]>([])
 const schedules = ref<any[]>([])
 const members = ref<TeamMember[]>([])
 const loading = ref(true)
+const loaded = ref(false)
 const error = ref('')
 const marketingId = ref('')
 const payStatus = ref('')
@@ -158,13 +160,14 @@ function memberName(id: string | null) {
 }
 
 async function load() {
-  loading.value = true
+  if (!loaded.value) loading.value = true
   error.value = ''
   try {
     const [p, s, team] = await Promise.all([listPayments(), listInstallmentSchedules(), getTeamMembers()])
     payments.value = p
     schedules.value = s
     members.value = team
+    loaded.value = true
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {

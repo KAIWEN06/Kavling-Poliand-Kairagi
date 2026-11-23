@@ -9,32 +9,34 @@
       <div class="kv-page">
         
         <!-- SITEPLAN (komponen yang sama dengan beranda) -->
-        <section class="kv-siteplan" aria-labelledby="siteplan-heading">
-          <div class="kv-map-head">
-            <h2 id="siteplan-heading">
-              <ion-icon :icon="mapOutline" aria-hidden="true" />
-              Siteplan PoliLand
-            </h2>
-          </div>
-
-          <div class="kv-siteplan-card">
-            <div class="kv-mini-siteplan">
-              <img :src="siteplanImage" alt="Siteplan PoliLand Kairagi" class="kv-siteplan-image" />
-              <div ref="siteplanLayer" class="kv-siteplan-layer" v-html="siteplanSvg" />
+        <Reveal :order="1">
+          <section class="kv-siteplan" aria-labelledby="siteplan-heading">
+            <div class="kv-map-head">
+              <h2 id="siteplan-heading">
+                <ion-icon :icon="mapOutline" aria-hidden="true" />
+                Siteplan PoliLand
+              </h2>
             </div>
-
-            <div class="kv-siteplan-legend" aria-label="Legenda status kaveling">
-              <span><i class="available"></i>Tersedia</span>
-              <span><i class="booking"></i>Dipesan</span>
-              <span><i class="sold"></i>Terjual</span>
+  
+            <div class="kv-siteplan-card">
+              <div class="kv-mini-siteplan">
+                <img :src="siteplanImage" alt="Siteplan PoliLand Kairagi" class="kv-siteplan-image" />
+                <div ref="siteplanLayer" class="kv-siteplan-layer" v-html="siteplanSvg" />
+              </div>
+  
+              <div class="kv-siteplan-legend" aria-label="Legenda status kaveling">
+                <span><i class="available"></i>Tersedia</span>
+                <span><i class="booking"></i>Dipesan</span>
+                <span><i class="sold"></i>Terjual</span>
+              </div>
+  
+              <AppButton variant="primary" expand="block" class="kv-siteplan-button" @click="openFullMap">
+                Lihat Siteplan
+                <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
+              </AppButton>
             </div>
-
-            <AppButton variant="primary" expand="block" class="kv-siteplan-button" @click="openFullMap">
-              Lihat Siteplan
-              <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
-            </AppButton>
-          </div>
-        </section>
+          </section>
+        </Reveal>
 
 
         <!-- SEARCH -->
@@ -175,16 +177,7 @@
         </div>
 
         <!-- LOADING -->
-        <div v-if="loading" class="kv-state" role="status" aria-live="polite">
-          <img
-            :src="loadingMascot"
-            alt=""
-            class="kv-state-mascot"
-            aria-hidden="true"
-          />
-          <ion-spinner name="crescent" />
-          <strong>Memuat data kaveling…</strong>
-        </div>
+        <SkeletonLotList v-if="loading" :count="4" />
 
         <!-- ERROR -->
         <div v-else-if="loadError" class="kv-state" role="alert">
@@ -353,6 +346,8 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonLotList from '@/components/ui/skeletons/SkeletonLotList.vue'
+import Reveal from '@/components/ui/Reveal.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import {
   IonPage,
@@ -386,7 +381,6 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import siteplanImage from '@/assets/siteplan/Siteplan.png'
 import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
-import loadingMascot from '@/assets/mascot/Chibi_House_Mascot_Exploring.png'
 import errorMascot from '@/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error.png'
 import emptyMascot from '@/assets/mascot/Mascot_No_Data_Scene.png'
 import { useSiteplan } from '@/composables/useSiteplant'
@@ -961,7 +955,7 @@ function openFullMap() {
 }
 
 function openSurveyRequests(status: 'pending' | 'confirmed') {
-  ionRouter.push(`/admin/konten?tab=surveys&status=${status}`)
+  ionRouter.push(`/admin/survei?status=${status}`)
 }
 
 function openDetail(id: number) {
@@ -1808,10 +1802,12 @@ h2 {
   color: #fff;
 }
 
-.kv-pager-btn:not(:disabled):hover,
-.kv-pager-number:not(:disabled):not(.active):hover {
-  border-color: var(--poliland-green);
-  background: var(--status-success-bg);
+@media (hover: hover) and (pointer: fine) {
+  .kv-pager-btn:not(:disabled):hover,
+  .kv-pager-number:not(:disabled):not(.active):hover {
+    border-color: var(--poliland-green);
+    background: var(--status-success-bg);
+  }
 }
 
 .kv-pager-btn:disabled,

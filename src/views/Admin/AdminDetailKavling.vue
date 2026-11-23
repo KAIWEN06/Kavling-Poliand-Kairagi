@@ -1114,9 +1114,11 @@ const tabs: { key: TabKey; label: string }[] = [
   transition: background-color 150ms ease-out, border-color 150ms ease-out;
 }
 
-.day-arrow:hover {
-  border-color: var(--poliland-green, #355a2c);
-  background: var(--surface-primary, #ffffff);
+@media (hover: hover) and (pointer: fine) {
+  .day-arrow:hover {
+    border-color: var(--poliland-green, #355a2c);
+    background: var(--surface-primary, #ffffff);
+  }
 }
 
 .day-arrow:focus-visible,
@@ -1148,11 +1150,13 @@ const tabs: { key: TabKey; label: string }[] = [
   color: var(--text-primary, #252525);
   font-family: inherit;
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.quick-date-chip:hover {
-  border-color: color-mix(in srgb, var(--poliland-green, #355a2c) 45%, var(--border-default, #eae7e0));
+@media (hover: hover) and (pointer: fine) {
+  .quick-date-chip:hover {
+    border-color: color-mix(in srgb, var(--poliland-green, #355a2c) 45%, var(--border-default, #eae7e0));
+  }
 }
 
 .quick-date-chip.active {
@@ -1275,12 +1279,14 @@ const tabs: { key: TabKey; label: string }[] = [
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.time-slot:hover {
-  border-color: var(--poliland-green, #355a2c);
-  background: var(--surface-primary, #ffffff);
+@media (hover: hover) and (pointer: fine) {
+  .time-slot:hover {
+    border-color: var(--poliland-green, #355a2c);
+    background: var(--surface-primary, #ffffff);
+  }
 }
 
 .time-slot.selected {

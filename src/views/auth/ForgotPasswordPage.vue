@@ -462,9 +462,11 @@ ion-card-content {
     transform .15s ease;
 }
 
-.back-home-button:hover {
-  background: #B8860B;
-  color: #FFFFFF;
+@media (hover: hover) and (pointer: fine) {
+  .back-home-button:hover {
+    background: #B8860B;
+    color: #FFFFFF;
+  }
 }
 
 .back-home-button:active {

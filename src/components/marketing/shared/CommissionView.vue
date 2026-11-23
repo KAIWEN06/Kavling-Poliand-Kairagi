@@ -1,6 +1,9 @@
 <template>
   <section class="mk-section">
-    <div v-if="loading" class="mk-state" role="status">Memuat komisi…</div>
+    <template v-if="loading">
+      <SkeletonStatGrid :count="4" label="Memuat komisi" />
+      <SkeletonRowList :rows="4" :fields="3" :badges="[3]" />
+    </template>
     <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Komisi belum dapat dimuat</strong><span>{{ error }}</span></div>
 
     <template v-else>
@@ -57,6 +60,8 @@
 </template>
 
 <script setup lang="ts">
+import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
+import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, onMounted, ref } from 'vue'
 import StatCard from '@/components/ui/StatCard.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -69,6 +74,7 @@ const isHead = computed(() => props.role === 'head')
 const all = ref<any[]>([])
 const members = ref<TeamMember[]>([])
 const loading = ref(true)
+const loaded = ref(false)
 const error = ref('')
 
 const rows = computed(() => all.value.filter((r) => r.status !== 'Cancelled'))
@@ -91,12 +97,13 @@ function memberName(id: string) {
 }
 
 async function load() {
-  loading.value = true
+  if (!loaded.value) loading.value = true
   error.value = ''
   try {
     const [comm, team] = await Promise.all([listCommissions(), getTeamMembers()])
     all.value = comm
     members.value = team
+    loaded.value = true
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {
