@@ -29,7 +29,7 @@
 
           <div class="detail-tabs" role="tablist" aria-label="Detail customer">
             <button type="button" :class="{ active: activeTab === 'summary' }" @click="activeTab = 'summary'">Informasi</button>
-            <button type="button" :class="{ active: activeTab === 'lots' }" @click="activeTab = 'lots'">Kavling ({{ customer.interests.length + customer.transactions.length }})</button>
+            <button type="button" :class="{ active: activeTab === 'lots' }" @click="activeTab = 'lots'">Kaveling ({{ customer.interests.length + customer.transactions.length }})</button>
             <button type="button" :class="{ active: activeTab === 'notes' }" @click="activeTab = 'notes'">Catatan</button>
           </div>
 
@@ -40,7 +40,7 @@
               <div class="personal-info-item"><dt>WhatsApp</dt><dd>{{ customer.whatsapp_phone || customer.phone || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Email</dt><dd>{{ customer.email || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Alamat</dt><dd>{{ customer.address || 'Belum tercatat' }}</dd></div>
-              <div class="personal-info-item"><dt>Asal data client</dt><dd>{{ customer.registrationSource || 'Belum tercatat' }}</dd></div>
+              <div class="personal-info-item"><dt>Asal data klien</dt><dd>{{ customer.registrationSource || 'Belum tercatat' }}</dd></div>
               <div v-if="customer.marketingName" class="personal-info-item"><dt>Marketing</dt><dd>{{ customer.marketingName }}</dd></div>
             </dl>
           </section>
@@ -50,7 +50,7 @@
             <section class="detail-card" aria-labelledby="interest-title">
               <div class="card-head">
                 <div>
-                  <h2 id="interest-title">Kavling yang Diminati</h2>
+                  <h2 id="interest-title">Kaveling yang Diminati</h2>
                   <p class="head-sub">Daftar minat awal customer</p>
                 </div>
                 <AppButton size="small" variant="primary" @click="openInterestForm">
@@ -61,10 +61,10 @@
               <div v-if="!customer.interests.length" class="empty-box">
                 <img
                   src="/src/assets/mascot/Worried_BeeHouseMascotwithClipboard-Map.png"
-                  alt="Mascot PoliLand sedang memeriksa peta kavling"
+                  alt="Mascot PoliLand sedang memeriksa peta kaveling"
                   class="empty-mascot"
                 />
-                <p class="muted">Belum ada kavling yang diminati. Admin dapat menambahkannya.</p>
+                <p class="muted">Belum ada kaveling yang diminati. Admin dapat menambahkannya.</p>
               </div>
 
               <div v-else class="lot-cards-list">
@@ -93,7 +93,7 @@
                       <strong>{{ interest.dimension }}</strong>
                     </div>
                     <div v-if="interest.price !== null" class="lot-detail-cell">
-                      <span class="lot-detail-label">Harga kavling</span>
+                      <span class="lot-detail-label">Harga kaveling</span>
                       <strong class="lot-card-price">
                         {{ formatCurrency(interest.price) }}
                       </strong>
@@ -115,13 +115,13 @@
                         class="btn-nav-lot"
                         @click="router.push({ name: 'AdminKavlingDetail', params: { id: interest.lotId } })"
                       >
-                        Lihat Kavling
+                        Lihat Kaveling
                         <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
                       </button>
                       <button
                         type="button"
                         class="btn-remove-lot"
-                        aria-label="Hapus kavling dari minat"
+                        aria-label="Hapus kaveling dari minat"
                         @click="removeCustomerInterest(interest.id)"
                       >
                         <ion-icon :icon="trashOutline" aria-hidden="true" />
@@ -134,39 +134,39 @@
               <!-- Form Tambah Minat Kavling -->
               <form v-if="interestFormOpen" class="interest-form" @submit.prevent="addCustomerInterest">
                 <div class="lot-picker-head">
-                  <label for="interest-lot-search">Cari kavling tersedia</label>
+                  <label for="interest-lot-search">Cari kaveling tersedia</label>
                   <input
                     id="interest-lot-search"
                     v-model="interestSearch"
                     type="search"
-                    placeholder="Ketik nomor kavling atau blok..."
+                    placeholder="Ketik nomor kaveling atau blok..."
                     autocomplete="off"
                   />
                 </div>
 
                 <div v-if="interestLotsLoading" class="lot-picker-state" role="status">
                   <ion-spinner name="crescent" />
-                  <span>Memuat kavling tersedia...</span>
+                  <span>Memuat kaveling tersedia...</span>
                 </div>
 
                 <div v-else-if="interestLotsError" class="lot-picker-state lot-picker-error" role="alert">
-                  <strong>Kavling tersedia gagal dimuat</strong>
+                  <strong>Kaveling tersedia gagal dimuat</strong>
                   <span>{{ interestLotsError }}</span>
                   <button type="button" @click="openInterestForm">Coba lagi</button>
                 </div>
 
                 <div v-else-if="!availableLots.length" class="lot-picker-state">
-                  <strong>Belum ada kavling tersedia</strong>
-                  <span>Semua kavling sedang dipesan atau sudah terjual.</span>
+                  <strong>Belum ada kaveling tersedia</strong>
+                  <span>Semua kaveling sedang dipesan atau sudah terjual.</span>
                 </div>
 
                 <div v-else-if="!filteredAvailableLots.length" class="lot-picker-state">
-                  <strong>Kavling tidak ditemukan</strong>
-                  <span>Coba kata kunci nomor kavling atau blok lain.</span>
+                  <strong>Kaveling tidak ditemukan</strong>
+                  <span>Coba kata kunci nomor kaveling atau blok lain.</span>
                 </div>
 
                 <fieldset v-else class="lot-picker-list">
-                  <legend>Pilih satu atau beberapa kavling ({{ interestForm.lot_ids.length }} dipilih)</legend>
+                  <legend>Pilih satu atau beberapa kaveling ({{ interestForm.lot_ids.length }} dipilih)</legend>
                   <label
                     v-for="lot in filteredAvailableLots"
                     :key="lot.id"
@@ -174,7 +174,7 @@
                   >
                     <input v-model="interestForm.lot_ids" type="checkbox" name="interest-lots" :value="lot.id" />
                     <span class="lot-picker-copy">
-                      <strong>Kavling {{ lot.lot_number }}</strong>
+                      <strong>Kaveling {{ lot.lot_number }}</strong>
                       <span>{{ blockLabel(lot.blocks) }} · {{ lot.dimension || 'Dimensi belum tercatat' }}</span>
                     </span>
                     <span class="lot-picker-price">{{ formatLotPrice(lot) }}</span>
@@ -209,7 +209,7 @@
               <div class="card-head">
                 <div>
                   <h2 id="transaction-title">Transaksi & Pembayaran</h2>
-                  <p class="head-sub">Kavling yang sudah di-booking atau dibeli</p>
+                  <p class="head-sub">Kaveling yang sudah di-booking atau dibeli</p>
                 </div>
               </div>
 
@@ -219,7 +219,7 @@
                   alt="Mascot PoliLand sedih belum ada transaksi"
                   class="empty-mascot"
                 />
-                <p class="muted">Belum ada transaksi transaksi kavling tercatat.</p>
+                <p class="muted">Belum ada transaksi transaksi kaveling tercatat.</p>
               </div>
 
               <div v-else class="payment-list">
@@ -238,10 +238,10 @@
                         v-if="transaction.lotId"
                         type="button"
                         class="btn-nav-lot-sm"
-                        title="Buka Halaman Detail Kavling"
+                        title="Buka Halaman Detail Kaveling"
                         @click="router.push({ name: 'AdminKavlingDetail', params: { id: transaction.lotId } })"
                       >
-                        Detail Kavling
+                        Detail Kaveling
                         <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
                       </button>
                     </div>
@@ -355,7 +355,7 @@
                   {{ usage.label }} ({{ usage.count }})
                 </li>
               </ul>
-              <p>Data minat, catatan, tindak lanjut, transaksi, pembayaran, dan hubungan kavling yang sudah tercatat tidak akan dihapus.</p>
+              <p>Data minat, catatan, tindak lanjut, transaksi, pembayaran, dan hubungan kaveling yang sudah tercatat tidak akan dihapus.</p>
             </div>
           </div>
         </div>
@@ -470,7 +470,7 @@ async function openInterestForm() {
     interestForm.payment_type = 'Cash'
     interestFormOpen.value = true
   } catch (error) {
-    interestLotsError.value = error instanceof Error ? error.message : 'Daftar kavling tersedia gagal dimuat.'
+    interestLotsError.value = error instanceof Error ? error.message : 'Daftar kaveling tersedia gagal dimuat.'
     interestFormOpen.value = true
   } finally {
     interestLotsLoading.value = false
@@ -519,12 +519,12 @@ async function addCustomerInterest() {
 }
 
 async function removeCustomerInterest(id: number) {
-  if (!window.confirm('Hapus kavling ini dari daftar minat customer?')) return
+  if (!window.confirm('Hapus kaveling ini dari daftar minat customer?')) return
   try {
     await customerService.removeInterest(id)
     await loadCustomer()
   } catch (error) {
-    interestError.value = error instanceof Error ? error.message : 'Kavling gagal dihapus.'
+    interestError.value = error instanceof Error ? error.message : 'Kaveling gagal dihapus.'
   }
 }
 

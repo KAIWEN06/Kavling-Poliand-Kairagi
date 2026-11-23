@@ -180,3 +180,12 @@ export async function updateNotaryProgress(
 
   fail(historyError)
 }
+
+export async function payMarketingCommission(commissionId: number, bankReference: string) {
+  const { error } = await supabase.rpc('admin_pay_marketing_commission', {
+    p_commission_id: commissionId,
+    p_bank_reference: bankReference.trim() || null,
+    p_paid_at: new Date().toISOString(),
+  })
+  if (error) throw new Error(error.message)
+}

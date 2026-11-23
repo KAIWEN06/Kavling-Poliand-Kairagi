@@ -119,11 +119,11 @@ export function calculateInstallment(input: {
   }
 
   if (finalPrice <= 0) {
-    throw new Error("Harga final kavling harus lebih besar dari 0.");
+    throw new Error("Harga final kaveling harus lebih besar dari 0.");
   }
 
   if (downPayment > finalPrice) {
-    throw new Error("DP tidak boleh lebih besar dari harga final kavling.");
+    throw new Error("DP tidak boleh lebih besar dari harga final kaveling.");
   }
 
   const principalAmount = finalPrice - downPayment;

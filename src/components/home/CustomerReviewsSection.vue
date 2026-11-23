@@ -1,7 +1,7 @@
 <template>
   <section id="ulasan-client" class="reviews-band" aria-labelledby="reviews-heading">
     <div class="container">
-      <h2 id="reviews-heading" class="heading">Ulasan Client</h2>
+      <h2 id="reviews-heading" class="heading">Ulasan Klien</h2>
       <p class="subheading">Pengalaman dan cerita mereka bersama PoliLand Kairagi.</p>
 
       <div class="summary-wrap">
@@ -12,7 +12,7 @@
       <div class="controls">
         <p class="showing" aria-live="polite">
           <template v-if="!loading || total > 0">
-            Menampilkan <span class="strong">{{ formatNumber(total) }}</span> ulasan client
+            Menampilkan <span class="strong">{{ formatNumber(total) }}</span> ulasan klien
           </template>
         </p>
         <div class="selects">
@@ -48,7 +48,7 @@
           </template>
           <template v-else>
             <strong>Belum ada ulasan yang dipublikasikan.</strong>
-            Jadilah client pertama yang membagikan pengalaman bersama PoliLand Kairagi.
+            Jadilah klien pertama yang membagikan pengalaman bersama PoliLand Kairagi.
             <button type="button" class="link" @click="openForm()">Tulis ulasan pertama</button>
           </template>
         </div>
@@ -98,7 +98,7 @@
         </div>
 
         <div v-else-if="!writer.isClient" class="gate" role="status">
-          <p>Ulasan hanya dapat dikirim menggunakan akun Client.</p>
+          <p>Ulasan hanya dapat dikirim menggunakan akun Klien.</p>
           <button type="button" class="btn btn--neutral" @click="formOpen = false">Tutup</button>
         </div>
 

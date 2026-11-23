@@ -226,7 +226,7 @@ export async function getClientDetail(customerId: number): Promise<ClientDetail>
     .eq('id', customerId)
     .maybeSingle()
   if (error) fail(error)
-  if (!customer) throw new Error('Client tidak ditemukan atau bukan tanggung jawab Anda.')
+  if (!customer) throw new Error('Klien tidak ditemukan atau bukan tanggung jawab Anda.')
 
   const [crmRes, followRes, notesRes, spkRes, txRes, payRes, cancelRes] = await Promise.all([
     supabase.from('customer_crm_status_history').select('*').eq('customer_id', customerId).order('created_at', { ascending: false }),
@@ -377,7 +377,7 @@ export interface EditableClientFields {
 }
 
 export async function updateClientInfo(customerId: number, fields: EditableClientFields) {
-  if (!fields.full_name.trim()) throw new Error('Nama client wajib diisi.')
+  if (!fields.full_name.trim()) throw new Error('Nama klien wajib diisi.')
   if (!fields.phone?.trim() && !fields.whatsapp_phone?.trim()) throw new Error('Nomor kontak atau WhatsApp wajib diisi.')
   // marketing_id, user_id, registration_source sengaja tidak dikirim (dijaga trigger DB).
   const { error } = await supabase.from('customers').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', customerId)

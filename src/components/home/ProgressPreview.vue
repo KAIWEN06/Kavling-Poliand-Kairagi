@@ -6,13 +6,13 @@
       <div v-if="isAdmin" class="ion-text-right ion-margin-bottom">
         <ion-button class="btn-primary-custom" @click="handleOpenAddModal">
           <ion-icon slot="start" :icon="addOutline"></ion-icon>
-          Tambah Progress
+          Tambah Kemajuan
         </ion-button>
       </div>
 
       <!-- Judul Bagian -->
       <div class="section-header ion-text-center">
-        <h2>Progress Pembangunan</h2>
+        <h2>Kemajuan Pembangunan</h2>
         <p>Laporan transparan perkembangan pembangunan perumahan kami secara berkala.</p>
       </div>
 
@@ -98,7 +98,7 @@
 
           <form @submit.prevent="handleSubmit" class="modal-form">
             <div class="form-group">
-              <label class="form-label">Judul Progress</label>
+              <label class="form-label">Judul Kemajuan</label>
               <ion-input required v-model="formData.title" class="custom-input"></ion-input>
             </div>
 
@@ -123,7 +123,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Foto Progress (Maks 5 MB)</label>
+              <label class="form-label">Foto Kemajuan (Maks 5 MB)</label>
               <div class="upload-box" @click="triggerFileInput">
                 <ion-icon :icon="cloudUploadOutline" class="upload-icon"></ion-icon>
                 <span>{{ selectedFile ? selectedFile.name : 'Pilih Foto dari Perangkat' }}</span>
@@ -224,7 +224,7 @@ async function fetchProgress(forceRefresh = false) {
     progressItems.value = data || []
     return data || []
   } catch (err) {
-    console.error('Gagal memuat progress:', err)
+    console.error('Gagal memuat kemajuan:', err)
     throw err
   } finally {
     loading.value = false
@@ -239,7 +239,7 @@ const handleRefreshProgress = async () => {
   try {
     await fetchProgress(true)
   } catch (error) {
-    console.error('Gagal refresh progress:', error)
+    console.error('Gagal refresh kemajuan:', error)
   } finally {
     isRefreshing.value = false
     window.dispatchEvent(new CustomEvent('poliland:refresh-item-complete', {
@@ -337,11 +337,11 @@ const handleSubmit = async () => {
         await progressService.deleteImageFile(oldImageUrl.value)
       }
 
-      message.text = 'Progress berhasil diperbarui!'
+      message.text = 'Kemajuan berhasil diperbarui!'
       message.type = 'success'
     } else {
       await progressService.createProgress(payload)
-      message.text = 'Progress baru berhasil ditambahkan!'
+      message.text = 'Kemajuan baru berhasil ditambahkan!'
       message.type = 'success'
     }
 
@@ -360,7 +360,7 @@ const handleSubmit = async () => {
 }
 
 const handleDelete = async (item: ProgressItem) => {
-  if (!window.confirm('Apakah Anda yakin ingin menghapus laporan progress ini?')) return
+  if (!window.confirm('Apakah Anda yakin ingin menghapus laporan kemajuan ini?')) return
 
   try {
     if (item.id) {

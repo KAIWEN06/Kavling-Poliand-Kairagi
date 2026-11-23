@@ -126,7 +126,7 @@
             <div class="main-progress-label">
 
               <span>
-                Progress keseluruhan
+                Kemajuan keseluruhan
               </span>
 
               <strong>
@@ -835,7 +835,7 @@ function nextPhoto() {
 async function shareProgress() {
 
   const text =
-    `${project.value.name} — Progress ${project.value.progress}% PoliLand Kairagi`
+    `${project.value.name} — Kemajuan ${project.value.progress}% PoliLand Kairagi`
 
   if (
     navigator.share

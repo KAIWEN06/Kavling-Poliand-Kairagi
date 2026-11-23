@@ -78,7 +78,7 @@ async function loadPanorama() {
 
     if (!lotId) {
       throw new Error(
-        'ID kavling tidak ditemukan.'
+        'ID kaveling tidak ditemukan.'
       )
     }
 
@@ -154,7 +154,7 @@ async function loadPanorama() {
 
     if (!data) {
       throw new Error(
-        `Kavling ${lotId} tidak ditemukan.`
+        `Kaveling ${lotId} tidak ditemukan.`
       )
     }
 
@@ -182,7 +182,7 @@ async function loadPanorama() {
 
     if (!data.panorama_url) {
       throw new Error(
-        `Kavling ${lotNumber.value} belum memiliki foto panorama.`
+        `Kaveling ${lotNumber.value} belum memiliki foto panorama.`
       )
     }
 

@@ -3,15 +3,15 @@
     <div class="mk-section-head">
       <div>
         <h2>{{ isHead ? 'Client tim Marketing' : 'Client saya' }}</h2>
-        <p>{{ filtered.length }} dari {{ rows.length }} client</p>
+        <p>{{ filtered.length }} dari {{ rows.length }} klien</p>
       </div>
-      <button type="button" class="mk-btn mk-btn--primary" @click="emit('add')">+ Tambah client</button>
+      <button type="button" class="mk-btn mk-btn--primary" @click="emit('add')">+ Tambah klien</button>
     </div>
 
     <div class="mk-card mk-filter-card">
       <label class="mk-field">
-        <span>Cari client</span>
-        <input v-model.trim="filters.search" class="mk-input" type="search" placeholder="Nama, nomor, email, wilayah, kavling" />
+        <span>Cari klien</span>
+        <input v-model.trim="filters.search" class="mk-input" type="search" placeholder="Nama, nomor, email, wilayah, kaveling" />
       </label>
       <div class="mk-filters">
         <label v-if="isHead" class="mk-field">
@@ -60,18 +60,18 @@
       <button v-if="hasFilter" type="button" class="mk-link" @click="resetFilters">Hapus semua filter</button>
     </div>
 
-    <div v-if="loading" class="mk-state" role="status">Memuat data client…</div>
+    <div v-if="loading" class="mk-state" role="status">Memuat data klien…</div>
     <div v-else-if="error" class="mk-state mk-state--error" role="alert">
-      <strong>Data client belum dapat dimuat</strong>
+      <strong>Data klien belum dapat dimuat</strong>
       <span>{{ error }}</span>
       <button type="button" class="mk-btn mk-btn--primary" @click="load">Coba lagi</button>
     </div>
     <div v-else-if="!rows.length" class="mk-state">
-      <strong>Belum ada client</strong>
+      <strong>Belum ada klien</strong>
       <span>{{ isHead ? 'Client yang ditambahkan tim Marketing akan tampil di sini.' : 'Tambahkan calon pembeli pertama Anda untuk mulai melakukan follow-up.' }}</span>
     </div>
     <div v-else-if="!filtered.length" class="mk-state">
-      <strong>Tidak ada client yang cocok</strong>
+      <strong>Tidak ada klien yang cocok</strong>
       <span>Ubah kata kunci atau hapus filter.</span>
     </div>
 
@@ -80,10 +80,10 @@
         <table class="mk-table mk-table--stack">
           <thead>
             <tr>
-              <th>Client</th>
+              <th>Klien</th>
               <th v-if="isHead">Marketing</th>
               <th>Wilayah asal</th>
-              <th>Minat kavling</th>
+              <th>Minat kaveling</th>
               <th>Perkembangan</th>
               <th>SPK</th>
               <th>Pembayaran</th>
@@ -121,7 +121,7 @@
         </table>
       </div>
 
-      <nav class="mk-pager" aria-label="Halaman daftar client">
+      <nav class="mk-pager" aria-label="Halaman daftar klien">
         <button type="button" class="mk-btn mk-btn--ghost" :disabled="page <= 1" @click="page--">Sebelumnya</button>
         <span>Halaman {{ page }} dari {{ pageCount }}</span>
         <button type="button" class="mk-btn mk-btn--ghost" :disabled="page >= pageCount" @click="page++">Berikutnya</button>

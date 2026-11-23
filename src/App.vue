@@ -176,13 +176,13 @@ async function preloadApplicationData(): Promise<void> {
     await preloadLots()
 
     console.log(
-      '[App Bootstrap] Data kavling berhasil dipersiapkan.'
+      '[App Bootstrap] Data kaveling berhasil dipersiapkan.'
     )
 
   } catch (error) {
 
     console.error(
-      '[App Bootstrap] Gagal preload data kavling:',
+      '[App Bootstrap] Gagal preload data kaveling:',
       error
     )
   }

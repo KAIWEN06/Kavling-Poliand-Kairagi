@@ -38,7 +38,6 @@ import DetailCalonPembeliPage from '@/views/marketing/DetailCalonPembeliPage.vue
 import SPKMarketingPage from '@/views/marketing/SPKMarketingPage.vue'
 import TindakLanjutPage from '@/views/marketing/TindakLanjutPage.vue'
 import LainnyaPage from '@/views/marketing/LainnyaPage.vue'
-import MarketingInfoPage from '@/views/marketing/MarketingInfoPage.vue'
 import MarketingSpkStatusPage from '@/views/marketing/MarketingSpkStatusPage.vue'
 import MarketingPaymentsPage from '@/views/marketing/MarketingPaymentsPage.vue'
 import MarketingCommissionPage from '@/views/marketing/MarketingCommissionPage.vue'
@@ -322,51 +321,11 @@ const routes: Array<RouteRecordRaw> = [
     component: LainnyaPage,
     meta: { requiresAuth: true, role: 'marketing' },
   },
-  {
-    path: '/informasi-proyek',
-    name: 'InformasiProyek',
-    component: MarketingInfoPage,
-    props: {
-      title: 'Informasi Proyek',
-      description: 'Informasi dan perkembangan proyek perumahan Poliland Kairagi.',
-    },
-    meta: { requiresAuth: true, role: 'marketing' },
-  },
-  {
-    path: '/kontak',
-    name: 'KontakMarketing',
-    component: MarketingInfoPage,
-    props: {
-      title: 'Kontak',
-      description: 'Hubungi tim Poliland untuk informasi pemasaran dan dukungan.',
-    },
-    meta: { requiresAuth: true, role: 'marketing' },
-  },
   // Profil & Pengaturan dipakai bersama oleh semua role (tanpa meta.role).
   { path: '/akun', name: 'Akun', component: AkunPage, meta: { requiresAuth: true } },
   { path: '/profil', redirect: '/akun' },
   { path: '/pengaturan', name: 'Pengaturan', component: SettingsPage, meta: { requiresAuth: true } },
   { path: '/marketing/profil', redirect: '/akun' },
-  {
-    path: '/syarat-ketentuan',
-    name: 'SyaratKetentuan',
-    component: MarketingInfoPage,
-    props: {
-      title: 'Syarat & Ketentuan',
-      description: 'Syarat dan ketentuan penggunaan aplikasi Poliland.',
-    },
-    meta: { requiresAuth: true, role: 'marketing' },
-  },
-  {
-    path: '/kebijakan-privasi',
-    name: 'KebijakanPrivasi',
-    component: MarketingInfoPage,
-    props: {
-      title: 'Kebijakan Privasi',
-      description: 'Informasi tentang pengelolaan dan perlindungan data pengguna.',
-    },
-    meta: { requiresAuth: true, role: 'marketing' },
-  },
   {
     path: '/marketing/spk',
     name: 'SPKMarketing',

@@ -2,8 +2,8 @@
   <MarketingPageLayout title="Pembayaran & Cicilan" tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
     <section class="mk-intro">
       <p>Pemantauan pembayaran</p>
-      <h1>Pembayaran dan jadwal cicilan client tim</h1>
-      <span>Data sama dengan halaman Admin dan Client. Verifikasi tetap menjadi kewenangan Admin.</span>
+      <h1>Pembayaran dan jadwal cicilan klien tim</h1>
+      <span>Data sama dengan halaman Admin dan Klien. Verifikasi tetap menjadi kewenangan Admin.</span>
     </section>
     <PaymentMonitorView ref="view" role="head" :initial-tab="initialTab" @open-client="(id) => router.push(`/kepala-marketing/clients/${id}`)" />
   </MarketingPageLayout>

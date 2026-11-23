@@ -101,13 +101,13 @@ const inventory = computed<InventoryStatus[]>(() => {
 const quickActions: QuickAction[] = [
   {
     label: 'Siteplan 2D',
-    description: 'Lihat dan kelola kavling',
+    description: 'Lihat dan kelola kaveling',
     icon: mapOutline,
     tone: 'green',
     routeName: 'AdminKavling',
   },
   {
-    label: 'Tambah client',
+    label: 'Tambah klien',
     description: 'Daftarkan calon pembeli',
     icon: peopleOutline,
     tone: 'neutral',
@@ -181,7 +181,7 @@ const pendingFinanceTasks = computed(() => dashboardCustomers.value.flatMap((cus
 
 const actionTasks = computed(() => [
   ...pendingFinanceTasks.value.map((task) => ({ ...task, type: 'payment' as const })),
-  { id: 'spk-placeholder', customerName: 'Konfirmasi SPK Konsumen', lotCode: '2 berkas pemesanan unit kavling baru', amount: 0, isOverdue: false, isSold: false, type: 'spk' as const },
+  { id: 'spk-placeholder', customerName: 'Konfirmasi SPK Konsumen', lotCode: '2 berkas pemesanan unit kaveling baru', amount: 0, isOverdue: false, isSold: false, type: 'spk' as const },
 ])
 
 const activityPage = ref(1)
@@ -192,7 +192,7 @@ const recentActivities = computed(() => {
   const activities = dashboardCustomers.value.flatMap((customer) => {
     const customerActivities = [{
       id: `customer-${customer.id}`,
-      label: 'Customer baru ditambahkan',
+      label: 'Pelanggan baru ditambahkan',
       detail: customer.full_name,
       date: customer.created_at,
       icon: peopleOutline,
@@ -212,7 +212,7 @@ const recentActivities = computed(() => {
 
     const transactionActivities = (customer.lot_transactions ?? []).map((transaction: any) => ({
       id: `transaction-${transaction.id}`,
-      label: transaction.status === 'Sold' ? 'Kavling terjual' : 'Status kavling diperbarui',
+      label: transaction.status === 'Sold' ? 'Kaveling terjual' : 'Status kaveling diperbarui',
       detail: `${customer.full_name} · ${transaction.lots?.lot_number ?? `Lot #${transaction.lot_id}`}`,
       date: transaction.sold_date ?? transaction.created_at,
       icon: checkmarkCircleOutline,
@@ -379,13 +379,13 @@ onBeforeUnmount(() => {
               <template v-if="loadState === 'success'">
                 <div class="inv">
                   <div class="inv__head">
-                    <h2 id="inventory-title" class="inv__title">Inventaris kavling</h2>
+                    <h2 id="inventory-title" class="inv__title">Inventaris kaveling</h2>
                   </div>
 
                   <div class="inv__body">
                     <div class="inv__total">
                       <strong class="inv__number t-figure">{{ totalUnits.toLocaleString('id-ID') }}</strong>
-                      <span class="inv__caption">unit kavling terdaftar</span>
+                      <span class="inv__caption">unit kaveling terdaftar</span>
                     </div>
 
                     <ul class="inv__list">
@@ -415,7 +415,7 @@ onBeforeUnmount(() => {
               </template>
 
               <div v-else class="card">
-                <h2 id="inventory-title" class="card__title">Inventaris kavling</h2>
+                <h2 id="inventory-title" class="card__title">Inventaris kaveling</h2>
 
                 <div v-if="loadState === 'loading'" class="skel-inv" role="status" aria-live="polite" aria-label="Memuat inventaris">
                   <Skeleton width="38%" height="44px" border-radius="8px" />
@@ -437,8 +437,8 @@ onBeforeUnmount(() => {
                   v-else
                   kind="lots"
                   compact
-                  title="Belum ada kavling terdaftar"
-                  description="Data inventaris akan muncul setelah kavling ditambahkan."
+                  title="Belum ada kaveling terdaftar"
+                  description="Data inventaris akan muncul setelah kaveling ditambahkan."
                 />
               </div>
             </section>

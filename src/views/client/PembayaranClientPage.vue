@@ -237,7 +237,7 @@ const canSubmitPayment = computed(() =>
 
 const detailMessage = (item: PaymentHistoryItem) => [
   `Referensi: ${item.reference}`,
-  `Kavling: ${item.lot}`,
+  `Kaveling: ${item.lot}`,
   `Kategori: ${item.category}`,
   item.installmentNumbers.length ? `Cicilan: ${item.installmentNumbers.join(', ')}` : '',
   `Tanggal: ${item.date ? formatDate(item.date) : 'Belum dicatat'}`,
@@ -303,7 +303,7 @@ function getCategoryLabel(category: string) {
   return labels[category] ?? category
 }
 function getLotLabel(lot: any) {
-  if (!lot) return 'Kavling tidak tersedia'
+  if (!lot) return 'Kaveling tidak tersedia'
   const blockName = lot.blocks?.name ?? lot.blocks?.code
   return [blockName, lot.lot_number].filter(Boolean).join(' - ') || lot.lot_number || 'Kavling'
 }
@@ -501,7 +501,7 @@ async function loadPaymentData() {
     }
     resetPaymentForm()
   } catch (error: any) {
-    console.error('Gagal memuat data pembayaran client:', error)
+    console.error('Gagal memuat data pembayaran klien:', error)
     loadError.value = error?.message || 'Terjadi kesalahan saat mengambil data pembayaran.'
     transactions.value = []
     paymentHistory.value = []
@@ -667,7 +667,7 @@ onMounted(loadPaymentData)
         <section class="lot-card" aria-labelledby="lot-title">
           <div class="section-title">
             <span class="title-icon title-icon-gold"><ion-icon :icon="documentTextOutline" /></span>
-            <h2 id="lot-title">Informasi Kavling</h2>
+            <h2 id="lot-title">Informasi Kaveling</h2>
           </div>
           <div v-if="selectedTransaction" class="lot-summary">
             <span class="lot-thumbnail" aria-hidden="true"><ion-icon :icon="walletOutline" /></span>
@@ -699,7 +699,7 @@ onMounted(loadPaymentData)
               {{ latestCancellation?.status === 'Pending' ? 'Pengajuan menunggu Admin' : 'Ajukan Pembatalan Pembelian' }}
             </button>
           </div>
-          <div v-else class="empty-inline">Belum ada transaksi kavling pada akun ini.</div>
+          <div v-else class="empty-inline">Belum ada transaksi kaveling pada akun ini.</div>
         </section>
 
         <section class="summary-grid" aria-label="Ringkasan pembayaran">
@@ -742,7 +742,7 @@ onMounted(loadPaymentData)
             </div>
 
             <div class="transaction-picker">
-              <label for="transaction-select">Pilih transaksi / kavling</label>
+              <label for="transaction-select">Pilih transaksi / kaveling</label>
               <select id="transaction-select" :value="selectedTransactionId ?? ''" @change="selectTransaction(($event.target as HTMLSelectElement).value)">
                 <option v-for="item in transactions" :key="item.id" :value="item.id">
                   {{ item.lot }} — {{ item.paymentType === 'Cash' ? 'Tunai' : 'Cicilan' }}
@@ -779,7 +779,7 @@ onMounted(loadPaymentData)
 
               <template v-else-if="selectedTransaction.paymentType === 'Cash'">
                 <div class="payment-notice">
-                  Skema tunai hanya menyediakan pelunasan harga final kavling. Tidak ada pilihan cicilan atau DP.
+                  Skema tunai hanya menyediakan pelunasan harga final kaveling. Tidak ada pilihan cicilan atau DP.
                 </div>
                 <div class="payment-total">
                   <span>Sisa pelunasan</span>
@@ -913,8 +913,8 @@ onMounted(loadPaymentData)
 
             <label class="search-box">
               <ion-icon :icon="searchOutline" aria-hidden="true" />
-              <span class="visually-hidden">Cari transaksi atau nomor kavling</span>
-              <input v-model="searchQuery" type="search" placeholder="Cari transaksi atau nomor kavling..." />
+              <span class="visually-hidden">Cari transaksi atau nomor kaveling</span>
+              <input v-model="searchQuery" type="search" placeholder="Cari transaksi atau nomor kaveling..." />
             </label>
 
             <div class="filter-list" aria-label="Filter transaksi">
@@ -1005,7 +1005,7 @@ onMounted(loadPaymentData)
 
         <div v-else class="empty-state">
           <strong>Belum ada transaksi aktif</strong>
-          <span>Informasi pembayaran akan muncul setelah transaksi kavling dibuat untuk akun Anda.</span>
+          <span>Informasi pembayaran akan muncul setelah transaksi kaveling dibuat untuk akun Anda.</span>
         </div>
       </main>
     </ion-content>
@@ -1019,7 +1019,7 @@ onMounted(loadPaymentData)
       @confirm="submitCancellationRequest"
     >
       <div class="cancellation-modal-copy">
-        <p>Permintaan akan diperiksa Admin. Jika disetujui, kavling dilepaskan dan pengembalian dihitung sebesar 50% dari uang muka serta cicilan yang sudah dikonfirmasi. Booking Fee tidak dikembalikan.</p>
+        <p>Permintaan akan diperiksa Admin. Jika disetujui, kaveling dilepaskan dan pengembalian dihitung sebesar 50% dari uang muka serta cicilan yang sudah dikonfirmasi. Booking Fee tidak dikembalikan.</p>
         <label for="purchase-cancellation-reason">Alasan pembatalan</label>
         <textarea id="purchase-cancellation-reason" v-model="cancellationReason" rows="4" maxlength="2000" placeholder="Jelaskan alasan pengajuan pembatalan (minimal 5 karakter)." />
         <small>{{ cancellationReason.trim().length }}/2000 karakter</small>

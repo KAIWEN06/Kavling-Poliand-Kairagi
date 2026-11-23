@@ -1,8 +1,8 @@
 <template>
-  <MarketingPageLayout title="Perkembangan Client" tab-variant="head" @refresh="load">
+  <MarketingPageLayout title="Perkembangan Klien" tab-variant="head" @refresh="load">
     <section class="mk-intro">
       <p>Monitoring CRM</p>
-      <h1>Perkembangan client tim</h1>
+      <h1>Perkembangan klien tim</h1>
       <span>Status perkembangan terpisah dari status SPK dan pembayaran. Setiap perubahan mencatat pengguna dan waktunya.</span>
     </section>
 
@@ -14,7 +14,7 @@
       </select>
     </label>
 
-    <div v-if="loading" class="mk-state" role="status">Memuat perkembangan client…</div>
+    <div v-if="loading" class="mk-state" role="status">Memuat perkembangan klien…</div>
     <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Data belum dapat dimuat</strong><span>{{ error }}</span></div>
 
     <template v-else>
@@ -25,10 +25,10 @@
             {{ st }} ({{ scoped.filter((c) => c.crm_status === st).length }})
           </button>
         </div>
-        <div v-if="!byStatus.length" class="mk-state">Tidak ada client pada status ini.</div>
+        <div v-if="!byStatus.length" class="mk-state">Tidak ada klien pada status ini.</div>
         <div v-else class="mk-table-wrap">
           <table class="mk-table mk-table--stack">
-            <thead><tr><th>Client</th><th>Marketing</th><th>Status</th><th>Terakhir dihubungi</th><th>SPK</th></tr></thead>
+            <thead><tr><th>Klien</th><th>Marketing</th><th>Status</th><th>Terakhir dihubungi</th><th>SPK</th></tr></thead>
             <tbody>
               <tr v-for="c in byStatus.slice(0, limit)" :key="c.id" class="mk-row-link" @click="openClient(c.id)">
                 <td class="mk-cell-main">{{ c.full_name }}</td>
@@ -45,15 +45,15 @@
 
       <section class="mk-section">
         <div class="mk-section-head">
-          <div><h2>Belum di-follow-up &gt; {{ staleDays }} hari</h2><p>Client aktif (bukan Berhasil/Tidak Lanjut) tanpa kontak tercatat</p></div>
-          <select v-model.number="staleDays" class="mk-input mk-small" aria-label="Batas hari tanpa follow-up">
+          <div><h2>Belum ditindaklanjuti &gt; {{ staleDays }} hari</h2><p>Klien aktif (bukan Berhasil/Tidak Lanjut) tanpa kontak tercatat</p></div>
+          <select v-model.number="staleDays" class="mk-input mk-small" aria-label="Batas hari tanpa tindak lanjut">
             <option :value="3">3 hari</option><option :value="7">7 hari</option><option :value="14">14 hari</option><option :value="30">30 hari</option>
           </select>
         </div>
-        <div v-if="!stale.length" class="mk-state">Semua client aktif sudah dihubungi dalam {{ staleDays }} hari terakhir.</div>
+        <div v-if="!stale.length" class="mk-state">Semua klien aktif sudah dihubungi dalam {{ staleDays }} hari terakhir.</div>
         <div v-else class="mk-table-wrap">
           <table class="mk-table mk-table--stack">
-            <thead><tr><th>Client</th><th>Marketing</th><th>Status</th><th>Terakhir dihubungi</th></tr></thead>
+            <thead><tr><th>Klien</th><th>Marketing</th><th>Status</th><th>Terakhir dihubungi</th></tr></thead>
             <tbody>
               <tr v-for="c in stale" :key="c.id" class="mk-row-link" @click="openClient(c.id)">
                 <td class="mk-cell-main">{{ c.full_name }}</td>
@@ -64,11 +64,11 @@
             </tbody>
           </table>
         </div>
-        <p class="mk-muted">Buka client untuk mengubah status atau memberi arahan ke Marketing penanggung jawab.</p>
+        <p class="mk-muted">Buka klien untuk mengubah status atau memberi arahan ke Marketing penanggung jawab.</p>
       </section>
 
       <section class="mk-section">
-        <div class="mk-section-head"><div><h2>Aktivitas Marketing</h2><p>Perubahan status, follow-up, catatan, dan SPK terbaru</p></div></div>
+        <div class="mk-section-head"><div><h2>Aktivitas Marketing</h2><p>Perubahan status, tindak lanjut, catatan, dan SPK terbaru</p></div></div>
         <ActivityFeed :items="activity" :loading="activityLoading" :error="activityError" @open-client="openClient" />
       </section>
     </template>

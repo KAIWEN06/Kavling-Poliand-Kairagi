@@ -6,7 +6,7 @@
   -->
   <MarketingPageLayout title="Detail Calon Pembeli" show-back :refreshable="false" :back-route="backRoute" @refresh="detail?.reload()">
     <ClientDetailView v-if="customerId" ref="detail" :customer-id="customerId" role="marketing" :viewer-name="profileName" />
-    <div v-else class="mk-state mk-state--error"><strong>ID client tidak valid</strong></div>
+    <div v-else class="mk-state mk-state--error"><strong>ID klien tidak valid</strong></div>
   </MarketingPageLayout>
 </template>
 

@@ -7,8 +7,8 @@
         <PageBackButton fallback="/admin/lainnya" />
         <header class="intro">
           <p class="eyebrow">Moderasi</p>
-          <h1>Customer Reviews</h1>
-          <p>Periksa ulasan client sebelum ditampilkan di halaman Home.</p>
+          <h1>Ulasan Pelanggan</h1>
+          <p>Periksa ulasan klien sebelum ditampilkan di halaman Beranda.</p>
           <AppButton class="terms-open" size="small" variant="neutral" fill="outline" @click="openTerms">Kelola kata terlarang</AppButton>
         </header>
 

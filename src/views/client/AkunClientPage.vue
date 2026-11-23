@@ -30,6 +30,7 @@ import { authService } from '@/services/auth/authService'
 import { supabase } from '@/services/config/supabase'
 import { profileService } from '@/services/profile/profileService'
 import { useCurrentUser } from '@/composables/useCurrentUser'
+import { useClientProfileGate } from '@/composables/useClientProfileGate'
 import { getRegions, getRegionByCode } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
 
@@ -47,6 +48,7 @@ const customerId = ref<number | null>(null)
 const authEmail = ref('')
 const avatarUrl = ref('')
 const sharedUser = useCurrentUser()
+const gate = useClientProfileGate()
 const avatarInput = ref<HTMLInputElement | null>(null)
 const isUploadingAvatar = ref(false)
 
@@ -371,6 +373,7 @@ async function saveCustomerProfile() {
     }
 
     successMessage.value = 'Data diri berhasil disimpan.'
+    void gate.check()
   } catch (error: any) {
     console.error('Gagal menyimpan data customer.', error)
     profileError.value = error?.message || 'Data diri gagal disimpan. Silakan coba lagi.'
@@ -422,7 +425,7 @@ async function logout() {
     await authService.logout()
     await router.replace('/login')
   } catch (error) {
-    console.error('Gagal keluar dari akun client.', error)
+    console.error('Gagal keluar dari akun klien.', error)
     logoutError.value = 'Tidak dapat keluar. Silakan coba lagi.'
   } finally {
     isLoggingOut.value = false

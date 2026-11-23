@@ -11,7 +11,7 @@
             </div>
 
             <div v-else>
-              <h1>Progress Pembangunan</h1>
+              <h1>Kemajuan Pembangunan</h1>
               <p>Pantau perkembangan pembangunan kawasan secara berkala.</p>
             </div>
           </header>
@@ -297,9 +297,9 @@
               </div>
 
               <div>
-                <strong>Tentang Progress</strong>
+                <strong>Tentang Kemajuan</strong>
                 <p>
-                  Informasi progress diperbarui secara berkala. Persentase menunjukkan
+                  Informasi kemajuan diperbarui secara berkala. Persentase menunjukkan
                   perkembangan pekerjaan pada masing-masing proyek.
                 </p>
               </div>

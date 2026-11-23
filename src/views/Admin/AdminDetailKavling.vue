@@ -4,16 +4,16 @@
 
     <ion-content :fullscreen="true">
       <div class="detail-page client-detail-page">
-        <PageBackButton fallback="/admin/kavling" label="Daftar kavling" />
+        <PageBackButton fallback="/admin/kavling" label="Daftar kaveling" />
 
         <div v-if="loading" class="state-card" role="status">
           <img :src="loadingMascot" alt="" class="loading-mascot" />
-          <strong>Memuat detail kavling...</strong>
+          <strong>Memuat detail kaveling...</strong>
         </div>
 
         <div v-else-if="loadError" class="state-card" role="alert">
           <ion-icon :icon="alertCircleOutline" />
-          <strong>Detail kavling gagal dimuat</strong>
+          <strong>Detail kaveling gagal dimuat</strong>
           <p>{{ errorMessage }}</p>
           <AppButton variant="primary" @click="loadDetail">
             <span>Coba Lagi</span>
@@ -30,7 +30,7 @@
                 </div>
                 <div>
                   <span class="eyebrow">KUNJUNGAN LOKASI</span>
-                  <h2 id="survey-heading">Jadwalkan Survei Kavling</h2>
+                  <h2 id="survey-heading">Jadwalkan Survei Kaveling</h2>
                   <p>Pilih hari dan jam yang kamu inginkan. Setelah dikirim, pengajuan berstatus Menunggu Konfirmasi dan perkembangannya dapat dipantau di halaman ini.</p>
                 </div>
               </div>
@@ -67,7 +67,7 @@
                   {{ request.rejection_reason || 'Admin belum mencantumkan alasan. Silakan hubungi Admin untuk informasi lebih lanjut.' }}
                 </p>
                 <p v-else-if="request.status === 'pending'">
-                  Pengajuanmu sudah diterima dan sedang menunggu konfirmasi Admin. Slot ini dikunci sementara agar tidak diambil client lain.
+                  Pengajuanmu sudah diterima dan sedang menunggu konfirmasi Admin. Slot ini dikunci sementara agar tidak diambil klien lain.
                 </p>
                 <p v-else-if="request.status === 'confirmed'">
                   Jadwal survei sudah dikonfirmasi Admin. Silakan datang sesuai tanggal dan jam yang tertera.
@@ -79,7 +79,7 @@
             </section>
 
             <div v-if="hasActiveSurveyRequest" class="survey-active-request-hint">
-              Kamu masih memiliki pengajuan survei yang {{ surveyRequestStatus?.status === 'pending' ? 'menunggu konfirmasi' : 'sudah dikonfirmasi' }}. Tunggu hingga pengajuan ini selesai sebelum membuat pengajuan baru untuk kavling ini.
+              Kamu masih memiliki pengajuan survei yang {{ surveyRequestStatus?.status === 'pending' ? 'menunggu konfirmasi' : 'sudah dikonfirmasi' }}. Tunggu hingga pengajuan ini selesai sebelum membuat pengajuan baru untuk kaveling ini.
             </div>
 
             <div v-if="canRequestSurvey" class="survey-form">
@@ -189,7 +189,7 @@
                   class="form-control survey-textarea"
                   rows="2"
                   maxlength="300"
-                  placeholder="Contoh: Saya ingin melihat akses jalan dan posisi kavling."
+                  placeholder="Contoh: Saya ingin melihat akses jalan dan posisi kaveling."
                 />
               </div>
 
@@ -218,7 +218,7 @@
             <div v-else class="survey-unavailable">
               <ion-icon :icon="informationCircleOutline" aria-hidden="true" />
               <span>
-                Permintaan survei online hanya tersedia untuk kavling berstatus Tersedia.
+                Permintaan survei online hanya tersedia untuk kaveling berstatus Tersedia.
                 Silakan hubungi Admin untuk informasi lebih lanjut.
               </span>
             </div>
@@ -287,7 +287,7 @@
             </div>
             <div v-else class="sold-price-notice">
               <ion-icon :icon="lockClosedOutline" aria-hidden="true" />
-              Informasi harga tidak ditampilkan untuk kavling yang sudah terjual.
+              Informasi harga tidak ditampilkan untuk kaveling yang sudah terjual.
             </div>
 
             <div class="client-contact-actions">
@@ -305,7 +305,7 @@
           </section>
 
           <!-- Tab Detail -->
-          <nav class="detail-tabs" aria-label="Detail kavling">
+          <nav class="detail-tabs" aria-label="Detail kaveling">
             <button
               v-for="item in tabs"
               :key="item.key"
@@ -320,14 +320,14 @@
 
           <section v-if="activeTab === 'info'" class="tab-content">
             <article class="panel">
-              <h2>Informasi Kavling</h2>
+              <h2>Informasi Kaveling</h2>
               <dl class="info-list">
-                <div><dt>Nomor Kavling</dt><dd>{{ lot.lot_number }}</dd></div>
+                <div><dt>Nomor Kaveling</dt><dd>{{ lot.lot_number }}</dd></div>
                 <div><dt>Blok</dt><dd>{{ blockLabel }}</dd></div>
                 <div><dt>Luas Tanah</dt><dd>{{ formatArea(lot.area) }}</dd></div>
                 <div><dt>Dimensi</dt><dd>{{ lot.dimension || '-' }}</dd></div>
                 <div>
-                  <dt>Status Kavling</dt>
+                  <dt>Status Kaveling</dt>
                   <dd><span :class="['status-pill', statusClass]">{{ statusLabel }}</span></dd>
                 </div>
                 <div><dt>Keterangan</dt><dd>{{ lot.description || '-' }}</dd></div>
@@ -340,7 +340,7 @@
               </div>
               <div>
                 <h2>Perlu informasi lebih lanjut?</h2>
-                <p>Admin siap membantu menjelaskan detail kavling dan proses pembelian.</p>
+                <p>Admin siap membantu menjelaskan detail kaveling dan proses pembelian.</p>
                 <AppButton class="single-line-btn" variant="primary" size="small" @click="contactAdmin">
                   <ion-icon :icon="callOutline" slot="start" />
                   <span>Hubungi Admin</span>
@@ -638,8 +638,8 @@ function formatArea(value: number | string | null | undefined) {
 function formatWhatsAppMessage(includeSchedule: boolean) {
   const lotNumber = lot.value?.lot_number || `ID ${lotId.value}`
   const lines = [
-    'Halo Admin PoliLand Kairagi, saya ingin bertanya mengenai kavling.',
-    `Nomor kavling: ${lotNumber}`,
+    'Halo Admin PoliLand Kairagi, saya ingin bertanya mengenai kaveling.',
+    `Nomor kaveling: ${lotNumber}`,
   ]
   if (includeSchedule) {
     lines.push(
@@ -720,7 +720,7 @@ async function sendSurveyRequest() {
   if (surveyRequestSaving.value) return
 
   if (!canRequestSurvey.value) {
-    notify('Survei online hanya dapat diminta untuk kavling yang tersedia.', 'warning')
+    notify('Survei online hanya dapat diminta untuk kaveling yang tersedia.', 'warning')
     return
   }
 
@@ -730,7 +730,7 @@ async function sendSurveyRequest() {
   }
 
   if (occupiedSurveySlots.value.includes(selectedSurveyTime.value)) {
-    notify('Jam tersebut baru saja dipesan client lain. Pilih jam yang masih tersedia.', 'warning')
+    notify('Jam tersebut baru saja dipesan klien lain. Pilih jam yang masih tersedia.', 'warning')
     await refreshSurveyAvailability()
     return
   }
@@ -761,7 +761,7 @@ async function sendSurveyRequest() {
     console.error('[ClientKavlingDetail] Gagal membuat permintaan survei:', error)
 
     if (isSurveySlotConflict(error)) {
-      notify('Maaf, jam ini baru saja berhasil diambil client lain. Silakan pilih jam berbeda.', 'warning')
+      notify('Maaf, jam ini baru saja berhasil diambil klien lain. Silakan pilih jam berbeda.', 'warning')
       await refreshSurveyAvailability()
     } else {
       const message = error instanceof Error ? error.message : 'Gagal menyimpan permintaan survei.'
@@ -770,7 +770,7 @@ async function sendSurveyRequest() {
         : message.includes('SURVEY_OUTSIDE_OPERATING_HOURS')
           ? 'Jam yang dipilih berada di luar jam operasional.'
           : message.includes('LOT_NOT_AVAILABLE_FOR_SURVEY')
-            ? 'Status kavling sudah berubah dan tidak dapat diajukan untuk survei.'
+            ? 'Status kaveling sudah berubah dan tidak dapat diajukan untuk survei.'
             : 'Permintaan survei gagal disimpan. Silakan coba lagi.', 'danger')
     }
   } finally {
@@ -808,7 +808,7 @@ function openPanorama() {
 async function loadDetail() {
   if (!Number.isInteger(lotId.value) || lotId.value <= 0) {
     loadError.value = true
-    errorMessage.value = 'ID kavling tidak valid.'
+    errorMessage.value = 'ID kaveling tidak valid.'
     loading.value = false
     return
   }
@@ -828,11 +828,11 @@ async function loadDetail() {
     if (contactSettings.operatingHours) {
       operatingHours.value = contactSettings.operatingHours
     }
-    if (!lot.value) throw new Error('Data kavling tidak ditemukan atau tidak dapat diakses.')
+    if (!lot.value) throw new Error('Data kaveling tidak ditemukan atau tidak dapat diakses.')
     await refreshSurveyAvailability()
   } catch (error) {
     console.error('[ClientKavlingDetail] Gagal memuat detail:', error)
-    errorMessage.value = error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat detail kavling.'
+    errorMessage.value = error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat detail kaveling.'
     loadError.value = true
   } finally {
     loading.value = false

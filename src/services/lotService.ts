@@ -125,7 +125,7 @@ export const lotService = {
       .in("status", ["Sold", "sold", "Terjual", "terjual"]);
 
     if (error) {
-      console.error("Gagal mengambil jumlah kavling terjual:", error);
+      console.error("Gagal mengambil jumlah kaveling terjual:", error);
       return 0;
     }
 
@@ -138,7 +138,7 @@ export const lotService = {
       .select("*", { count: "exact", head: true });
 
     if (error) {
-      console.error("Gagal mengambil total kavling:", error);
+      console.error("Gagal mengambil total kaveling:", error);
       return 0;
     }
 

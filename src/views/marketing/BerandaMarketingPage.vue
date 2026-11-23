@@ -34,7 +34,7 @@
           <Reveal v-if="dueNotices.length" :order="2" class="area-due">
             <section class="card" aria-labelledby="due-title">
               <div class="card__head">
-                <h2 id="due-title" class="card__title">Tenggat pembayaran client</h2>
+                <h2 id="due-title" class="card__title">Tenggat pembayaran klien</h2>
                 <button type="button" class="link" @click="goTo('/marketing/pembayaran?tab=schedules')">Lihat jadwal</button>
               </div>
               <ul class="rows">
@@ -53,14 +53,14 @@
           <Reveal :order="3" class="area-pipeline">
             <section class="card" aria-labelledby="pipeline-title">
               <div class="card__head">
-                <h2 id="pipeline-title" class="card__title">Pipeline client bulan ini</h2>
-                <button type="button" class="link" @click="goTo('/marketing/clients')">Semua client</button>
+                <h2 id="pipeline-title" class="card__title">Pipeline klien bulan ini</h2>
+                <button type="button" class="link" @click="goTo('/marketing/clients')">Semua klien</button>
               </div>
 
               <p v-if="reportError" class="alert" role="alert">{{ reportError }}</p>
 
               <template v-if="reportLoading && !report">
-                <div class="skel-grid" role="status" aria-label="Memuat ringkasan client">
+                <div class="skel-grid" role="status" aria-label="Memuat ringkasan klien">
                   <Skeleton v-for="n in 8" :key="n" height="104px" border-radius="14px" />
                 </div>
               </template>
@@ -78,10 +78,10 @@
                 </div>
 
                 <div class="stat-grid">
-                  <StatCard label="Total client saya" :value="s.total_clients ?? '–'" clickable @open="goTo('/marketing/clients')" />
-                  <StatCard label="Client baru (bulan ini)" :value="s.new_clients ?? '–'" clickable @open="goTo('/marketing/clients?crm=Baru')" />
+                  <StatCard label="Total klien saya" :value="s.total_clients ?? '–'" clickable @open="goTo('/marketing/clients')" />
+                  <StatCard label="Klien baru (bulan ini)" :value="s.new_clients ?? '–'" clickable @open="goTo('/marketing/clients?crm=Baru')" />
                   <StatCard label="Belum dihubungi" :value="crm('Baru') + crm('Belum Dihubungi')" clickable @open="goTo('/marketing/clients?crm=Belum%20Dihubungi')" />
-                  <StatCard label="Follow-up" :value="crm('Sudah Dihubungi') + crm('Follow-up')" clickable @open="goTo('/marketing/clients?crm=Follow-up')" />
+                  <StatCard label="Tindak lanjut" :value="crm('Sudah Dihubungi') + crm('Follow-up')" clickable @open="goTo('/marketing/clients?crm=Follow-up')" />
                   <StatCard label="Berminat" :value="crm('Berminat') + crm('Survey Lokasi') + crm('Negosiasi')" clickable @open="goTo('/marketing/clients?crm=Berminat')" />
                   <StatCard label="Dalam pengajuan" :value="crm('Pengajuan')" clickable @open="goTo('/marketing/clients?crm=Pengajuan')" />
                   <StatCard label="Berhasil" :value="crm('Berhasil')" clickable @open="goTo('/marketing/clients?crm=Berhasil')" />
@@ -135,7 +135,7 @@
                 kind="clients"
                 compact
                 title="Belum ada aktivitas"
-                description="Catat client baru atau tindak lanjut, dan riwayatnya muncul di sini."
+                description="Catat klien baru atau tindak lanjut, dan riwayatnya muncul di sini."
               >
                 <AppButton size="small" @click="goTo('/marketing/clients/new')">Tambah calon pembeli</AppButton>
               </EmptyState>

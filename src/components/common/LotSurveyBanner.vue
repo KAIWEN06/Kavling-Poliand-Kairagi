@@ -2,7 +2,7 @@
   <div v-if="total > 0" class="survey-banner" role="status">
     <ion-icon :icon="calendarOutline" aria-hidden="true" />
     <span>
-      <strong>{{ total }} kavling</strong> punya jadwal survei<template v-if="pending > 0"> · {{ pending }} menunggu konfirmasi</template>.
+      <strong>{{ total }} kaveling</strong> punya jadwal survei<template v-if="pending > 0"> · {{ pending }} menunggu konfirmasi</template>.
     </span>
   </div>
 </template>

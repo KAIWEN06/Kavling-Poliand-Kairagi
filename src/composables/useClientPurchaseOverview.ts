@@ -175,7 +175,7 @@ export function useClientPurchaseOverview() {
         payments,
       }
     } catch (cause: any) {
-      console.error('[Beranda Client] Gagal memuat ringkasan pembelian:', cause)
+      console.error('[Beranda Klien] Gagal memuat ringkasan pembelian:', cause)
       error.value = cause?.message || 'Ringkasan pembelian belum dapat dimuat.'
       overview.value = null
     } finally {

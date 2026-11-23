@@ -76,7 +76,7 @@
       <!-- Status Kavling -->
       <div class="legend-section">
         <div class="section-label">
-          STATUS KAVLING
+          STATUS KAVELING
         </div>
 
         <div class="legend-list">
@@ -92,7 +92,7 @@
               </span>
 
               <span class="legend-item-description">
-                Kavling tersedia
+                Kaveling tersedia
               </span>
             </div>
           </div>
@@ -126,7 +126,7 @@
               </span>
 
               <span class="legend-item-description">
-                Kavling telah terjual
+                Kaveling telah terjual
               </span>
             </div>
           </div>

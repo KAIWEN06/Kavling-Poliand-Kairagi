@@ -1,9 +1,9 @@
 <template>
-  <MarketingPageLayout title="Pembayaran Client" show-back back-route="/marketing/more" @refresh="view?.reload()">
+  <MarketingPageLayout title="Pembayaran Klien" show-back back-route="/marketing/more" @refresh="view?.reload()">
     <section class="mk-intro">
       <p>Pembayaran & jadwal</p>
-      <h1>Pembayaran client saya</h1>
-      <span>Status verifikasi dan jadwal cicilan resmi, sama dengan yang dilihat Admin dan Client.</span>
+      <h1>Pembayaran klien saya</h1>
+      <span>Status verifikasi dan jadwal cicilan resmi, sama dengan yang dilihat Admin dan Klien.</span>
     </section>
     <PaymentMonitorView ref="view" role="marketing" :initial-tab="initialTab" @open-client="(id) => router.push(`/marketing/clients/${id}`)" />
   </MarketingPageLayout>

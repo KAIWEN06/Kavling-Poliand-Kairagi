@@ -75,7 +75,7 @@ async function submit() {
   <IonModal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="isOpen" class="client-spk-create-modal" @didDismiss="emit('close')">
     <div class="client-spk-form">
       <header><div><span>Pengajuan pembelian</span><h2>Pembuatan SPK</h2></div><button type="button" aria-label="Tutup formulir SPK" @click="emit('close')"><IonIcon :icon="closeOutline" /></button></header>
-      <p v-if="lot" class="selected-lot">Kavling {{ lot.lot_number }} · {{ currency(price) }}</p>
+      <p v-if="lot" class="selected-lot">Kaveling {{ lot.lot_number }} · {{ currency(price) }}</p>
       <div v-if="loading" class="form-state"><IonSpinner name="crescent" /> Memuat profil pembeli...</div>
       <form v-else @submit.prevent="submit">
         <fieldset><legend>Data pembeli</legend><label>Nama lengkap<input v-model="buyer.fullName" required /></label><label>Nomor HP<input v-model="buyer.phone" required inputmode="tel" /></label><label>Email<input v-model="buyer.email" type="email" /></label><label>Alamat<input v-model="buyer.address" required /></label></fieldset>

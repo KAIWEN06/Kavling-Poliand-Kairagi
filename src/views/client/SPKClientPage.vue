@@ -216,7 +216,7 @@ async function loadPaymentPlans(lotId: number) {
   try {
     paymentPlans.value = await lotService.getLotInstallments(lotId)
   } catch (error) {
-    console.error('[SPK Client] Gagal memuat skema pembayaran:', error)
+    console.error('[SPK Klien] Gagal memuat skema pembayaran:', error)
     paymentPlansError.value =
       error instanceof Error ? error.message : 'Skema pembayaran gagal dimuat.'
   } finally {
@@ -227,7 +227,7 @@ async function loadPaymentPlans(lotId: number) {
 async function loadLot() {
   const lotId = getRouteLotId()
   if (!lotId) {
-    lotError.value = 'Nomor kavling tidak valid. Silakan pilih kavling kembali.'
+    lotError.value = 'Nomor kaveling tidak valid. Silakan pilih kaveling kembali.'
     lotLoading.value = false
     return
   }
@@ -235,15 +235,15 @@ async function loadLot() {
   try {
     lot.value = await lotService.getLotById(lotId)
     if (!lotAvailable.value) {
-      lotError.value = 'Kavling ini sudah tidak tersedia untuk pengajuan.'
+      lotError.value = 'Kaveling ini sudah tidak tersedia untuk pengajuan.'
       return
     }
 
     await loadPaymentPlans(lotId)
   } catch (error) {
-    console.error('[SPK Client] Gagal memuat data kavling:', error)
+    console.error('[SPK Klien] Gagal memuat data kaveling:', error)
     lotError.value =
-      error instanceof Error ? error.message : 'Data kavling gagal dimuat.'
+      error instanceof Error ? error.message : 'Data kaveling gagal dimuat.'
   } finally {
     lotLoading.value = false
   }
@@ -281,7 +281,7 @@ async function loadBuyerProfile() {
     }
   } catch (error) {
     // Profile prefill is optional; missing metadata should leave fields editable and blank.
-    console.warn('[SPK Client] Data profil pembeli tidak dapat dimuat untuk pengisian otomatis.', error)
+    console.warn('[SPK Klien] Data profil pembeli tidak dapat dimuat untuk pengisian otomatis.', error)
   }
 }
 
@@ -333,7 +333,7 @@ async function copyBankAccount() {
       accountCopied.value = false
     }, 1800)
   } catch (error) {
-    console.error('[SPK Client] Gagal menyalin nomor rekening:', error)
+    console.error('[SPK Klien] Gagal menyalin nomor rekening:', error)
     saveError.value = 'Nomor rekening belum dapat disalin. Silakan salin secara manual.'
   }
 }
@@ -361,7 +361,7 @@ async function loadAvailableBookingFees() {
   try {
     availableBookingFees.value = await getAvailableClientSpkBookingFees()
   } catch (error) {
-    console.error('[SPK Client] Gagal memuat Booking Fee reusable:', error)
+    console.error('[SPK Klien] Gagal memuat Booking Fee reusable:', error)
     bookingFeesError.value = getClientSpkErrorMessage(
       error,
       'Booking Fee sebelumnya gagal dimuat.',
@@ -396,7 +396,7 @@ async function saveSpk() {
   saveError.value = ''
 
   if (!lot.value) {
-    saveError.value = 'Data kavling belum tersedia. Silakan pilih kavling kembali.'
+    saveError.value = 'Data kaveling belum tersedia. Silakan pilih kaveling kembali.'
     return
   }
 
@@ -416,13 +416,13 @@ async function saveSpk() {
   }
 
   if (lotPrice.value === null) {
-    saveError.value = 'Harga kavling belum tersedia untuk menghitung pembayaran.'
+    saveError.value = 'Harga kaveling belum tersedia untuk menghitung pembayaran.'
     return
   }
 
   if (scheme === 'Installment') {
     if (downPaymentAmount.value <= 0 || downPaymentAmount.value >= lotPrice.value) {
-      saveError.value = 'DP harus lebih dari Rp 0 dan lebih kecil dari harga kavling.'
+      saveError.value = 'DP harus lebih dari Rp 0 dan lebih kecil dari harga kaveling.'
       return
     }
     if (!selectedPlan.value || !installmentEstimate.value) {
@@ -458,7 +458,7 @@ async function saveSpk() {
     })
     submissionComplete.value = true
   } catch (error) {
-    console.error('[SPK Client] Gagal menyimpan SPK ke Supabase:', error)
+    console.error('[SPK Klien] Gagal menyimpan SPK ke Supabase:', error)
     saveError.value = getClientSpkErrorMessage(
       error,
       'SPK gagal disimpan ke Supabase. Silakan coba kembali.',
@@ -481,7 +481,7 @@ onMounted(() => {
 
     <ion-content class="client-spk-content" :fullscreen="true">
       <main class="spk-shell">
-        <PageBackButton fallback="/client/kavling" label="Kavling" />
+        <PageBackButton fallback="/client/kavling" label="Kaveling" />
         <header class="spk-page-heading">
           <div>
             <span class="spk-eyebrow">PENGAJUAN PEMBELIAN</span>
@@ -495,14 +495,14 @@ onMounted(() => {
         </header>
 
         <div v-if="lotLoading" class="spk-state" role="status">
-          Memuat data kavling...
+          Memuat data kaveling...
         </div>
 
         <section v-else-if="lotError" class="spk-state spk-error" role="alert">
           <strong>Formulir belum dapat dibuka</strong>
           <p>{{ lotError }}</p>
           <button type="button" @click="goToLots">
-            Kembali ke daftar kavling
+            Kembali ke daftar kaveling
           </button>
         </section>
 
@@ -512,7 +512,7 @@ onMounted(() => {
           </span>
           <strong>Pengajuan SPK sudah dikirim ke admin.</strong>
           <p>Admin akan memeriksa data dan dokumen yang Anda kirim.</p>
-          <button type="button" @click="goToLots">Kembali ke daftar kavling</button>
+          <button type="button" @click="goToLots">Kembali ke daftar kaveling</button>
         </section>
 
         <template v-else-if="lot">
@@ -608,12 +608,12 @@ onMounted(() => {
               <span class="spk-heading-icon">
                 <ion-icon :icon="mapOutline" aria-hidden="true" />
               </span>
-              <h2 id="lot-title">Informasi Kavling</h2>
+              <h2 id="lot-title">Informasi Kaveling</h2>
             </div>
 
             <div class="spk-card-body lot-form-body">
               <div class="spk-field">
-                <label for="spk-lot-price">Harga Kavling <span>*</span></label>
+                <label for="spk-lot-price">Harga Kaveling <span>*</span></label>
                 <div class="spk-input-wrap spk-readonly-field">
                   <ion-icon :icon="cashOutline" aria-hidden="true" />
                   <input
@@ -684,7 +684,7 @@ onMounted(() => {
               </div>
 
               <p class="spk-payment-note">
-                Perhitungan dilakukan untuk kavling {{ lot?.lot_number || 'ini' }}.
+                Perhitungan dilakukan untuk kaveling {{ lot?.lot_number || 'ini' }}.
               </p>
 
               <div v-if="paymentScheme === 'Cash'" class="spk-payment-lot-card">
@@ -693,7 +693,7 @@ onMounted(() => {
                   <span>Pelunasan setelah SPK disetujui</span>
                 </div>
                 <div class="spk-payment-summary-line">
-                  <span>Total harga kavling</span>
+                  <span>Total harga kaveling</span>
                   <strong>{{ formatCurrency(lotPrice) }}</strong>
                 </div>
               </div>
@@ -704,7 +704,7 @@ onMounted(() => {
                   <span>Cicilan</span>
                 </div>
 
-                <label class="spk-dp-label" for="spk-down-payment">DP kavling ini</label>
+                <label class="spk-dp-label" for="spk-down-payment">DP kaveling ini</label>
                 <div class="spk-dp-input-wrap">
                   <span>Rp</span>
                   <input
@@ -748,7 +748,7 @@ onMounted(() => {
                   class="spk-inline-error spk-dp-error"
                   role="alert"
                 >
-                  DP harus lebih kecil dari harga kavling agar masih ada sisa cicilan.
+                  DP harus lebih kecil dari harga kaveling agar masih ada sisa cicilan.
                 </p>
 
                 <div
@@ -782,7 +782,7 @@ onMounted(() => {
                     </button>
                   </div>
                   <p v-else class="spk-plan-message">
-                    Skema cicilan hingga 2 tahun belum tersedia untuk kavling ini.
+                    Skema cicilan hingga 2 tahun belum tersedia untuk kaveling ini.
                   </p>
                 </div>
 
@@ -872,7 +872,7 @@ onMounted(() => {
                   />
                   <span>
                     <strong>{{ formatCurrency(fee.amount) }}</strong>
-                    <small>SPK {{ fee.sourceSpkNumber }} · Kavling {{ fee.sourceLotNumber }}</small>
+                    <small>SPK {{ fee.sourceSpkNumber }} · Kaveling {{ fee.sourceLotNumber }}</small>
                     <small v-if="fee.verifiedAt">
                       Dikonfirmasi {{ new Date(fee.verifiedAt).toLocaleDateString('id-ID') }}
                     </small>

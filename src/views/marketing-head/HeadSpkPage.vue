@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Pengajuan Client" tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
+  <MarketingPageLayout title="Pengajuan Klien" tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
     <section class="mk-intro">
       <p>Pengajuan SPK tim</p>
       <h1>Status SPK seluruh Marketing</h1>

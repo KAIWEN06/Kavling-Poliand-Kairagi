@@ -27,7 +27,7 @@
           @click="goTo('/admin/kavling')"
         >
           <span class="icon-wrap"><ion-icon :icon="gridOutline" /></span>
-          <span class="nav-label">Kavling</span>
+          <span class="nav-label">Kaveling</span>
         </button>
 
         <button
@@ -76,7 +76,7 @@
     @click="goTo('/client/kavling')"
   >
     <span class="icon-wrap"><ion-icon :icon="gridOutline" /></span>
-    <span class="nav-label">Kavling</span>
+    <span class="nav-label">Kaveling</span>
   </button>
 
   <button
@@ -179,7 +179,7 @@
           </span>
 
           <span class="nav-label">
-            Calon Pembeli
+            Pembeli
           </span>
         </button>
 
@@ -198,7 +198,7 @@
           </span>
 
           <span class="nav-label">
-            Tindak Lanjut
+            Follow Up
           </span>
         </button>
 
@@ -360,8 +360,8 @@ import {
 
 const headTabs = [
   { path: '/beranda-kepala-marketing', label: 'Beranda', icon: homeOutline },
-  { path: '/kepala-marketing/clients', label: 'Client', icon: peopleOutline },
-  { path: '/kepala-marketing/perkembangan', label: 'Perkembangan', icon: pulseOutline },
+  { path: '/kepala-marketing/clients', label: 'Klien', icon: peopleOutline },
+  { path: '/kepala-marketing/perkembangan', label: 'Progres', icon: pulseOutline },
   { path: '/kepala-marketing/laporan', label: 'Laporan', icon: barChartOutline },
   { path: '/kepala-marketing/lainnya', label: 'Lainnya', icon: menuOutline },
 ]
@@ -536,7 +536,7 @@ function isActive(path: string) {
 
   min-height: var(--tab-bar-height);
 
-  padding: 6px;
+  padding: 6px 4px;
 
   background: var(--surface-primary);
 
@@ -574,13 +574,13 @@ function isActive(path: string) {
 
   font-family: var(--font-primary);
 
-  font-size: var(--font-size-xs);
+  font-size: 11px;
 
   font-weight: 600;
 
-  letter-spacing: 0.05px;
+  letter-spacing: 0;
 
-  padding: 0;
+  padding: 0 2px;
 
   cursor: pointer;
 
@@ -681,6 +681,12 @@ function isActive(path: string) {
 
 .nav-label {
   line-height: 1;
+
+  max-width: 100%;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
 
   white-space: nowrap;
 

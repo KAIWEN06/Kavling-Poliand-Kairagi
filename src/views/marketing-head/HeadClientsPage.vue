@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Data Client" tab-variant="head" @refresh="list?.reload()">
+  <MarketingPageLayout title="Data Klien" tab-variant="head" @refresh="list?.reload()">
     <ClientListView
       ref="list"
       role="head"

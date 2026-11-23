@@ -61,11 +61,11 @@ async function submitRegistration() {
     return
   }
   if (!passwordIsValid.value) {
-    errorMessage.value = 'Password minimal 8 karakter dan harus mengandung huruf, angka, serta simbol.'
+    errorMessage.value = 'Kata sandi minimal 8 karakter dan harus mengandung huruf, angka, serta simbol.'
     return
   }
   if (password.value !== confirmPassword.value) {
-    errorMessage.value = 'Konfirmasi password tidak sama.'
+    errorMessage.value = 'Konfirmasi kata sandi tidak sama.'
     return
   }
 
@@ -198,8 +198,8 @@ async function registerWithGoogle() {
               <AppInput
                 v-model="password"
                 input-id="register-password"
-                label="Password"
-                placeholder="Masukan Password"
+                label="Kata sandi"
+                placeholder="Masukan kata sandi"
                 type="password"
                 autocomplete="new-password"
                 :icon="lockClosedOutline"
@@ -215,8 +215,8 @@ async function registerWithGoogle() {
               <AppInput
                 v-model="confirmPassword"
                 input-id="confirm-password"
-                label="Konfirmasi Password"
-                placeholder="Masukan kembali Password"
+                label="Konfirmasi kata sandi"
+                placeholder="Masukan kembali kata sandi"
                 type="password"
                 autocomplete="new-password"
                 :icon="lockClosedOutline"

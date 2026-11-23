@@ -6,7 +6,7 @@
       </button>
     </div>
     <div class="mk-filters">
-      <label class="mk-field"><span>Cari</span><input v-model.trim="search" class="mk-input" type="search" placeholder="Nama client, nomor SPK, kavling" /></label>
+      <label class="mk-field"><span>Cari</span><input v-model.trim="search" class="mk-input" type="search" placeholder="Nama klien, nomor SPK, kaveling" /></label>
       <label v-if="isHead" class="mk-field">
         <span>Marketing</span>
         <select v-model="marketingId" class="mk-input">
@@ -18,13 +18,13 @@
 
     <div v-if="loading" class="mk-state" role="status">Memuat pengajuan SPK…</div>
     <div v-else-if="error" class="mk-state mk-state--error" role="alert"><strong>Pengajuan SPK belum dapat dimuat</strong><span>{{ error }}</span></div>
-    <div v-else-if="!filtered.length" class="mk-state"><strong>Belum ada pengajuan</strong><span>Pengajuan SPK client akan tampil di sini setelah diajukan.</span></div>
+    <div v-else-if="!filtered.length" class="mk-state"><strong>Belum ada pengajuan</strong><span>Pengajuan SPK klien akan tampil di sini setelah diajukan.</span></div>
 
     <div v-else class="mk-table-wrap">
       <table class="mk-table mk-table--stack">
         <thead>
           <tr>
-            <th>Client</th><th v-if="isHead">Marketing</th><th>Kavling</th><th>Tanggal pengajuan</th>
+            <th>Klien</th><th v-if="isHead">Marketing</th><th>Kaveling</th><th>Tanggal pengajuan</th>
             <th class="num">Nominal SPK</th><th>Status SPK</th><th>Pembayaran SPK</th><th>Catatan Admin</th>
           </tr>
         </thead>
@@ -35,7 +35,7 @@
               <span class="mk-muted mk-block">{{ row.spk_number }} · {{ row.submission_source }}</span>
             </td>
             <td v-if="isHead" data-label="Marketing">{{ memberName(row.owner_id) }}</td>
-            <td data-label="Kavling">{{ row.lot?.lot_number || '-' }}</td>
+            <td data-label="Kaveling">{{ row.lot?.lot_number || '-' }}</td>
             <td data-label="Diajukan">{{ formatDate(row.submitted_at) }}</td>
             <td data-label="Nominal SPK" class="num">{{ formatRupiah(row.booking_fee_snapshot) }}</td>
             <td data-label="Status SPK"><StatusBadge :label="spkLabel(row.status)" :tone="spkTone(row.status)" /></td>

@@ -136,7 +136,7 @@ export const surveyService = {
    */
   async getClientRequests(lotId?: number): Promise<ClientSurveyRequest[]> {
     if (lotId !== undefined && (!Number.isInteger(lotId) || lotId <= 0)) {
-      throw new Error("ID kavling tidak valid saat mengambil status survei.");
+      throw new Error("ID kaveling tidak valid saat mengambil status survei.");
     }
 
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -199,7 +199,7 @@ export const surveyService = {
    */
   async requestSurvey(input: SurveyRequestInput): Promise<string> {
     if (!Number.isInteger(input.lotId) || input.lotId <= 0) {
-      throw new Error("ID kavling tidak valid.");
+      throw new Error("ID kaveling tidak valid.");
     }
     if (!input.scheduledAt || Number.isNaN(Date.parse(input.scheduledAt))) {
       throw new Error("Tanggal dan jam survei tidak valid.");

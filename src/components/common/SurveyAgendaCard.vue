@@ -52,7 +52,7 @@ const ionRouter = useIonRouter()
 const items = ref<SurveyAgendaItem[]>([])
 const state = ref<'loading' | 'ready'>('loading')
 
-const title = computed(() => (props.variant === 'client' ? 'Jadwal survei kavling' : 'Jadwal survei'))
+const title = computed(() => (props.variant === 'client' ? 'Jadwal survei kaveling' : 'Jadwal survei'))
 const visible = computed(() => items.value.slice(0, props.max))
 const hiddenCount = computed(() => Math.max(0, items.value.length - props.max))
 const pendingCount = computed(() => items.value.filter((i) => i.status === 'pending').length)

@@ -53,7 +53,7 @@
         <div class="lot-info">
 
           <div class="lot-number">
-            KAVLING {{ lotNumber }}
+            KAVELING {{ lotNumber }}
           </div>
 
           <div class="lot-status">

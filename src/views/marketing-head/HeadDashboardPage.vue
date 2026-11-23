@@ -31,7 +31,7 @@
           <div class="mk-grid">
             <StatCard class="mk-span-2" label="Pembayaran terkonfirmasi" :value="formatRupiahShort(s.cash_in)" hint="penerimaan kas terverifikasi" accent clickable @open="go('/kepala-marketing/pembayaran')" />
             <StatCard label="SPK terkonfirmasi" :value="s.spk_approved" :hint="`${s.spk_pending} masih menunggu Admin`" clickable @open="go('/kepala-marketing/spk')" />
-            <StatCard label="Kavling terjual" :value="s.units_sold" :hint="`${s.units_booked} dipesan · ${s.units_paid_off} lunas`" clickable @open="go('/kepala-marketing/laporan')" />
+            <StatCard label="Kaveling terjual" :value="s.units_sold" :hint="`${s.units_booked} dipesan · ${s.units_paid_off} lunas`" clickable @open="go('/kepala-marketing/laporan')" />
             <StatCard label="Nilai penjualan (kontrak)" :value="formatRupiahShort(s.contract_value)" hint="bukan uang diterima" clickable @open="go('/kepala-marketing/laporan')" />
             <StatCard label="Menunggu verifikasi" :value="formatRupiahShort(s.payments_pending_amount)" :hint="`${s.payments_pending_count} pembayaran, belum kas`" clickable @open="go('/kepala-marketing/pembayaran')" />
             <StatCard label="Cicilan terlambat" :value="s.installments_overdue" :hint="formatRupiahShort(s.installments_overdue_amount)" clickable @open="go('/kepala-marketing/pembayaran', { tab: 'schedules' })" />
@@ -42,16 +42,16 @@
       </Reveal>
 
       <Reveal :order="3">
-        <section class="mk-section" aria-label="Perkembangan client">
-          <div class="mk-section-head"><div><h2>Client</h2><p>Status terkini; client baru mengikuti periode</p></div></div>
+        <section class="mk-section" aria-label="Perkembangan klien">
+          <div class="mk-section-head"><div><h2>Klien</h2><p>Status terkini; klien baru mengikuti periode</p></div></div>
           <div class="mk-grid">
-            <StatCard label="Total client tim" :value="s.total_clients" clickable @open="go('/kepala-marketing/clients')" />
-            <StatCard label="Client baru (periode)" :value="s.new_clients" clickable @open="go('/kepala-marketing/clients', { from: report.period.from, to: report.period.to })" />
+            <StatCard label="Total klien tim" :value="s.total_clients" clickable @open="go('/kepala-marketing/clients')" />
+            <StatCard label="Klien baru (periode)" :value="s.new_clients" clickable @open="go('/kepala-marketing/clients', { from: report.period.from, to: report.period.to })" />
             <StatCard label="Belum dihubungi" :value="crm('Baru') + crm('Belum Dihubungi')" hint="Baru + Belum Dihubungi" clickable @open="go('/kepala-marketing/clients', { crm: 'Belum Dihubungi' })" />
-            <StatCard label="Proses follow-up" :value="crm('Sudah Dihubungi') + crm('Follow-up')" clickable @open="go('/kepala-marketing/clients', { crm: 'Follow-up' })" />
+            <StatCard label="Proses tindak lanjut" :value="crm('Sudah Dihubungi') + crm('Follow-up')" clickable @open="go('/kepala-marketing/clients', { crm: 'Follow-up' })" />
             <StatCard label="Berminat" :value="crm('Berminat') + crm('Survey Lokasi') + crm('Negosiasi')" hint="termasuk survey & negosiasi" clickable @open="go('/kepala-marketing/clients', { crm: 'Berminat' })" />
             <StatCard label="Dalam pengajuan" :value="crm('Pengajuan')" clickable @open="go('/kepala-marketing/clients', { crm: 'Pengajuan' })" />
-            <StatCard label="Tanpa follow-up > 7 hari" :value="s.no_followup_7d" clickable @open="go('/kepala-marketing/perkembangan')" />
+            <StatCard label="Tanpa tindak lanjut > 7 hari" :value="s.no_followup_7d" clickable @open="go('/kepala-marketing/perkembangan')" />
             <StatCard label="Anggota Marketing" :value="s.team_size" clickable @open="go('/kepala-marketing/laporan', { tab: 'performance' })" />
           </div>
         </section>
@@ -59,8 +59,8 @@
 
       <Reveal :order="4">
         <section class="mk-charts">
-          <BarChart title="Perkembangan client" subtitle="Jumlah client per status saat ini" :items="crmItems" label-header="Status" value-header="Client" />
-          <BarChart title="Penjualan per periode" subtitle="Nilai kontrak kavling terjual" orientation="vertical" :items="trendItems('contract_value')" :formatter="formatRupiahShort" label-header="Periode" value-header="Nilai kontrak" />
+          <BarChart title="Perkembangan klien" subtitle="Jumlah klien per status saat ini" :items="crmItems" label-header="Status" value-header="Klien" />
+          <BarChart title="Penjualan per periode" subtitle="Nilai kontrak kaveling terjual" orientation="vertical" :items="trendItems('contract_value')" :formatter="formatRupiahShort" label-header="Periode" value-header="Nilai kontrak" />
           <BarChart title="Jumlah SPK terkonfirmasi" subtitle="Per periode" orientation="vertical" :items="trendItems('spk_approved')" label-header="Periode" value-header="SPK" />
           <BarChart title="Performa Marketing" subtitle="SPK terkonfirmasi pada periode" :items="teamItems('spk_approved')" label-header="Marketing" value-header="SPK" />
           <BarChart title="Perbandingan hasil penjualan" subtitle="Nilai kontrak per Marketing" :items="teamItems('contract_value')" :formatter="formatRupiahShort" label-header="Marketing" value-header="Nilai kontrak" />

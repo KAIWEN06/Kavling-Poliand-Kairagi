@@ -63,7 +63,7 @@ export const purchaseCancellationService = {
         created_at: row.created_at,
         customer_name: customer?.full_name ?? 'Pembeli',
         customer_phone: customer?.phone ?? null,
-        lot_number: lot?.lot_number ?? 'Kavling tidak tersedia',
+        lot_number: lot?.lot_number ?? 'Kaveling tidak tersedia',
         block_name: block?.name ?? null,
       }
     })

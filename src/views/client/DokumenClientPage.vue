@@ -176,7 +176,7 @@ async function loadSpkRecords() {
   try {
     spkRecords.value = await getClientSpks()
   } catch (error) {
-    console.error('[SPK Client] Gagal memuat pengajuan:', error)
+    console.error('[SPK Klien] Gagal memuat pengajuan:', error)
     storageError.value = getClientSpkErrorMessage(error, 'Data SPK gagal dimuat.')
   } finally {
     loading.value = false
@@ -353,7 +353,7 @@ async function openCreateForm(preferredLotId: number | null = null) {
   try {
     availableBookingFees.value = await loadBookingFeesWithTimeout()
   } catch (error) {
-    console.error('[SPK Client] Gagal memeriksa Booking Fee yang tersedia:', error)
+    console.error('[SPK Klien] Gagal memeriksa Booking Fee yang tersedia:', error)
     availableBookingFees.value = []
     reuseFeesError.value = getClientSpkErrorMessage(
       error,
@@ -392,7 +392,7 @@ async function openCreateForm(preferredLotId: number | null = null) {
       }
     }
   } catch (error) {
-    console.warn('[SPK Client] Data profil pembeli gagal dimuat:', error)
+    console.warn('[SPK Klien] Data profil pembeli gagal dimuat:', error)
   }
 
   try {
@@ -407,7 +407,7 @@ async function openCreateForm(preferredLotId: number | null = null) {
     if (preferredLot) await selectCreateLot(preferredLot)
   } catch (error) {
     availableLots.value = []
-    createError.value = getClientSpkErrorMessage(error, 'Daftar kavling gagal dimuat.')
+    createError.value = getClientSpkErrorMessage(error, 'Daftar kaveling gagal dimuat.')
   } finally {
     lotLoading.value = false
   }
@@ -558,7 +558,7 @@ function handleCreateFile(type: 'ktp' | 'kk' | 'npwp' | 'paymentProof', event: E
 
 async function submitCreateSPK() {
   if (!canSubmitCreate.value || !selectedCreateLot.value || !selectedCreateLotPrice.value) {
-    createError.value = 'Lengkapi data pembeli, pilih kavling, isi rencana pembayaran, serta unggah KTP, KK, dan bukti transfer Booking Fee.'
+    createError.value = 'Lengkapi data pembeli, pilih kaveling, isi rencana pembayaran, serta unggah KTP, KK, dan bukti transfer Booking Fee.'
     return
   }
   creating.value = true
@@ -729,7 +729,7 @@ onIonViewWillEnter(handleRouteIntent)
         <section class="spk-toolbar">
           <label class="spk-search">
             <ion-icon :icon="searchOutline" />
-            <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, nama, atau kavling..." />
+            <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, nama, atau kaveling..." />
             <button v-if="searchQuery" type="button" aria-label="Hapus pencarian" @click="searchQuery = ''">
               <ion-icon :icon="closeOutline" />
             </button>
@@ -769,7 +769,7 @@ onIonViewWillEnter(handleRouteIntent)
                 <span :class="['spk-status', statusClass(record.status)]">{{ statusLabel(record.status) }}</span>
               </div>
               <div v-if="record.status !== 'Rejected'" class="spk-notary-progress">
-                <span>Progress SPK</span>
+                <span>Kemajuan SPK</span>
                 <strong :class="['spk-notary-status', notaryStatusClass(record.notaryStatus)]">
                   {{ record.notaryStatus }}
                 </strong>
@@ -797,7 +797,7 @@ onIonViewWillEnter(handleRouteIntent)
 
               <div class="spk-card-meta">
                 <div>
-                  <span>Kavling</span>
+                  <span>Kaveling</span>
                   <strong>{{ record.lot.name }}</strong>
                   <small>{{ formatArea(record.lot.area) }}</small>
                 </div>
@@ -897,12 +897,12 @@ onIonViewWillEnter(handleRouteIntent)
         </section>
 
         <section class="spk-form-section">
-          <h3>2. Pilih Kavling</h3>
-          <label class="spk-lot-search">Cari kavling
-            <input v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kavling atau blok" />
+          <h3>2. Pilih Kaveling</h3>
+          <label class="spk-lot-search">Cari kaveling
+            <input v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kaveling atau blok" />
           </label>
-          <p v-if="lotLoading" class="spk-lot-empty">Memuat kavling tersedia...</p>
-          <div v-else class="spk-lot-list" role="group" aria-label="Pilih kavling">
+          <p v-if="lotLoading" class="spk-lot-empty">Memuat kaveling tersedia...</p>
+          <div v-else class="spk-lot-list" role="group" aria-label="Pilih kaveling">
             <button v-for="lot in filteredCreateLots" :key="lot.id" type="button"
               class="spk-lot-option" :class="{ selected: selectedLotId === lot.id }"
               :aria-pressed="selectedLotId === lot.id" @click="selectCreateLot(lot)">
@@ -913,7 +913,7 @@ onIonViewWillEnter(handleRouteIntent)
               </span>
               <b>{{ formatCurrency(selectedCreateLotPriceForLot(lot)) }}</b>
             </button>
-            <p v-if="!filteredCreateLots.length" class="spk-lot-empty">Kavling tersedia tidak ditemukan.</p>
+            <p v-if="!filteredCreateLots.length" class="spk-lot-empty">Kaveling tersedia tidak ditemukan.</p>
           </div>
         </section>
 
@@ -935,7 +935,7 @@ onIonViewWillEnter(handleRouteIntent)
               </label>
             </div>
             <template v-if="useDownPayment">
-              <label>DP kavling
+              <label>DP kaveling
                 <input :value="downPaymentInput" inputmode="numeric" placeholder="Nominal DP"
                   @input="downPaymentInput = ($event.target as HTMLInputElement).value.replace(/\D/g, '')" />
               </label>
@@ -944,7 +944,7 @@ onIonViewWillEnter(handleRouteIntent)
               </div>
             </template>
             <p v-else class="spk-pure-installment-note">
-              Skema ini tidak menggunakan DP. Perhitungan cicilan menggunakan seluruh harga kavling sesuai skema tenor yang dipilih. Booking Fee pengajuan SPK tetap terpisah.
+              Skema ini tidak menggunakan DP. Perhitungan cicilan menggunakan seluruh harga kaveling sesuai skema tenor yang dipilih. Booking Fee pengajuan SPK tetap terpisah.
             </p>
             <label>Tenor cicilan
               <select v-model="selectedPlanId" :disabled="paymentPlansLoading">
@@ -958,7 +958,7 @@ onIonViewWillEnter(handleRouteIntent)
             </div>
           </template>
           <div v-else-if="selectedCreateLot && selectedCreateLotPrice" class="spk-payment-result">
-            <div class="spk-total-row"><span>Harga kavling (pelunasan setelah SPK disetujui)</span><strong>{{ formatCurrency(selectedCreateLotPrice) }}</strong></div>
+            <div class="spk-total-row"><span>Harga kaveling (pelunasan setelah SPK disetujui)</span><strong>{{ formatCurrency(selectedCreateLotPrice) }}</strong></div>
           </div>
 
           <div class="spk-payment-result spk-booking-fee-summary">
@@ -1016,7 +1016,7 @@ onIonViewWillEnter(handleRouteIntent)
               <select v-model.number="selectedReusePaymentId">
                 <option :value="null">Bayar Booking Fee baru</option>
                 <option v-for="fee in availableBookingFees" :key="fee.paymentId" :value="fee.paymentId">
-                  {{ fee.sourceSpkNumber }} · {{ formatCurrency(fee.amount) }} · Kavling {{ fee.sourceLotNumber }}
+                  {{ fee.sourceSpkNumber }} · {{ formatCurrency(fee.amount) }} · Kaveling {{ fee.sourceLotNumber }}
                 </option>
               </select>
             </label>
@@ -1062,9 +1062,9 @@ onIonViewWillEnter(handleRouteIntent)
         </section>
 
         <section class="spk-detail-section">
-          <h3><ion-icon :icon="mapOutline" /> Informasi Kavling</h3>
+          <h3><ion-icon :icon="mapOutline" /> Informasi Kaveling</h3>
           <dl>
-            <div><dt>Nomor kavling</dt><dd>{{ selectedRecord.lot.name }}</dd></div>
+            <div><dt>Nomor kaveling</dt><dd>{{ selectedRecord.lot.name }}</dd></div>
             <div><dt>Luas tanah</dt><dd>{{ formatArea(selectedRecord.lot.area) }}</dd></div>
             <div><dt>Dimensi</dt><dd>{{ selectedRecord.lot.dimension || '-' }}</dd></div>
             <div><dt>Harga pengajuan</dt><dd>{{ formatCurrency(selectedRecord.lot.price) }}</dd></div>

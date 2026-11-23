@@ -1,2470 +1,1868 @@
 <template>
-  <ion-page class="kavling-page">
+  <ion-page>
+    <AppHeader variant="marketing" title="PoliLand Kairagi" :show-back="false" />
 
-    <!-- =================================================
-         HEADER
-         ================================================= -->
+    <AppPullRefresh scoped :refresh-handler="refreshAll" />
 
-    <AppHeader variant="marketing" />
+    <ion-content :fullscreen="true">
 
-
-    <!-- =================================================
-         CONTENT
-         ================================================= -->
-
-    <ion-content
-      :fullscreen="false"
-      class="kavling-content"
-    >
-
-      <main class="page-container">
-
-        <!-- =================================================
-             SEARCH
-             ================================================= -->
-
-        <div class="search-wrapper">
-
-          <ion-icon
-            :icon="searchOutline"
-            class="search-icon"
-          />
-
-          <input
-            v-model="searchQuery"
-            type="search"
-            class="search-input"
-            placeholder="Cari nomor kavling, blok..."
-            autocomplete="off"
-          />
-
-          <button
-            v-if="searchQuery"
-            type="button"
-            class="clear-search"
-            aria-label="Hapus pencarian"
-            @click="searchQuery = ''"
-          >
-            ×
-          </button>
-
-        </div>
-
-
-        <!-- =================================================
-             FILTER STATUS
-             ================================================= -->
-
-        <div class="filter-wrapper">
-
-          <button
-            v-for="filter in filters"
-            :key="filter.value"
-            type="button"
-            class="filter-button"
-            :class="{
-              active:
-                selectedFilter === filter.value
-            }"
-            @click="selectedFilter = filter.value"
-          >
-            {{ filter.label }}
-          </button>
-
-        </div>
-
-
-        <!-- =================================================
-             LOADING
-             ================================================= -->
-
-        <div
-          v-if="loading"
-          class="state-container"
-        >
-
-          <div class="loading-spinner"></div>
-
-          <p>
-            Memuat data kavling...
-          </p>
-
-        </div>
-
-
-        <!-- =================================================
-             ERROR
-             ================================================= -->
-
-        <div
-          v-else-if="errorMessage"
-          class="state-container"
-        >
-
-          <div class="error-icon">
-            !
+      <div class="kv-page">
+        
+        <!-- SITEPLAN (komponen yang sama dengan beranda) -->
+        <section class="kv-siteplan" aria-labelledby="siteplan-heading">
+          <div class="kv-map-head">
+            <h2 id="siteplan-heading">
+              <ion-icon :icon="mapOutline" aria-hidden="true" />
+              Siteplan PoliLand
+            </h2>
           </div>
 
-          <strong>
-            Gagal memuat kavling
-          </strong>
+          <div class="kv-siteplan-card">
+            <div class="kv-mini-siteplan">
+              <img :src="siteplanImage" alt="Siteplan PoliLand Kairagi" class="kv-siteplan-image" />
+              <div ref="siteplanLayer" class="kv-siteplan-layer" v-html="siteplanSvg" />
+            </div>
 
-          <p>
-            {{ errorMessage }}
+            <div class="kv-siteplan-legend" aria-label="Legenda status kaveling">
+              <span><i class="available"></i>Tersedia</span>
+              <span><i class="booking"></i>Dipesan</span>
+              <span><i class="sold"></i>Terjual</span>
+            </div>
+
+            <AppButton variant="primary" expand="block" class="kv-siteplan-button" @click="openFullMap">
+              Lihat Siteplan
+              <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
+            </AppButton>
+          </div>
+        </section>
+
+
+        <!-- SEARCH -->
+        <div class="kv-searchbox" @keydown.esc="panelOpen = false">
+          <div class="kv-search">
+            <ion-icon :icon="searchOutline" class="kv-search-icon" aria-hidden="true" />
+
+            <span v-if="isRange" class="kv-bar-static">Rentang harga</span>
+            <input
+              v-else
+              ref="searchInput"
+              v-model="query"
+              type="search"
+              :inputmode="searchInputMode"
+              enterkeyhint="search"
+              autocomplete="off"
+              :placeholder="searchPlaceholder"
+              :aria-label="searchPlaceholder"
+              @keydown.enter="blurInput"
+            />
+
+            <button
+              v-if="hasSearchInput"
+              type="button"
+              class="kv-bar-btn"
+              aria-label="Hapus pencarian"
+              @click="clearSearch"
+            >
+              <ion-icon :icon="closeOutline" />
+            </button>
+
+            <button
+              type="button"
+              :class="['kv-bar-btn', 'kv-filter-btn', { open: panelOpen, tuned: searchType !== 'text' }]"
+              aria-label="Pilih jenis pencarian"
+              aria-controls="kv-search-panel"
+              :aria-expanded="panelOpen"
+              @click="panelOpen = !panelOpen"
+            >
+              <ion-icon :icon="optionsOutline" />
+            </button>
+          </div>
+
+          <!-- PANEL JENIS PENCARIAN -->
+          <div v-if="panelOpen" id="kv-search-panel" class="kv-panel">
+            <p id="kv-type-label" class="kv-panel-label">Cari berdasarkan</p>
+            <div class="kv-types" role="group" aria-labelledby="kv-type-label">
+              <button
+                v-for="t in searchTypes"
+                :key="t.key"
+                type="button"
+                :class="['kv-type', { active: searchType === t.key }]"
+                :aria-pressed="searchType === t.key"
+                @click="setSearchType(t.key)"
+              >
+                <span class="kv-type-icon" aria-hidden="true">{{ t.icon }}</span>
+                {{ t.label }}
+              </button>
+            </div>
+
+            <template v-if="searchType === 'price'">
+              <p id="kv-mode-label" class="kv-panel-label">Metode harga</p>
+              <div class="kv-types" role="group" aria-labelledby="kv-mode-label">
+                <button
+                  type="button"
+                  :class="['kv-type', { active: priceMode === 'nearest' }]"
+                  :aria-pressed="priceMode === 'nearest'"
+                  @click="setPriceMode('nearest')"
+                >
+                  Harga terdekat
+                </button>
+                <button
+                  type="button"
+                  :class="['kv-type', { active: priceMode === 'range' }]"
+                  :aria-pressed="priceMode === 'range'"
+                  @click="setPriceMode('range')"
+                >
+                  Rentang harga
+                </button>
+              </div>
+            </template>
+
+            <p class="kv-panel-help">{{ typeHelp }}</p>
+          </div>
+
+          <!-- RENTANG HARGA -->
+          <div v-if="isRange" class="kv-range-row">
+            <div class="kv-range-field">
+              <label for="kv-min-price">Harga minimum</label>
+              <div class="kv-range-input">
+                <span aria-hidden="true">Rp</span>
+                <input
+                  id="kv-min-price"
+                  ref="minInput"
+                  v-model="minPriceText"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="off"
+                  placeholder="300jt"
+                />
+              </div>
+            </div>
+            <div class="kv-range-field">
+              <label for="kv-max-price">Harga maksimum</label>
+              <div class="kv-range-input">
+                <span aria-hidden="true">Rp</span>
+                <input
+                  id="kv-max-price"
+                  v-model="maxPriceText"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="off"
+                  placeholder="450jt"
+                />
+              </div>
+            </div>
+          </div>
+
+          <p v-if="searchType !== 'text' && !panelOpen" class="kv-mode">
+            Cari berdasarkan <strong>{{ modeLabel }}</strong>
           </p>
-
-          <button
-            type="button"
-            class="retry-button"
-            @click="loadLots"
-          >
-            Coba Lagi
-          </button>
-
+          <p v-if="searchHint" class="kv-hint" role="status">{{ searchHint }}</p>
         </div>
 
+        <!-- FILTER STATUS -->
+        <div class="kv-chips" role="group" aria-label="Filter status kaveling">
+          <button
+            v-for="chip in chips"
+            :key="chip.key"
+            type="button"
+            :class="['kv-chip', { active: statusFilter === chip.key }]"
+            :aria-pressed="statusFilter === chip.key"
+            @click="statusFilter = chip.key"
+          >
+            <span v-if="chip.key !== 'all'" :class="['kv-dot', chip.key]" aria-hidden="true"></span>
+            {{ chip.label }} ({{ chip.count }})
+          </button>
+        </div>
 
-        <!-- =================================================
-             LOT LIST
-             ================================================= -->
+        <!-- LOADING -->
+        <div v-if="loading" class="kv-state" role="status" aria-live="polite">
+          <img
+            :src="loadingMascot"
+            alt=""
+            class="kv-state-mascot"
+            aria-hidden="true"
+          />
+          <ion-spinner name="crescent" />
+          <strong>Memuat data kaveling…</strong>
+        </div>
 
-        <section
-          v-else
-          class="lot-list"
-        >
+        <!-- ERROR -->
+        <div v-else-if="loadError" class="kv-state" role="alert">
+          <img
+            :src="errorMascot"
+            alt=""
+            class="kv-state-mascot"
+            aria-hidden="true"
+          />
+          <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
+          <strong>Data kaveling gagal dimuat</strong>
+          <p>Periksa koneksi internet, lalu coba lagi.</p>
+          <button type="button" class="kv-detail kv-detail-inline" @click="load(true)">Coba lagi</button>
+        </div>
+
+        <template v-else>
+          <!-- LIST HEAD -->
+          <div id="kv-list-top" class="kv-list-head">
+            <h2>
+              Daftar Kaveling
+            </h2>
+
+            <div class="kv-sort">
+              <ion-icon :icon="swapVerticalOutline" class="kv-sort-lead" aria-hidden="true" />
+              <select v-model="sortModel" aria-label="Urutkan daftar kaveling" :disabled="proximityActive">
+                <option v-if="proximityActive" value="nearest">Paling mendekati</option>
+                <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+              <ion-icon :icon="chevronDownOutline" class="kv-sort-caret" aria-hidden="true" />
+            </div>
+          </div>
+
+          <p v-if="proximityActive" class="kv-note">Diurutkan dari yang paling mendekati pencarian.</p>
 
           <LotSurveyBanner :surveys="surveyByLot" />
 
-          <article
-            v-for="lot in paginatedLots"
-            :key="lot.id"
-            class="lot-card"
-            :class="{ 'lot-card--survey': surveyByLot.has(lot.id) }"
-            role="button"
-            tabindex="0"
-            @click="openPanorama(lot)"
-            @keydown.enter="openPanorama(lot)"
-          >
+          <!-- LIST -->
+          <ul v-if="filtered.length" class="kv-list">
+            <li v-for="lot in pagedLots" :key="lot.id">
+              <article :id="`lot-${lot.id}`" :class="['kv-card', 'kv-lot', { 'kv-lot--survey': surveyByLot.has(lot.id) }]">
+                <div class="kv-lot-top">
 
-            <!-- =============================================
-                 PANORAMA 360 THUMBNAIL
-                 ============================================= -->
+                  <div class="kv-lot-info">
+                    <h3>{{ lot.code }}</h3>
+                    <p>{{ lot.meta }}</p>
+                  </div>
 
-            <div class="lot-image-wrapper">
-
-              <img
-                v-if="lot.panorama_url"
-                :src="lot.panorama_url"
-                :alt="`Panorama 360° ${lot.lot_number}`"
-                class="lot-image"
-                loading="lazy"
-              />
-
-              <!-- Tidak ada panorama -->
-
-              <div
-                v-else
-                class="panorama-empty"
-              >
-
-                <ion-icon
-                  :icon="imageOutline"
-                />
-
-                <span>
-                  360 belum tersedia
-                </span>
-
-              </div>
-
-
-              <!-- Label 360 -->
-
-              <div
-                v-if="lot.panorama_url"
-                class="panorama-badge"
-              >
-
-                <ion-icon
-                  :icon="cubeOutline"
-                />
-
-                <span>
-                  360°
-                </span>
-
-              </div>
-
-            </div>
-
-
-            <!-- =============================================
-                 INFORMATION
-                 ============================================= -->
-
-            <div class="lot-information">
-
-              <!-- Nomor + Blok -->
-
-              <div class="lot-title-row">
-
-                <div class="lot-name">
-
-                  {{ formatLotNumber(lot.lot_number) }}
-
+                  <span :class="['kv-badge', lot.status]">
+                    <ion-icon :icon="statusIcon[lot.status]" aria-hidden="true" />
+                    {{ statusLabel[lot.status] }}
+                  </span>
                 </div>
 
-              </div>
+                <LotSurveyMarker v-if="surveyByLot.get(lot.id)" :info="surveyByLot.get(lot.id)!" />
 
+                <div class="kv-lot-bottom">
+                  <!-- HARGA: baris sendiri, tidak berbagi ruang dengan tombol -->
+                  <div class="kv-money">
+                    <span class="kv-money-label">{{ lot.hasPromo ? 'Harga promo' : 'Harga' }}</span>
+                    <div class="kv-money-row">
+                      <strong v-if="lot.price !== null">{{ formatRupiah(lot.price) }}</strong>
+                      <strong v-else class="kv-money-empty">Belum diatur</strong>
+                      <s v-if="lot.originalPrice !== null" class="kv-money-old">{{ formatRupiah(lot.originalPrice) }}</s>
+                    </div>
+                  </div>
 
-              <div class="lot-block">
+                  <!-- AKSI: baris sendiri di bawah harga -->
+                  <div class="kv-actions">
+                    <button
+                      v-if="lot.status === 'available'"
+                      type="button"
+                      class="kv-icon-btn"
+                      :aria-label="`Bagikan ${lot.code}`"
+                      @click="shareLot(lot)"
+                    >
+                      <ion-icon :icon="shareSocialOutline" />
+                    </button>
 
-                {{ getBlockLabel(lot.block_id) }}
+                    <button type="button" class="kv-detail" :disabled="!lot.hasPanorama" @click="openPanorama(lot)">
+                      <ion-icon :icon="cubeOutline" aria-hidden="true" />
+                      {{ lot.hasPanorama ? 'Lihat 360°' : '360° belum tersedia' }}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </li>
+          </ul>
 
-              </div>
+          <!-- PAGINATION -->
+          <nav v-if="filtered.length > 0 && totalPages > 1" class="kv-pager" aria-label="Halaman daftar kaveling">
+            <div class="kv-pager-controls">
+              <button
+                type="button"
+                class="kv-pager-btn"
+                aria-label="Halaman sebelumnya"
+                :disabled="currentPage === 1"
+                @click="goToPage(currentPage - 1)"
+              >
+                <ion-icon :icon="chevronBackOutline" />
+              </button>
 
+              <button
+                v-for="page in visiblePages"
+                :key="page ?? `ellipsis-${currentPage}`"
+                type="button"
+                class="kv-pager-number"
+                :class="{ active: page === currentPage }"
+                :disabled="page === null"
+                :aria-current="page === currentPage ? 'page' : undefined"
+                :aria-label="page === null ? undefined : `Halaman ${page}`"
+                @click="page !== null && goToPage(page)"
+              >
+                {{ page ?? '…' }}
+              </button>
 
-              <!-- Area / Dimension -->
-
-              <div class="lot-meta">
-
-                <span
-                  v-if="lot.area"
-                >
-                  {{ formatArea(lot.area) }}
-                </span>
-
-                <span
-                  v-if="lot.area && lot.dimension"
-                  class="meta-separator"
-                >
-                  •
-                </span>
-
-                <span
-                  v-if="lot.dimension"
-                >
-                  {{ lot.dimension }}
-                </span>
-
-              </div>
-
-
-              <!-- Divider -->
-
-              <div class="lot-divider"></div>
-
-
-              <!-- Price -->
-
-              <div class="lot-price">
-
-                {{ formatPrice(getDisplayPrice(lot)) }}
-
-              </div>
-
-              <LotSurveyMarker
-                v-if="surveyByLot.get(lot.id)"
-                :info="surveyByLot.get(lot.id)!"
-              />
-
+              <button
+                type="button"
+                class="kv-pager-btn"
+                aria-label="Halaman berikutnya"
+                :disabled="currentPage === totalPages"
+                @click="goToPage(currentPage + 1)"
+              >
+                <ion-icon :icon="chevronForwardOutline" />
+              </button>
             </div>
-
-
-            <!-- =============================================
-                 STATUS
-                 ============================================= -->
-
-            <div
-              class="lot-status"
-              :class="getStatusClass(lot.status)"
-            >
-
-              {{ getStatusLabelText(lot.status) }}
-
-            </div>
-
-          </article>
-
-
-          <!-- =================================================
-               EMPTY STATE
-               ================================================= -->
-
-          <div
-            v-if="filteredLots.length === 0"
-            class="empty-state"
-          >
-
-            <div class="empty-icon">
-
-              <ion-icon
-                :icon="searchOutline"
-              />
-
-            </div>
-
-            <strong>
-              Kavling tidak ditemukan
-            </strong>
-
-            <span>
-              Tidak ada kavling yang sesuai dengan pencarian.
-            </span>
-
-          </div>
-
-          <nav
-            v-if="totalPages > 1"
-            class="pagination"
-            aria-label="Navigasi halaman kavling"
-          >
-            <button
-              type="button"
-              class="pagination-button"
-              :disabled="currentPage === 1"
-              @click="currentPage -= 1"
-            >
-              Sebelumnya
-            </button>
-
-            <span
-              class="pagination-label"
-              aria-live="polite"
-            >
-              Halaman {{ currentPage }} dari {{ totalPages }}
-            </span>
-
-            <button
-              type="button"
-              class="pagination-button"
-              :disabled="currentPage === totalPages"
-              @click="currentPage += 1"
-            >
-              Berikutnya
-            </button>
+            <span class="kv-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
           </nav>
 
-        </section>
-
-        <div
-          class="land-decoration"
-          aria-hidden="true"
-        >
-
-          <div class="land-light"></div>
-
-          <div class="land-dark"></div>
-
-        </div>
-
-      </main>
-
+          <div v-if="filtered.length === 0" class="kv-state" role="status">
+            <img
+              :src="emptyMascot"
+              alt=""
+              class="kv-state-mascot"
+              aria-hidden="true"
+            />
+            <strong>{{ lots.length ? 'Tidak ada kavling yang sesuai' : 'Belum ada data kavling' }}</strong>
+            <p v-if="lots.length">Coba ubah kata kunci, jenis pencarian, atau filter status.</p>
+          </div>
+        </template>
+      </div>
     </ion-content>
 
-
-    <!-- =================================================
-         BOTTOM NAVIGATION
-         ================================================= -->
-
-    <MobileTabBar
-      variant="marketing"
-    />
-
+    <MobileTabBar variant="marketing" />
   </ion-page>
 </template>
 
-
 <script setup lang="ts">
-
-import {
-  computed,
-  onMounted,
-  ref,
-  watch,
-} from 'vue'
-
+import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   IonPage,
   IonContent,
   IonIcon,
+  IonSpinner,
+  onIonViewWillEnter,
   useIonRouter,
 } from '@ionic/vue'
-
-import {
-  useRoute,
-} from 'vue-router'
-
 import {
   searchOutline,
-  imageOutline,
+  closeOutline,
+  optionsOutline,
+  mapOutline,
+  swapVerticalOutline,
+  chevronDownOutline,
+  chevronBackOutline,
+  shareSocialOutline,
+  callOutline,
+  personOutline,
+  chevronForwardOutline,
+  checkmarkCircleOutline,
+  timeOutline,
+  closeCircleOutline,
+  alertCircleOutline,
   cubeOutline,
 } from 'ionicons/icons'
 
-import AppHeader
-  from '@/components/common/AppHeader.vue'
-
-import MobileTabBar
-  from '@/components/common/MobileTabBar.vue'
-
-import {
-  supabase,
-} from '@/services/config/supabase'
-
+import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
+import AppHeader from '@/components/common/AppHeader.vue'
+import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import siteplanImage from '@/assets/siteplan/Siteplan.png'
+import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
+import loadingMascot from '@/assets/mascot/Chibi_House_Mascot_Exploring.png'
+import errorMascot from '@/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error.png'
+import emptyMascot from '@/assets/mascot/Mascot_No_Data_Scene.png'
+import { useSiteplan } from '@/composables/useSiteplant'
+import { lotService, type LotRecord } from '@/services/lotService'
 import LotSurveyMarker from '@/components/common/LotSurveyMarker.vue'
 import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
-import {
-  pinSurveyLots,
-  surveyService,
-  type LotSurveyInfo,
-} from '@/services/surveyService'
+import { pinSurveyLots, surveyService, type LotSurveyInfo } from '@/services/surveyService'
+import { dimensionDistance, parseDimension, parseNumber, parsePrice } from '@/services/Admin/LotsearchService'
+import { getLotId, getLotStatusColor } from '@/utils/siteplan'
 
-import {
-  formatLotNumber,
-} from '@/services/marketing/spkService'
-
-
-/* =====================================================
-   TYPES
-   ===================================================== */
-
-type LotStatus =
-  | 'Available'
-  | 'Booking'
-  | 'Sold'
-
-type FilterValue =
-  | 'all'
-  | 'available'
-  | 'booking'
-  | 'sold'
-
+type LotStatus = 'available' | 'booked' | 'sold'
+type StatusFilter = 'all' | LotStatus
+type SortMode =
+  | 'number'
+  | 'available-first'
+  | 'booked-first'
+  | 'sold-first'
+  | 'price-asc'
+  | 'price-desc'
+type SearchType = 'text' | 'price' | 'dimension' | 'area'
+type PriceMode = 'nearest' | 'range'
 
 interface Lot {
-
   id: number
-
-  polygon_id: string
-
-  lot_number: string
-
-  block_id: number | null
-
-  dimension: string | null
-
+  lotNumber: string
+  hasPanorama: boolean
+  /** lots.lot_number apa adanya, mis. "LOT_023" atau "23" */
+  code: string
+  /** angka pendek untuk chip */
+  number: string
+  blockName: string
+  /** baris info: "Blok A · 120 m² · 8x15" */
+  meta: string
   area: number | null
-
-  cash_price: number | null
-
-  promo_price: number | null
-
-  status: LotStatus | null
-
-  payment_type: 'Cash' | 'Installment' | null
-
-  customer_id: number | null
-
-  booking_date: string | null
-
-  sold_date: string | null
-
-  color: string | null
-
-  description: string | null
-
-  created_at: string | null
-
-  updated_at: string | null
-
-  panorama_url: string | null
-
+  dimension: string | null
+  status: LotStatus
+  price: number | null
+  originalPrice: number | null
+  hasPromo: boolean
+  person: string | null
+  phone: string | null
+  /** "Pemesan: Hendra · 12 Okt 2026 · Cicilan" */
+  personLine: string | null
 }
 
-
-/* =====================================================
-   ROUTER
-   ===================================================== */
+/* ---------- state ---------- */
 
 const ionRouter = useIonRouter()
-const route = useRoute()
 
+/* siteplan: sumber data yang sama dengan halaman beranda */
+const { lots: siteplanLots, reload: reloadSiteplan } = useSiteplan()
+const siteplanLayer = ref<HTMLElement | null>(null)
 
-/* =====================================================
-   STATE
-   ===================================================== */
+function renderSiteplanLayers() {
+  const svg = siteplanLayer.value?.querySelector('svg')
+  if (!svg) return
 
-const loading = ref(true)
+  siteplanLots.value.forEach((lot) => {
+    const id = getLotId(lot)
+    const polygon = svg.querySelector(`#${CSS.escape(id)}`) as SVGElement | null
+    if (!polygon) return
+    polygon.style.setProperty('fill', getLotStatusColor(lot), 'important')
+    polygon.style.setProperty('stroke', '#A7A7A7', 'important')
+    polygon.style.setProperty('stroke-width', '1.2', 'important')
+  })
 
-const errorMessage = ref('')
+  svg.querySelector('#client-lot-label-layer')?.remove()
+  const labelLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  labelLayer.setAttribute('id', 'client-lot-label-layer')
+
+  siteplanLots.value.forEach((lot) => {
+    const polygon = svg.querySelector(`#${CSS.escape(getLotId(lot))}`) as SVGGraphicsElement | null
+    if (!polygon || !lot.lot_number) return
+    const box = polygon.getBBox()
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('x', String(box.x + box.width / 2))
+    label.setAttribute('y', String(box.y + box.height / 2))
+    label.setAttribute('text-anchor', 'middle')
+    label.setAttribute('dominant-baseline', 'middle')
+    label.setAttribute('font-size', '12')
+    label.setAttribute('font-weight', '700')
+    label.setAttribute('fill', '#1A1A1A')
+    label.setAttribute('pointer-events', 'none')
+    label.textContent = String(lot.lot_number).replace(/^LOT[_-]?/i, '')
+    labelLayer.appendChild(label)
+  })
+
+  svg.appendChild(labelLayer)
+}
+
+watch(siteplanLots, async () => {
+  await nextTick()
+  renderSiteplanLayers()
+}, { deep: true, immediate: true })
 
 const lots = ref<Lot[]>([])
-
-/* jadwal survei client milik marketing; kegagalannya tidak memblokir daftar */
 const surveyByLot = ref<Map<number, LotSurveyInfo>>(new Map())
+const loading = ref(true)
+const loadError = ref(false)
 
-const initialLotNumber = route.query.lot_number
-const searchQuery = ref(
-  Array.isArray(initialLotNumber)
-    ? initialLotNumber[0] ?? ''
-    : initialLotNumber ?? '',
-)
+const statusFilter = ref<StatusFilter>('all')
+const sortMode = ref<SortMode>('number')
 
-const selectedFilter =
-  ref<FilterValue>('all')
+const searchType = ref<SearchType>('text')
+const priceMode = ref<PriceMode>('nearest')
+const route = useRoute()
+const initialLot = route.query.lot_number
+const query = ref(Array.isArray(initialLot) ? initialLot[0] ?? '' : initialLot ?? '')
+const minPriceText = ref('')
+const maxPriceText = ref('')
+const panelOpen = ref(false)
 
-const currentPage = ref(1)
-const pageSize = 10
+const searchInput = ref<HTMLInputElement | null>(null)
+const minInput = ref<HTMLInputElement | null>(null)
 
-watch(
-  [searchQuery, selectedFilter],
-  () => {
-    currentPage.value = 1
-  },
-)
-
-/* =====================================================
-   LOAD LOTS FROM SUPABASE
-   ===================================================== */
-
-async function loadLots() {
-
-  loading.value = true
-
-  errorMessage.value = ''
-
-  try {
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from('lots')
-      .select(`
-        id,
-        polygon_id,
-        lot_number,
-        block_id,
-        dimension,
-        area,
-        cash_price,
-        promo_price,
-        status,
-        payment_type,
-        customer_id,
-        booking_date,
-        sold_date,
-        color,
-        description,
-        created_at,
-        updated_at,
-        panorama_url
-      `)
-      .order(
-        'lot_number',
-        {
-          ascending: true,
-        },
-      )
-
-
-    if (error) {
-
-      throw error
-
-    }
-
-
-    lots.value =
-      (data || []) as Lot[]
-
-    surveyByLot.value = await surveyService
-      .getMySchedule()
-      .catch((scheduleError: unknown) => {
-        console.error('[Kavling Marketing] Jadwal survei:', scheduleError)
-        return new Map<number, LotSurveyInfo>()
-      })
-
-
-  } catch (error: any) {
-
-    console.error(
-      '[Kavling Marketing] Error:',
-      error,
-    )
-
-    errorMessage.value =
-      error?.message ||
-      'Data kavling gagal dimuat.'
-
-  } finally {
-
-    loading.value = false
-
-  }
-
+const statusLabel: Record<LotStatus, string> = {
+  available: 'Tersedia',
+  booked: 'Dipesan',
+  sold: 'Terjual',
 }
 
+const statusIcon: Record<LotStatus, string> = {
+  available: checkmarkCircleOutline,
+  booked: timeOutline,
+  sold: closeCircleOutline,
+}
 
-/* =====================================================
-   FILTER OPTIONS
-   ===================================================== */
+const sortOptions: { value: SortMode; label: string }[] = [
+  { value: 'number', label: 'Nomor kaveling' },
+  { value: 'available-first', label: 'Tersedia di atas' },
+  { value: 'booked-first', label: 'Dipesan di atas' },
+  { value: 'sold-first', label: 'Terjual di atas' },
+  { value: 'price-asc', label: 'Harga terendah' },
+  { value: 'price-desc', label: 'Harga tertinggi' },
+]
 
-const filters = computed(() => {
+const searchTypes: { key: SearchType; label: string; icon: string }[] = [
+  { key: 'text', label: 'Nomor / nama', icon: '#' },
+  { key: 'price', label: 'Harga', icon: 'Rp' },
+  { key: 'dimension', label: 'Ukuran tanah', icon: '↔' },
+  { key: 'area', label: 'Luas tanah', icon: 'm²' },
+]
 
-  const total =
-    lots.value.length
+/* ---------- mapping tabel lots -> Lot ---------- */
 
-  const available =
-    lots.value.filter(
-      lot =>
-        lot.status === 'Available',
-    ).length
+function pick(
+  source: Record<string, unknown> | Record<string, unknown>[] | null | undefined,
+  keys: string[],
+): string | null {
+  if (!source) return null
 
-  const booking =
-    lots.value.filter(
-      lot =>
-        lot.status === 'Booking',
-    ).length
+  // Supabase mengembalikan relasi many-to-one sebagai object, tetapi
+  // beberapa konfigurasi schema/client dapat mengembalikannya sebagai array.
+  const record = Array.isArray(source) ? source[0] : source
+  if (!record) return null
 
-  const sold =
-    lots.value.filter(
-      lot =>
-        lot.status === 'Sold',
-    ).length
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
 
+function toNumber(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
 
-  return [
+function mapStatus(value: LotRecord['status']): LotStatus {
+  const v = (value ?? '').trim().toLowerCase()
+  if (['booking', 'booked', 'dipesan'].includes(v)) return 'booked'
+  if (['sold', 'terjual'].includes(v)) return 'sold'
+  return 'available'
+}
 
-    {
-      value: 'all' as FilterValue,
-      label: `Semua (${total})`,
-    },
+function mapLot(row: LotRecord): Lot {
+  const status = row.sold_date ? 'sold' : mapStatus(row.status)
 
-    {
-      value: 'available' as FilterValue,
-      label: `Tersedia (${available})`,
-    },
+  const rawBlock = pick(row.block, ['name', 'block_name', 'title', 'code', 'label'])
+  const blockName = rawBlock ? (/^blok\b/i.test(rawBlock) ? rawBlock : `${rawBlock}`) : 'Tanpa blok'
 
-    {
-      value: 'booking' as FilterValue,
-      label: `Dipesan (${booking})`,
-    },
+  const area = toNumber(row.area)
+  const cash = toNumber(row.cash_price)
+  const promo = toNumber(row.promo_price)
+  const hasPromo = promo !== null && (cash === null || promo < cash)
+  const price = hasPromo ? promo : cash
+  const dimension = row.dimension?.trim() || null
 
-    {
-      value: 'sold' as FilterValue,
-      label: `Terjual (${sold})`,
-    },
+  const metaParts = [
+    rawBlock ? blockName : null,
+    area !== null ? `${area.toLocaleString('id-ID')} m²` : null,
+    dimension,
+  ].filter(Boolean)
 
-  ]
+  const person = null
+  const phone = null
 
-})
+  const personLine: string | null = null
 
+  const lotNumber = row.lot_number.trim()
+  const digits = lotNumber.match(/(\d+)\s*$/)?.[1]
 
-/* =====================================================
-   FILTERED LOTS
-   ===================================================== */
+  return {
+    id: row.id,
+    lotNumber: row.lot_number.trim(),
+    hasPanorama: Boolean(row.panorama_url),
+    code: /^\d+$/.test(lotNumber) ? `Kaveling ${lotNumber}` : lotNumber,
+    number: digits ?? lotNumber.slice(0, 4),
+    blockName,
+    meta: metaParts.join(' · ') || 'Data ukuran belum diisi',
+    area,
+    dimension,
+    status,
+    price,
+    originalPrice: hasPromo && cash !== null ? cash : null,
+    hasPromo,
+    person,
+    phone: phone || null,
+    personLine,
+  }
+}
 
-const filteredLots = computed(() =>
-  pinSurveyLots(matchedLots.value, surveyByLot.value),
+/* ---------- loading ---------- */
+
+async function load(showSpinner: boolean) {
+  if (showSpinner) loading.value = true
+  loadError.value = false
+
+  try {
+    const [rows, surveys] = await Promise.all([
+      lotService.getLots(),
+      surveyService.getMySchedule().catch((error: unknown) => {
+        console.error('Gagal memuat jadwal survei', error)
+        return new Map<number, LotSurveyInfo>()
+      }),
+    ])
+    lots.value = rows.map(mapLot)
+    surveyByLot.value = surveys
+  } catch (error) {
+    console.error('Gagal memuat kaveling', error)
+    loadError.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+/* muat saat halaman dibuka; kunjungan berikutnya memuat ulang tanpa spinner */
+onIonViewWillEnter(() => load(lots.value.length === 0))
+
+async function refreshAll() {
+  await Promise.all([
+    load(false),
+    Promise.resolve(reloadSiteplan()).catch((error: unknown) => {
+      console.error('Gagal refresh siteplan:', error)
+    }),
+  ])
+}
+
+/* ---------- pencarian ---------- */
+
+const isRange = computed(() => searchType.value === 'price' && priceMode.value === 'range')
+
+const priceTarget = computed(() => parsePrice(query.value))
+const dimensionTarget = computed(() => parseDimension(query.value))
+const areaTarget = computed(() => parseNumber(query.value))
+const minPrice = computed(() => parsePrice(minPriceText.value))
+const maxPrice = computed(() => parsePrice(maxPriceText.value))
+
+/** true bila hasil diurutkan menurut kedekatan (harga terdekat, ukuran, luas) */
+const proximityActive = computed(
+  () =>
+    (searchType.value === 'price' && priceMode.value === 'nearest' && priceTarget.value !== null) ||
+    (searchType.value === 'dimension' && dimensionTarget.value !== null) ||
+    (searchType.value === 'area' && areaTarget.value !== null),
 )
 
-const matchedLots = computed(() => {
+const hasSearchInput = computed(
+  () => query.value.trim() !== '' || minPriceText.value.trim() !== '' || maxPriceText.value.trim() !== '',
+)
 
-  let result =
-    [...lots.value]
+const searchPlaceholder = computed(() => {
+  switch (searchType.value) {
+    case 'price':
+      return 'Harga target, mis. 400jt atau 400.000.000'
+    case 'dimension':
+      return 'Ukuran tanah, mis. 10x20'
+    case 'area':
+      return 'Luas tanah dalam m², mis. 120'
+    default:
+      return 'Cari nomor kaveling atau blok'
+  }
+})
 
+const searchInputMode = computed(() => (searchType.value === 'area' ? 'decimal' : 'search'))
 
-  /* -------------------------------------------------
-     STATUS
-     ------------------------------------------------- */
+const modeLabel = computed(() => {
+  if (searchType.value === 'price') return priceMode.value === 'range' ? 'Harga · rentang' : 'Harga · terdekat'
+  if (searchType.value === 'dimension') return 'Ukuran tanah'
+  if (searchType.value === 'area') return 'Luas tanah'
+  return 'Nomor / nama'
+})
 
-  if (
-    selectedFilter.value ===
-    'available'
-  ) {
+const typeHelp = computed(() => {
+  switch (searchType.value) {
+    case 'price':
+      return priceMode.value === 'range'
+        ? 'Isi harga minimum dan/atau maksimum. Contoh: 300jt atau 300.000.000.'
+        : 'Hasil diurutkan dari harga yang paling mendekati. Contoh: 400jt atau 400.000.000.'
+    case 'dimension':
+      return 'Contoh 10x20. Urutan 10x20 dan 20x10 dianggap sama.'
+    case 'area':
+      return 'Hasil diurutkan dari luas yang paling mendekati.'
+    default:
+      return 'Ketik nomor kaveling atau blok.'
+  }
+})
 
-    result =
-      result.filter(
-        lot =>
-          lot.status === 'Available',
-      )
+const searchHint = computed(() => {
+  const q = query.value.trim()
 
+  if (isRange.value) {
+    const minText = minPriceText.value.trim()
+    const maxText = maxPriceText.value.trim()
+    if ((minText && minPrice.value === null) || (maxText && maxPrice.value === null)) {
+      return 'Isi rentang harga dengan angka, contoh 300jt.'
+    }
+    if (minPrice.value !== null && maxPrice.value !== null && minPrice.value > maxPrice.value) {
+      return 'Harga minimum lebih besar dari harga maksimum.'
+    }
+    return ''
   }
 
-
-  if (
-    selectedFilter.value ===
-    'booking'
-  ) {
-
-    result =
-      result.filter(
-        lot =>
-          lot.status === 'Booking',
-      )
-
+  if (!q) return ''
+  if (searchType.value === 'price' && priceTarget.value === null) {
+    return 'Harga belum terbaca. Contoh: 400jt atau 400.000.000.'
   }
-
-
-  if (
-    selectedFilter.value ===
-    'sold'
-  ) {
-
-    result =
-      result.filter(
-        lot =>
-          lot.status === 'Sold',
-      )
-
+  if (searchType.value === 'dimension' && dimensionTarget.value === null) {
+    return 'Gunakan format panjang x lebar, contoh 10x20.'
   }
+  if (searchType.value === 'area' && areaTarget.value === null) {
+    return 'Isi luas dengan angka, contoh 120.'
+  }
+  return ''
+})
 
+function setSearchType(type: SearchType) {
+  searchType.value = type
+  query.value = ''
+  minPriceText.value = ''
+  maxPriceText.value = ''
 
-  /* -------------------------------------------------
-     SEARCH
-     ------------------------------------------------- */
+  // harga masih perlu memilih metode, jadi panel tetap terbuka
+  if (type !== 'price') {
+    panelOpen.value = false
+    void focusSearch()
+  }
+}
 
-  const query =
-    searchQuery.value
+function setPriceMode(mode: PriceMode) {
+  priceMode.value = mode
+  query.value = ''
+  minPriceText.value = ''
+  maxPriceText.value = ''
+  panelOpen.value = false
+  void focusSearch()
+}
+
+function clearSearch() {
+  query.value = ''
+  minPriceText.value = ''
+  maxPriceText.value = ''
+  void focusSearch()
+}
+
+async function focusSearch() {
+  await nextTick()
+  const el = isRange.value ? minInput.value : searchInput.value
+  el?.focus({ preventScroll: true })
+}
+
+function blurInput(event: KeyboardEvent) {
+  (event.target as HTMLInputElement | null)?.blur()
+}
+
+/* ---------- derived ---------- */
+
+const chips = computed(() => [
+  { key: 'all' as const, label: 'Semua', count: lots.value.length },
+  { key: 'available' as const, label: 'Tersedia', count: countOf('available') },
+  { key: 'booked' as const, label: 'Dipesan', count: countOf('booked') },
+  { key: 'sold' as const, label: 'Terjual', count: countOf('sold') },
+])
+
+function countOf(status: LotStatus) {
+  return lots.value.filter((l) => l.status === status).length
+}
+
+const byNumber = (a: Lot, b: Lot) => a.code.localeCompare(b.code, 'id', { numeric: true })
+
+const STATUS_PRIORITY: Partial<Record<SortMode, LotStatus[]>> = {
+  'available-first': ['available', 'booked', 'sold'],
+  'booked-first': ['booked', 'available', 'sold'],
+  'sold-first': ['sold', 'booked', 'available'],
+}
+
+function sortLots(list: Lot[], mode: SortMode): Lot[] {
+  const priority = STATUS_PRIORITY[mode]
+
+  return [...list].sort((a, b) => {
+    if (priority) {
+      const diff = priority.indexOf(a.status) - priority.indexOf(b.status)
+      return diff || byNumber(a, b)
+    }
+
+    if (mode === 'price-asc' || mode === 'price-desc') {
+      // kavling tanpa harga selalu di akhir
+      if (a.price === null && b.price === null) return byNumber(a, b)
+      if (a.price === null) return 1
+      if (b.price === null) return -1
+      const diff = mode === 'price-asc' ? a.price - b.price : b.price - a.price
+      return diff || byNumber(a, b)
+    }
+
+    return byNumber(a, b)
+  })
+}
+
+function proximityScore(lot: Lot): number {
+  if (searchType.value === 'price') {
+    return lot.price === null || priceTarget.value === null ? Infinity : Math.abs(lot.price - priceTarget.value)
+  }
+  if (searchType.value === 'dimension') {
+    return dimensionTarget.value ? dimensionDistance(lot.dimension, dimensionTarget.value) : Infinity
+  }
+  if (searchType.value === 'area') {
+    return lot.area === null || areaTarget.value === null ? Infinity : Math.abs(lot.area - areaTarget.value)
+  }
+  return Infinity
+}
+
+const filtered = computed(() => pinSurveyLots(matched.value, surveyByLot.value))
+
+const matched = computed(() => {
+  let result = lots.value.filter((l) => statusFilter.value === 'all' || l.status === statusFilter.value)
+
+  /* cari nomor / blok / nama pelanggan */
+  if (searchType.value === 'text') {
+    const q = query.value
       .trim()
       .toLowerCase()
-
-
-  if (query) {
-
-    result =
-      result.filter(lot => {
-
-        const lotNumber =
-          formatLotNumber(lot.lot_number)
-            .toLowerCase()
-
-        const normalizedQuery =
-          query.replace(/-/g, '_')
-
-        const polygonId =
-          lot.polygon_id
-            ?.toLowerCase() || ''
-
-        const block =
-          String(
-            lot.block_id ?? '',
-          ).toLowerCase()
-
-        const dimension =
-          lot.dimension
-            ?.toLowerCase() || ''
-
-
-        return (
-          lotNumber.includes(normalizedQuery) ||
-          polygonId.includes(query) ||
-          block.includes(query) ||
-          dimension.includes(query)
-        )
-
-        })
-
-  }
-
-
-  return result
-
-})
-
-const totalPages = computed(() =>
-  Math.ceil(filteredLots.value.length / pageSize),
-)
-
-const paginatedLots = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredLots.value.slice(start, start + pageSize)
-})
-
-watch(totalPages, pageCount => {
-  if (pageCount > 0 && currentPage.value > pageCount) {
-    currentPage.value = pageCount
-  }
-})
-
-
-/* =====================================================
-   PRICE
-   ===================================================== */
-
-/**
- * Kalau promo_price tersedia,
- * tampilkan harga promo.
- *
- * Kalau tidak ada,
- * gunakan cash_price.
- */
-
-function getDisplayPrice(
-  lot: Lot,
-) {
-
-  return (
-    lot.promo_price ??
-    lot.cash_price ??
-    0
-  )
-
-}
-
-
-/* =====================================================
-   FORMAT PRICE
-   ===================================================== */
-
-function formatPrice(
-  price: number,
-) {
-
-  if (!price) {
-
-    return 'Harga belum tersedia'
-
-  }
-
-
-  return new Intl.NumberFormat(
-    'id-ID',
-    {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0,
-    },
-  ).format(price)
-
-}
-
-
-/* =====================================================
-   FORMAT AREA
-   ===================================================== */
-
-function formatArea(
-  area: number,
-) {
-
-  return `${area} m²`
-
-}
-
-
-/* =====================================================
-   BLOCK
-   ===================================================== */
-
-function getBlockLabel(
-  blockId: number | null,
-) {
-
-  if (
-    blockId === null ||
-    blockId === undefined
-  ) {
-
-    return 'Blok -'
-
-  }
-
-
-  return `Blok ${blockId}`
-
-}
-
-
-/* =====================================================
-   STATUS LABEL
-   ===================================================== */
-
-function getStatusLabelText(
-  status: LotStatus | null,
-) {
-
-  switch (status) {
-
-    case 'Available':
-      return 'Tersedia'
-
-    case 'Booking':
-      return 'Dipesan'
-
-    case 'Sold':
-      return 'Terjual'
-
-    default:
-      return 'Tidak diketahui'
-
-  }
-
-}
-
-
-/* =====================================================
-   STATUS CLASS
-   ===================================================== */
-
-function getStatusClass(
-  status: LotStatus | null,
-) {
-
-  switch (status) {
-
-    case 'Available':
-      return 'status-available'
-
-    case 'Booking':
-      return 'status-booking'
-
-    case 'Sold':
-      return 'status-sold'
-
-    default:
-      return 'status-unknown'
-
-  }
-
-}
-
-
-/* =====================================================
-   OPEN PANORAMA
-   ===================================================== */
-
-/**
- * PanoramaPage.vue milikmu menerima:
- *
- * /panorama/:lotId
- *
- * dan mencari:
- *
- * lot_number
- * atau
- * polygon_id
- *
- * Karena itu kita kirim lot_number.
- */
-
-function openPanorama(
-  lot: Lot,
-) {
-
-  if (!lot.panorama_url) {
-
-    console.log(
-      `Kavling ${lot.lot_number} belum memiliki panorama 360°`,
-    )
-
-    return
-
-  }
-
-
-  ionRouter.push(
-    `/panorama/${encodeURIComponent(
-      lot.lot_number,
-    )}`,
-  )
-
-}
-
-
-/* =====================================================
-   LOGOUT
-   ===================================================== */
-
-async function handleLogout() {
-
-  try {
-
-    const {
-      error,
-    } = await supabase.auth.signOut()
-
-
-    if (error) {
-
-      throw error
-
+      .replace(/^(lot|kavling)[\s_-]*/, '')
+
+    if (q) {
+      result = result.filter(
+        (l) =>
+          l.code.toLowerCase().includes(q) ||
+          l.number.includes(q) ||
+          l.blockName.toLowerCase().includes(q) ||
+          (l.person?.toLowerCase().includes(q) ?? false),
+      )
     }
-
-
-    ionRouter.replace('/login')
-
-  } catch (error) {
-
-    console.error(
-      '[Logout] Error:',
-      error,
-    )
-
+    return sortLots(result, sortMode.value)
   }
 
-}
+  /* rentang harga */
+  if (isRange.value) {
+    const min = minPrice.value ?? 0
+    const max = maxPrice.value ?? Infinity
 
+    if (minPrice.value !== null || maxPrice.value !== null) {
+      result = result.filter((l) => l.price !== null && l.price >= min && l.price <= max)
+    }
+    return sortLots(result, sortMode.value)
+  }
 
-/* =====================================================
-   INITIAL LOAD
-   ===================================================== */
+  /* harga terdekat, ukuran, luas: urut menurut kedekatan */
+  if (proximityActive.value) {
+    return result
+      .map((lot) => ({ lot, distance: proximityScore(lot) }))
+      .filter((item) => Number.isFinite(item.distance))
+      .sort((a, b) => a.distance - b.distance || byNumber(a.lot, b.lot))
+      .map((item) => item.lot)
+  }
 
-onMounted(() => {
-
-  loadLots()
-
+  /* kriteria belum diisi / belum terbaca: tampilkan semua */
+  return sortLots(result, sortMode.value)
 })
 
+const sortModel = computed<string>({
+  get: () => (proximityActive.value ? 'nearest' : sortMode.value),
+  set: (value) => {
+    if (value !== 'nearest') sortMode.value = value as SortMode
+  },
+})
+
+/* ---------- pagination ---------- */
+
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
+const pagedLots = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return filtered.value.slice(start, start + PAGE_SIZE)
+})
+const visiblePages = computed<(number | null)[]>(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
+
+  const pages: (number | null)[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+
+  if (start > 2) pages.push(null)
+  for (let page = start; page <= end; page += 1) pages.push(page)
+  if (end < total - 1) pages.push(null)
+  pages.push(total)
+
+  return pages
+})
+
+watch([filtered, () => filtered.value.length], () => {
+  if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
+}, { flush: 'post' })
+
+async function goToPage(page: number) {
+  const nextPage = Math.min(Math.max(page, 1), totalPages.value)
+  if (nextPage === currentPage.value) return
+
+  currentPage.value = nextPage
+  await nextTick()
+  document.querySelector('#kv-list-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+/* ---------- helpers ---------- */
+
+function formatRupiah(value: number) {
+  return 'Rp ' + value.toLocaleString('id-ID')
+}
+
+/* ---------- actions ---------- */
+
+async function shareLot(lot: Lot) {
+  const text = [lot.code, lot.meta, lot.price !== null ? formatRupiah(lot.price) : null]
+    .filter(Boolean)
+    .join(' · ')
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: `PoliLand Kairagi ${lot.code}`, text })
+    } else {
+      await navigator.clipboard.writeText(text)
+    }
+  } catch {
+    /* dibatalkan pengguna */
+  }
+}
+
+function openFullMap() {
+  ionRouter.push('/siteplan')
+}
+
+function openPanorama(lot: Lot) {
+  if (!lot.hasPanorama) return
+  ionRouter.push(`/panorama/${encodeURIComponent(lot.lotNumber)}`)
+}
 </script>
 
-
 <style scoped>
-
-/* =====================================================
-   PAGE
-   ===================================================== */
-
-.kavling-page {
-
-  --page-background: #f7f7f5;
-
-  background:
-    var(--page-background);
-
+.kv-page {
+  padding: 16px 16px calc(112px + env(safe-area-inset-bottom));
+  background: var(--app-background);
+  font-family: var(--font-primary);
+  color: var(--text-primary);
 }
 
-
-/* =====================================================
-   CONTENT
-   ===================================================== */
-
-.kavling-content {
-
-  --background:
-    #f7f7f5;
-
-}
-
-.kavling-content::part(scroll) {
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-/* =====================================================
-   CONTAINER
-   ===================================================== */
-
-.page-container {
-
-  position: relative;
-
-  display: flex;
-
-  flex: 1 0 auto;
-
-  flex-direction: column;
-
-  z-index: 2;
-
-  width: 100%;
-
-  max-width: 430px;
-
-  min-height: 100%;
-
-  margin: 0 auto;
-
-  padding:
-    18px
-    clamp(10px, 4.5vw, 20px)
-    115px;
-
-  box-sizing: border-box;
-
-}
-
-
-/* =====================================================
-   SEARCH
-   ===================================================== */
-
-.search-wrapper {
-
-  position: relative;
-
-  width: 100%;
-
-  height: 42px;
-
-  display: flex;
-
-  align-items: center;
-
-  background: #ffffff;
-
-  border-radius: 10px;
-
-  border:
-    1px solid
-    rgba(0, 0, 0, 0.04);
-
-  box-shadow:
-    0 2px 7px
-    rgba(0, 0, 0, 0.05);
-
-}
-
-
-.search-icon {
-
-  flex-shrink: 0;
-
-  margin-left:
-    clamp(10px, 3vw, 13px);
-
-  color: #9c9c9c;
-
-  font-size: 16px;
-
-}
-
-
-.search-input {
-
-  width: 100%;
-
-  min-width: 0;
-
-  height: 100%;
-
-  border: 0;
-
-  outline: none;
-
-  background: transparent;
-
-  padding:
-    0 32px 0 8px;
-
-  color: #333333;
-
-  font-family: inherit;
-
-  font-size:
-    clamp(11px, 3.2vw, 13px);
-
-}
-
-
-.search-input::placeholder {
-
-  color: #a4a4a4;
-
-}
-
-
-.clear-search {
-
-  position: absolute;
-
-  top: 50%;
-
-  right: 8px;
-
-  width: 25px;
-
-  height: 25px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  transform:
-    translateY(-50%);
-
-  border: 0;
-
-  background: transparent;
-
-  color: #888888;
-
-  font-size: 20px;
-
-  line-height: 1;
-
-}
-
-
-/* =====================================================
-   FILTER
-   ===================================================== */
-
-.filter-wrapper {
-
-  width: 100%;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 6px;
-
-  overflow-x: auto;
-
-  padding:
-    12px 0;
-
-  scrollbar-width: none;
-
-  -webkit-overflow-scrolling:
-    touch;
-
-}
-
-
-.filter-wrapper::-webkit-scrollbar {
-
-  display: none;
-
-}
-
-
-.filter-button {
-
-  flex: 0 0 auto;
-
-  height: 29px;
-
-  padding:
-    0 clamp(9px, 2.8vw, 13px);
-
-  border: 0;
-
-  border-radius: 8px;
-
-  background: #e9e9e9;
-
-  color: #777777;
-
-  font-family: inherit;
-
-  font-size:
-    clamp(9px, 2.7vw, 11px);
-
-  font-weight: 600;
-
-  white-space: nowrap;
-
-  cursor: pointer;
-
-  transition:
-    all 150ms ease;
-
-}
-
-
-.filter-button.active {
-
-  background: #c9a754;
-
-  color: #ffffff;
-
-}
-
-
-.filter-button:active {
-
-  transform:
-    scale(0.96);
-
-}
-
-
-/* =====================================================
-   LOT LIST
-   ===================================================== */
-
-.lot-list {
-
-  width: 100%;
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 12px;
-
-}
-
-
-/* =====================================================
-   LOT CARD
-   ===================================================== */
-
-.lot-card {
-
-  position: relative;
-
-  width: 100%;
-
-  min-width: 0;
-
-  min-height: 92px;
-
-  display: flex;
-
-  align-items: center;
-
-  gap:
-    clamp(8px, 2.5vw, 12px);
-
-  padding:
-    8px;
-
-  box-sizing: border-box;
-
-  border-radius: 12px;
-
-  background: #ffffff;
-
-  box-shadow:
-    0 2px 8px
-    rgba(0, 0, 0, 0.045);
-
-  cursor: pointer;
-
-  overflow: hidden;
-
-  -webkit-tap-highlight-color:
-    transparent;
-
-  transition:
-    transform 150ms ease,
-    box-shadow 150ms ease;
-
-}
-
-
-.lot-card--survey {
-
-  box-shadow:
-    inset 4px 0 0 var(--poliland-gold, #c9a227),
-    0 2px 8px rgba(0, 0, 0, 0.045);
-
-}
-
-
-.lot-card:active {
-
-  transform:
-    scale(0.985);
-
-}
-
-
-.lot-card:focus-visible {
-
-  outline:
-    2px solid
-    #c9a754;
-
-  outline-offset: 2px;
-
-}
-
-
-/* =====================================================
-   PANORAMA IMAGE
-   ===================================================== */
-
-.lot-image-wrapper {
-
-  position: relative;
-
-  width:
-    clamp(72px, 20vw, 84px);
-
-  height:
-    clamp(72px, 20vw, 76px);
-
-  flex:
-    0 0
-    clamp(72px, 20vw, 84px);
-
-  overflow: hidden;
-
-  border-radius: 9px;
-
-  background: #e5e5e5;
-
-}
-
-
-/*
- * Panorama equirectangular biasanya sangat lebar.
- *
- * Kita gunakan object-fit: cover supaya ketika
- * dipakai sebagai thumbnail tidak merusak layout card.
- */
-
-.lot-image {
-
-  width: 100%;
-
-  height: 100%;
-
-  display: block;
-
-  object-fit: cover;
-
-}
-
-
-/* =====================================================
-   PANORAMA EMPTY
-   ===================================================== */
-
-.panorama-empty {
-
-  width: 100%;
-
-  height: 100%;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 4px;
-
-  color: #999999;
-
-  text-align: center;
-
-}
-
-
-.panorama-empty ion-icon {
-
+.kv-title {
+  margin: 0 0 14px;
   font-size: 22px;
-
-}
-
-
-.panorama-empty span {
-
-  max-width: 60px;
-
-  font-size: 7px;
-
   line-height: 1.2;
-
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: -0.3px;
 }
 
-
-/* =====================================================
-   360 BADGE
-   ===================================================== */
-
-.panorama-badge {
-
-  position: absolute;
-
-  left: 5px;
-
-  bottom: 5px;
-
-  height: 20px;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 3px;
-
-  padding:
-    0 6px;
-
-  border-radius: 6px;
-
-  background:
-    rgba(30, 30, 30, 0.78);
-
-  color: #ffffff;
-
-  font-size: 8px;
-
-  font-weight: 700;
-
-  backdrop-filter:
-    blur(3px);
-
-}
-
-
-.panorama-badge ion-icon {
-
-  font-size: 10px;
-
-}
-
-
-/* =====================================================
-   INFORMATION
-   ===================================================== */
-
-.lot-information {
-
-  min-width: 0;
-
-  flex: 1;
-
-  height: 76px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  justify-content: flex-start;
-
-  padding-top: 2px;
-
-}
-
-
-/* =====================================================
-   LOT TITLE
-   ===================================================== */
-
-.lot-title-row {
-
-  width: 100%;
-
-  min-width: 0;
-
-}
-
-
-.lot-name {
-
-  min-width: 0;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-
-  color: #444444;
-
-  font-size:
-    clamp(11px, 3.5vw, 13px);
-
-  line-height: 1.2;
-
-  font-weight: 800;
-
-}
-
-
-/* =====================================================
-   BLOCK
-   ===================================================== */
-
-.lot-block {
-
-  margin-top: 2px;
-
-  color: #777777;
-
-  font-size:
-    clamp(8px, 2.7vw, 10px);
-
-  line-height: 1.2;
-
-}
-
-
-/* =====================================================
-   META
-   ===================================================== */
-
-.lot-meta {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 4px;
-
-  margin-top: 3px;
-
-  color: #898989;
-
-  font-size:
-    clamp(8px, 2.5vw, 9px);
-
-  line-height: 1.1;
-
-  white-space: nowrap;
-
-}
-
-
-.meta-separator {
-
-  color: #c4c4c4;
-
-}
-
-
-/* =====================================================
-   DIVIDER
-   ===================================================== */
-
-.lot-divider {
-
-  width: 100%;
-
-  height: 1px;
-
-  margin-top: 5px;
-
-  background: #dddddd;
-
-}
-
-
-/* =====================================================
-   PRICE
-   ===================================================== */
-
-.lot-price {
-
-  min-width: 0;
-
-  margin-top: 4px;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-
-  color: #3f3f3f;
-
-  font-size:
-    clamp(12px, 3.8vw, 15px);
-
-  line-height: 1.1;
-
-  font-weight: 800;
-
-}
-
-
-/* =====================================================
-   STATUS
-   ===================================================== */
-
-.lot-status {
-
-  flex:
-    0 0
-    clamp(60px, 17vw, 74px);
-
-  width:
-    clamp(60px, 17vw, 74px);
-
-  min-width:
-    clamp(60px, 17vw, 74px);
-
-  height: 27px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  align-self: center;
-
-  border-radius: 7px;
-
-  font-size:
-    clamp(7px, 2.4vw, 9px);
-
-  line-height: 1;
-
-  font-weight: 700;
-
-  white-space: nowrap;
-
-}
-
-
-/* =====================================================
-   AVAILABLE
-   ===================================================== */
-
-.status-available {
-
-  background: #d9f1df;
-
-  color: #2c914b;
-
-}
-
-
-/* =====================================================
-   BOOKING
-   ===================================================== */
-
-.status-booking {
-
-  background: #ffe7a7;
-
-  color: #ad7800;
-
-}
-
-
-/* =====================================================
-   SOLD
-   ===================================================== */
-
-.status-sold {
-
-  background: #f3d5d1;
-
-  color: #a14b43;
-
-}
-
-
-/* =====================================================
-   UNKNOWN
-   ===================================================== */
-
-.status-unknown {
-
-  background: #eeeeee;
-
-  color: #777777;
-
-}
-
-
-/* =====================================================
-   LOADING
-   ===================================================== */
-
-.state-container {
-
-  min-height: 240px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 8px;
-
-  text-align: center;
-
-  color: #777777;
-
-}
-
-
-.state-container p {
-
+h2 {
   margin: 0;
+}
 
+/* ---------- search ---------- */
+.kv-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 0 4px 0 14px;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.kv-search:focus-within {
+  border-color: var(--poliland-green);
+  outline: 2px solid var(--poliland-green);
+  outline-offset: 1px;
+}
+
+.kv-search-icon {
+  flex-shrink: 0;
+  margin-right: 6px;
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+
+.kv-search input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 15px;
+}
+
+.kv-search input::placeholder {
+  color: var(--text-secondary);
+}
+
+.kv-bar-static {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.kv-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.kv-filter-btn {
+  color: var(--text-primary);
+  background: var(--surface-muted);
+}
+
+.kv-filter-btn.tuned {
+  background: var(--status-success-bg);
+  color: var(--poliland-green);
+}
+
+.kv-filter-btn.open {
+  background: var(--poliland-green);
+  color: #fff;
+}
+
+.kv-bar-btn:focus-visible,
+.kv-type:focus-visible,
+.kv-chip:focus-visible,
+.kv-link:focus-visible,
+.kv-icon-btn:focus-visible,
+.kv-detail:focus-visible,
+.kv-sort:focus-within {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 2px;
+}
+
+/* panel jenis pencarian */
+.kv-panel {
+  margin-top: 8px;
+  padding: 14px;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+}
+
+.kv-panel-label {
+  margin: 0 0 8px;
   font-size: 11px;
-
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
-
-.loading-spinner {
-
-  width: 28px;
-
-  height: 28px;
-
-  border:
-    3px solid
-    rgba(201, 167, 84, 0.2);
-
-  border-top-color:
-    #c9a754;
-
-  border-radius: 50%;
-
-  animation:
-    spin 0.8s linear infinite;
-
-}
-
-
-@keyframes spin {
-
-  to {
-
-    transform:
-      rotate(360deg);
-
-  }
-
-}
-
-
-/* =====================================================
-   ERROR
-   ===================================================== */
-
-.error-icon {
-
-  width: 40px;
-
-  height: 40px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: #f5d5d0;
-
-  color: #a14b43;
-
-  font-size: 20px;
-
-  font-weight: 800;
-
-}
-
-
-.state-container strong {
-
-  color: #444444;
-
-  font-size: 13px;
-
-}
-
-
-.retry-button {
-
-  margin-top: 5px;
-
-  padding:
-    8px 15px;
-
-  border: 0;
-
-  border-radius: 8px;
-
-  background: #c9a754;
-
-  color: #ffffff;
-
-  font-family: inherit;
-
-  font-size: 10px;
-
-  font-weight: 700;
-
-}
-
-
-/* =====================================================
-   EMPTY
-   ===================================================== */
-
-.empty-state {
-
-  min-height: 190px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 5px;
-
-  color: #888888;
-
-  text-align: center;
-
-}
-
-
-.empty-icon {
-
-  width: 42px;
-
-  height: 42px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  margin-bottom: 4px;
-
-  border-radius: 50%;
-
-  background: #ffffff;
-
-}
-
-
-.empty-icon ion-icon {
-
-  font-size: 20px;
-
-}
-
-
-.empty-state strong {
-
-  color: #555555;
-
-  font-size: 12px;
-
-}
-
-
-.empty-state span {
-
-  font-size: 9px;
-
-}
-
-/* =====================================================
-   PAGINATION
-   ===================================================== */
-
-.pagination {
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: space-between;
-
+.kv-types {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-
-  margin-top: 4px;
-
+  margin-bottom: 14px;
 }
 
+.kv-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  text-align: left;
+  cursor: pointer;
+}
 
-.pagination-button {
+.kv-type.active {
+  border-color: var(--poliland-green);
+  background: var(--status-success-bg);
+  color: var(--poliland-green);
+}
 
-  min-height: 34px;
-
-  padding: 0 10px;
-
-  border: 0;
-
+.kv-type-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
-
-  background: #c9a754;
-
-  color: #ffffff;
-
-  font-family: inherit;
-
-  font-size: 10px;
-
-  font-weight: 600;
-
-  white-space: nowrap;
-
+  background: var(--surface-muted);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
 }
 
-
-.pagination-button:disabled {
-
-  opacity: 0.45;
-
-  cursor: not-allowed;
-
+.kv-panel-help {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
 }
 
-
-.pagination-label {
-
-  color: #666666;
-
-  font-size: 10px;
-
-  font-weight: 600;
-
-  white-space: nowrap;
-
+/* rentang harga */
+.kv-range-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
 }
 
+.kv-range-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
 
-/* =====================================================
-   LAND DECORATION
-   ===================================================== */
+.kv-range-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 12px;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
 
-.land-decoration {
+.kv-range-input:focus-within {
+  border-color: var(--poliland-green);
+  outline: 2px solid var(--poliland-green);
+  outline-offset: 1px;
+}
 
-  position: relative;
+.kv-range-input span {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
 
-  flex: 0 0 160px;
+.kv-range-input input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 15px;
+}
 
-  z-index: 0;
+.kv-range-input input::placeholder {
+  color: var(--text-secondary);
+}
 
-  left: 50%;
+.kv-mode,
+.kv-hint,
+.kv-note {
+  margin: 8px 2px 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
 
-  width: 100vw;
+.kv-mode,
+.kv-note {
+  color: var(--text-secondary);
+}
 
-  max-width: 430px;
+.kv-mode strong {
+  color: var(--text-primary);
+}
 
-  height: 160px;
+.kv-hint {
+  color: color-mix(in srgb, var(--status-danger) 70%, black);
+}
 
-  margin-top: auto;
+.kv-note {
+  margin: 0 2px 10px;
+}
 
-  transform: translateX(-50%);
+/* ---------- chips ---------- */
+.kv-chips {
+  display: flex;
+  gap: 8px;
+  margin: 12px -16px 16px;
+  padding: 0 16px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
 
-  pointer-events: none;
+.kv-chips::-webkit-scrollbar {
+  display: none;
+}
 
+.kv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.kv-chip.active {
+  background: var(--poliland-green);
+  border-color: var(--poliland-green);
+  color: #fff;
+}
+
+.kv-chip.active:focus-visible {
+  outline-color: var(--text-primary);
+}
+
+/* ---------- dots ---------- */
+.kv-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kv-dot.available { background: var(--poliland-green); }
+.kv-dot.booked { background: var(--poliland-gold); }
+.kv-dot.sold { background: var(--status-danger); }
+
+.kv-chip.active .kv-dot {
+  box-shadow: 0 0 0 2px #fff;
+}
+
+/* ---------- card base ---------- */
+.kv-card {
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+}
+
+/* ---------- siteplan ---------- */
+.kv-siteplan {
+  margin-bottom: 22px;
+}
+
+.kv-siteplan-card {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
   overflow: hidden;
-
 }
 
+.kv-siteplan-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
 
-.land-light {
+.kv-siteplan-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--poliland-gold-text);
+  font-size: 9px;
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: 1px;
+}
 
+.kv-siteplan-card-head h3 {
+  margin: 2px 0 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--font-weight-extrabold);
+}
+
+.kv-siteplan-card-head > ion-icon {
+  color: var(--poliland-green);
+  font-size: 22px;
+}
+
+.kv-mini-siteplan {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1252 / 1257;
+  padding: 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.kv-siteplan-image,
+.kv-siteplan-layer {
   position: absolute;
-
-  left: -10%;
-
-  bottom: 45px;
-
-  width: 120%;
-
-  height: 95px;
-
-  background: #eee6d0;
-
-  border-radius:
-    50% 50% 0 0 /
-    35% 35% 0 0;
-
-  transform:
-    rotate(1deg);
-
+  inset: 10px;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
+  border-radius: 8px;
 }
 
+.kv-siteplan-image { display: block; object-fit: contain; }
+.kv-siteplan-layer { pointer-events: none; }
+.kv-siteplan-layer :deep(svg) { display: block; width: 100%; height: 100%; overflow: visible; }
+.kv-siteplan-layer :deep(path) { vector-effect: non-scaling-stroke; }
 
-.land-dark {
+.kv-siteplan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-top: 13px;
+}
 
+.kv-siteplan-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.kv-siteplan-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.kv-siteplan-legend .available { background: var(--poliland-green); }
+.kv-siteplan-legend .booking { background: var(--poliland-gold); }
+.kv-siteplan-legend .sold { background: var(--status-danger); }
+
+.kv-siteplan-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--poliland-gold);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.kv-siteplan-button:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 2px;
+}
+
+.kv-map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.kv-map-head h2,
+.kv-list-head h2 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+}
+
+.kv-map-head h2 ion-icon {
+  font-size: 18px;
+  color: var(--poliland-green);
+}
+
+.kv-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--poliland-green);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.kv-link ion-icon {
+  font-size: 16px;
+}
+
+/* ---------- list head + urutan ---------- */
+.kv-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-bottom: 8px;
+}
+
+.kv-count {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.kv-sort {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: var(--radius-control);
+  color: var(--poliland-green);
+}
+
+.kv-sort select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 44px;
+  padding: 0 22px 0 24px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.kv-sort select:disabled {
+  color: var(--text-secondary);
+  opacity: 1;
+  cursor: default;
+}
+
+.kv-sort select:focus {
+  outline: 0;
+}
+
+.kv-sort select option {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.kv-sort-lead,
+.kv-sort-caret {
   position: absolute;
-
-  left: -10%;
-
-  bottom: -55px;
-
-  width: 120%;
-
-  height: 135px;
-
-  background: #9ca890;
-
-  border-radius:
-    50% 50% 0 0 /
-    35% 35% 0 0;
-
-  transform:
-    rotate(2deg);
-
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  pointer-events: none;
 }
 
+.kv-sort-lead { left: 4px; }
+.kv-sort-caret { right: 4px; font-size: 13px; }
 
-/* =====================================================
-   SMALL MOBILE
-   <= 360px
-   ===================================================== */
+.kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 
+/* ---------- lot card ---------- */
+.kv-lot {
+  padding: 14px;
+}
+
+.kv-lot-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kv-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-control);
+  border: 1px solid;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+}
+
+.kv-num.available { background: var(--status-success-bg); border-color: var(--poliland-green); color: var(--poliland-green); }
+.kv-num.booked { background: color-mix(in srgb, var(--poliland-gold) 18%, white); border-color: var(--poliland-gold); color: var(--poliland-gold-text-soft); }
+.kv-num.sold { background: color-mix(in srgb, var(--status-danger) 10%, white); border-color: var(--status-danger); color: color-mix(in srgb, var(--status-danger) 70%, black); }
+
+.kv-lot-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.kv-lot-info h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+}
+
+.kv-lot-info p {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.kv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+}
+
+.kv-badge ion-icon {
+  font-size: 14px;
+}
+
+.kv-lot--survey {
+  border-color: var(--poliland-gold);
+  box-shadow: inset 4px 0 0 var(--poliland-gold);
+}
+
+.kv-badge.available { background: var(--status-success-bg); color: var(--poliland-green); }
+.kv-badge.booked { background: color-mix(in srgb, var(--poliland-gold) 20%, white); color: var(--poliland-gold-text-soft); }
+.kv-badge.sold { background: color-mix(in srgb, var(--status-danger) 11%, white); color: color-mix(in srgb, var(--status-danger) 70%, black); }
+
+/* ---------- harga + aksi: dua baris terpisah ---------- */
+.kv-lot-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-default);
+}
+
+.kv-money {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kv-money-label {
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.kv-money-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.kv-money-row strong {
+  font-size: 18px;
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: -0.2px;
+}
+
+.kv-money-empty {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-semibold) !important;
+}
+
+.kv-money-old {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.kv-person {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.kv-person ion-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 15px;
+}
+
+.kv-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kv-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 20px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.kv-icon-btn:active,
+.kv-detail:active {
+  background: var(--surface-muted);
+}
+
+.kv-detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.kv-detail-inline {
+  flex: 0 0 auto;
+}
+
+.kv-detail ion-icon {
+  font-size: 16px;
+}
+
+/* ---------- pagination ---------- */
+.kv-pager {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(90px, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--border-default);
+}
+
+.kv-pager-summary { min-width: 0; }
+
+.kv-pager-kicker {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--poliland-gold-text);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+}
+
+.kv-pager-info {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.kv-pager-info strong {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.kv-pager-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 3px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  background: var(--surface-muted);
+}
+
+.kv-pager-controls::-webkit-scrollbar { display: none; }
+
+.kv-pager-position {
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.kv-pager-btn,
+.kv-pager-number {
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.kv-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.kv-pager-number.active {
+  border-color: var(--poliland-green);
+  background: var(--poliland-green);
+  color: #fff;
+}
+
+.kv-pager-btn:not(:disabled):hover,
+.kv-pager-number:not(:disabled):not(.active):hover {
+  border-color: var(--poliland-green);
+  background: var(--status-success-bg);
+}
+
+.kv-pager-btn:disabled,
+.kv-pager-number:disabled {
+  cursor: default;
+  opacity: 1;
+  border-color: transparent;
+  background: transparent;
+}
+
+.kv-pager-btn:focus-visible,
+.kv-pager-number:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .kv-pager {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+
+  .kv-pager-controls {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: stretch;
+    justify-content: flex-start;
+  }
+
+  .kv-pager-position {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    align-self: center;
+    justify-self: center;
+  }
+}
+
+/* ---------- loading / empty / error ---------- */
+.kv-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px 16px;
+  text-align: center;
+  background: var(--surface-primary);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-card);
+}
+
+.kv-state ion-icon {
+  font-size: 28px;
+  color: var(--text-secondary);
+}
+
+.kv-state ion-spinner {
+  color: var(--poliland-green);
+}
+
+.kv-state-mascot {
+  display: block;
+  width: min(132px, 42vw);
+  height: auto;
+  margin-bottom: 2px;
+  object-fit: contain;
+}
+
+.kv-state p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.kv-detail:disabled {
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+/* ---------- 320px ---------- */
 @media (max-width: 360px) {
-
-  .page-container {
-
-    padding:
-      14px
-      9px
-      105px;
-
-  }
-
-
-  .lot-list {
-
-    gap: 9px;
-
-  }
-
-
-  .lot-card {
-
-    min-height: 84px;
-
-    gap: 7px;
-
-    padding: 7px;
-
-    border-radius: 10px;
-
-  }
-
-
-  .lot-image-wrapper {
-
-    width: 65px;
-
-    height: 68px;
-
-    flex-basis: 65px;
-
-  }
-
-
-  .lot-information {
-
-    height: 68px;
-
-  }
-
-
-  .lot-name {
-
-    font-size: 10px;
-
-  }
-
-
-  .lot-block {
-
-    font-size: 8px;
-
-  }
-
-
-  .lot-meta {
-
-    font-size: 7.5px;
-
-  }
-
-
-  .lot-price {
-
-    font-size: 11px;
-
-  }
-
-
-  .lot-status {
-
-    width: 56px;
-
-    min-width: 56px;
-
-    flex-basis: 56px;
-
-    height: 25px;
-
-    font-size: 7px;
-
-  }
-
-
-  .panorama-badge {
-
-    height: 18px;
-
-    padding:
-      0 5px;
-
-    font-size: 7px;
-
-  }
-
+  .kv-lot-top { flex-wrap: wrap; }
+  .kv-badge { margin-left: 56px; }
+  .kv-types { grid-template-columns: 1fr; }
+  .kv-range-row { grid-template-columns: 1fr; }
 }
-
-
-/* =====================================================
-   VERY SMALL
-   <= 320px
-   ===================================================== */
-
-@media (max-width: 320px) {
-
-  .page-container {
-
-    padding:
-      12px
-      7px
-      100px;
-
-  }
-
-
-  .search-wrapper {
-
-    height: 38px;
-
-  }
-
-
-  .filter-wrapper {
-
-    gap: 4px;
-
-    padding:
-      9px 0;
-
-  }
-
-
-  .filter-button {
-
-    height: 26px;
-
-    padding:
-      0 7px;
-
-    font-size: 8px;
-
-  }
-
-
-  .lot-list {
-
-    gap: 8px;
-
-  }
-
-
-  .lot-card {
-
-    min-height: 76px;
-
-    gap: 6px;
-
-    padding: 6px;
-
-    border-radius: 9px;
-
-  }
-
-
-  .lot-image-wrapper {
-
-    width: 58px;
-
-    height: 60px;
-
-    flex-basis: 58px;
-
-  }
-
-
-  .lot-information {
-
-    height: 60px;
-
-  }
-
-
-  .lot-name {
-
-    font-size: 9px;
-
-  }
-
-
-  .lot-block {
-
-    font-size: 7px;
-
-  }
-
-
-  .lot-meta {
-
-    font-size: 7px;
-
-  }
-
-
-  .lot-divider {
-
-    margin-top: 3px;
-
-  }
-
-
-  .lot-price {
-
-    margin-top: 3px;
-
-    font-size: 10px;
-
-  }
-
-
-  .lot-status {
-
-    width: 51px;
-
-    min-width: 51px;
-
-    flex-basis: 51px;
-
-    height: 23px;
-
-    font-size: 6.5px;
-
-  }
-
-
-  .panorama-badge {
-
-    left: 3px;
-
-    bottom: 3px;
-
-    height: 16px;
-
-    padding:
-      0 4px;
-
-    font-size: 6px;
-
-  }
-
-
-  .panorama-badge ion-icon {
-
-    font-size: 8px;
-
-  }
-
-}
-
-
-/* =====================================================
-   EXTREMELY SMALL
-   <= 280px
-   ===================================================== */
-
-@media (max-width: 280px) {
-
-  .page-container {
-
-    padding-left: 5px;
-
-    padding-right: 5px;
-
-  }
-
-
-  .lot-card {
-
-    gap: 5px;
-
-    padding: 5px;
-
-  }
-
-
-  .lot-image-wrapper {
-
-    width: 51px;
-
-    height: 54px;
-
-    flex-basis: 51px;
-
-  }
-
-
-  .lot-information {
-
-    height: 54px;
-
-  }
-
-
-  .lot-name {
-
-    font-size: 8px;
-
-  }
-
-
-  .lot-block {
-
-    font-size: 6.5px;
-
-  }
-
-
-  .lot-meta {
-
-    font-size: 6.5px;
-
-  }
-
-
-  .lot-price {
-
-    font-size: 9px;
-
-  }
-
-
-  .lot-status {
-
-    width: 45px;
-
-    min-width: 45px;
-
-    flex-basis: 45px;
-
-    height: 21px;
-
-    font-size: 6px;
-
-  }
-
-}
-
 </style>

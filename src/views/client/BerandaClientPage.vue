@@ -63,7 +63,7 @@ async function loadClientDocuments() {
   try {
     clientSpks.value = await getClientSpks()
   } catch (error) {
-    console.error('[Beranda Client] Gagal memuat dokumen dari Supabase:', error)
+    console.error('[Beranda Klien] Gagal memuat dokumen dari Supabase:', error)
     clientSpks.value = []
   } finally {
     documentsLoaded.value = true
@@ -82,7 +82,7 @@ async function loadClientName() {
         ? registeredName.trim()
         : emailName || 'Pembeli'
   } catch (error) {
-    console.error('[Beranda Client] Gagal memuat nama akun:', error)
+    console.error('[Beranda Klien] Gagal memuat nama akun:', error)
     clientName.value = 'Pembeli'
   }
 }
@@ -187,7 +187,7 @@ function goTo(path: string) {
         <Reveal :order="0">
           <PageHeader :title="`Halo, ${clientName}`" :subtitle="`Pantau proses pembelian kavling Anda di PoliLand Kairagi. ${today}.`">
             <template #actions>
-              <AppButton size="small" fill="outline" @click="goTo('/client/kavling')">Lihat kavling</AppButton>
+              <AppButton size="small" fill="outline" @click="goTo('/client/kavling')">Lihat kaveling</AppButton>
               <button type="button" class="icon-btn" aria-label="Keluar dari akun" @click="logout">
                 <ion-icon :icon="logOutOutline" aria-hidden="true" />
               </button>
@@ -219,10 +219,10 @@ function goTo(path: string) {
                 <h2 id="purchase-title" class="sr-only">Status pembelian</h2>
                 <EmptyState
                   kind="lots"
-                  title="Belum ada pembelian kavling"
-                  description="Setelah Anda memesan kavling, ringkasan pembelian dan jadwal pembayaran muncul di sini."
+                  title="Belum ada pembelian kaveling"
+                  description="Setelah Anda memesan kaveling, ringkasan pembelian dan jadwal pembayaran muncul di sini."
                 >
-                  <AppButton @click="goTo('/client/kavling')">Lihat kavling</AppButton>
+                  <AppButton @click="goTo('/client/kavling')">Lihat kaveling</AppButton>
                 </EmptyState>
               </div>
 
@@ -275,7 +275,7 @@ function goTo(path: string) {
                 </div>
 
                 <button v-if="otherLotCount" type="button" class="hero__more" @click="goTo('/client/kavling')">
-                  +{{ otherLotCount }} kavling lainnya
+                  +{{ otherLotCount }} kaveling lainnya
                 </button>
               </div>
             </section>

@@ -218,22 +218,22 @@ interface GalleryPhoto {
 
 const categories = [
   { id: 'all' as CategoryId, label: 'Semua', icon: gridOutline },
-  { id: 'kavling' as CategoryId, label: 'Kavling', icon: businessOutline },
+  { id: 'kavling' as CategoryId, label: 'Kaveling', icon: businessOutline },
   { id: 'fasilitas' as CategoryId, label: 'Fasilitas', icon: leafOutline },
   { id: 'lingkungan' as CategoryId, label: 'Lingkungan', icon: imagesOutline },
   { id: 'akses' as CategoryId, label: 'Akses & Jalan', icon: trailSignOutline },
-  { id: 'progress' as CategoryId, label: 'Progress', icon: mapOutline },
+  { id: 'progress' as CategoryId, label: 'Kemajuan', icon: mapOutline },
 ]
 
 const photos: GalleryPhoto[] = [
   { id: 1, title: 'Suasana Kawasan PoliLand', location: 'PoliLand Kairagi', category: 'lingkungan', categoryLabel: 'Lingkungan', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85' },
-  { id: 2, title: 'Area Kavling Blok A', location: 'Blok A', category: 'kavling', categoryLabel: 'Kavling', image: 'https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?auto=format&fit=crop&w=1000&q=85' },
+  { id: 2, title: 'Area Kaveling Blok A', location: 'Blok A', category: 'kavling', categoryLabel: 'Kaveling', image: 'https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?auto=format&fit=crop&w=1000&q=85' },
   { id: 3, title: 'Akses Jalan Kawasan', location: 'Jalan Utama', category: 'akses', categoryLabel: 'Akses & Jalan', image: 'https://images.unsplash.com/photo-1544986581-efac024faf62?auto=format&fit=crop&w=1000&q=85' },
   { id: 4, title: 'Ruang Hijau', location: 'Area Kawasan', category: 'fasilitas', categoryLabel: 'Fasilitas', image: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1000&q=85' },
   { id: 5, title: 'Pemandangan Area Perbukitan', location: 'Sekitar Kawasan', category: 'lingkungan', categoryLabel: 'Lingkungan', image: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1000&q=85' },
-  { id: 6, title: 'Perkembangan Pembangunan', location: 'PoliLand Kairagi', category: 'progress', categoryLabel: 'Progress', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1000&q=85' },
+  { id: 6, title: 'Perkembangan Pembangunan', location: 'PoliLand Kairagi', category: 'progress', categoryLabel: 'Kemajuan', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1000&q=85' },
   { id: 7, title: 'Jalan Menuju Kawasan', location: 'Akses Utama', category: 'akses', categoryLabel: 'Akses & Jalan', image: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1000&q=85' },
-  { id: 8, title: 'Area Kavling', location: 'Blok B', category: 'kavling', categoryLabel: 'Kavling', image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1000&q=85' },
+  { id: 8, title: 'Area Kaveling', location: 'Blok B', category: 'kavling', categoryLabel: 'Kaveling', image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1000&q=85' },
 ]
 
 const selectedCategory = ref<CategoryId>('all')

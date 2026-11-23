@@ -19,7 +19,7 @@
           <div class="page-intro-copy">
             <span class="eyebrow">PENGAJUAN SPK</span>
 
-            <h1>Surat Pembelian Kavling</h1>
+            <h1>Surat Pembelian Kaveling</h1>
 
             <p>
               Lengkapi data calon pembeli dan pilih rencana pembayaran
@@ -58,7 +58,7 @@
           >
             <span class="step-number">2</span>
             <div>
-              <strong>Kavling</strong>
+              <strong>Kaveling</strong>
               <small>Pembayaran</small>
             </div>
           </div>
@@ -242,7 +242,7 @@
 
             <div class="heading-copy">
               <span class="section-kicker">02</span>
-              <h2>Informasi Kavling</h2>
+              <h2>Informasi Kaveling</h2>
               <p>Pilih skema pembayaran yang akan diajukan.</p>
             </div>
           </div>
@@ -255,7 +255,7 @@
               class="lot-state"
             >
               <ion-spinner name="crescent" />
-              <span>Memuat data kavling...</span>
+              <span>Memuat data kaveling...</span>
             </div>
 
             <div
@@ -265,7 +265,7 @@
               <ion-icon :icon="alertCircleOutline" />
 
               <div>
-                <strong>Data kavling tidak tersedia</strong>
+                <strong>Data kaveling tidak tersedia</strong>
                 <span>{{ lotError }}</span>
               </div>
             </div>
@@ -275,7 +275,7 @@
               class="lot-summary"
             >
               <div class="lot-main">
-                <span class="summary-label">KAVLING DIPILIH</span>
+                <span class="summary-label">KAVELING DIPILIH</span>
 
                 <strong>
                   {{ lot.lot_number ? formatLotNumber(lot.lot_number) : 'Belum dipilih' }}
@@ -320,7 +320,7 @@
 
               <!-- PRICE -->
               <div class="field-group">
-                <label>Harga Kavling</label>
+                <label>Harga Kaveling</label>
 
                 <div class="price-field">
                   <div class="price-icon">
@@ -339,7 +339,7 @@
                 </div>
 
                 <p class="field-hint">
-                  Harga diambil otomatis dari data kavling dan tidak
+                  Harga diambil otomatis dari data kaveling dan tidak
                   dapat diubah pada pengajuan SPK.
                 </p>
               </div>
@@ -729,7 +729,7 @@
             </div>
 
             <div>
-              <span>Kavling</span>
+              <span>Kaveling</span>
               <strong>
                 {{ lot.lot_number ? formatLotNumber(lot.lot_number) : 'Belum dipilih' }}
               </strong>
@@ -1172,7 +1172,7 @@ async function loadLot() {
 
     if (!data) {
       lotError.value =
-        'Kavling tidak ditemukan atau sudah tidak tersedia.'
+        'Kaveling tidak ditemukan atau sudah tidak tersedia.'
       return
     }
 
@@ -1199,7 +1199,7 @@ async function loadLot() {
     console.error(error)
 
     lotError.value =
-      'Gagal memuat data kavling.'
+      'Gagal memuat data kaveling.'
   } finally {
     lotLoading.value = false
   }
@@ -1282,7 +1282,7 @@ async function loadLotInstallments(lotIdValue: number) {
   } catch (error) {
     console.error(error)
     lotInstallmentsError.value =
-      'Gagal memuat skema cicilan kavling.'
+      'Gagal memuat skema cicilan kaveling.'
     lotInstallments.value = []
   } finally {
     lotInstallmentsLoading.value = false
@@ -1321,7 +1321,7 @@ async function submitSPK() {
     selectedPrice.value === null ||
     selectedPrice.value === undefined
   ) {
-    submitError.value = 'Data kavling atau harga tidak valid.'
+    submitError.value = 'Data kaveling atau harga tidak valid.'
     return
   }
 
@@ -1702,7 +1702,7 @@ export default defineComponent({
     0 auto;
 
   padding:
-    24px 20px 120px;
+    16px 16px calc(112px + env(safe-area-inset-bottom));
 
   box-sizing:
     border-box;

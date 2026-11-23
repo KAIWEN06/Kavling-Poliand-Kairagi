@@ -7,10 +7,10 @@
         <div v-if="loading" class="review-state"><ion-spinner name="crescent" /><p>Memuat data SPK...</p></div>
         <div v-else-if="errorMessage" class="review-state review-error" role="alert"><strong>Data tidak dapat dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="load">Coba lagi</AppButton></div>
         <template v-else-if="data">
-          <header class="review-heading"><div> <h1>{{ data.request.spk_number }}</h1><span class="status-chip">Approved</span></div><span class="review-id">SPK #{{ data.request.id }} · Transaksi #{{ data.transaction.id }}</span></header>
-          <section class="review-panel"><div class="section-head"><div><h2>Progress SPK</h2></div><AppButton size="small" @click="progressOpen = true">Perbarui status</AppButton></div><div class="timeline"><div v-for="(item, index) in timeline" :key="item.id || index" class="timeline-item" :class="{ current: index === 0 }"><span class="timeline-dot" aria-hidden="true" /><div><strong>{{ item.new_status || item.status }}</strong><small>{{ date(item.created_at) }} · {{ item.profiles?.full_name || 'Admin' }}</small><p v-if="item.note">{{ item.note }}</p></div></div></div></section>
+          <header class="review-heading"><div> <h1>{{ data.request.spk_number }}</h1><span class="status-chip">Disetujui</span></div><span class="review-id">SPK #{{ data.request.id }} · Transaksi #{{ data.transaction.id }}</span></header>
+          <section class="review-panel"><div class="section-head"><div><h2>Kemajuan SPK</h2></div><AppButton size="small" @click="progressOpen = true">Perbarui status</AppButton></div><div class="timeline"><div v-for="(item, index) in timeline" :key="item.id || index" class="timeline-item" :class="{ current: index === 0 }"><span class="timeline-dot" aria-hidden="true" /><div><strong>{{ item.new_status || item.status }}</strong><small>{{ date(item.created_at) }} · {{ item.profiles?.full_name || 'Admin' }}</small><p v-if="item.note">{{ item.note }}</p></div></div></div></section>
           <section class="review-panel"><h2>Informasi SPK</h2><dl class="info-grid">
-            <div><dt>Customer</dt><dd>{{ data.request.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ data.request.customer_phone }}</dd></div><div><dt>Kavling</dt><dd>{{ data.request.lots?.lot_number || data.request.lot_id }}</dd></div><div><dt>Harga transaksi</dt><dd>{{ money(data.request.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ data.request.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div><dt>Booking Fee</dt><dd>{{ money(data.request.booking_fee_snapshot) }}</dd></div><div><dt>Tanggal persetujuan</dt><dd>{{ date(data.request.approved_at) }}</dd></div><div><dt>Marketing</dt><dd>{{ data.request.profiles?.full_name || 'Tidak ada' }}</dd></div><div><dt>Sumber pengajuan</dt><dd>{{ data.request.submission_source }}</dd></div>
+            <div><dt>Customer</dt><dd>{{ data.request.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ data.request.customer_phone }}</dd></div><div><dt>Kaveling</dt><dd>{{ data.request.lots?.lot_number || data.request.lot_id }}</dd></div><div><dt>Harga transaksi</dt><dd>{{ money(data.request.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ data.request.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div><dt>Booking Fee</dt><dd>{{ money(data.request.booking_fee_snapshot) }}</dd></div><div><dt>Tanggal persetujuan</dt><dd>{{ date(data.request.approved_at) }}</dd></div><div><dt>Marketing</dt><dd>{{ data.request.profiles?.full_name || 'Tidak ada' }}</dd></div><div><dt>Sumber pengajuan</dt><dd>{{ data.request.submission_source }}</dd></div>
           </dl></section>
           <section v-if="data.request.payment_method === 'Installment'" class="review-panel">
             <div class="section-head">
@@ -75,7 +75,14 @@
               <p v-if="scheduleError" class="schedule-save-error" role="alert">{{ scheduleError }}</p>
             </div>
 </section>
-          <section v-if="data.commission" class="review-panel"><h2>Komisi Marketing</h2><dl class="info-grid"><div><dt>Nama marketing</dt><dd>{{ data.commission.profiles?.full_name || data.request.profiles?.full_name }}</dd></div><div><dt>Nomor SPK</dt><dd>{{ data.request.spk_number }}</dd></div><div><dt>Nilai transaksi</dt><dd>{{ money(data.commission.base_amount) }}</dd></div><div><dt>Jenis komisi</dt><dd>{{ data.commission.commission_type }}</dd></div><div><dt>Persentase / nominal</dt><dd>{{ data.commission.commission_rate != null ? `${data.commission.commission_rate}%` : money(data.commission.commission_amount) }}</dd></div><div><dt>Total komisi</dt><dd>{{ money(data.commission.commission_amount) }}</dd></div><div><dt>Status pencairan</dt><dd>{{ data.commission.status }}</dd></div></dl></section>
+          <section v-if="data.commission" class="review-panel"><h2>Komisi Marketing</h2><dl class="info-grid"><div><dt>Nama marketing</dt><dd>{{ data.commission.profiles?.full_name || data.request.profiles?.full_name }}</dd></div><div><dt>Nomor SPK</dt><dd>{{ data.request.spk_number }}</dd></div><div><dt>Nilai transaksi</dt><dd>{{ money(data.commission.base_amount) }}</dd></div><div><dt>Jenis komisi</dt><dd>{{ data.commission.commission_type }}</dd></div><div><dt>Persentase / nominal</dt><dd>{{ data.commission.commission_rate != null ? `${data.commission.commission_rate}%` : money(data.commission.commission_amount) }}</dd></div><div><dt>Total komisi</dt><dd>{{ money(data.commission.commission_amount) }}</dd></div><div><dt>Status pencairan</dt><dd>{{ data.commission.status }}</dd></div></dl>
+            <p class="review-note">Komisi cair saat pembayaran kaveling (di luar Booking Fee) mencapai {{ data.commission.release_threshold_percent ?? 50 }}%.</p>
+            <div v-if="data.commission.status === 'Eligible' || data.commission.status === 'Processing'" class="commission-pay">
+              <input v-model="commissionReference" type="text" maxlength="60" placeholder="Referensi transfer bank (opsional)" aria-label="Referensi transfer bank" />
+              <AppButton size="small" :loading="payingCommission" @click="payCommission">Cairkan komisi</AppButton>
+            </div>
+            <p v-if="commissionError" class="review-note" role="alert">{{ commissionError }}</p>
+          </section>
         </template>
       </main>
     </ion-content>
@@ -93,6 +100,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import {
   getSPKReview,
+  payMarketingCommission,
   updateInstallmentSchedule,
   updateNotaryProgress,
   type NotaryStatus,
@@ -109,6 +117,9 @@ const scheduleError = ref('')
 const scheduleSaveMessage = ref('')
 const data = ref<any>(null)
 const progressOpen = ref(false)
+const commissionReference = ref('')
+const payingCommission = ref(false)
+const commissionError = ref('')
 const progressNote = ref('')
 const activeCalendarId = ref<number | null>(null)
 const scheduleDayOverrides = ref<Record<number, number>>({})
@@ -253,6 +264,21 @@ async function load() {
   }
 }
 
+async function payCommission() {
+  if (!data.value?.commission || payingCommission.value) return
+  payingCommission.value = true
+  commissionError.value = ''
+  try {
+    await payMarketingCommission(Number(data.value.commission.id), commissionReference.value)
+    commissionReference.value = ''
+    await load()
+  } catch (error) {
+    commissionError.value = error instanceof Error ? error.message : 'Komisi gagal dicairkan.'
+  } finally {
+    payingCommission.value = false
+  }
+}
+
 async function saveIndividualSchedules() {
   if (!data.value?.schedules?.length) return
   savingSchedule.value = true
@@ -387,4 +413,7 @@ onMounted(load)
 .calendar-note { margin:10px 0 0; color:var(--text-secondary); font-size:11px; line-height:1.5; }
 .paid-label { color:var(--status-success); font-weight:700; }
 
+.review-note { margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.commission-pay { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.commission-pay input { flex: 1 1 200px; min-height: 40px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); font: inherit; }
 </style>

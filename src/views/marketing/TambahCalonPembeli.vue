@@ -1,4 +1,5 @@
 <template>
+  <MarketingPageLayout title="Tambah Calon Pembeli" show-back :back-route="listPath" :tab-variant="tabVariant" :refreshable="false">
   <div class="prospect-page">
     <main class="page-content">
       <!-- INFORMASI CALON PEMBELI -->
@@ -109,7 +110,7 @@
               <option v-for="m in teamMembers" :key="m.id" :value="m.id">{{ m.full_name }}</option>
             </select>
           </label>
-          <p v-else class="owner-note">Client otomatis tercatat atas nama akun Marketing Anda.</p>
+          <p v-else class="owner-note">Klien otomatis tercatat atas nama akun Marketing Anda.</p>
         </div>
       </section>
 
@@ -122,13 +123,13 @@
               <path d="M9 4v16M15 4v16M4 9h16M4 15h16" />
             </svg>
           </div>
-          <h2>Informasi Minat Kavling</h2>
+          <h2>Informasi Minat Kaveling</h2>
         </div>
 
         <div class="fields">
           <!-- LOT SELECTOR -->
           <div class="field">
-            <span>Kavling yang diminati <b>*</b></span>
+            <span>Kaveling yang diminati <b>*</b></span>
 
             <button
               type="button"
@@ -142,11 +143,11 @@
               </svg>
 
               <span v-if="!selectedLots.length" class="placeholder">
-                Pilih Kavling
+                Pilih Kaveling
               </span>
 
               <span v-else class="selected-summary">
-                {{ selectedLots.length }} kavling dipilih
+                {{ selectedLots.length }} kaveling dipilih
               </span>
 
               <svg class="select-arrow" viewBox="0 0 24 24">
@@ -166,19 +167,19 @@
                 <input
                   v-model="lotSearch"
                   type="search"
-                  placeholder="Cari nomor kavling..."
+                  placeholder="Cari nomor kaveling..."
                 />
               </div>
 
               <div v-if="loadingLots" class="picker-message">
-                Memuat kavling...
+                Memuat kaveling...
               </div>
 
               <div
                 v-else-if="!filteredLots.length"
                 class="picker-message"
               >
-                Kavling tersedia tidak ditemukan.
+                Kaveling tersedia tidak ditemukan.
               </div>
 
               <div v-else class="lot-options">
@@ -380,11 +381,13 @@
     </main>
 
   </div>
+  </MarketingPageLayout>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useIonRouter } from '@ionic/vue'
+import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
 import {
   createProspectiveCustomer,
   getAvailableLots,
@@ -404,6 +407,7 @@ const region = ref({ province_code: null, province_name: null, city_code: null, 
 const teamMembers = ref([])
 const isHead = computed(() => currentProfile.value?.role === 'marketing_head')
 const listPath = computed(() => (isHead.value ? '/kepala-marketing/clients' : '/marketing/clients'))
+const tabVariant = computed(() => (isHead.value ? 'head' : 'marketing'))
 
 const loadingLots = ref(true)
 const loadingPlans = ref(true)
@@ -461,7 +465,7 @@ function getLotMeta(lot) {
 
   return [block ? `Blok ${block}` : null, area, dimension]
     .filter(Boolean)
-    .join(' · ') || 'Detail kavling tersedia'
+    .join(' · ') || 'Detail kaveling tersedia'
 }
 
 function isLotSelected(lotId) {
@@ -532,7 +536,7 @@ function validate() {
 
   if (!selectedLots.value.length) {
     errorMessage.value =
-      'Pilih minimal satu kavling yang diminati.'
+      'Pilih minimal satu kaveling yang diminati.'
     return false
   }
 
@@ -575,7 +579,7 @@ async function submit() {
     // Validasi awal duplikasi; database tetap memvalidasi ulang saat INSERT.
     if (await contactAlreadyRegistered(form.phone, form.whatsapp_phone || null)) {
       errorMessage.value =
-        'Nomor kontak ini sudah terdaftar sebagai client. Hubungi Kepala Bagian Marketing atau Admin agar tidak terjadi duplikasi.'
+        'Nomor kontak ini sudah terdaftar sebagai klien. Hubungi Kepala Bagian Marketing atau Admin agar tidak terjadi duplikasi.'
       return
     }
 
@@ -631,7 +635,7 @@ async function loadData() {
   } catch (error) {
     console.error(error)
     errorMessage.value =
-      'Data kavling atau rencana tenor gagal dimuat.'
+      'Data kaveling atau rencana tenor gagal dimuat.'
   } finally {
     loadingLots.value = false
     loadingPlans.value = false
@@ -659,125 +663,80 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-:global(*) {
-  box-sizing: border-box;
+.prospect-page {
+  font-family: var(--font-primary);
+  color: var(--text-primary);
 }
 
-:global(html) {
-  background: #f1f1ef;
-}
-
-:global(body) {
-  margin: 0;
-  background: #f1f1ef;
-  color: #292929;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-}
-
-button,
-input,
-textarea,
-select {
+.prospect-page input,
+.prospect-page textarea,
+.prospect-page select,
+.prospect-page button {
   font: inherit;
 }
 
-button {
+.prospect-page button {
   -webkit-tap-highlight-color: transparent;
 }
 
-.prospect-page {
-  --gold: #caa653;
-  --gold-dark: #a9853e;
-  --gold-light: #f7edd6;
-  --cream: #fbf8f1;
-  --text: #292929;
-  --muted: #77736b;
-  --border: #e3dfd7;
-
-  min-height: 100dvh;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
-  background:
-    linear-gradient(
-      180deg,
-      #f4f4f2 0%,
-      #f7f7f5 75%,
-      #e9e9df 100%
-    );
-}
-
-/* CONTENT */
 .page-content {
-  width: min(calc(100% - 24px), 720px);
-  margin: 0 auto;
-  padding: 6px 0 24px;
+  width: 100%;
+  display: grid;
+  gap: 16px;
 }
 
+/* ---------- kartu bagian ---------- */
 .form-card {
-  margin-bottom: 7px;
-  padding: 0 14px 13px;
-  border: 1px solid #e4e1db;
-  border-radius: 9px;
-  background: var(--cream);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
 }
 
 .section-title {
-  min-height: 45px;
   display: flex;
   align-items: center;
-  gap: 11px;
-  margin: 0 -14px 9px;
-  padding: 7px 13px;
-  border-bottom: 1px solid #e4dfd6;
-  border-radius: 9px 9px 8px 8px;
-  background: #fcf9f3;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.09);
+  gap: 12px;
+  margin: 0 0 14px;
 }
 
 .section-icon {
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--gold-light);
-  color: var(--gold-dark);
+  background: var(--status-success-bg);
+  color: var(--poliland-green);
 }
 
 .section-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.65;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .section-title h2 {
   margin: 0;
-  color: #9a7838;
-  font-size: 13px;
-  font-weight: 850;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
 }
 
 .fields {
   display: grid;
-  gap: 7px;
+  gap: 14px;
 }
 
 .owner-note {
   margin: 0;
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .field {
@@ -785,54 +744,60 @@ button {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .field > span,
 .field-label-row > span:first-child {
-  padding-left: 1px;
-  color: #303030;
-  font-size: 9px;
-  font-weight: 750;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
 }
 
 .field b {
-  color: #df3939;
+  color: var(--status-danger);
 }
 
 .field em {
-  color: #777;
+  color: var(--text-secondary);
   font-style: normal;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
-/* INPUT */
+/* ---------- input ---------- */
 .input-wrap,
 .textarea-wrap,
 .select-control {
   width: 100%;
-  border: 1px solid #dedbd5;
-  border-radius: 9px;
-  background: #fff;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+}
+
+.input-wrap:focus-within,
+.textarea-wrap:focus-within,
+.select-control:focus-visible {
+  border-color: var(--poliland-green);
+  outline: 2px solid var(--poliland-green);
+  outline-offset: 1px;
 }
 
 .input-wrap {
-  min-height: 32px;
+  min-height: 48px;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 9px;
+  gap: 10px;
+  padding: 0 12px;
 }
 
 .input-wrap svg,
 .textarea-wrap > svg,
 .select-control > svg:first-child {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
   fill: none;
-  stroke: var(--gold);
+  stroke: var(--text-secondary);
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -841,118 +806,116 @@ button {
 .input-wrap input {
   width: 100%;
   min-width: 0;
-  height: 30px;
+  height: 44px;
   border: 0;
   outline: 0;
-  color: #333;
+  color: var(--text-primary);
   background: transparent;
-  font-size: 10px;
+  font-size: 15px;
 }
 
 .input-wrap input::placeholder,
 .textarea-wrap textarea::placeholder {
-  color: #9b9b9b;
+  color: var(--text-secondary);
 }
 
-/* TEXTAREA */
 .textarea-wrap {
   position: relative;
-  min-height: 68px;
-  padding: 8px 9px 19px 9px;
+  min-height: 96px;
+  padding: 12px 12px 26px;
 }
 
 .textarea-wrap textarea {
   width: 100%;
-  min-height: 48px;
+  min-height: 60px;
   resize: vertical;
   border: 0;
   outline: 0;
   background: transparent;
-  color: #333;
-  font-size: 10px;
+  color: var(--text-primary);
+  font-size: 15px;
   line-height: 1.45;
 }
 
 .textarea-wrap > svg {
   float: left;
-  margin: 1px 9px 0 0;
+  margin: 2px 10px 0 0;
 }
 
 .textarea-wrap small {
   position: absolute;
-  right: 8px;
-  bottom: 5px;
-  color: #6e6e6e;
-  font-size: 7px;
+  right: 12px;
+  bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
-/* LOT PICKER */
+/* ---------- pemilih kavling ---------- */
 .select-control {
-  min-height: 33px;
+  min-height: 48px;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 9px;
-  color: #4c4c4c;
+  gap: 10px;
+  padding: 0 12px;
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
 }
 
 .select-control .placeholder {
-  color: #9a9a9a;
-  font-size: 10px;
+  color: var(--text-secondary);
+  font-size: 15px;
 }
 
 .selected-summary {
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  color: #5d5139;
-  font-size: 10px;
-  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .select-arrow {
   margin-left: auto;
-  width: 18px !important;
-  height: 18px !important;
-  color: #222;
-  stroke: currentColor !important;
+  width: 20px !important;
+  height: 20px !important;
+  stroke: var(--text-secondary) !important;
   stroke-width: 2 !important;
 }
 
 .select-control.invalid {
-  border-color: #d66b61;
+  border-color: var(--status-danger);
 }
 
 .picker-panel {
   position: absolute;
-  top: calc(100% + 5px);
+  top: calc(100% + 6px);
   right: 0;
   left: 0;
   z-index: 40;
   overflow: hidden;
-  border: 1px solid #ddd8cf;
-  border-radius: 9px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-md);
 }
 
 .picker-search {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px;
-  border-bottom: 1px solid #ece8e1;
+  gap: 8px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .picker-search svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
   fill: none;
-  stroke: #8b8b8b;
+  stroke: var(--text-secondary);
   stroke-width: 1.7;
   stroke-linecap: round;
 }
@@ -960,55 +923,59 @@ button {
 .picker-search input {
   width: 100%;
   min-width: 0;
-  height: 27px;
+  height: 44px;
   border: 0;
   outline: 0;
-  font-size: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 15px;
 }
 
 .lot-options {
-  max-height: 210px;
+  max-height: 240px;
   overflow-y: auto;
 }
 
 .lot-option {
   width: 100%;
+  min-height: 52px;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px;
+  gap: 12px;
+  padding: 10px 12px;
   border: 0;
-  border-bottom: 1px solid #f0eee9;
-  background: #fff;
-  color: #292929;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-primary);
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
 }
 
 .lot-option:hover,
 .lot-option.checked {
-  background: #fffaf0;
+  background: var(--status-success-bg);
 }
 
 .check-box {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
   display: grid;
   place-items: center;
-  border: 1.5px solid #c8c5bd;
-  border-radius: 5px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--surface-primary);
 }
 
 .lot-option.checked .check-box {
-  border-color: var(--gold);
-  background: var(--gold);
+  border-color: var(--poliland-green);
+  background: var(--poliland-green);
   color: #fff;
 }
 
 .check-box svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.5;
@@ -1024,14 +991,14 @@ button {
 }
 
 .lot-option-main strong {
-  font-size: 10px;
-  font-weight: 850;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
 }
 
 .lot-option-main small {
   overflow: hidden;
-  color: #777;
-  font-size: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -1041,134 +1008,139 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 9px;
-  background: #faf8f3;
+  padding: 10px 12px;
+  background: var(--surface-muted);
 }
 
 .picker-footer span {
-  color: #777;
-  font-size: 9px;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .picker-footer button {
-  padding: 5px 10px;
+  min-height: 44px;
+  padding: 0 16px;
   border: 0;
-  border-radius: 6px;
-  background: var(--gold);
+  border-radius: var(--radius-control);
+  background: var(--poliland-green);
   color: #fff;
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
   cursor: pointer;
 }
 
 .picker-message {
-  padding: 18px 10px;
-  color: #888;
-  font-size: 9px;
+  padding: 20px 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
   text-align: center;
 }
 
 .selected-lots {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .lot-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   max-width: 100%;
-  padding: 4px 7px;
-  border: 1px solid #e1cf9f;
-  border-radius: 12px;
-  background: #fbf2df;
-  color: #81652f;
-  font-size: 8px;
-  font-weight: 800;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--poliland-green);
+  border-radius: var(--radius-pill);
+  background: var(--status-success-bg);
+  color: var(--poliland-green);
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
   cursor: pointer;
 }
 
 .lot-chip svg {
-  width: 11px;
-  height: 11px;
+  width: 14px;
+  height: 14px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
 }
 
-/* PAYMENT */
+/* ---------- pembayaran ---------- */
 .payment-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  gap: 10px;
 }
 
-.payment-card {
+.payment-card,
+.plan-card {
   min-width: 0;
+  min-height: 56px;
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px;
-  border: 1px solid #ddd9d1;
-  border-radius: 8px;
-  background: #fff;
-  color: #333;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
-.payment-card.active {
-  border-color: #d1ae61;
-  background: #fffaf0;
+.payment-card.active,
+.plan-card.active {
+  border-color: var(--poliland-green);
+  background: var(--status-success-bg);
+  box-shadow: inset 0 0 0 1px var(--poliland-green);
 }
 
 .payment-card > span:last-child {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .payment-card strong {
-  font-size: 10px;
-  font-weight: 850;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
 }
 
 .payment-card small {
-  color: #888;
-  font-size: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .radio {
-  width: 15px;
-  height: 15px;
-  flex: 0 0 15px;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
   display: grid;
   place-items: center;
-  border: 1.5px solid #aaa;
+  border: 1.5px solid var(--border-strong);
   border-radius: 50%;
 }
 
 .radio > span {
-  width: 7px;
-  height: 7px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: transparent;
 }
 
 .active .radio {
-  border-color: var(--gold);
+  border-color: var(--poliland-green);
 }
 
 .active .radio > span {
-  background: var(--gold);
+  background: var(--poliland-green);
 }
 
-/* PLAN */
+/* ---------- rencana cicilan ---------- */
 .field-label-row {
   display: flex;
   align-items: center;
@@ -1177,92 +1149,73 @@ button {
 }
 
 .plan-hint {
-  color: #a18550 !important;
-  font-size: 7px !important;
-  font-weight: 600 !important;
+  color: var(--poliland-gold-text) !important;
+  font-size: 12px !important;
+  font-weight: var(--font-weight-semibold) !important;
 }
 
 .plan-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
-  gap: 6px;
-}
-
-.plan-card {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px;
-  border: 1px solid #ddd9d1;
-  border-radius: 8px;
-  background: #fff;
-  text-align: left;
-  cursor: pointer;
-}
-
-.plan-card.active {
-  border-color: #d0aa59;
-  background: #fff9ed;
-  box-shadow: 0 1px 3px rgba(170, 133, 52, 0.18);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
 }
 
 .plan-text {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .plan-text strong {
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
 }
 
 .plan-text small {
   overflow: hidden;
-  color: #777;
-  font-size: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .helper-text {
-  margin: 5px 1px 0;
-  color: #888;
-  font-size: 7px;
-  line-height: 1.35;
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .plans-loading,
 .plans-empty {
-  padding: 10px;
-  border: 1px dashed #ddd6c9;
-  border-radius: 7px;
-  color: #888;
-  font-size: 8px;
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: 13px;
   text-align: center;
 }
 
-/* ERROR + SAVE */
+/* ---------- error + simpan ---------- */
 .error-message {
   display: flex;
   align-items: flex-start;
-  gap: 7px;
-  margin: 9px 0;
-  padding: 9px 10px;
-  border: 1px solid #f0c7c3;
-  border-radius: 8px;
-  background: #fff0ef;
-  color: #a64640;
-  font-size: 9px;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--status-danger);
+  border-radius: var(--radius-control);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-size: 13px;
   line-height: 1.4;
 }
 
 .error-message svg {
-  width: 15px;
-  height: 15px;
-  flex: 0 0 15px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -1271,35 +1224,43 @@ button {
 
 .save-button {
   width: 100%;
-  min-height: 40px;
+  min-height: 52px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 4px;
-  padding: 8px 14px;
+  padding: 0 16px;
   border: 0;
-  border-radius: 8px;
-  background: var(--gold);
+  border-radius: var(--radius-control);
+  background: var(--poliland-green);
   color: #fff;
-  font-size: 11px;
-  font-weight: 850;
-  box-shadow: 0 2px 5px rgba(163, 127, 49, 0.22);
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
   cursor: pointer;
 }
 
-.save-button:hover:not(:disabled) {
-  background: #bc994d;
+.save-button:active:not(:disabled) {
+  background: var(--green-800);
 }
 
 .save-button:disabled {
-  opacity: 0.58;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
+.save-button:focus-visible,
+.payment-card:focus-visible,
+.plan-card:focus-visible,
+.lot-chip:focus-visible,
+.lot-option:focus-visible,
+.picker-footer button:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 2px;
+}
+
 .spinner {
-  width: 13px;
-  height: 13px;
+  width: 18px;
+  height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.45);
   border-top-color: #fff;
   border-radius: 50%;
@@ -1307,10 +1268,10 @@ button {
 }
 
 .privacy-note {
-  margin: 7px 0 0;
-  color: #999;
-  font-size: 7px;
-  line-height: 1.35;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
   text-align: center;
 }
 
@@ -1320,50 +1281,9 @@ button {
   }
 }
 
-/* RESPONSIVE */
-@media (max-width: 390px) {
-  .page-content {
-    width: calc(100% - 12px);
-    padding-top: 5px;
-  }
-
-  .form-card {
-    padding: 0 10px 11px;
-    margin-bottom: 6px;
-  }
-
-  .section-title {
-    min-height: 43px;
-    margin-left: -10px;
-    margin-right: -10px;
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-
-  .section-title h2 {
-    font-size: 12px;
-  }
-
-  .fields {
-    gap: 6px;
-  }
-
+@media (max-width: 360px) {
   .payment-grid {
-    gap: 5px;
-  }
-
-  .payment-card {
-    padding: 7px 6px;
-  }
-
-  .payment-card small {
-    font-size: 6.5px;
-  }
-}
-
-@media (min-width: 721px) {
-  .prospect-page {
-    padding-bottom: 24px;
+    grid-template-columns: 1fr;
   }
 }
 </style>

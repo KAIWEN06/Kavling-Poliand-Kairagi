@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Komisi Saya" show-back back-route="/beranda-marketing" @refresh="view?.reload()">
+  <MarketingPageLayout title="Komisi Saya" show-back back-route="/marketing/more" @refresh="view?.reload()">
     <section class="mk-intro">
       <p>Komisi</p>
       <h1>Komisi saya</h1>

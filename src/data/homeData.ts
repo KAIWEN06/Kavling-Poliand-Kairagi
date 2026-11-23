@@ -20,7 +20,7 @@ export const features = [
   },
   {
     title: 'Legalitas SHM',
-    description: 'Setiap kavling memiliki sertifikat Hak Milik (SHM) yang aman dan terpercaya.',
+    description: 'Setiap kaveling memiliki sertifikat Hak Milik (SHM) yang aman dan terpercaya.',
     icon: shieldCheckmarkOutline,
     color: 'blue',
   },
@@ -96,15 +96,15 @@ export const faqsData = [
     answer: 'Informasi legalitas dapat dikonfirmasi langsung kepada tim PoliLand Kairagi.',
   },
   {
-    question: 'Berapa harga kavling di PoliLand Kairagi?',
-    answer: 'Harga mengikuti tipe dan lokasi kavling. Silakan hubungi marketing untuk informasi terbaru.',
+    question: 'Berapa harga kaveling di PoliLand Kairagi?',
+    answer: 'Harga mengikuti tipe dan lokasi kaveling. Silakan hubungi marketing untuk informasi terbaru.',
   },
   {
     question: 'Apakah bisa KPR?',
     answer: 'Informasi metode pembayaran dapat dikonfirmasi kepada tim marketing.',
   },
   {
-    question: 'Kapan serah terima kavling?',
+    question: 'Kapan serah terima kaveling?',
     answer: 'Jadwal serah terima mengikuti perkembangan pembangunan kawasan.',
   },
 ]

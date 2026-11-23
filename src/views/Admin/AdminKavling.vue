@@ -23,7 +23,7 @@
               <div ref="siteplanLayer" class="kv-siteplan-layer" v-html="siteplanSvg" />
             </div>
 
-            <div class="kv-siteplan-legend" aria-label="Legenda status kavling">
+            <div class="kv-siteplan-legend" aria-label="Legenda status kaveling">
               <span><i class="available"></i>Tersedia</span>
               <span><i class="booking"></i>Dipesan</span>
               <span><i class="sold"></i>Terjual</span>
@@ -160,7 +160,7 @@
         </div>
 
         <!-- FILTER STATUS -->
-        <div class="kv-chips" role="group" aria-label="Filter status kavling">
+        <div class="kv-chips" role="group" aria-label="Filter status kaveling">
           <button
             v-for="chip in chips"
             :key="chip.key"
@@ -183,7 +183,7 @@
             aria-hidden="true"
           />
           <ion-spinner name="crescent" />
-          <strong>Memuat data kavling…</strong>
+          <strong>Memuat data kaveling…</strong>
         </div>
 
         <!-- ERROR -->
@@ -195,7 +195,7 @@
             aria-hidden="true"
           />
           <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-          <strong>Data kavling gagal dimuat</strong>
+          <strong>Data kaveling gagal dimuat</strong>
           <p>Periksa koneksi internet, lalu coba lagi.</p>
           <button type="button" class="kv-detail kv-detail-inline" @click="load(true)">Coba lagi</button>
         </div>
@@ -204,12 +204,12 @@
           <!-- LIST HEAD -->
           <div id="kv-list-top" class="kv-list-head">
             <h2>
-              Daftar Kavling
+              Daftar Kaveling
             </h2>
 
             <div class="kv-sort">
               <ion-icon :icon="swapVerticalOutline" class="kv-sort-lead" aria-hidden="true" />
-              <select v-model="sortModel" aria-label="Urutkan daftar kavling" :disabled="proximityActive">
+              <select v-model="sortModel" aria-label="Urutkan daftar kaveling" :disabled="proximityActive">
                 <option v-if="proximityActive" value="nearest">Paling mendekati</option>
                 <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
                   {{ opt.label }}
@@ -295,7 +295,7 @@
           </ul>
 
           <!-- PAGINATION -->
-          <nav v-if="filtered.length > 0 && totalPages > 1" class="kv-pager" aria-label="Halaman daftar kavling">
+          <nav v-if="filtered.length > 0 && totalPages > 1" class="kv-pager" aria-label="Halaman daftar kaveling">
             <div class="kv-pager-controls">
               <button
                 type="button"
@@ -513,7 +513,7 @@ const statusIcon: Record<LotStatus, string> = {
 }
 
 const sortOptions: { value: SortMode; label: string }[] = [
-  { value: 'number', label: 'Nomor kavling' },
+  { value: 'number', label: 'Nomor kaveling' },
   { value: 'available-first', label: 'Tersedia di atas' },
   { value: 'booked-first', label: 'Dipesan di atas' },
   { value: 'sold-first', label: 'Terjual di atas' },
@@ -604,7 +604,7 @@ function mapLot(row: LotRecord): Lot {
 
   return {
     id: row.id,
-    code: /^\d+$/.test(lotNumber) ? `Kavling ${lotNumber}` : lotNumber,
+    code: /^\d+$/.test(lotNumber) ? `Kaveling ${lotNumber}` : lotNumber,
     number: digits ?? lotNumber.slice(0, 4),
     blockName,
     meta: metaParts.join(' · ') || 'Data ukuran belum diisi',
@@ -637,7 +637,7 @@ async function load(showSpinner: boolean) {
     lots.value = rows.map(mapLot)
     surveyByLot.value = surveys
   } catch (error) {
-    console.error('Gagal memuat kavling', error)
+    console.error('Gagal memuat kaveling', error)
     loadError.value = true
   } finally {
     loading.value = false
@@ -687,7 +687,7 @@ const searchPlaceholder = computed(() => {
     case 'area':
       return 'Luas tanah dalam m², mis. 120'
     default:
-      return 'Cari nomor kavling atau nama pelanggan'
+      return 'Cari nomor kaveling atau nama pelanggan'
   }
 })
 

@@ -90,12 +90,12 @@ async function sendResetLink() {
           <ion-card-header>
    
             <ion-card-title>
-              Lupa Password?
+              Lupa kata sandi?
             </ion-card-title>
 
             <p class="subtitle">
               Masukkan email akunmu untuk menerima tautan
-              reset password PoliLand Kairagi.
+              reset kata sandi PoliLand Kairagi.
             </p>
           </ion-card-header>
 
@@ -111,7 +111,7 @@ async function sendResetLink() {
                 role="status"
               >
                 Jika email tersebut terdaftar, tautan reset
-                password akan dikirim. Periksa inbox dan folder spam.
+                kata sandi akan dikirim. Periksa inbox dan folder spam.
               </p>
             </ion-text>
 

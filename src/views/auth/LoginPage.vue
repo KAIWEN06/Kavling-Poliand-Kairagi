@@ -208,7 +208,7 @@ async function submitLogin() {
 
           ? error.message
 
-          : 'Login gagal. Periksa email dan password.'
+          : 'Login gagal. Periksa email dan kata sandi.'
 
       void mascotRef.value?.playError()
 
@@ -401,8 +401,8 @@ async function loginWithGoogle() {
                 <AppInput
                   v-model="password"
                   input-id="login-password"
-                  label="Password"
-                  placeholder="Masukkan password"
+                  label="Kata sandi"
+                  placeholder="Masukkan kata sandi"
                   type="password"
                   autocomplete="current-password"
                   :icon="lockClosedOutline"
@@ -416,7 +416,7 @@ async function loginWithGoogle() {
               </div>
 
               <div class="password-tools password-tools--right">
-                <RouterLink to="/forgot-password">Lupa Password?</RouterLink>
+                <RouterLink to="/forgot-password">Lupa kata sandi?</RouterLink>
               </div>
               
               <AppButton

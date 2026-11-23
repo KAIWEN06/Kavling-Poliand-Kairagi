@@ -3,7 +3,7 @@
     <div class="siteplan-header">
       <div>
         <span class="eyebrow">SITEPLAN INTERAKTIF</span>
-        <h3>Temukan Kavling Anda</h3>
+        <h3>Temukan Kaveling Anda</h3>
       </div>
       <ion-icon :icon="mapOutline" />
     </div>

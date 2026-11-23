@@ -95,7 +95,7 @@
                 <div class="proof-info-grid">
                   <div><span>Klien / Pembeli</span><strong>{{ selectedProofPayment.customer?.full_name || 'Tidak tersedia' }}</strong><small>{{ selectedProofPayment.customer?.whatsapp_phone || selectedProofPayment.customer?.phone || 'Kontak belum tersedia' }}</small></div>
                   <div><span>Nomor SPK</span><strong>{{ selectedProofPayment.spk?.spk_number || 'Belum terkait SPK' }}</strong><small>{{ selectedProofPayment.spk ? `Status SPK: ${selectedProofPayment.spk.status}` : 'Pembayaran transaksi' }}</small></div>
-                  <div><span>Kavling Terdaftar</span><strong>{{ selectedProofPayment.lot?.lot_number || 'Tidak tersedia' }}</strong><small>{{ selectedProofPayment.lot?.blocks?.name || 'Blok belum tersedia' }} · {{ selectedProofPayment.lot?.area ?? '-' }} m²</small></div>
+                  <div><span>Kaveling Terdaftar</span><strong>{{ selectedProofPayment.lot?.lot_number || 'Tidak tersedia' }}</strong><small>{{ selectedProofPayment.lot?.blocks?.name || 'Blok belum tersedia' }} · {{ selectedProofPayment.lot?.area ?? '-' }} m²</small></div>
                   <div><span>Metode & Bank</span><strong>{{ selectedProofPayment.payment.payment_method || 'Tidak tersedia' }}</strong><small>Ref: {{ selectedProofPayment.payment.reference_number || 'Tidak dicantumkan' }}</small></div>
                   <div><span>Waktu Transaksi</span><strong>{{ formatShortDate(selectedProofPayment.payment.payment_date || selectedProofPayment.payment.created_at) }}</strong><small>{{ formatTime(selectedProofPayment.payment.created_at) }} WITA</small></div>
                 </div>
@@ -202,11 +202,11 @@
             <div v-if="!selectedReportLot" class="finance-state" role="alert"><strong>Transaksi tidak ditemukan.</strong><p>Kembali ke laporan dan pilih transaksi yang benar.</p></div>
             <template v-else>
               <section class="payment-step-card">
-                <header><span>1</span><div><strong>Identitas Klien & Kavling</strong></div></header>
+                <header><span>1</span><div><strong>Identitas Klien & Kaveling</strong></div></header>
                 <div class="payment-step-body">
                   <label>Nama Pembeli (Calon Pemilik)</label>
                   <div class="payment-identity-row"><span class="payment-identity-icon"><ion-icon :icon="peopleOutline" /></span><div><strong>{{ selectedReportLot.customerName }}</strong><small>{{ selectedReportLot.customerPhone || 'Nomor telepon belum tersedia' }}</small></div></div>
-                  <label>Kavling Properti Terkait</label>
+                  <label>Kaveling Properti Terkait</label>
                   <div class="payment-identity-row"><span class="payment-identity-icon payment-identity-icon--lot"><ion-icon :icon="businessOutline" /></span><div><strong>{{ selectedReportLot.lotCode }} {{ selectedReportLot.blockName }}</strong><small>{{ selectedReportLot.area ?? '-' }} m²</small></div></div>
                   <div class="payment-price-summary"><span>Total Harga Unit <strong>{{ formatCurrency(selectedReportLot.finalPrice) }}</strong></span><span>Sisa Tagihan <strong>{{ formatCurrency(selectedReportLot.remaining) }}</strong></span><span v-if="selectedReportLot.pendingAmount > 0">Menunggu Verifikasi <strong>{{ formatCurrency(selectedReportLot.pendingAmount) }}</strong></span></div>
                 </div>
@@ -299,7 +299,7 @@
               <ion-icon :icon="shieldCheckmarkOutline" aria-hidden="true" />
               <div>
                 <strong>Rekening Transaksi</strong>
-                <p>Hanya rekening aktif yang ditampilkan pada instruksi pembayaran dan invoice digital client.</p>
+                <p>Hanya rekening aktif yang ditampilkan pada instruksi pembayaran dan invoice digital klien.</p>
               </div>
             </div>
 
@@ -512,7 +512,7 @@
               </div>
               <div class="report-detail-stats">
                 <div><span>Total dibayar</span><strong>{{ formatCurrency(selectedReportLot.paid) }}</strong></div>
-                <div><span>Progress pembayaran</span><strong>{{ selectedReportLot.progress.toFixed(1) }}%</strong></div>
+                <div><span>Kemajuan pembayaran</span><strong>{{ selectedReportLot.progress.toFixed(1) }}%</strong></div>
               </div>
               <FinanceAmountBreakdown
                 :booking-fee="selectedReportLot.bookingFee"
@@ -564,7 +564,7 @@
                 <p v-if="payment.note">{{ payment.note }}</p>
                 <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" /> {{ payment.refundStatus === 'Refunded' ? 'Lihat Bukti Refund' : 'Lihat Bukti Pembayaran' }}</button>
               </article>
-              <div v-if="!selectedReportLot.payments.length" class="report-empty-inline">Belum ada riwayat pembayaran untuk kavling ini.</div>
+              <div v-if="!selectedReportLot.payments.length" class="report-empty-inline">Belum ada riwayat pembayaran untuk kaveling ini.</div>
             </section>
             <button type="button" class="report-add-payment-button" :disabled="selectedReportLot.remaining <= 0" @click="openAddPayment">
               <ion-icon :icon="addCircleOutline" /> Tambah Pembayaran
@@ -678,13 +678,13 @@
 
               <template v-else-if="activeReportTab === 'lots'">
                 <section class="report-list-intro">
-                  <div><h1>Laporan Per Kavling</h1><p>Pantau harga transaksi, pembayaran diterima, dan sisa tagihan setiap kavling.</p></div>
-                  <span>{{ filteredReportLots.length }} kavling</span>
+                  <div><h1>Laporan Per Kaveling</h1><p>Pantau harga transaksi, pembayaran diterima, dan sisa tagihan setiap kaveling.</p></div>
+                  <span>{{ filteredReportLots.length }} kaveling</span>
                 </section>
                 <label class="report-search report-search--full">
                   <ion-icon :icon="searchOutline" aria-hidden="true" />
-                  <span class="visually-hidden">Cari kavling</span>
-                  <input v-model="reportQuery" type="search" placeholder="Cari nomor kavling, blok, atau nama pembeli..." />
+                  <span class="visually-hidden">Cari kaveling</span>
+                  <input v-model="reportQuery" type="search" placeholder="Cari nomor kaveling, blok, atau nama pembeli..." />
                   <button v-if="reportQuery" type="button" aria-label="Hapus pencarian" @click="reportQuery = ''"><ion-icon :icon="closeOutline" aria-hidden="true" /></button>
                 </label>
                 <div v-if="filteredReportLots.length" class="report-lot-list">
@@ -694,7 +694,7 @@
                       <span class="report-lot-status" :class="`report-lot-status--${lot.statusTone}`">{{ lot.statusLabel }}</span>
                     </div>
                     <div class="report-lot-metrics">
-                      <div><span>Harga Kavling</span><strong>{{ formatCompactCurrency(lot.finalPrice) }}</strong></div>
+                      <div><span>Harga Kaveling</span><strong>{{ formatCompactCurrency(lot.finalPrice) }}</strong></div>
                       <div><span>Dibayar</span><strong>{{ formatCompactCurrency(lot.paid) }}</strong></div>
                       <div><span>Tersisa</span><strong :class="{ 'report-text-danger': lot.remaining > 0 && lot.isPastDue }">{{ formatCompactCurrency(lot.remaining) }}</strong></div>
                     </div>
@@ -722,7 +722,7 @@
                     <div class="report-buyer-heading">
                       <div class="report-buyer-avatar">{{ initials(buyer.name) }}</div>
                       <div class="report-buyer-identity"><h2>{{ buyer.name }}</h2><p>{{ buyer.phone || 'Nomor telepon belum tersedia' }}</p></div>
-                      <span class="report-buyer-count">{{ buyer.lotCount }} Kavling</span>
+                      <span class="report-buyer-count">{{ buyer.lotCount }} Kaveling</span>
                     </div>
                     <div class="report-buyer-balance">
                       <div><span>Total Terbayar</span><strong>{{ formatCurrency(buyer.paid) }}</strong></div>
@@ -730,7 +730,7 @@
                     </div>
                     <div class="report-buyer-lots">
                       <span v-for="lot in buyer.lots.slice(0, 3)" :key="lot.key"><ion-icon :icon="businessOutline" aria-hidden="true" /> {{ lot.lotCode }} {{ lot.blockName }}</span>
-                      <small v-if="buyer.lotCount > 3">+{{ buyer.lotCount - 3 }} kavling lainnya</small>
+                      <small v-if="buyer.lotCount > 3">+{{ buyer.lotCount - 3 }} kaveling lainnya</small>
                     </div>
                   </article>
                 </div>
@@ -743,7 +743,7 @@
         <template v-else-if="activeView === 'cancellations'">
           <section class="cancellation-review-page" aria-labelledby="cancellation-review-heading">
             <div class="ledger-heading">
-              <div><h1 id="cancellation-review-heading">Pengajuan Pembatalan</h1><p>Persetujuan melepaskan kavling dan menyiapkan pengembalian 50% dari uang muka serta cicilan terkonfirmasi.</p></div>
+              <div><h1 id="cancellation-review-heading">Pengajuan Pembatalan</h1><p>Persetujuan melepaskan kaveling dan menyiapkan pengembalian 50% dari uang muka serta cicilan terkonfirmasi.</p></div>
               <button type="button" class="ledger-refresh" :disabled="cancellationLoading" @click="loadCancellationRequests">
                 <ion-spinner v-if="cancellationLoading" name="crescent" /><ion-icon v-else :icon="refreshOutline" aria-hidden="true" /> Muat ulang
               </button>
@@ -825,7 +825,7 @@
             <div class="payment-plans-heading">
               <div>
                 <h1 id="payment-plans-heading">Daftar Skema Cicilan</h1>
-                <p class="payment-plans-description">Atur pilihan tenor dan margin cicilan yang digunakan saat membuat transaksi pembelian kavling.</p>
+                <p class="payment-plans-description">Atur pilihan tenor dan margin cicilan yang digunakan saat membuat transaksi pembelian kaveling.</p>
               </div>
               <span class="payment-plans-count">{{ paymentPlans.length }} skema</span>
             </div>
@@ -857,7 +857,7 @@
                     <div class="payment-plan-margin" :aria-label="`Margin ${formatPlanMargin(plan.margin_percent)} persen`">
                       {{ formatPlanMargin(plan.margin_percent) }}%
                     </div>
-                    <span class="payment-plan-usage">{{ plan.usage?.lotInstallments ?? 0 }} kavling</span>
+                    <span class="payment-plan-usage">{{ plan.usage?.lotInstallments ?? 0 }} kaveling</span>
                     <div class="payment-plan-actions">
                       <AppButton class="payment-plan-action" variant="neutral" fill="solid" size="small" :aria-label="`Edit skema ${formatPaymentPlanName(plan.plan_name, plan.months)}`" @click="openPlanEditor(plan)">
                         <ion-icon :icon="createOutline" aria-hidden="true" />
@@ -896,7 +896,7 @@
           <label class="finance-search">
             <ion-icon :icon="searchOutline" aria-hidden="true" />
             <span class="visually-hidden">Cari transaksi</span>
-            <input v-model="query" type="search" placeholder="Cari nama, kode kavling, atau metode pembayaran" />
+            <input v-model="query" type="search" placeholder="Cari nama, kode kaveling, atau metode pembayaran" />
             <button v-if="query" type="button" aria-label="Hapus pencarian" @click="query = ''"><ion-icon :icon="closeOutline" aria-hidden="true" /></button>
           </label>
 
@@ -1079,7 +1079,7 @@
             <div class="payment-plan-delete-icon"><ion-icon :icon="trashOutline" aria-hidden="true" /></div>
             <p v-if="planToDelete">Yakin ingin menghapus skema <strong>{{ formatPaymentPlanName(planToDelete.plan_name, planToDelete.months) }}</strong>?</p>
             <small v-if="planToDelete?.usage">
-              Digunakan {{ planToDelete.usage.lotInstallments }} kavling, {{ planToDelete.usage.lotTransactions }} transaksi, dan {{ planToDelete.usage.customerInterests }} minat pembeli.
+              Digunakan {{ planToDelete.usage.lotInstallments }} kaveling, {{ planToDelete.usage.lotTransactions }} transaksi, dan {{ planToDelete.usage.customerInterests }} minat pembeli.
               Skema yang sudah dipakai transaksi tidak dapat dihapus.
             </small>
             <p v-if="planDeleteError" class="bank-form-error" role="alert">{{ planDeleteError }}</p>
@@ -1100,8 +1100,8 @@
       @confirm="saveCancellationDecision"
     >
       <div class="cancellation-decision-form">
-        <p v-if="cancellationDecision === 'Approved'">Kavling akan dilepaskan. Hak refund dihitung dari uang muka dan cicilan yang sudah terkonfirmasi, tanpa Booking Fee dan denda.</p>
-        <p v-else>Pengajuan ditolak dan transaksi serta kavling tetap berjalan seperti semula.</p>
+        <p v-if="cancellationDecision === 'Approved'">Kaveling akan dilepaskan. Hak refund dihitung dari uang muka dan cicilan yang sudah terkonfirmasi, tanpa Booking Fee dan denda.</p>
+        <p v-else>Pengajuan ditolak dan transaksi serta kaveling tetap berjalan seperti semula.</p>
         <label for="cancellation-decision-note">Catatan keputusan Admin</label>
         <textarea id="cancellation-decision-note" v-model="cancellationDecisionNote" rows="3" maxlength="1000" placeholder="Tulis alasan dan tindak lanjut (minimal 3 karakter)." />
         <p v-if="cancellationDecisionError" class="bank-form-error" role="alert">{{ cancellationDecisionError }}</p>
@@ -1164,10 +1164,10 @@ const defaultInstructionDraft = (): PaymentInstructionDraft => ({
   title: 'Petunjuk Pembayaran PoliLand Kairagi',
   intro: 'Terima kasih telah memilih PoliLand Kairagi. Silakan lakukan pembayaran sesuai nominal tagihan dan metode pembayaran yang telah disepakati. Pastikan transfer dilakukan hanya ke rekening resmi PoliLand Kairagi yang tertera pada halaman ini. Setelah pembayaran berhasil, unggah bukti transfer untuk proses verifikasi oleh Admin.',
   steps: [
-    { key: 'step-1', text: 'Periksa detail tagihan, nama pembeli, nomor kavling, dan nominal pembayaran.' },
+    { key: 'step-1', text: 'Periksa detail tagihan, nama pembeli, nomor kaveling, dan nominal pembayaran.' },
     { key: 'step-2', text: 'Pilih salah satu rekening resmi PoliLand Kairagi yang berstatus aktif.' },
     { key: 'step-3', text: 'Lakukan transfer sesuai nominal yang tertera pada tagihan.' },
-    { key: 'step-4', text: 'Cantumkan nomor kavling atau nomor transaksi pada berita transfer jika tersedia.' },
+    { key: 'step-4', text: 'Cantumkan nomor kaveling atau nomor transaksi pada berita transfer jika tersedia.' },
     { key: 'step-5', text: 'Simpan bukti transfer yang menampilkan nominal, tanggal, dan status berhasil.' },
     { key: 'step-6', text: 'Unggah bukti pembayaran melalui formulir pada akun pembeli.' },
     { key: 'step-7', text: 'Tunggu proses pemeriksaan dan verifikasi pembayaran oleh Admin.' },
@@ -1445,7 +1445,7 @@ function normalizeReportPayment(payment: FinancePaymentRecord, customer: Finance
     category,
     categoryLabel: categoryLabels[category] || category,
     status,
-    statusLabel: status === 'Confirmed' ? 'Terverifikasi' : status === 'Rejected' ? 'Ditolak' : status === 'Needs Reupload' ? 'Perlu Upload Ulang' : 'Menunggu',
+    statusLabel: status === 'Confirmed' ? 'Terverifikasi' : status === 'Rejected' ? 'Ditolak' : status === 'Needs Reupload' ? 'Perlu Unggah Ulang' : 'Menunggu',
     statusTone,
     refundStatus: null,
     note: payment.note || '',
@@ -1459,7 +1459,7 @@ const allReportPayments = computed<ReportPayment[]>(() => {
     const fallbackCustomer = rawCustomers.value.find((item) => String(item.id) === String(payment.customer_id))
     const reportCustomer = (customer || fallbackCustomer || {
       id: payment.customer_id ?? 0,
-      full_name: 'Customer tidak tersedia',
+      full_name: 'Pelanggan tidak tersedia',
       phone: null,
       whatsapp_phone: null,
       created_at: payment.created_at,
@@ -1809,8 +1809,8 @@ function exportReport() {
     ? cashflowCsvRows(reportLedgerEntries.value, reportMonth.value)
     : [
         activeReportTab.value === 'lots'
-          ? ['Kode Kavling', 'Blok', 'Pembeli', 'Harga Transaksi', 'Total Dibayar', 'Sisa Tagihan', 'Status']
-          : ['Nama Pembeli', 'Telepon', 'Jumlah Kavling', 'Total Terbayar', 'Sisa Tagihan'],
+          ? ['Kode Kaveling', 'Blok', 'Pembeli', 'Harga Transaksi', 'Total Dibayar', 'Sisa Tagihan', 'Status']
+          : ['Nama Pembeli', 'Telepon', 'Jumlah Kaveling', 'Total Terbayar', 'Sisa Tagihan'],
         ...reportExportRows.value,
       ]
   const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(';')).join('\r\n')
@@ -1829,7 +1829,7 @@ function exportReport() {
 function paymentStatusLabel(status: string) {
   return status === 'Confirmed' ? 'Terverifikasi'
     : status === 'Rejected' ? 'Ditolak'
-      : status === 'Needs Reupload' ? 'Perlu Upload Ulang'
+      : status === 'Needs Reupload' ? 'Perlu Unggah Ulang'
         : 'Menunggu Verifikasi'
 }
 function paymentReference(payment: PaymentDetail['payment']) {
@@ -2618,7 +2618,7 @@ async function loadTransactions(silent = false) {
         : payment.payment_category || 'Pembayaran'
       return {
         id: String(payment.id),
-        customerName: customer?.full_name || 'Customer tidak tersedia',
+        customerName: customer?.full_name || 'Pelanggan tidak tersedia',
         lotCode,
         paymentType,
         amount: Number(payment.amount || 0),

@@ -111,7 +111,7 @@ async function submitLogin() {
 
           ? error.message
 
-          : 'Login gagal. Periksa email dan password.'
+          : 'Login gagal. Periksa email dan kata sandi.'
 
 
       return
@@ -302,11 +302,11 @@ function togglePassword() {
 
                 :type="showPassword ? 'text' : 'password'"
 
-                label="Password"
+                label="Kata sandi"
 
                 label-placement="stacked"
 
-                placeholder="Masukkan password"
+                placeholder="Masukkan kata sandi"
 
                 autocomplete="current-password"
 
@@ -330,13 +330,13 @@ function togglePassword() {
 
                 >
 
-                  {{ showPassword ? 'Sembunyikan' : 'Tampilkan' }} password
+                  {{ showPassword ? 'Sembunyikan' : 'Tampilkan' }} kata sandi
 
                 </button>
 
                 <RouterLink to="/forgot-password">
 
-                  Lupa password?
+                  Lupa kata sandi?
 
                 </RouterLink>
 

@@ -2,7 +2,7 @@
   <ion-tab-bar slot="bottom">
     <ion-tab-button tab="home" @click="go('/home')">
       <ion-icon :icon="homeOutline" />
-      <ion-label>Home</ion-label>
+      <ion-label>Beranda</ion-label>
     </ion-tab-button>
 
     <ion-tab-button tab="siteplan" @click="go('/siteplan')">
@@ -12,17 +12,17 @@
 
     <ion-tab-button tab="progress" @click="go('/progress')">
       <ion-icon :icon="barChartOutline" />
-      <ion-label>Progress</ion-label>
+      <ion-label>Kemajuan</ion-label>
     </ion-tab-button>
 
     <ion-tab-button tab="gallery" @click="go('/gallery')">
       <ion-icon :icon="imagesOutline" />
-      <ion-label>Gallery</ion-label>
+      <ion-label>Galeri</ion-label>
     </ion-tab-button>
 
     <ion-tab-button tab="contact" @click="go('/contact')">
       <ion-icon :icon="callOutline" />
-      <ion-label>Contact</ion-label>
+      <ion-label>Kontak</ion-label>
     </ion-tab-button>
   </ion-tab-bar>
 </template>

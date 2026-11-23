@@ -14,7 +14,7 @@
         <section class="spk-toolbar">
           <label class="spk-search">
             <ion-icon :icon="searchOutline" />
-            <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, pembeli, marketing, kavling..." />
+            <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, pembeli, marketing, kaveling..." />
             <button v-if="searchQuery" type="button" aria-label="Hapus pencarian" @click="searchQuery = ''"><ion-icon :icon="closeOutline" /></button>
           </label>
           <div class="spk-source-filters" aria-label="Filter sumber SPK">
@@ -50,7 +50,7 @@
                 <div class="spk-person-info"><strong>{{ request.customer_full_name }}</strong><span>{{ request.customer_phone }}</span><small>Sumber: {{ sourceLabel(request.submission_source) }}<template v-if="request.marketing_name"> · {{ request.marketing_name }}</template></small></div>
               </div>
               <div class="spk-card-meta">
-                <div><span>Kavling</span><strong>{{ request.lot_number }}</strong><small>{{ request.block_name }}</small></div>
+                <div><span>Kaveling</span><strong>{{ request.lot_number }}</strong><small>{{ request.block_name }}</small></div>
                 <div><span>Metode pembayaran</span><strong>{{ request.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</strong><small>{{ request.months ? `${request.months} bulan` : 'Sekali bayar' }}</small></div>
                 <div><span>Harga pengajuan</span><strong>{{ formatCurrency(request.lot_price_snapshot) }}</strong><small>{{ request.documents.length }} dokumen</small></div>
               </div>
@@ -118,8 +118,8 @@
         <section class="spk-detail-section"><h3>Informasi pembeli</h3>
           <dl><div><dt>Nama lengkap</dt><dd>{{ selectedRequest.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ selectedRequest.customer_phone }}</dd></div><div><dt>Email</dt><dd>{{ selectedRequest.customer_email || '-' }}</dd></div><div><dt>Alamat</dt><dd>{{ selectedRequest.customer_address || '-' }}</dd></div><div><dt>Marketing</dt><dd>{{ selectedRequest.marketing_name }}</dd></div></dl>
         </section>
-        <section class="spk-detail-section"><h3>Informasi kavling & pembayaran</h3>
-          <dl><div><dt>Nomor kavling</dt><dd>{{ selectedRequest.lot_number }} · {{ selectedRequest.block_name }}</dd></div><div><dt>Harga snapshot</dt><dd>{{ formatCurrency(selectedRequest.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ selectedRequest.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div v-if="selectedRequest.months"><dt>Tenor</dt><dd>{{ selectedRequest.months }} bulan</dd></div><div v-if="selectedRequest.monthly_payment"><dt>Cicilan per bulan</dt><dd>{{ formatCurrency(selectedRequest.monthly_payment) }}</dd></div><div><dt>Catatan marketing</dt><dd>{{ selectedRequest.notes || '-' }}</dd></div></dl>
+        <section class="spk-detail-section"><h3>Informasi kaveling & pembayaran</h3>
+          <dl><div><dt>Nomor kaveling</dt><dd>{{ selectedRequest.lot_number }} · {{ selectedRequest.block_name }}</dd></div><div><dt>Harga snapshot</dt><dd>{{ formatCurrency(selectedRequest.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ selectedRequest.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div v-if="selectedRequest.months"><dt>Tenor</dt><dd>{{ selectedRequest.months }} bulan</dd></div><div v-if="selectedRequest.monthly_payment"><dt>Cicilan per bulan</dt><dd>{{ formatCurrency(selectedRequest.monthly_payment) }}</dd></div><div><dt>Catatan marketing</dt><dd>{{ selectedRequest.notes || '-' }}</dd></div></dl>
         </section>
         <section class="spk-detail-section"><h3>Booking Fee</h3>
           <div class="spk-booking-summary">
@@ -157,7 +157,7 @@
             <div>
               <span class="spk-refund-eyebrow">PENYELESAIAN DANA</span>
               <h3>Pengembalian Booking Fee</h3>
-              <p>Informasi dan bukti pengembalian dana kepada client.</p>
+              <p>Informasi dan bukti pengembalian dana kepada klien.</p>
             </div>
           </div>
 
@@ -217,7 +217,7 @@
           <template v-else>
             <div class="spk-refund-guidance">
               <ion-icon :icon="alertCircleOutline" />
-              <p>Pastikan dana sudah benar-benar dikembalikan kepada client sebelum menyimpan catatan ini. Bukti pengembalian wajib dilampirkan.</p>
+              <p>Pastikan dana sudah benar-benar dikembalikan kepada klien sebelum menyimpan catatan ini. Bukti pengembalian wajib dilampirkan.</p>
             </div>
 
             <div class="spk-refund-form">
@@ -286,7 +286,7 @@
 
     <AppModal v-model="approveOpen" title="Setujui pengajuan SPK?" variant="dialog"
       :loading="saving" :confirm-disabled="!actionRequest || !canApproveSPK(actionRequest)" confirm-text="Ya, setujui" cancel-text="Batal" @confirm="confirmApprove">
-      <div class="spk-confirm-copy"><p>SPK <strong>{{ actionRequest?.spk_number }}</strong> akan disetujui.</p><p>Status kavling <strong>{{ actionRequest?.lot_number }}</strong> akan berubah menjadi <strong>Booking</strong>.</p><p>Pastikan data dan dokumen telah diperiksa. Persetujuan tidak dapat dilakukan jika kavling sudah tidak tersedia.</p></div>
+      <div class="spk-confirm-copy"><p>SPK <strong>{{ actionRequest?.spk_number }}</strong> akan disetujui.</p><p>Status kaveling <strong>{{ actionRequest?.lot_number }}</strong> akan berubah menjadi <strong>Booking</strong>.</p><p>Pastikan data dan dokumen telah diperiksa. Persetujuan tidak dapat dilakukan jika kaveling sudah tidak tersedia.</p></div>
     </AppModal>
 
     <AppModal v-model="rejectOpen" title="Tolak pengajuan SPK" variant="dialog"
@@ -295,7 +295,7 @@
       <div class="spk-reject-form"><p>Pilih kategori yang sesuai. Booking Fee hanya dapat digunakan ulang jika penolakan terjadi karena kesalahan administratif.</p>
         <label>Kategori penolakan <b>*</b>
           <select v-model="rejectionCategory">
-            <option value="Administrative Error">Kesalahan administratif / salah kavling</option>
+            <option value="Administrative Error">Kesalahan administratif / salah kaveling</option>
             <option value="Buyer Cancellation">Pembatalan oleh pembeli</option>
             <option value="Other">Alasan lainnya</option>
           </select>
@@ -308,7 +308,7 @@
 
     <AppModal
       v-model="createOpen"
-      title="Buat SPK untuk Client"
+      title="Buat SPK untuk Klien"
       variant="bottom-sheet"
       :loading="creating"
       :confirm-disabled="!canSubmitCreate"
@@ -320,7 +320,7 @@
     >
       <form class="spk-create-form" @submit.prevent="submitAdminSPK">
           <section class="spk-form-section">
-            <h3>1. Pilih Client</h3>
+            <h3>1. Pilih Klien</h3>
             <template v-if="selectedCustomer">
               <div class="spk-selected-customer">
                 <strong>{{ selectedCustomer.full_name }}</strong>
@@ -332,22 +332,22 @@
               <button type="button" class="spk-cancel-customer" @click="clearSelectedCustomer">Batal pilih</button>
             </template>
             <template v-else>
-              <div class="spk-customer-sources" aria-label="Sumber data client">
+              <div class="spk-customer-sources" aria-label="Sumber data klien">
                 <button v-for="source in customerSourceOptions" :key="source.value" type="button"
                   :class="{ active: selectedCustomerSource === source.value }"
                   @click="changeCustomerSource(source.value)">{{ source.label }}</button>
               </div>
-              <label class="spk-lot-search">Cari client berdasarkan nama
-                <input v-model.trim="customerSearchQuery" type="search" placeholder="Ketik nama client..." />
+              <label class="spk-lot-search">Cari klien berdasarkan nama
+                <input v-model.trim="customerSearchQuery" type="search" placeholder="Ketik nama klien..." />
               </label>
-              <p v-if="customersLoading" class="spk-customer-state">Memuat daftar client {{ selectedCustomerSource }}...</p>
+              <p v-if="customersLoading" class="spk-customer-state">Memuat daftar klien {{ selectedCustomerSource }}...</p>
               <div v-else class="spk-customer-picker">
                 <button v-for="customer in filteredCustomers" :key="customer.id" type="button"
                   class="spk-customer-option" @click="selectCustomer(customer)">
                   <strong>{{ customer.full_name }}</strong>
                   <small>Telepon: {{ customer.phone || 'Tidak tersedia' }} · WhatsApp: {{ customer.whatsapp_phone || 'Tidak tersedia' }}</small>
                 </button>
-                <p v-if="!filteredCustomers.length" class="spk-customer-state">Client dari sumber ini tidak ditemukan.</p>
+                <p v-if="!filteredCustomers.length" class="spk-customer-state">Klien dari sumber ini tidak ditemukan.</p>
               </div>
               <template v-if="selectedCustomerSource === 'Admin'">
                 <button type="button" class="spk-add-customer-toggle" @click="showNewCustomerForm = !showNewCustomerForm">
@@ -358,32 +358,32 @@
                 <label>Nomor telepon biasa<input v-model.trim="newCustomer.phone" inputmode="tel" placeholder="Nomor telepon utama" /></label>
                 <label>Nomor WhatsApp<input v-model.trim="newCustomer.whatsapp_phone" inputmode="tel" placeholder="Nomor WhatsApp" /></label>
                 <label>Email<input v-model.trim="newCustomer.email" type="email" placeholder="email@contoh.com" /></label>
-                <label>Alamat<textarea v-model.trim="newCustomer.address" rows="2" placeholder="Alamat lengkap client" /></label>
-                  <button type="button" class="spk-add-customer-save" :disabled="!newCustomer.full_name.trim() || (!newCustomer.phone.trim() && !newCustomer.whatsapp_phone.trim())" @click="saveNewCustomerForSPK">Simpan dan pilih client</button>
+                <label>Alamat<textarea v-model.trim="newCustomer.address" rows="2" placeholder="Alamat lengkap klien" /></label>
+                  <button type="button" class="spk-add-customer-save" :disabled="!newCustomer.full_name.trim() || (!newCustomer.phone.trim() && !newCustomer.whatsapp_phone.trim())" @click="saveNewCustomerForSPK">Simpan dan pilih klien</button>
                 </div>
               </template>
             </template>
           </section>
 
           <section class="spk-form-section">
-            <h3>2. Minat Kavling</h3>
-            <label class="spk-lot-search">Cari kavling
-              <input v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kavling atau blok" />
+            <h3>2. Minat Kaveling</h3>
+            <label class="spk-lot-search">Cari kaveling
+              <input v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kaveling atau blok" />
             </label>
-            <div class="spk-lot-list" role="group" aria-label="Pilih beberapa kavling">
+            <div class="spk-lot-list" role="group" aria-label="Pilih beberapa kaveling">
               <button v-for="lot in filteredAvailableLots" :key="lot.id" type="button"
                 class="spk-lot-option" :class="{ selected: selectedLotIds.includes(lot.id) }"
                 :aria-pressed="selectedLotIds.includes(lot.id)" @click="toggleLot(lot.id)">
                 <span class="spk-lot-check" aria-hidden="true">{{ selectedLotIds.includes(lot.id) ? '✓' : '' }}</span>
                 <span>
-                  <strong>{{ lot.lot_number }} <em v-if="isInterestedLot(lot.id)" class="spk-interest-badge">Minat client</em></strong>
+                  <strong>{{ lot.lot_number }} <em v-if="isInterestedLot(lot.id)" class="spk-interest-badge">Minat klien</em></strong>
                   <small>{{ lot.block_name || lot.block_code || (lot.block_id ? `Blok ID ${lot.block_id}` : 'Tanpa blok') }}</small>
                 </span>
                 <b>{{ formatCurrency(lotPrice(lot)) }}</b>
               </button>
-              <p v-if="!filteredAvailableLots.length" class="spk-lot-empty">Kavling tersedia tidak ditemukan.</p>
+              <p v-if="!filteredAvailableLots.length" class="spk-lot-empty">Kaveling tersedia tidak ditemukan.</p>
             </div>
-            <p v-if="selectedCreateLots.length" class="spk-selected-lot">{{ selectedCreateLots.length }} kavling dipilih. Setiap kavling akan dibuatkan satu SPK terpisah.</p>
+            <p v-if="selectedCreateLots.length" class="spk-selected-lot">{{ selectedCreateLots.length }} kaveling dipilih. Setiap kaveling akan dibuatkan satu SPK terpisah.</p>
           </section>
 
           <section class="spk-form-section">
@@ -392,11 +392,11 @@
               <label :class="{ chosen: createForm.payment_method === 'Cash' }"><input v-model="createForm.payment_method" type="radio" value="Cash" /> Tunai</label>
               <label :class="{ chosen: createForm.payment_method === 'Installment' }"><input v-model="createForm.payment_method" type="radio" value="Installment" /> Cicilan</label>
             </div>
-            <p class="spk-required-note">Perhitungan dilakukan terpisah untuk setiap kavling.</p>
+            <p class="spk-required-note">Perhitungan dilakukan terpisah untuk setiap kaveling.</p>
             <div v-for="lot in selectedCreateLots" :key="lot.id" class="spk-lot-payment-card">
               <strong>{{ lot.lot_number }} · {{ formatCurrency(lotPrice(lot)) }}</strong>
               <template v-if="createForm.payment_method === 'Installment'">
-                <label>DP kavling ini
+                <label>DP kaveling ini
                   <input :value="dpInputs[lot.id] || ''" inputmode="numeric" placeholder="Nominal DP"
                     @input="updateLotDp(lot.id, ($event.target as HTMLInputElement).value)" />
                 </label>
@@ -418,7 +418,7 @@
               </template>
               <div v-else class="spk-payment-result"><div class="spk-total-row"><span>Total pembayaran tunai</span><strong>{{ formatCurrency(lotPrice(lot)) }}</strong></div></div>
             </div>
-            <p v-if="!selectedCreateLots.length" class="spk-payment-hint">Pilih kavling yang diminati terlebih dahulu.</p>
+            <p v-if="!selectedCreateLots.length" class="spk-payment-hint">Pilih kaveling yang diminati terlebih dahulu.</p>
           </section>
 
           <section class="spk-form-section">
@@ -468,7 +468,7 @@
                 <button type="button" aria-label="Perbesar" :disabled="previewZoom >= 4" @click="changePreviewZoom(0.25)">
                   <ion-icon :icon="addOutline" />
                 </button>
-                <button type="button" aria-label="Reset zoom" @click="previewZoom = 1">
+                <button type="button" aria-label="Atur ulang zoom" @click="previewZoom = 1">
                   <ion-icon :icon="scanOutline" />
                 </button>
               </div>
@@ -483,7 +483,7 @@
         <footer class="spk-preview-footer">
           <button type="button" class="spk-preview-download" :disabled="!previewUrl || downloadingDocument" @click="downloadPreviewDocument">
             <ion-spinner v-if="downloadingDocument" name="crescent" />
-            <template v-else><ion-icon :icon="downloadOutline" /> Download</template>
+            <template v-else><ion-icon :icon="downloadOutline" /> Unduh</template>
           </button>
           <button type="button" class="spk-preview-done" @click="closeDocumentPreview">Selesai</button>
         </footer>
@@ -721,7 +721,7 @@ function bookingPaymentStatusLabel(row: AdminSPKRequest) {
 }
 function approvalBlockReason(row: AdminSPKRequest) {
   if (!isPending(row)) return 'pembayaran sudah selesai.'
-  if (row.lot_status !== 'Available') return 'Kavling sudah tidak tersedia.'
+  if (row.lot_status !== 'Available') return 'Kaveling sudah tidak tersedia.'
   if (!row.booking_payment.isSatisfied) {
     const status = bookingPaymentStatusLabel(row)
     return `SPK belum dapat disetujui. ${status}.`
@@ -974,11 +974,11 @@ async function openCreateForm() {
     availableLots.value = lotsResult.value
   } else {
     availableLots.value = []
-    createError.value = lotsResult.reason instanceof Error ? lotsResult.reason.message : 'Daftar kavling gagal dimuat.'
+    createError.value = lotsResult.reason instanceof Error ? lotsResult.reason.message : 'Daftar kaveling gagal dimuat.'
   }
 
   if (customersResult.status === 'rejected') {
-    const message = customersResult.reason instanceof Error ? customersResult.reason.message : 'Daftar client gagal dimuat.'
+    const message = customersResult.reason instanceof Error ? customersResult.reason.message : 'Daftar klien gagal dimuat.'
     createError.value = createError.value ? `${createError.value} ${message}` : message
   }
 }
@@ -998,7 +998,7 @@ async function changeCustomerSource(source: CustomerSource) {
   try {
     await loadSPKCustomers()
   } catch (error) {
-    createError.value = error instanceof Error ? error.message : 'Daftar client gagal dimuat.'
+    createError.value = error instanceof Error ? error.message : 'Daftar klien gagal dimuat.'
   }
 }
 function clearSelectedCustomer() {
@@ -1018,7 +1018,7 @@ function selectCustomer(customer: AdminSPKCustomer) {
 }
 async function saveNewCustomerForSPK() {
   if (selectedCustomerSource.value !== 'Admin') {
-    createError.value = 'Customer baru dari halaman Admin hanya dapat didaftarkan dengan sumber Admin.'
+    createError.value = 'Pelanggan baru dari halaman Admin hanya dapat didaftarkan dengan sumber Admin.'
     return
   }
   if (!newCustomer.full_name.trim() || (!newCustomer.phone.trim() && !newCustomer.whatsapp_phone.trim())) {
@@ -1041,7 +1041,7 @@ async function saveNewCustomerForSPK() {
     Object.assign(newCustomer, { full_name: '', phone: '', whatsapp_phone: '', email: '', address: '' })
     showNewCustomerForm.value = false
   } catch (error) {
-    createError.value = error instanceof Error ? error.message : 'Client gagal disimpan.'
+    createError.value = error instanceof Error ? error.message : 'Klien gagal disimpan.'
   } finally { creating.value = false }
 }
 function toggleLot(lotId: number) {
@@ -1105,7 +1105,7 @@ function onCreateFileChange(type: SPKDocumentType, event: Event) {
 }
 async function submitAdminSPK() {
   if (!canSubmitCreate.value || !selectedCustomer.value) {
-    createError.value = 'Pilih client, minimal satu kavling, lengkapi pembayaran tiap kavling, serta unggah KTP, KK, dan bukti pembayaran.'
+    createError.value = 'Pilih klien, minimal satu kaveling, lengkapi pembayaran tiap kaveling, serta unggah KTP, KK, dan bukti pembayaran.'
     return
   }
   creating.value = true

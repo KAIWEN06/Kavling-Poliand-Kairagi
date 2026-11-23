@@ -4,7 +4,7 @@
     <div class="location-map">
       <div class="map-container">
         <iframe
-          title="Peta Satelit Kavling Poliland Kairagi"
+          title="Peta Satelit Kaveling Poliland Kairagi"
           src="https://maps.google.com/maps?q=1.5107731,124.8848806&t=k&z=17&output=embed"
           class="w-full h-full border-0"
           allowfullscreen

@@ -1,7 +1,7 @@
 <template>
-  <div v-if="loading" class="mk-state" role="status">Memuat detail client…</div>
+  <div v-if="loading" class="mk-state" role="status">Memuat detail klien…</div>
   <div v-else-if="error" class="mk-state mk-state--error" role="alert">
-    <strong>Detail client belum dapat dimuat</strong>
+    <strong>Detail klien belum dapat dimuat</strong>
     <span>{{ error }}</span>
     <button type="button" class="mk-btn mk-btn--primary" @click="load">Coba lagi</button>
   </div>
@@ -25,13 +25,13 @@
       <div class="mk-hero__actions">
         <WhatsAppButton :phone="c.whatsapp_phone" :fallback-phone="c.phone" :client-name="c.full_name" :sender-name="viewerName" />
         <button type="button" class="mk-btn mk-btn--primary" @click="openStatus">Ubah perkembangan</button>
-        <button type="button" class="mk-btn mk-btn--ghost" @click="openFollowup">Catat follow-up</button>
+        <button type="button" class="mk-btn mk-btn--ghost" @click="openFollowup">Catat tindak lanjut</button>
         <button type="button" class="mk-btn mk-btn--ghost" @click="openNote">{{ role === 'head' ? 'Beri arahan' : 'Tambah catatan' }}</button>
       </div>
       <p v-if="actionMessage" class="mk-muted" role="status">{{ actionMessage }}</p>
     </section>
 
-    <nav class="mk-tabs" role="tablist" aria-label="Bagian detail client">
+    <nav class="mk-tabs" role="tablist" aria-label="Bagian detail klien">
       <button v-for="tab in tabs" :key="tab.id" type="button" role="tab" :aria-selected="activeTab === tab.id" @click="activeTab = tab.id">
         {{ tab.label }}
       </button>
@@ -40,7 +40,7 @@
     <!-- A. Informasi client -->
     <section v-if="activeTab === 'info'" class="mk-card mk-section" role="tabpanel">
       <div class="mk-section-head">
-        <h2>Informasi client</h2>
+        <h2>Informasi klien</h2>
         <button type="button" class="mk-link" @click="openEdit">Ubah informasi</button>
       </div>
       <dl class="mk-dl">
@@ -59,10 +59,10 @@
 
     <!-- B. Minat kavling -->
     <section v-if="activeTab === 'lot'" class="mk-section" role="tabpanel">
-      <div v-if="!detail.interests.length" class="mk-state">Belum ada minat kavling yang dicatat.</div>
+      <div v-if="!detail.interests.length" class="mk-state">Belum ada minat kaveling yang dicatat.</div>
       <article v-for="interest in detail.interests" :key="interest.id" class="mk-card">
         <div class="mk-section-head">
-          <h2>Kavling {{ interest.lot?.lot_number || '-' }}</h2>
+          <h2>Kaveling {{ interest.lot?.lot_number || '-' }}</h2>
           <StatusBadge :label="lotStatusLabel(interest.lot?.status)" :tone="interest.lot?.status === 'Available' ? 'success' : 'warning'" />
         </div>
         <dl class="mk-dl">
@@ -82,7 +82,7 @@
     <!-- C. Perkembangan -->
     <section v-if="activeTab === 'crm'" class="mk-card mk-section" role="tabpanel">
       <div class="mk-section-head">
-        <div><h2>Perkembangan client</h2><p>Status terkini: {{ c.crm_status }}</p></div>
+        <div><h2>Perkembangan klien</h2><p>Status terkini: {{ c.crm_status }}</p></div>
         <button type="button" class="mk-link" @click="openStatus">Ubah status</button>
       </div>
       <ol v-if="crmTimeline.length" class="mk-timeline">
@@ -97,22 +97,22 @@
 
     <!-- D. SPK -->
     <section v-if="activeTab === 'spk'" class="mk-section" role="tabpanel">
-      <div v-if="!detail.spks.length" class="mk-state">Client ini belum memiliki pengajuan SPK.</div>
+      <div v-if="!detail.spks.length" class="mk-state">Klien ini belum memiliki pengajuan SPK.</div>
       <article v-for="spk in detail.spks" :key="spk.id" class="mk-card mk-section">
         <div class="mk-section-head">
-          <div><h2>{{ spk.spk_number }}</h2><p>Kavling {{ spk.lot?.lot_number || '-' }} · diajukan {{ formatDate(spk.submitted_at) }} ({{ spk.submission_source }})</p></div>
+          <div><h2>{{ spk.spk_number }}</h2><p>Kaveling {{ spk.lot?.lot_number || '-' }} · diajukan {{ formatDate(spk.submitted_at) }} ({{ spk.submission_source }})</p></div>
           <StatusBadge :label="spkLabel(spk.status)" :tone="spkTone(spk.status)" />
         </div>
         <dl class="mk-dl">
           <div><dt>Nominal SPK</dt><dd>{{ formatRupiah(spk.booking_fee_snapshot) }}</dd></div>
-          <div><dt>Harga kavling</dt><dd>{{ formatRupiah(spk.lot_price_snapshot) }}</dd></div>
+          <div><dt>Harga kaveling</dt><dd>{{ formatRupiah(spk.lot_price_snapshot) }}</dd></div>
           <div><dt>Metode</dt><dd>{{ spk.payment_method === 'Cash' ? 'Tunai' : `Cicilan ${spk.months || ''}x` }}</dd></div>
           <div v-if="spk.admin_note"><dt>Catatan Admin</dt><dd>{{ spk.admin_note }}</dd></div>
         </dl>
         <div v-if="spk.status === 'Rejected'" class="mk-alert" role="note">
           <strong>Alasan penolakan</strong>
           <p>{{ spk.rejection_reason || 'Tidak dicantumkan' }}</p>
-          <span class="mk-muted">Bantu client memperbaiki data, lalu client/Admin dapat mengajukan ulang.</span>
+          <span class="mk-muted">Bantu klien memperbaiki data, lalu klien/Admin dapat mengajukan ulang.</span>
         </div>
         <details>
           <summary class="mk-link">Riwayat pemeriksaan ({{ spk.history.length }})</summary>
@@ -167,7 +167,7 @@
       <article v-for="tx in scheduleTx" :key="tx.id" class="mk-section">
         <div class="mk-card">
           <dl class="mk-dl">
-            <div><dt>Kavling</dt><dd>{{ tx.lot?.lot_number || '-' }}</dd></div>
+            <div><dt>Kaveling</dt><dd>{{ tx.lot?.lot_number || '-' }}</dd></div>
             <div><dt>Tenor</dt><dd>{{ tx.months }} bulan</dd></div>
             <div><dt>Nominal cicilan</dt><dd>{{ formatRupiah(tx.monthly_payment) }}</dd></div>
             <div><dt>Cicilan lunas</dt><dd>{{ tx.schedules.filter((s: any) => s.status === 'Paid').length }} / {{ tx.schedules.length }}</dd></div>
@@ -209,7 +209,7 @@
         <span class="mk-muted">{{ note.category }} · {{ actorName(note.created_by) }} · {{ formatDate(note.created_at, true) }}</span>
       </article>
       <h3 class="mk-subhead">Riwayat tindak lanjut</h3>
-      <div v-if="!detail.followups.length" class="mk-muted">Belum ada follow-up.</div>
+      <div v-if="!detail.followups.length" class="mk-muted">Belum ada tindak lanjut.</div>
       <ol v-else class="mk-timeline">
         <li v-for="f in detail.followups" :key="f.id">
           <strong>{{ f.method }} · {{ f.status }}</strong>
@@ -247,7 +247,7 @@
     </p>
 
     <!-- Modal: status perkembangan -->
-    <AppModal v-model="statusModal" title="Ubah perkembangan client" confirm-text="Simpan status" :loading="saving" @confirm="saveStatus">
+    <AppModal v-model="statusModal" title="Ubah perkembangan klien" confirm-text="Simpan status" :loading="saving" @confirm="saveStatus">
       <div class="mk-form">
         <label class="mk-field">
           <span>Status perkembangan</span>
@@ -258,14 +258,14 @@
         </label>
         <label class="mk-field">
           <span>Catatan perubahan (opsional)</span>
-          <textarea v-model="statusForm.note" class="mk-input" maxlength="2000" placeholder="Contoh: Client setuju survey lokasi Sabtu depan." />
+          <textarea v-model="statusForm.note" class="mk-input" maxlength="2000" placeholder="Contoh: Klien setuju survey lokasi Sabtu depan." />
         </label>
         <p v-if="formError" class="mk-danger-text" role="alert">{{ formError }}</p>
       </div>
     </AppModal>
 
     <!-- Modal: follow-up -->
-    <AppModal v-model="followupModal" title="Catat follow-up" confirm-text="Simpan follow-up" :loading="saving" @confirm="saveFollowup">
+    <AppModal v-model="followupModal" title="Catat tindak lanjut" confirm-text="Simpan tindak lanjut" :loading="saving" @confirm="saveFollowup">
       <div class="mk-form">
         <div class="mk-filters">
           <label class="mk-field"><span>Tanggal</span><input v-model="followupForm.followup_date" type="date" class="mk-input" /></label>
@@ -277,7 +277,7 @@
             <span>Hasil komunikasi</span>
             <select v-model="followupForm.status" class="mk-input"><option v-for="r in FOLLOWUP_RESULTS" :key="r">{{ r }}</option></select>
           </label>
-          <label class="mk-field"><span>Follow-up berikutnya</span><input v-model="followupForm.next_followup_date" type="date" class="mk-input" /></label>
+          <label class="mk-field"><span>Tindak lanjut berikutnya</span><input v-model="followupForm.next_followup_date" type="date" class="mk-input" /></label>
         </div>
         <label class="mk-field">
           <span>Informasi hasil komunikasi</span>
@@ -301,7 +301,7 @@
     </AppModal>
 
     <!-- Modal: edit informasi -->
-    <AppModal v-model="editModal" title="Ubah informasi client" confirm-text="Simpan perubahan" :loading="saving" @confirm="saveEdit">
+    <AppModal v-model="editModal" title="Ubah informasi klien" confirm-text="Simpan perubahan" :loading="saving" @confirm="saveEdit">
       <div class="mk-form">
         <label class="mk-field"><span>Nama lengkap</span><input v-model="editForm.full_name" class="mk-input" /></label>
         <div class="mk-filters">
@@ -364,7 +364,7 @@ const router = useIonRouter()
 
 const tabs = [
   { id: 'info', label: 'Informasi' },
-  { id: 'lot', label: 'Minat kavling' },
+  { id: 'lot', label: 'Minat kaveling' },
   { id: 'crm', label: 'Perkembangan' },
   { id: 'spk', label: 'SPK' },
   { id: 'payment', label: 'Pembayaran' },
@@ -397,7 +397,7 @@ const crmTimeline = computed(() => {
     key: `fu-${f.id}`,
     at: f.created_at,
     actor: f.user_id,
-    title: `Follow-up ${f.method}: ${f.status}`,
+    title: `Tindak lanjut ${f.method}: ${f.status}`,
     body: f.notes,
   }))
   return [...crm, ...fu].sort((a, b) => String(b.at).localeCompare(String(a.at)))
@@ -475,11 +475,11 @@ function openFollowup() {
 }
 async function saveFollowup() {
   if (!followupForm.followup_date) {
-    formError.value = 'Tanggal follow-up wajib diisi.'
+    formError.value = 'Tanggal tindak lanjut wajib diisi.'
     return
   }
   if (followupForm.next_followup_date && followupForm.next_followup_date < followupForm.followup_date) {
-    formError.value = 'Tanggal follow-up berikutnya tidak boleh sebelum tanggal follow-up.'
+    formError.value = 'Tanggal tindak lanjut berikutnya tidak boleh sebelum tanggal tindak lanjut.'
     return
   }
   saving.value = true
@@ -494,7 +494,7 @@ async function saveFollowup() {
       next_followup_date: followupForm.next_followup_date || null,
     })
     followupModal.value = false
-    actionMessage.value = 'Follow-up tersimpan.'
+    actionMessage.value = 'Tindak lanjut tersimpan.'
     await load()
   } catch (cause) {
     formError.value = describe(cause)
@@ -561,7 +561,7 @@ async function saveEdit() {
   try {
     const contactChanged = editForm.phone !== (c.value.phone || '') || editForm.whatsapp_phone !== (c.value.whatsapp_phone || '')
     if (contactChanged && (await contactAlreadyRegistered(editForm.phone, editForm.whatsapp_phone, props.customerId))) {
-      formError.value = 'Nomor kontak sudah terdaftar pada client lain. Periksa kembali agar tidak terjadi duplikasi.'
+      formError.value = 'Nomor kontak sudah terdaftar pada klien lain. Periksa kembali agar tidak terjadi duplikasi.'
       return
     }
     await updateClientInfo(props.customerId, {
@@ -574,7 +574,7 @@ async function saveEdit() {
       ...editRegion.value,
     })
     editModal.value = false
-    actionMessage.value = 'Informasi client tersimpan.'
+    actionMessage.value = 'Informasi klien tersimpan.'
     await load()
   } catch (cause) {
     formError.value = describe(cause)

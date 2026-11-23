@@ -4,16 +4,16 @@
 
     <ion-content :fullscreen="true">
       <div class="detail-page client-detail-page">
-        <PageBackButton fallback="/client/kavling" label="Daftar kavling" />
+        <PageBackButton fallback="/client/kavling" label="Daftar kaveling" />
 
         <div v-if="loading" class="state-card" role="status">
           <img :src="loadingMascot" alt="" class="loading-mascot" />
-          <strong>Lagi memuat info kavling...</strong>
+          <strong>Lagi memuat info kaveling...</strong>
         </div>
 
         <div v-else-if="loadError" class="state-card" role="alert">
           <ion-icon :icon="alertCircleOutline" />
-          <strong>Detail kavling belum bisa dibuka</strong>
+          <strong>Detail kaveling belum bisa dibuka</strong>
           <p>{{ errorMessage }}</p>
           <AppButton variant="primary" @click="loadDetail">
             <span>Muat Ulang</span>
@@ -31,7 +31,7 @@
                 <div class="survey-title-wrap">
                   <span class="eyebrow">Kunjungan Lokasi</span>
                   <h2 id="survey-heading">Jadwal Survei</h2>
-                  <p>Atur kunjungan langsung ke lokasi kavling bersama tim kami.</p>
+                  <p>Atur kunjungan langsung ke lokasi kaveling bersama tim kami.</p>
                 </div>
               </div>
             </div>
@@ -78,7 +78,7 @@
             </section>
 
             <div v-if="hasActiveSurveyRequest" class="survey-active-request-hint">
-              Pengajuan survei untuk kavling ini masih {{ surveyRequestStatus?.status === 'pending' ? 'menunggu konfirmasi' : 'berstatus dikonfirmasi' }}. Pengajuan baru dapat dibuat setelah proses tersebut selesai.
+              Pengajuan survei untuk kaveling ini masih {{ surveyRequestStatus?.status === 'pending' ? 'menunggu konfirmasi' : 'berstatus dikonfirmasi' }}. Pengajuan baru dapat dibuat setelah proses tersebut selesai.
             </div>
 
             <div v-if="canRequestSurvey" class="survey-form">
@@ -244,7 +244,7 @@
                   class="form-control survey-textarea"
                   rows="2"
                   maxlength="300"
-                  placeholder="Contoh: ingin meninjau akses jalan masuk dan posisi kavling."
+                  placeholder="Contoh: ingin meninjau akses jalan masuk dan posisi kaveling."
                 />
               </div>
 
@@ -269,7 +269,7 @@
             <div v-else class="survey-unavailable">
               <ion-icon :icon="informationCircleOutline" aria-hidden="true" />
               <span>
-                Pengajuan survei online hanya tersedia untuk kavling berstatus Tersedia. Hubungi Admin untuk informasi lebih lanjut.
+                Pengajuan survei online hanya tersedia untuk kaveling berstatus Tersedia. Hubungi Admin untuk informasi lebih lanjut.
               </span>
             </div>
           </section>
@@ -302,7 +302,7 @@
 
             <div class="client-lot-title">
               <div>
-                <span class="eyebrow">INFO KAVLING</span>
+                <span class="eyebrow">INFO KAVELING</span>
                 <h1>{{ lot.lot_number }}</h1>
                 <p>{{ blockLabel }}</p>
               </div>
@@ -336,7 +336,7 @@
             </div>
             <div v-else class="sold-price-notice">
               <ion-icon :icon="lockClosedOutline" aria-hidden="true" />
-              Kavling ini sudah terjual, jadi info harga tidak ditampilkan.
+              Kaveling ini sudah terjual, jadi info harga tidak ditampilkan.
             </div>
 
             <div class="client-contact-actions">
@@ -354,7 +354,7 @@
           </section>
 
           <!-- Tab Detail -->
-          <nav class="detail-tabs" aria-label="Detail kavling">
+          <nav class="detail-tabs" aria-label="Detail kaveling">
             <button
               v-for="item in tabs"
               :key="item.key"
@@ -369,14 +369,14 @@
 
           <section v-if="activeTab === 'info'" class="tab-content">
             <article class="panel">
-              <h2>Informasi Kavling</h2>
+              <h2>Informasi Kaveling</h2>
               <dl class="info-list">
-                <div><dt>Nomor Kavling</dt><dd>{{ lot.lot_number }}</dd></div>
+                <div><dt>Nomor Kaveling</dt><dd>{{ lot.lot_number }}</dd></div>
                 <div><dt>Blok</dt><dd>{{ blockLabel }}</dd></div>
                 <div><dt>Luas Tanah</dt><dd>{{ formatArea(lot.area) }}</dd></div>
                 <div><dt>Dimensi</dt><dd>{{ lot.dimension || '-' }}</dd></div>
                 <div>
-                  <dt>Status Kavling</dt>
+                  <dt>Status Kaveling</dt>
                   <dd><span :class="['status-pill', statusClass]">{{ statusLabel }}</span></dd>
                 </div>
                 <div><dt>Keterangan</dt><dd>{{ lot.description || '-' }}</dd></div>
@@ -389,7 +389,7 @@
               </div>
               <div>
                 <h2>Masih ada yang mau ditanyakan?</h2>
-                <p>Admin siap bantu jelasin detail kavling dan alur pemesanannya.</p>
+                <p>Admin siap bantu jelasin detail kaveling dan alur pemesanannya.</p>
                 <AppButton class="single-line-btn" variant="primary" size="small" @click="contactAdmin">
                   <ion-icon :icon="callOutline" slot="start" />
                   <span>Chat Admin</span>
@@ -793,8 +793,8 @@ function formatArea(value: number | string | null | undefined) {
 function formatWhatsAppMessage(includeSchedule: boolean) {
   const lotNumber = lot.value?.lot_number || `ID ${lotId.value}`
   const lines = [
-    'Halo Admin PoliLand Kairagi, mau tanya soal kavling ini ya.',
-    `Kavling: ${lotNumber}`,
+    'Halo Admin PoliLand Kairagi, mau tanya soal kaveling ini ya.',
+    `Kaveling: ${lotNumber}`,
   ]
   if (includeSchedule) {
     lines.push(
@@ -875,7 +875,7 @@ async function sendSurveyRequest() {
   if (surveyRequestSaving.value) return
 
   if (!canRequestSurvey.value) {
-    notify('Kavling ini belum bisa diajukan untuk survei online.', 'warning')
+    notify('Kaveling ini belum bisa diajukan untuk survei online.', 'warning')
     return
   }
 
@@ -923,7 +923,7 @@ async function sendSurveyRequest() {
         : message.includes('SURVEY_OUTSIDE_OPERATING_HOURS')
           ? 'Jamnya di luar jam buka survei.'
           : message.includes('LOT_NOT_AVAILABLE_FOR_SURVEY')
-            ? 'Status kavling sudah berubah dan tidak bisa diajukan survei.'
+            ? 'Status kaveling sudah berubah dan tidak bisa diajukan survei.'
             : 'Pengajuan belum berhasil terkirim. Coba lagi ya.', 'danger')
     }
   } finally {
@@ -961,7 +961,7 @@ function openPanorama() {
 async function loadDetail() {
   if (!Number.isInteger(lotId.value) || lotId.value <= 0) {
     loadError.value = true
-    errorMessage.value = 'Info kavling tidak ditemukan.'
+    errorMessage.value = 'Info kaveling tidak ditemukan.'
     loading.value = false
     return
   }
@@ -981,11 +981,11 @@ async function loadDetail() {
     if (contactSettings.operatingHours) {
       operatingHours.value = contactSettings.operatingHours
     }
-    if (!lot.value) throw new Error('Data kavling tidak tersedia.')
+    if (!lot.value) throw new Error('Data kaveling tidak tersedia.')
     await refreshSurveyAvailability()
   } catch (error) {
     console.error('[ClientKavlingDetail] Gagal memuat detail:', error)
-    errorMessage.value = error instanceof Error ? error.message : 'Belum bisa memuat info kavling.'
+    errorMessage.value = error instanceof Error ? error.message : 'Belum bisa memuat info kaveling.'
     loadError.value = true
   } finally {
     loading.value = false

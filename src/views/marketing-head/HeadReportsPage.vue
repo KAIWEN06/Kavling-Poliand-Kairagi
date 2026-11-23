@@ -17,7 +17,7 @@
         <section class="mk-section">
           <div class="mk-section-head"><div><h2>Prospek & SPK</h2></div></div>
           <div class="mk-grid">
-            <StatCard label="Total prospek" :value="s.total_clients" hint="seluruh client tim" />
+            <StatCard label="Total prospek" :value="s.total_clients" hint="seluruh klien tim" />
             <StatCard label="Prospek baru" :value="s.new_clients" hint="pada periode" />
             <StatCard label="SPK diajukan" :value="s.spk_submitted" />
             <StatCard label="SPK terkonfirmasi" :value="s.spk_approved" accent />
@@ -25,9 +25,9 @@
         </section>
 
         <section class="mk-section">
-          <div class="mk-section-head"><div><h2>1. Nilai kontrak</h2><p>Nilai transaksi kavling terjual (bukan uang yang sudah diterima)</p></div></div>
+          <div class="mk-section-head"><div><h2>1. Nilai kontrak</h2><p>Nilai transaksi kaveling terjual (bukan uang yang sudah diterima)</p></div></div>
           <div class="mk-grid">
-            <StatCard label="Kavling terjual" :value="s.units_sold" :hint="`${s.units_booked} dipesan · ${s.units_paid_off} lunas`" />
+            <StatCard label="Kaveling terjual" :value="s.units_sold" :hint="`${s.units_booked} dipesan · ${s.units_paid_off} lunas`" />
             <StatCard label="Total nilai penjualan" :value="formatRupiahShort(s.contract_value)" accent />
             <StatCard label="Penjualan tunai" :value="formatRupiahShort(s.cash_contract_value)" :hint="`${s.cash_units} kavling`" />
             <StatCard label="Penjualan cicilan" :value="formatRupiahShort(s.installment_contract_value)" :hint="`${s.installment_units} kavling`" />
@@ -57,7 +57,7 @@
         <section class="mk-charts">
           <BarChart title="Nilai penjualan per periode" orientation="vertical" :items="trend('contract_value')" :formatter="formatRupiahShort" label-header="Periode" value-header="Nilai kontrak" />
           <BarChart title="Penerimaan kas per periode" orientation="vertical" :items="trend('cash_in')" :formatter="formatRupiahShort" label-header="Periode" value-header="Kas terkonfirmasi" />
-          <BarChart title="Kavling terjual per periode" orientation="vertical" :items="trend('units_sold')" label-header="Periode" value-header="Kavling" />
+          <BarChart title="Kaveling terjual per periode" orientation="vertical" :items="trend('units_sold')" label-header="Periode" value-header="Kaveling" />
           <BarChart title="Penjualan per Marketing" :items="teamBars('contract_value')" :formatter="formatRupiahShort" label-header="Marketing" value-header="Nilai kontrak" />
         </section>
       </template>
@@ -66,24 +66,24 @@
       <template v-else-if="tab === 'regions'">
         <section class="mk-section">
           <p class="mk-muted">
-            Berdasarkan wilayah terstruktur (provinsi & kabupaten/kota) pada data client yang ditambahkan dalam periode.
-            Client tanpa wilayah dikelompokkan sebagai "Belum diisi" — wilayah tidak ditebak dari teks alamat.
+            Berdasarkan wilayah terstruktur (provinsi & kabupaten/kota) pada data klien yang ditambahkan dalam periode.
+            Klien tanpa wilayah dikelompokkan sebagai "Belum diisi" — wilayah tidak ditebak dari teks alamat.
           </p>
           <div class="mk-grid mk-grid--3">
-            <StatCard label="Client pada periode" :value="regionTotals.clients" />
+            <StatCard label="Klien pada periode" :value="regionTotals.clients" />
             <StatCard label="Pembeli" :value="regionTotals.buyers" />
             <StatCard label="Wilayah belum diisi" :value="regionTotals.unknown" :hint="`${regionTotals.unknownPct}% client`" />
           </div>
-          <BarChart title="Client per kabupaten/kota" :items="regionBars('clients')" label-header="Wilayah" value-header="Client" />
+          <BarChart title="Klien per kabupaten/kota" :items="regionBars('clients')" label-header="Wilayah" value-header="Klien" />
           <BarChart title="Pembeli per kabupaten/kota" :items="regionBars('buyers')" label-header="Wilayah" value-header="Pembeli" />
           <div class="mk-table-wrap">
             <table class="mk-table mk-table--stack">
-              <thead><tr><th>Wilayah</th><th class="num">Client</th><th class="num">Pembeli</th><th class="num">Konversi</th></tr></thead>
+              <thead><tr><th>Wilayah</th><th class="num">Klien</th><th class="num">Pembeli</th><th class="num">Konversi</th></tr></thead>
               <tbody>
-                <tr v-if="!report.regions.length"><td colspan="4" class="mk-muted">Belum ada client pada periode ini.</td></tr>
+                <tr v-if="!report.regions.length"><td colspan="4" class="mk-muted">Belum ada klien pada periode ini.</td></tr>
                 <tr v-for="r in report.regions" :key="r.province + r.city">
                   <td class="mk-cell-main">{{ r.city }}<span class="mk-muted mk-block">{{ r.province }}</span></td>
-                  <td data-label="Client" class="num">{{ r.clients }}</td>
+                  <td data-label="Klien" class="num">{{ r.clients }}</td>
                   <td data-label="Pembeli" class="num">{{ r.buyers }}</td>
                   <td data-label="Konversi" class="num">{{ r.conversion_rate ?? 0 }}%</td>
                 </tr>
@@ -101,17 +101,17 @@
             <ol>
               <li>SPK terkonfirmasi Admin pada periode (terbanyak).</li>
               <li>Jika sama: nilai penjualan (kontrak) pada periode.</li>
-              <li>Jika sama: persentase konversi client menjadi pembeli.</li>
+              <li>Jika sama: persentase konversi klien menjadi pembeli.</li>
             </ol>
-            <span class="mk-muted">Jumlah client yang dimasukkan tidak dipakai sebagai dasar ranking.</span>
+            <span class="mk-muted">Jumlah klien yang dimasukkan tidak dipakai sebagai dasar ranking.</span>
           </div>
           <BarChart title="SPK terkonfirmasi per Marketing" :items="teamBars('spk_approved')" label-header="Marketing" value-header="SPK" />
           <div class="mk-table-wrap mk-scroll">
             <table class="mk-table">
               <thead>
                 <tr>
-                  <th>#</th><th>Marketing</th><th class="num">Total client</th><th class="num">Baru</th><th class="num">Dihubungi</th>
-                  <th class="num">Follow-up</th><th class="num">Berminat</th><th class="num">Negosiasi</th><th class="num">SPK ✓</th>
+                  <th>#</th><th>Marketing</th><th class="num">Total klien</th><th class="num">Baru</th><th class="num">Dihubungi</th>
+                  <th class="num">Tindak lanjut</th><th class="num">Berminat</th><th class="num">Negosiasi</th><th class="num">SPK ✓</th>
                   <th class="num">Terjual</th><th class="num">Nilai penjualan</th><th class="num">Komisi</th><th class="num">Tidak lanjut</th>
                   <th class="num">Konversi</th><th>Aktivitas terakhir</th>
                 </tr>
@@ -137,7 +137,7 @@
               </tbody>
             </table>
           </div>
-          <p class="mk-muted">Kolom status (Dihubungi, Follow-up, dst.) adalah jumlah client per status saat ini; SPK, terjual, nilai, dan komisi mengikuti periode.</p>
+          <p class="mk-muted">Kolom status (Dihubungi, Tindak lanjut, dst.) adalah jumlah klien per status saat ini; SPK, terjual, nilai, dan komisi mengikuti periode.</p>
         </section>
       </template>
     </template>

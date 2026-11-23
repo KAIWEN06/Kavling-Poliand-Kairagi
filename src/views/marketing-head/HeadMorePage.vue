@@ -14,7 +14,7 @@
 
     <section class="mk-card mk-scope">
       <strong>Batas kewenangan</strong>
-      <p>Kepala Bagian Marketing dapat memantau seluruh tim, mengelola perkembangan client, dan memberi arahan. Konfirmasi SPK, verifikasi pembayaran, perubahan nominal atau jadwal resmi, dan refund tetap menjadi kewenangan Admin.</p>
+      <p>Kepala Bagian Marketing dapat memantau seluruh tim, mengelola perkembangan klien, dan memberi arahan. Konfirmasi SPK, verifikasi pembayaran, perubahan nominal atau jadwal resmi, dan refund tetap menjadi kewenangan Admin.</p>
     </section>
 
     <button type="button" class="mk-btn mk-btn--ghost mk-logout" :disabled="loggingOut" @click="logout">
@@ -37,13 +37,13 @@ const loggingOut = ref(false)
 const logoutError = ref('')
 
 const items = [
-  { path: '/kepala-marketing/spk', label: 'Pengajuan client (SPK)', hint: 'Status SPK seluruh tim Marketing' },
+  { path: '/kepala-marketing/spk', label: 'Pengajuan klien (SPK)', hint: 'Status SPK seluruh tim Marketing' },
   { path: '/kepala-marketing/pembayaran', label: 'Pembayaran & cicilan', hint: 'Verifikasi, jatuh tempo, keterlambatan' },
   { path: '/kepala-marketing/komisi', label: 'Komisi tim', hint: 'Komisi menunggu, disetujui, dibayarkan' },
-  { path: '/kepala-marketing/laporan?tab=regions', label: 'Analisis asal konsumen', hint: 'Client & pembeli per wilayah' },
+  { path: '/kepala-marketing/laporan?tab=regions', label: 'Analisis asal konsumen', hint: 'Klien & pembeli per wilayah' },
   { path: '/kepala-marketing/laporan?tab=performance', label: 'Performa Marketing', hint: 'Ranking dan metrik per anggota' },
-  { path: '/kepala-marketing/clients/new', label: 'Tambah client', hint: 'Tugaskan ke anggota tim Marketing' },
-  { path: '/kepala-marketing/siteplan', label: 'Siteplan kavling', hint: 'Lihat status kavling (baca saja)' },
+  { path: '/kepala-marketing/clients/new', label: 'Tambah klien', hint: 'Tugaskan ke anggota tim Marketing' },
+  { path: '/kepala-marketing/siteplan', label: 'Siteplan kaveling', hint: 'Lihat status kaveling (baca saja)' },
 ]
 
 async function logout() {

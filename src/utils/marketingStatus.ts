@@ -240,7 +240,7 @@ export function buildWhatsappLink(raw: string | null | undefined, message = ''):
 export function defaultWhatsappMessage(clientName?: string | null, marketingName?: string | null): string {
   const greet = clientName ? `Halo Bapak/Ibu ${clientName},` : 'Halo Bapak/Ibu,'
   const sender = marketingName ? `saya ${marketingName} dari` : 'kami dari'
-  return `${greet} ${sender} PoliLand Kairagi. Kami ingin menindaklanjuti minat Anda terhadap kavling di PoliLand Kairagi. Kapan waktu yang nyaman untuk berdiskusi?`
+  return `${greet} ${sender} PoliLand Kairagi. Kami ingin menindaklanjuti minat Anda terhadap kaveling di PoliLand Kairagi. Kapan waktu yang nyaman untuk berdiskusi?`
 }
 
 // ---------------------------------------------------------------------

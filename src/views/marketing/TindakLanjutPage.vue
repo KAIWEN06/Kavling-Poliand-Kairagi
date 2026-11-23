@@ -1,4 +1,5 @@
 <template>
+  <MarketingPageLayout title="Tindak Lanjut">
   <div class="followup-page">
     <main class="page-content">
       <section class="customer-section">
@@ -292,9 +293,11 @@
     </main>
 
   </div>
+  </MarketingPageLayout>
 </template>
 
 <script setup>
+import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
@@ -417,7 +420,7 @@ function formatTime(value) {
 
 function formatLotDescription(interest) {
   const lot = interest?.lots
-  if (!lot) return 'Informasi kavling tidak tersedia'
+  if (!lot) return 'Informasi kaveling tidak tersedia'
 
   const area = lot.area ? `${Number(lot.area)} m²` : null
   const dimension = lot.dimension || null
@@ -425,7 +428,7 @@ function formatLotDescription(interest) {
 
   return [area, dimension, block ? `Blok ${block}` : null]
     .filter(Boolean)
-    .join(' · ') || 'Detail kavling tersedia'
+    .join(' · ') || 'Detail kaveling tersedia'
 }
 
 function getMethodClass(method) {
@@ -464,7 +467,7 @@ async function loadCustomerLots(customerList) {
           await getCustomerInterestedLots(customer.id)
       } catch (error) {
         console.error(
-          `Gagal mengambil minat kavling customer ${customer.id}`,
+          `Gagal mengambil minat kaveling customer ${customer.id}`,
           error,
         )
         customerLots[customer.id] = []
@@ -644,21 +647,12 @@ button {
   --line: #e5e1d9;
   --card: #ffffff;
 
-  min-height: 100dvh;
-  background:
-    linear-gradient(
-      180deg,
-      #f4f4f2 0%,
-      #f7f7f5 78%,
-      #e9eadf 100%
-    );
-  padding-bottom: calc(82px + env(safe-area-inset-bottom));
 }
 
 .page-content {
-  width: min(100% - 24px, 720px);
+  width: 100%;
   margin: 0 auto;
-  padding: 14px 0 24px;
+  padding: 0;
 }
 
 .customer-section,

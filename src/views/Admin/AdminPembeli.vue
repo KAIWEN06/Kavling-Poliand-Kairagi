@@ -20,7 +20,7 @@
 
         <div class="buyers-search">
           <ion-icon :icon="searchOutline" aria-hidden="true" />
-          <input v-model="query" type="search" placeholder="Cari nama, nomor HP, atau kavling..." />
+          <input v-model="query" type="search" placeholder="Cari nama, nomor HP, atau kaveling..." />
           <button v-if="query" type="button" aria-label="Hapus pencarian" @click="query = ''">
             <ion-icon :icon="closeOutline" aria-hidden="true" />
           </button>
@@ -136,7 +136,7 @@
                   {{ usage.label }} ({{ usage.count }})
                 </li>
               </ul>
-              <p>Minat kavling, catatan, tindak lanjut, transaksi, pembayaran, riwayat catatan, dan hubungan kavling harus tetap dipertahankan.</p>
+              <p>Minat kaveling, catatan, tindak lanjut, transaksi, pembayaran, riwayat catatan, dan hubungan kaveling harus tetap dipertahankan.</p>
             </div>
           </div>
         </div>
@@ -222,44 +222,44 @@
 
         <section class="add-form-section" aria-labelledby="add-customer-interest-title">
           <div class="add-form-section-head">
-            <h3 id="add-customer-interest-title">Kavling yang diminati</h3>
-            <p>Pilih satu atau beberapa kavling yang tersedia. Bagian ini opsional.</p>
+            <h3 id="add-customer-interest-title">Kaveling yang diminati</h3>
+            <p>Pilih satu atau beberapa kaveling yang tersedia. Bagian ini opsional.</p>
           </div>
 
           <div class="lot-picker-head">
-            <label for="add-lot-search">Cari kavling tersedia</label>
+            <label for="add-lot-search">Cari kaveling tersedia</label>
             <input
               id="add-lot-search"
               v-model="addLotSearch"
               type="search"
-              placeholder="Ketik nomor kavling atau blok..."
+              placeholder="Ketik nomor kaveling atau blok..."
               autocomplete="off"
             />
           </div>
 
           <div v-if="addLotsLoading" class="lot-picker-state" role="status">
             <ion-spinner name="crescent" />
-            <span>Memuat kavling tersedia...</span>
+            <span>Memuat kaveling tersedia...</span>
           </div>
 
           <div v-else-if="addLotsError" class="lot-picker-state lot-picker-error" role="alert">
-            <strong>Kavling tersedia gagal dimuat</strong>
+            <strong>Kaveling tersedia gagal dimuat</strong>
             <span>{{ addLotsError }}</span>
             <button type="button" @click="loadAddAvailableLots">Coba muat ulang</button>
           </div>
 
           <div v-else-if="!addAvailableLots.length" class="lot-picker-state">
-            <strong>Belum ada kavling tersedia</strong>
-            <span>Semua kavling sedang dipesan atau sudah terjual.</span>
+            <strong>Belum ada kaveling tersedia</strong>
+            <span>Semua kaveling sedang dipesan atau sudah terjual.</span>
           </div>
 
           <div v-else-if="!filteredAddLots.length" class="lot-picker-state">
-            <strong>Kavling tidak ditemukan</strong>
-            <span>Coba kata kunci nomor kavling atau blok lain.</span>
+            <strong>Kaveling tidak ditemukan</strong>
+            <span>Coba kata kunci nomor kaveling atau blok lain.</span>
           </div>
 
           <fieldset v-else class="lot-picker-list">
-            <legend>Pilih kavling ({{ addForm.lot_ids.length }} dipilih)</legend>
+            <legend>Pilih kaveling ({{ addForm.lot_ids.length }} dipilih)</legend>
             <label
               v-for="lot in filteredAddLots"
               :key="lot.id"
@@ -267,7 +267,7 @@
             >
               <input v-model="addForm.lot_ids" type="checkbox" name="add-customer-lots" :value="Number(lot.id)" />
               <span class="lot-picker-copy">
-                <strong>Kavling {{ lot.lot_number }}</strong>
+                <strong>Kaveling {{ lot.lot_number }}</strong>
                 <span>{{ lot.blocks?.name || lot.blocks?.code || 'Blok belum tercatat' }} · {{ lot.dimension || 'Dimensi belum tercatat' }}</span>
               </span>
               <span class="lot-picker-price">{{ formatLotPrice(lot) }}</span>
@@ -622,7 +622,7 @@ async function loadAddAvailableLots() {
   } catch (error) {
     addLotsError.value = error instanceof Error
       ? error.message
-      : 'Daftar kavling tersedia gagal dimuat.'
+      : 'Daftar kaveling tersedia gagal dimuat.'
   } finally {
     addLotsLoading.value = false
   }
@@ -686,7 +686,7 @@ async function saveNewCustomer() {
   const selectedIds = [...new Set(addForm.lot_ids)]
   const selectedLots = addAvailableLots.value.filter((lot) => selectedIds.includes(Number(lot.id)))
   if (selectedLots.length !== selectedIds.length) {
-    addError.value = 'Ada kavling yang sudah tidak tersedia. Muat ulang daftar kavling.'
+    addError.value = 'Ada kaveling yang sudah tidak tersedia. Muat ulang daftar kaveling.'
     return
   }
 

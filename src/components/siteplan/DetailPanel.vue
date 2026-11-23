@@ -23,7 +23,7 @@
           class="close-button"
           type="button"
           fill="clear"
-          aria-label="Tutup detail kavling"
+          aria-label="Tutup detail kaveling"
           @click="close"
         >
           <ion-icon :icon="closeOutline" aria-hidden="true"></ion-icon>
@@ -37,7 +37,7 @@
           <img
             :src="lot.panorama_thumb || lot.panorama_url || defaultThumb"
             class="panorama-preview-image"
-            alt="Panorama kavling"
+            alt="Panorama kaveling"
           />
 
           <div class="panorama-overlay-content">
@@ -320,7 +320,7 @@
           expand="block"
           @click="openAdminDetail"
         >
-          Kelola Kavling
+          Kelola Kaveling
         </AppButton>
       </footer>
     </aside>
@@ -354,7 +354,7 @@
         <div class="survey-content">
           <!-- KAVLING -->
           <div class="survey-lot-info">
-            <span>Kavling yang dipilih</span>
+            <span>Kaveling yang dipilih</span>
 
             <strong>
               {{
@@ -420,13 +420,13 @@
         <h2>Informasi Pembelian</h2>
 
         <p>
-          Untuk melakukan pembelian kavling, kami membutuhkan
+          Untuk melakukan pembelian kaveling, kami membutuhkan
           data diri Anda untuk keperluan administrasi dengan Notaris.
         </p>
 
         <p>
           Data tersebut juga diperlukan agar Anda dapat
-          memantau perkembangan proses pembelian kavling,
+          memantau perkembangan proses pembelian kaveling,
           termasuk informasi pembayaran dan status transaksi Anda.
         </p>
 
@@ -1008,7 +1008,7 @@ function confirmSurvey() {
 
   const message =
     `Halo, saya tertarik untuk melakukan survei lokasi ` +
-    `kavling ${lotName}${blockText}. ` +
+    `kaveling ${lotName}${blockText}. ` +
     `Saya ingin melakukan survei pada tanggal ` +
     `${date} pukul ${time}. ` +
     `Mohon konfirmasi ketersediaan jadwal survei. ` +
@@ -1035,8 +1035,8 @@ function askMoreAboutLot() {
 
   const message =
     `Halo, saya ingin bertanya lebih lanjut ` +
-    `mengenai kavling ${lotName}${blockText}. ` +
-    `Mohon informasinya mengenai kavling tersebut. ` +
+    `mengenai kaveling ${lotName}${blockText}. ` +
+    `Mohon informasinya mengenai kaveling tersebut. ` +
     `Terima kasih.`
 
   openWhatsApp(message)

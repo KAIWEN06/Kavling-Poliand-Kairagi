@@ -79,13 +79,13 @@ async function getCustomerUsage(customerId: number): Promise<CustomerUsage[]> {
   if (error) throw error
 
   return [
-    { label: 'Minat kavling', count: interestCount ?? 0 },
+    { label: 'Minat kaveling', count: interestCount ?? 0 },
     { label: 'Transaksi', count: transactionCount ?? 0 },
     { label: 'Pembayaran', count: paymentCount ?? 0 },
     { label: 'Catatan', count: noteCount ?? 0 },
     { label: 'Riwayat catatan', count: noteHistoryCount ?? 0 },
     { label: 'Riwayat tindak lanjut', count: followupCount ?? 0 },
-    { label: 'Kavling yang terhubung', count: lotCount ?? 0 },
+    { label: 'Kaveling yang terhubung', count: lotCount ?? 0 },
   ].filter((usage) => usage.count > 0)
 }
 
@@ -611,7 +611,7 @@ export const customerService = {
     if (paymentError) throw paymentError
 
     if ((transactionCount ?? 0) > 0 || (paymentCount ?? 0) > 0) {
-      throw new Error('Minat kavling tidak dapat dihapus karena sudah terhubung dengan transaksi atau pembayaran. Riwayat tersebut harus tetap dipertahankan.')
+      throw new Error('Minat kaveling tidak dapat dihapus karena sudah terhubung dengan transaksi atau pembayaran. Riwayat tersebut harus tetap dipertahankan.')
     }
 
     const { error } = await supabase

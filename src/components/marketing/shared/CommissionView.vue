@@ -31,11 +31,11 @@
       <h2 class="mk-subhead">Riwayat komisi</h2>
       <div v-if="!rows.length" class="mk-state">
         <strong>Belum ada data komisi</strong>
-        <span>Komisi dicatat oleh Admin di tabel komisi sesuai kebijakan perusahaan. Aplikasi tidak menghitung persentase atau nominal komisi sendiri.</span>
+        <span>Komisi Rp500.000 (50% dari Booking Fee Rp1.000.000) tercatat otomatis setelah SPK klien disetujui Admin.</span>
       </div>
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
-          <thead><tr><th>Client / kavling</th><th v-if="isHead">Marketing</th><th>Jenis</th><th class="num">Nilai transaksi</th><th class="num">Tarif</th><th class="num">Komisi</th><th>Status</th><th>Tanggal pencairan</th></tr></thead>
+          <thead><tr><th>Klien / kaveling</th><th v-if="isHead">Marketing</th><th>Jenis</th><th class="num">Nilai transaksi</th><th class="num">Tarif</th><th class="num">Komisi</th><th>Status</th><th>Tanggal pencairan</th></tr></thead>
           <tbody>
             <tr v-for="r in rows" :key="r.id">
               <td class="mk-cell-main">{{ r.customer_name }}<span class="mk-muted mk-block">{{ r.lot?.lot_number || '-' }}</span></td>
@@ -50,6 +50,7 @@
           </tbody>
         </table>
       </div>
+      <p class="mk-muted">Komisi dapat dicairkan setelah pembayaran kaveling klien (di luar Booking Fee) mencapai 50% dari harga akhir. Pencairan dicatat Admin di Buku Kas.</p>
       <p class="mk-muted">{{ isHead ? 'Menampilkan komisi seluruh anggota tim Marketing.' : 'Anda hanya dapat melihat komisi milik Anda sendiri.' }}</p>
     </template>
   </section>

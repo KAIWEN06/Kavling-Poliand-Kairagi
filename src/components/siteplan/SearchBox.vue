@@ -75,7 +75,7 @@
         >
           <div class="filter-header">
             <div>
-              <div class="filter-title">Cari Kavling</div>
+              <div class="filter-title">Cari Kaveling</div>
               <div class="filter-subtitle">
                 Atur kriteria pencarian terlebih dahulu
               </div>
@@ -102,7 +102,7 @@
                 @click="setSearchType('lot')"
               >
                 <span class="filter-type-icon">#</span>
-                <span>Nomor Kavling</span>
+                <span>Nomor Kaveling</span>
               </button>
 
               <button
@@ -140,7 +140,7 @@
           <!-- NOMOR KAVLING -->
           <template v-if="searchType === 'lot'">
             <div class="filter-section">
-              <div class="filter-label">NOMOR KAVLING</div>
+              <div class="filter-label">NOMOR KAVELING</div>
 
               <div class="dimension-input-wrapper">
                 <span>#</span>
@@ -155,7 +155,7 @@
               </div>
 
               <small class="filter-help">
-                Masukkan nomor kavling, misalnya 022 atau LOT_022.
+                Masukkan nomor kaveling, misalnya 022 atau LOT_022.
               </small>
             </div>
           </template>
@@ -370,12 +370,12 @@
       >
         <img
           src="@/assets/mascot/Mascot_No_Data_Scene.png"
-          alt="Tidak ada data kavling"
+          alt="Tidak ada data kaveling"
           class="search-empty-mascot"
         />
 
         <div class="search-empty-content">
-          <strong>Tidak ada kavling yang sesuai</strong>
+          <strong>Tidak ada kaveling yang sesuai</strong>
           <span>Coba ubah kata kunci atau filter pencarian.</span>
         </div>
       </div>
@@ -526,7 +526,7 @@ const searchPlaceholder = computed(() => {
       return 'Cari luas, contoh 200 m²...'
 
     default:
-      return 'Cari nomor kavling...'
+      return 'Cari nomor kaveling...'
   }
 })
 

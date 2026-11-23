@@ -60,7 +60,7 @@ export function reviewErrorMessage(error: unknown, fallback: string): string {
     if (raw.includes(code)) return message
   }
   if (/row-level security|permission denied/i.test(raw)) {
-    return 'Hanya akun Client yang sedang login yang dapat mengirim ulasan.'
+    return 'Hanya akun Klien yang sedang login yang dapat mengirim ulasan.'
   }
   return fallback
 }

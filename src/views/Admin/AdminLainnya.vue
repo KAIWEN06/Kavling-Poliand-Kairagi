@@ -35,20 +35,20 @@ const router = useRouter()
 const message = ref('')
 const actions: QuickAction[] = [
   { label: 'Siteplan 2D', icon: mapOutline, tone: 'green', route: '/admin/siteplan' },
-  { label: 'Tambah client', icon: peopleOutline, tone: 'neutral', route: '/admin/pembeli' },
+  { label: 'Tambah klien', icon: peopleOutline, tone: 'neutral', route: '/admin/pembeli' },
   { label: 'Pembayaran', icon: walletOutline, tone: 'gold', route: '/admin/keuangan' },
   { label: 'Kelola konten', icon: gridOutline, tone: 'neutral', route: '/admin/konten' },
   { label: 'Permintaan survei', icon: calendarOutline, tone: 'green', route: '/admin/konten?tab=surveys' },
   { label: 'Akses tim', icon: settingsOutline, tone: 'green', route: '/admin/akses-tim' },
   { label: 'SPK', icon: documentTextOutline, tone: 'gold', route: '/admin/spk' },
-  { label: 'Ulasan client', icon: chatbubbleEllipsesOutline, tone: 'green', route: '/admin/ulasan' },
+  { label: 'Ulasan klien', icon: chatbubbleEllipsesOutline, tone: 'green', route: '/admin/ulasan' },
 ]
 
 async function handleAction(action: QuickAction) {
   if (action.route) {
     await router.push(action.route)
 
-    if (action.label === 'Tambah client') {
+    if (action.label === 'Tambah klien') {
       const deadline = Date.now() + 10000
       while (Date.now() < deadline) {
         const addButton = document.querySelector<HTMLButtonElement>('button[aria-label="Tambah calon pembeli"]')

@@ -405,7 +405,7 @@ export async function createCustomerForAdminSPK(input: {
     .select('id')
     .single()
   throwIfError(error)
-  if (!data?.id) throw new Error('Customer berhasil dikirim tetapi ID tidak diterima.')
+  if (!data?.id) throw new Error('Pelanggan berhasil dikirim tetapi ID tidak diterima.')
   return Number(data.id)
 }
 
@@ -473,13 +473,13 @@ export async function getLotInstallmentOptionsForAdmin(lotId: number): Promise<A
 
 function validateAdminSPKInput(input: CreateAdminSPKInput, documents: SPKDocumentFile[]): void {
   if (!Number.isInteger(input.customer_id) || input.customer_id <= 0) {
-    throw new Error('Customer belum dipilih dengan benar.')
+    throw new Error('Pelanggan belum dipilih dengan benar.')
   }
   if (!Number.isInteger(input.lot_id) || input.lot_id <= 0) {
-    throw new Error('Kavling belum dipilih dengan benar.')
+    throw new Error('Kaveling belum dipilih dengan benar.')
   }
   if (!Number.isFinite(input.lot_price_snapshot) || input.lot_price_snapshot <= 0) {
-    throw new Error('Harga kavling tidak valid.')
+    throw new Error('Harga kaveling tidak valid.')
   }
   if (!input.customer_full_name.trim()) {
     throw new Error('Nama customer wajib tersedia.')
@@ -494,7 +494,7 @@ function validateAdminSPKInput(input: CreateAdminSPKInput, documents: SPKDocumen
     }
   } else {
     if (!(input.down_payment_snapshot > 0 && input.down_payment_snapshot < input.lot_price_snapshot)) {
-      throw new Error('DP harus lebih besar dari 0 dan lebih kecil dari harga kavling.')
+      throw new Error('DP harus lebih besar dari 0 dan lebih kecil dari harga kaveling.')
     }
     if (!input.payment_plan_id || !input.months || input.months <= 0 || !input.monthly_payment || input.monthly_payment <= 0) {
       throw new Error('Rincian cicilan belum lengkap.')
@@ -575,7 +575,7 @@ export async function createAdminSPKRequest(
         try {
           proofPath = await paymentService.uploadSPKBookingProof(document.file, requestId)
         } catch (error) {
-          throw new Error(`Upload bukti pembayaran gagal: ${error instanceof Error ? error.message : 'Kesalahan Storage'}`)
+          throw new Error(`Unggah bukti pembayaran gagal: ${error instanceof Error ? error.message : 'Kesalahan Storage'}`)
         }
         uploadedPaymentPaths.push(proofPath)
         try {
@@ -601,7 +601,7 @@ export async function createAdminSPKRequest(
         upsert: false,
         contentType: document.file.type || 'application/octet-stream',
       })
-      if (uploadError) throw new Error(`Upload dokumen ${document.type} gagal: ${uploadError.message}`)
+      if (uploadError) throw new Error(`Unggah dokumen ${document.type} gagal: ${uploadError.message}`)
       uploadedSPKPaths.push(path)
 
       const { error: metadataError } = await supabase.from('spk_request_documents').insert({

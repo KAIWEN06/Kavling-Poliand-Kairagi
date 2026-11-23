@@ -12,7 +12,7 @@
           <strong>
             {{ loading ? '...' : `${totalLots}+` }}
           </strong>
-          <span>Total Kavling</span>
+          <span>Total Kaveling</span>
         </div>
       </div>
 
@@ -87,7 +87,7 @@ const loadStats = async () => {
     soldCount.value = sold
 
   } catch (error) {
-    console.error('Gagal mengambil statistik kavling:', error)
+    console.error('Gagal mengambil statistik kaveling:', error)
   } finally {
     loading.value = false
   }

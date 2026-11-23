@@ -9,7 +9,7 @@
             <h1>Hubungi<br />Marketing Kami.</h1>
 
             <p>
-              Punya pertanyaan tentang kavling, harga, lokasi, atau ingin
+              Punya pertanyaan tentang kaveling, harga, lokasi, atau ingin
               melihat kawasan secara langsung? Tim marketing kami siap membantu.
             </p>
           </div>
@@ -225,7 +225,7 @@ const contactItems = computed<ContactItem[]>(() => {
     items.push({
       label: 'WHATSAPP',
       title: whatsapp.value,
-      description: 'Tanyakan informasi kavling secara langsung.',
+      description: 'Tanyakan informasi kaveling secara langsung.',
       href: `https://wa.me/${whatsappDigits}`,
       icon: logoWhatsapp,
       variant: 'whatsapp',

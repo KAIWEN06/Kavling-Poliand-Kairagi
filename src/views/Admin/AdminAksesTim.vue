@@ -53,17 +53,17 @@
             <p v-else-if="detailError" class="state-card state-card--error" role="alert">{{ detailError }}</p>
             <template v-else-if="marketingDetail">
               <div class="metric-grid">
-                <article class="metric-card"><span>Total client</span><strong>{{ number(marketingDetail.metrics.total_clients) }}</strong><small>Seluruh client terdaftar</small></article>
-                <article class="metric-card"><span>Client baru</span><strong>{{ number(marketingDetail.metrics.new_clients) }}</strong><small>Sesuai periode</small></article>
-                <article class="metric-card"><span>Client terjual</span><strong>{{ number(marketingDetail.metrics.sold_clients) }}</strong><small>Client unik dengan transaksi Sold</small></article>
-                <article class="metric-card"><span>Kavling terjual</span><strong>{{ number(marketingDetail.metrics.sold_lots) }}</strong><small>Lot unik berstatus Sold</small></article>
+                <article class="metric-card"><span>Total klien</span><strong>{{ number(marketingDetail.metrics.total_clients) }}</strong><small>Seluruh klien terdaftar</small></article>
+                <article class="metric-card"><span>Klien baru</span><strong>{{ number(marketingDetail.metrics.new_clients) }}</strong><small>Sesuai periode</small></article>
+                <article class="metric-card"><span>Klien terjual</span><strong>{{ number(marketingDetail.metrics.sold_clients) }}</strong><small>Klien unik dengan transaksi Sold</small></article>
+                <article class="metric-card"><span>Kaveling terjual</span><strong>{{ number(marketingDetail.metrics.sold_lots) }}</strong><small>Lot unik berstatus Sold</small></article>
                 <article class="metric-card metric-card--wide"><span>Nilai penjualan</span><strong>{{ currency(marketingDetail.metrics.sales_value) }}</strong><small>Akumulasi final_price transaksi Sold</small></article>
               </div>
 
               <div class="conversion-card">
-                <div class="conversion-card__heading"><span>Konversi client</span><strong>{{ marketingDetail.metrics.conversion_rate }}%</strong></div>
+                <div class="conversion-card__heading"><span>Konversi klien</span><strong>{{ marketingDetail.metrics.conversion_rate }}%</strong></div>
                 <div class="progress-track"><span :style="{ width: `${Math.min(100, marketingDetail.metrics.conversion_rate)}%` }"></span></div>
-                <small>Client unik bertransaksi Sold dibandingkan seluruh client yang dibawa Marketing ini.</small>
+                <small>Klien unik bertransaksi Sold dibandingkan seluruh klien yang dibawa Marketing ini.</small>
               </div>
 
               <div class="transaction-summary">
@@ -84,9 +84,9 @@
           </section>
 
           <section class="section-block">
-            <div class="section-heading"><div><h2>Client yang ditangani</h2></div><span class="count-pill">{{ marketingDetail?.clients.length || 0 }} client</span></div>
-            <p v-if="detailLoading" class="state-card">Memuat daftar client...</p>
-            <p v-else-if="!marketingDetail?.clients.length" class="state-card">Belum ada client yang terhubung dengan Marketing ini.</p>
+            <div class="section-heading"><div><h2>Klien yang ditangani</h2></div><span class="count-pill">{{ marketingDetail?.clients.length || 0 }} klien</span></div>
+            <p v-if="detailLoading" class="state-card">Memuat daftar klien...</p>
+            <p v-else-if="!marketingDetail?.clients.length" class="state-card">Belum ada klien yang terhubung dengan Marketing ini.</p>
             <div v-else class="client-list">
               <article v-for="client in marketingDetail.clients" :key="client.id" class="client-card">
                 <div class="client-card__top">
@@ -175,7 +175,7 @@
             </section>
 
             <section v-else class="member-section">
-              <div class="section-heading"><div><p class="eyebrow">Tim pemasaran</p><h2>Performa Marketing</h2><p class="section-description">Pilih anggota untuk melihat client, transaksi, dan komisinya.</p></div></div>
+              <div class="section-heading"><div><p class="eyebrow">Tim pemasaran</p><h2>Performa Marketing</h2><p class="section-description">Pilih anggota untuk melihat klien, transaksi, dan komisinya.</p></div></div>
               <p v-if="overviewLoading" class="state-card">Menghitung performa Marketing...</p>
               <p v-else-if="visibleMarketing.length === 0" class="state-card">Belum ada Marketing yang sesuai dengan filter.</p>
               <div v-else class="member-list">
@@ -186,8 +186,8 @@
                     <span :class="['status-pill', member.is_active ? 'is-active' : 'is-inactive']">{{ member.is_active ? 'Aktif' : 'Nonaktif' }}</span>
                   </div>
                   <div class="marketing-metrics">
-                    <div><strong>{{ number(summaryFor(member.id).total_clients) }}</strong><span>Client</span></div>
-                    <div><strong>{{ number(summaryFor(member.id).sold_lots) }}</strong><span>Kavling terjual</span></div>
+                    <div><strong>{{ number(summaryFor(member.id).total_clients) }}</strong><span>Klien</span></div>
+                    <div><strong>{{ number(summaryFor(member.id).sold_lots) }}</strong><span>Kaveling terjual</span></div>
                     <div><strong>{{ currencyCompact(summaryFor(member.id).sales_value) }}</strong><span>Nilai penjualan</span></div>
                   </div>
                   <div class="marketing-card__footer">
@@ -234,8 +234,8 @@
             <input v-model="form.joinDate" type="date" :disabled="saving" />
           </label>
         </template>
-        <AppInput v-model="form.password" label="Password awal" type="password" required />
-        <AppInput v-model="form.confirmPassword" label="Konfirmasi password" type="password" required />
+        <AppInput v-model="form.password" label="Kata sandi awal" type="password" required />
+        <AppInput v-model="form.confirmPassword" label="Konfirmasi kata sandi" type="password" required />
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
       </form>
     </AppModal>
@@ -528,8 +528,8 @@ function validateForm() {
   if (!form.fullName.trim()) return 'Nama lengkap wajib diisi.'
   if (!form.email.trim()) return 'Email wajib diisi.'
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Format email tidak valid.'
-  if (form.password.length < 8 || form.password.length > 128) return 'Password harus berisi 8 sampai 128 karakter.'
-  if (form.password !== form.confirmPassword) return 'Password dan konfirmasi password tidak sama.'
+  if (form.password.length < 8 || form.password.length > 128) return 'Kata sandi harus berisi 8 sampai 128 karakter.'
+  if (form.password !== form.confirmPassword) return 'Kata sandi dan konfirmasi kata sandi tidak sama.'
   if (!availableCreateRoles.value.includes(form.role)) return 'Anda tidak memiliki izin membuat role tersebut.'
   return ''
 }

@@ -66,7 +66,7 @@
           </nav>
         </section>
         <section v-else-if="current === 'hours'" class="panel hours-panel">
-          <div class="panel-heading"><div><h2>Jam Operasional</h2><p>Atur hari dan rentang waktu yang dapat dipilih Client untuk meminta survei lokasi. Zona waktu menggunakan WITA (Asia/Makassar).</p></div><button class="primary" type="button" :disabled="hoursSaving" @click="saveHours">{{ hoursSaving ? 'Menyimpan…' : 'Simpan jam operasional' }}</button></div>
+          <div class="panel-heading"><div><h2>Jam Operasional</h2><p>Atur hari dan rentang waktu yang dapat dipilih Klien untuk meminta survei lokasi. Zona waktu menggunakan WITA (Asia/Makassar).</p></div><button class="primary" type="button" :disabled="hoursSaving" @click="saveHours">{{ hoursSaving ? 'Menyimpan…' : 'Simpan jam operasional' }}</button></div>
           <div class="hours-list">
             <article v-for="day in DAY_OPTIONS" :key="day.key" class="hours-row">
               <div class="hours-day"><strong>{{ day.label }}</strong><span>{{ operatingHours.days[day.key].closed ? 'Libur' : 'Buka' }}</span></div>
@@ -78,7 +78,7 @@
               </div>
             </article>
           </div>
-          <p class="hours-help">Aktifkan hari yang menerima kunjungan dan atur jam buka/tutup terlebih dahulu. Client hanya akan melihat slot pada hari yang dibuka. Slot dibuat setiap 1 jam dan tetap perlu dikonfirmasi Admin.</p>
+          <p class="hours-help">Aktifkan hari yang menerima kunjungan dan atur jam buka/tutup terlebih dahulu. Klien hanya akan melihat slot pada hari yang dibuka. Slot dibuat setiap 1 jam dan tetap perlu dikonfirmasi Admin.</p>
         </section>
         <CmsCrudPanel v-else :type="current" @notify="showNotice" />
       </template>
@@ -94,7 +94,7 @@
       @confirm="confirmRejectSurvey"
     >
       <label class="survey-rejection-field">Alasan penolakan *
-        <textarea v-model="rejectionReason" rows="4" maxlength="500" placeholder="Tuliskan alasan penolakan agar jelas bagi Client." />
+        <textarea v-model="rejectionReason" rows="4" maxlength="500" placeholder="Tuliskan alasan penolakan agar jelas bagi Klien." />
       </label>
       <small class="survey-rejection-count">{{ rejectionReason.length }}/500 karakter</small>
     </AppModal>
@@ -104,7 +104,7 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'; import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'; import { useRoute } from 'vue-router'; import AppHeader from '@/components/common/AppHeader.vue'; import MobileTabBar from '@/components/common/MobileTabBar.vue'; import CmsCrudPanel from '@/components/Admin/CmsCrudPanel.vue'; import { cmsService, type CmsFeature, type CmsHero } from '@/services/cmsService'; import { contactsService, DAY_OPTIONS, createDefaultOperatingHours, type OperatingHoursConfig } from '@/services/contactService'; import { surveyService, type AdminSurveyRequest } from '@/services/surveyService'
 import AppModal from '@/components/ui/AppModal.vue'
 const route = useRoute()
-const tabs = [{ key: 'home', label: 'Beranda' }, { key: 'gallery', label: 'Gallery' }, { key: 'progress', label: 'Progress' }, { key: 'faq', label: 'FAQ' }, { key: 'contact', label: 'Kontak' }, { key: 'hours', label: 'Jam Operasional' }] as const
+const tabs = [{ key: 'home', label: 'Beranda' }, { key: 'gallery', label: 'Galeri' }, { key: 'progress', label: 'Kemajuan' }, { key: 'faq', label: 'FAQ' }, { key: 'contact', label: 'Kontak' }, { key: 'hours', label: 'Jam Operasional' }] as const
 type CmsTab = typeof tabs[number]['key'] | 'surveys'
 const current = ref<CmsTab>('home'); const loading = ref(true); const saving = ref(false); const notice = ref(''); const noticeType = ref('success'); const hero = reactive<CmsHero>({ title: '', subtitle: '', description: '', cta_text: 'Hubungi Kami', cta_url: '/contact', is_active: true }); const features = ref<CmsFeature[]>([]); const heroPreview = ref(''); const selectedImage = ref<File | null>(null); const hoursSaving = ref(false); const operatingHours = ref<OperatingHoursConfig>(createDefaultOperatingHours()); const surveyRequests = ref<AdminSurveyRequest[]>([]); const surveysLoading = ref(false); const surveysError = ref(''); const updatingSurveyId = ref<string | null>(null)
 const rejectSurveyOpen = ref(false)

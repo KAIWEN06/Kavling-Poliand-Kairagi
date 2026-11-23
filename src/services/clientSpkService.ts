@@ -232,7 +232,7 @@ export async function getClientSpkDocumentUrl(
 
 function validateInput(input: CreateClientSpkInput) {
   if (!Number.isInteger(input.lot.id) || input.lot.id <= 0) {
-    throw new Error('ID kavling tidak valid.')
+    throw new Error('ID kaveling tidak valid.')
   }
 
   if (!['Cash', 'Installment'].includes(input.payment.scheme)) {
@@ -241,7 +241,7 @@ function validateInput(input: CreateClientSpkInput) {
 
   // RPC create_client_spk_initial_payment saat ini mencatat metode Booking sebagai Transfer Bank.
   if (input.payment.method !== 'Transfer Bank') {
-    throw new Error('Booking Fee Client saat ini hanya dapat dibayar melalui Transfer Bank.')
+    throw new Error('Booking Fee Klien saat ini hanya dapat dibayar melalui Transfer Bank.')
   }
 
   if (input.payment.scheme === 'Cash' || input.payment.scheme === 'Installment') {
@@ -255,7 +255,7 @@ function validateInput(input: CreateClientSpkInput) {
         || input.payment.downPaymentAmount <= 0
         || (input.lot.price !== null && input.payment.downPaymentAmount >= input.lot.price)
       ) {
-        throw new Error('Nominal DP harus lebih dari Rp 0 dan lebih kecil dari harga kavling.')
+        throw new Error('Nominal DP harus lebih dari Rp 0 dan lebih kecil dari harga kaveling.')
       }
     }
     if (
@@ -318,7 +318,7 @@ async function removeUploadedFiles(paths: string[]) {
 
   if (error) {
     console.error(
-      '[Client SPK] Gagal membersihkan unggahan sementara:',
+      '[Klien SPK] Gagal membersihkan unggahan sementara:',
       error,
     )
   }
@@ -505,7 +505,7 @@ export async function createClientSpk(
 
     if (cleanupError) {
       console.error(
-        '[Client SPK] Gagal membersihkan data SPK sementara:',
+        '[Klien SPK] Gagal membersihkan data SPK sementara:',
         cleanupError,
       )
     }
@@ -536,7 +536,7 @@ function toClientRecord(
   const lot = getFirstRelation(row.lot)
 
   if (!lot) {
-    throw new Error('Data kavling SPK tidak ditemukan.')
+    throw new Error('Data kaveling SPK tidak ditemukan.')
   }
 
   const block = getFirstRelation(lot.block)
@@ -922,7 +922,7 @@ export async function deleteClientSpk(id: number): Promise<void> {
 
     if (storageError) {
       console.error(
-        '[Client SPK] Data SPK terhapus, tetapi file Storage gagal dibersihkan:',
+        '[Klien SPK] Data SPK terhapus, tetapi file Storage gagal dibersihkan:',
         storageError,
       )
 

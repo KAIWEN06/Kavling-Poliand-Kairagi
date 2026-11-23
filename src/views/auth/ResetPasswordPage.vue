@@ -38,11 +38,11 @@ onBeforeUnmount(() => authSubscription?.unsubscribe())
 async function savePassword() {
   errorMessage.value = ''
   if (password.value.length < 8) {
-    errorMessage.value = 'Password minimal 8 karakter.'
+    errorMessage.value = 'Kata sandi minimal 8 karakter.'
     return
   }
   if (password.value !== confirmPassword.value) {
-    errorMessage.value = 'Konfirmasi password tidak cocok.'
+    errorMessage.value = 'Konfirmasi kata sandi tidak cocok.'
     return
   }
   if (!recoveryAuthorized.value) {
@@ -57,7 +57,7 @@ async function savePassword() {
     // Password is already updated; logout failure should not misreport the update as failed.
     try { await authService.logout() } catch { /* User can sign out manually if needed. */ }
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Password belum berhasil diperbarui.'
+    errorMessage.value = error instanceof Error ? error.message : 'Kata sandi belum berhasil diperbarui.'
   } finally {
     loading.value = false
   }
@@ -71,21 +71,21 @@ async function savePassword() {
         <ion-card class="auth-card">
           <ion-card-header>
             <p class="eyebrow">KEAMANAN AKUN</p>
-            <ion-card-title>Buat password baru</ion-card-title>
-            <p class="subtitle">Gunakan password baru yang kuat dan tidak digunakan di akun lain.</p>
+            <ion-card-title>Buat kata sandi baru</ion-card-title>
+            <p class="subtitle">Gunakan kata sandi baru yang kuat dan tidak digunakan di akun lain.</p>
           </ion-card-header>
           <ion-card-content>
             <ion-text v-if="checking" color="medium"><p class="message">Memeriksa tautan pemulihan...</p></ion-text>
-            <ion-text v-else-if="success" color="success"><p class="message">Password berhasil diperbarui. Silakan login menggunakan password baru.</p></ion-text>
+            <ion-text v-else-if="success" color="success"><p class="message">Kata sandi berhasil diperbarui. Silakan login menggunakan kata sandi baru.</p></ion-text>
             <template v-else-if="recoveryAuthorized">
               <ion-text v-if="errorMessage" color="danger"><p class="message">{{ errorMessage }}</p></ion-text>
               <form class="auth-form" @submit.prevent="savePassword">
-                <ion-input v-model="password" type="password" label="Password baru" label-placement="stacked" autocomplete="new-password" required />
-                <ion-input v-model="confirmPassword" type="password" label="Konfirmasi password baru" label-placement="stacked" autocomplete="new-password" required />
+                <ion-input v-model="password" type="password" label="Kata sandi baru" label-placement="stacked" autocomplete="new-password" required />
+                <ion-input v-model="confirmPassword" type="password" label="Konfirmasi kata sandi baru" label-placement="stacked" autocomplete="new-password" required />
                 <p class="hint">Minimal 8 karakter.</p>
                 <ion-button type="submit" expand="block" :disabled="loading">
                   <ion-spinner v-if="loading" name="crescent" />
-                  <span v-else>Simpan password baru</span>
+                  <span v-else>Simpan kata sandi baru</span>
                 </ion-button>
               </form>
             </template>

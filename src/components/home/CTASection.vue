@@ -5,7 +5,7 @@
 
         <h2>
           Siap Memiliki<br />
-          Kavling Impian?
+          Kaveling Impian?
         </h2>
 
         <p>
