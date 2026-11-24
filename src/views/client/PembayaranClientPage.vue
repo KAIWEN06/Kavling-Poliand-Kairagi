@@ -19,6 +19,7 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
+import { useCelebration } from '@/composables/useCelebration'
 import { supabase } from '@/services/config/supabase'
 import { paymentService } from '@/services/Finance/paymentService'
 import { purchaseCancellationService } from '@/services/Finance/purchaseCancellationService'
@@ -31,6 +32,7 @@ import { purchaseCancellationService } from '@/services/Finance/purchaseCancella
  *    dan status SPK. Validasi di frontend hanya untuk UX, bukan keamanan.
  */
 const PAYMENT_PROOF_BUCKET = 'payment-proofs'
+const { celebrate } = useCelebration()
 const MAX_PROOF_SIZE = 5 * 1024 * 1024
 const ALLOWED_PROOF_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -590,6 +592,10 @@ async function submitPayment() {
     if (!paymentId) throw new Error('Server tidak mengembalikan ID pembayaran.')
 
     submitSuccess.value = 'Bukti pembayaran berhasil dikirim. Status pembayaran sekarang menunggu verifikasi Admin.'
+    celebrate({
+      title: 'Bukti terkirim',
+      message: 'Admin akan memeriksa pembayaran Anda.',
+    })
     await loadPaymentData()
     submitSuccess.value = 'Bukti pembayaran berhasil dikirim. Status pembayaran menunggu verifikasi Admin.'
   } catch (error: any) {

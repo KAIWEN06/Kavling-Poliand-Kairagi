@@ -2,6 +2,7 @@
   <ion-app>
     <ion-router-outlet />
     <ToastHost />
+    <CelebrationHost />
   </ion-app>
 </template>
 
@@ -24,6 +25,7 @@ import {
 
 import router from './router'
 import ToastHost from '@/components/ui/ToastHost.vue'
+import CelebrationHost from '@/components/ui/CelebrationHost.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 const ionRouter = useIonRouter()
 

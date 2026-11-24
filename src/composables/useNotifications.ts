@@ -26,6 +26,8 @@ async function load() {
     const [list, count] = await Promise.all([notificationService.list(50), notificationService.unreadCount()])
     items.value = list
     unread.value = count
+    // Bunyikan yang terlewat saat aplikasi di background (hanya bila push tidak aktif).
+    void roleNotificationService.catchUp(list)
   } catch (e) {
     console.error('[Notifikasi] Gagal memuat:', e)
     error.value = 'Notifikasi belum dapat dimuat.'
@@ -121,7 +123,11 @@ function wire() {
   onProfileCleared(stop)
   // Segarkan saat aplikasi kembali aktif (menutup celah koneksi realtime yang putus).
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && activeUserId) void load()
+    if (document.visibilityState === 'visible' && activeUserId) {
+      void load()
+      // Coba lagi bila pendaftaran token push sebelumnya gagal (izin baru diberikan, jaringan, dll).
+      void roleNotificationService.registerPush()
+    }
   })
 }
 

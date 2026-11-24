@@ -135,6 +135,7 @@ import Reveal from '@/components/ui/Reveal.vue'
 import StatusBadge, { type BadgeTone } from '@/components/ui/StatusBadge.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { useToast } from '@/composables/useToast'
+import { useCelebration } from '@/composables/useCelebration'
 import {
   customerMergeService,
   type CustomerSummary,
@@ -143,6 +144,7 @@ import {
 
 const PAGE_SIZE = 20
 const toast = useToast()
+const { celebrate } = useCelebration()
 
 const loading = ref(true)
 const loadError = ref('')
@@ -226,7 +228,7 @@ async function confirmMerge() {
   try {
     await customerMergeService.merge(keepId.value, dropId, reason.value)
     mergeOpen.value = false
-    toast.success('Data digabung menjadi satu.')
+    celebrate({ title: 'Data tergabung', message: 'Dua data klien kini menjadi satu.' })
     await load()
   } catch (error: any) {
     console.error('Gagal menggabungkan data.', error)

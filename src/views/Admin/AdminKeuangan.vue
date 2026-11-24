@@ -1183,10 +1183,13 @@ import { paymentService, type InstallmentScheduleRecord, type PaymentDetail } fr
 import { supabase } from '@/services/config/supabase'
 import AppModal from '@/components/ui/AppModal.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
+import { useCelebration } from '@/composables/useCelebration'
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import type { FinanceAdminPaymentRecord, FinanceCustomerRecord, FinancePaymentRecord, FinanceTransactionRecord } from '@/types/finance'
 import FinanceAmountBreakdown from '@/components/Admin/finance/FinanceAmountBreakdown.vue'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
+
+const { celebrate } = useCelebration()
 
 type FinanceStatus = 'pending' | 'verified' | 'overdue'
 type FinanceTransaction = {
@@ -2130,6 +2133,7 @@ async function reviewPayment(status: 'Confirmed' | 'Rejected' | 'Needs Reupload'
   try {
     await paymentService.reviewPayment(selectedProofPayment.value.payment.id, status, null)
     showMessage('Pembayaran berhasil diverifikasi.')
+    celebrate({ title: 'Pembayaran terverifikasi', message: 'Status transaksi sudah diperbarui.' })
     await loadSelectedPaymentProof()
     await loadTransactions()
     if (selectedReportLot.value) await loadSchedulesForSelectedLot()
@@ -2151,6 +2155,9 @@ async function submitPaymentReview() {
     await paymentService.reviewPayment(selectedProofPayment.value.payment.id, reviewTargetStatus.value, reviewReason.value.trim())
     reviewDialogOpen.value = false
     showMessage(reviewTargetStatus.value === 'Rejected' ? 'Pembayaran berhasil ditolak.' : 'Permintaan upload ulang berhasil dikirim.')
+    celebrate(reviewTargetStatus.value === 'Rejected'
+      ? { title: 'Pembayaran ditolak', message: 'Alasan penolakan sudah dikirim ke klien.', tone: 'rejected' }
+      : { title: 'Permintaan terkirim', message: 'Klien diminta mengunggah ulang bukti.' })
     await loadSelectedPaymentProof()
     await loadTransactions()
   } catch (error) {

@@ -29,6 +29,9 @@ interface ActiveContext {
 const PENDING_KEY = 'poliland_pending_notification_click'
 const PENDING_TTL_MS = 15 * 60 * 1000
 const MAX_SHOWN = 200
+const SEEN_KEY_PREFIX = 'poliland_notif_seen_'
+const CATCH_UP_WINDOW_MS = 24 * 60 * 60 * 1000
+const CATCH_UP_MAX = 5
 
 const CATEGORY_LABEL: Record<NotificationCategory, string> = {
   spk: 'SPK',
@@ -268,6 +271,14 @@ export const roleNotificationService = {
     const current = ctx
     if (!current || n.recipient_id !== current.userId || n.read_at || shown.has(n.id)) return false
     shown.add(n.id)
+    // Yang sudah dibunyikan tidak diputar ulang oleh catchUp setelah proses aplikasi dimulai ulang.
+    try {
+      const key = `${SEEN_KEY_PREFIX}${current.userId}`
+      const stamp = new Date(n.created_at).getTime() || 0
+      if (stamp > Number(localStorage.getItem(key) ?? 0)) localStorage.setItem(key, String(stamp))
+    } catch {
+      // Penyimpanan tidak tersedia.
+    }
     if (shown.size > MAX_SHOWN) shown.delete(shown.values().next().value as string)
 
     const route = resolveNotificationRoute(current.role, n) ?? authService.getRoleHomePath(current.role) ?? ''
@@ -280,6 +291,41 @@ export const roleNotificationService = {
       route,
       payload: { notificationId: n.id, category: n.category, type: n.type, ...(n.data ?? {}) },
     })
+  },
+
+  /**
+   * Menampilkan notifikasi yang masuk saat aplikasi di background / tertutup dan tidak sempat
+   * dibunyikan Realtime. Hanya dipakai bila push FCM tidak aktif di perangkat ini (bila aktif,
+   * push yang membunyikannya; menampilkan ulang akan memunculkan notifikasi yang sudah dibuang
+   * pengguna). Pembatas: hanya yang lebih baru dari penanda terakhir, maksimal 24 jam, 5 teratas.
+   */
+  async catchUp(list: AppNotification[]) {
+    const current = ctx
+    if (!current || !isNative()) return
+    const markerKey = `${SEEN_KEY_PREFIX}${current.userId}`
+    let marker = 0
+    try {
+      marker = Number(localStorage.getItem(markerKey) ?? 0) || 0
+    } catch {
+      marker = 0
+    }
+    const newest = list.reduce((max, n) => Math.max(max, new Date(n.created_at).getTime() || 0), 0)
+    // Pemakaian pertama diberi penanda "sekarang"; selanjutnya hanya maju sampai notifikasi terbaru.
+    const advance = marker ? Math.max(marker, newest) : Math.max(newest, Date.now())
+    try {
+      localStorage.setItem(markerKey, String(advance))
+    } catch {
+      // Penanda tidak tersimpan: replay berikutnya dibatasi 24 jam & 5 item.
+    }
+    // Pemakaian pertama: tidak memutar ulang riwayat lama.
+    if (!marker || registeredToken) return
+
+    const floor = Math.max(marker, Date.now() - CATCH_UP_WINDOW_MS)
+    const missed = list
+      .filter((n) => !n.read_at && new Date(n.created_at).getTime() > floor)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .slice(-CATCH_UP_MAX)
+    for (const n of missed) await this.notify(n)
   },
 
   /** Tampilkan notifikasi untuk role aktif saat ini (mis. tombol uji coba). */

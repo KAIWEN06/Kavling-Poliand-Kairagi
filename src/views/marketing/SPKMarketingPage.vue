@@ -859,9 +859,8 @@ import {
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
+import { useCelebration } from '@/composables/useCelebration'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
-
-
 
 import {
   formatLotNumber,
@@ -886,6 +885,7 @@ import { getLotsHeldBySpkSafe } from '@/services/lotHoldService'
    ========================================================= */
 
 const route = useRoute()
+const { celebrate } = useCelebration()
 
 function getRouteValue(key: string): string {
   const value = route.query[key]
@@ -1379,6 +1379,10 @@ async function submitSPK() {
 
     successMessage.value =
       `Pengajuan ${result.spk_number} berhasil dikirim dan menunggu validasi Admin.`
+    celebrate({
+      title: 'SPK terkirim',
+      message: `${result.spk_number} menunggu validasi Admin.`,
+    })
 
     console.info('SPK berhasil disimpan:', result)
 
