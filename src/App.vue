@@ -303,7 +303,19 @@ onMounted(
      * halaman pertama yang terlihat.
      */
 
-    void bootstrapApp()
+    // Ditunda sampai idle agar splash dan layar pertama tidak bersaing
+    // dengan unduhan siteplan (~1 MB) dan query kaveling.
+    const idle = (
+      window as unknown as {
+        requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number
+      }
+    ).requestIdleCallback
+
+    if (idle) {
+      idle(() => void bootstrapApp(), { timeout: 4000 })
+    } else {
+      setTimeout(() => void bootstrapApp(), 1500)
+    }
 
   }
 )

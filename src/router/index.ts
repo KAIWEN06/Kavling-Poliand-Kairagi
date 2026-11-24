@@ -1,67 +1,67 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 
-import MainLayout from '@/layouts/MainLayout.vue'
-import HomePage from '@/views/HomePage.vue'
-import SiteplanPage from '@/views/SiteplanPage.vue'
-import ProgressPage from '@/views/ProgressPage.vue'
-import ProgressDetailPage from '@/views/ProgressDetailPage.vue'
-import GalleryPage from '@/views/GalleryPage.vue'
-import AboutPage from '@/views/AboutPage.vue'
-import ContactPage from '@/views/ContactPage.vue'
-import PanoramaPage from '@/views/PanoramaPage.vue'
-import NotFoundPage from '@/views/NotFoundPage.vue'
-import MaintenancePage from '@/views/MaintenancePage.vue'
+const MainLayout = () => import('@/layouts/MainLayout.vue')
+const HomePage = () => import('@/views/HomePage.vue')
+const SiteplanPage = () => import('@/views/SiteplanPage.vue')
+const ProgressPage = () => import('@/views/ProgressPage.vue')
+const ProgressDetailPage = () => import('@/views/ProgressDetailPage.vue')
+const GalleryPage = () => import('@/views/GalleryPage.vue')
+const AboutPage = () => import('@/views/AboutPage.vue')
+const ContactPage = () => import('@/views/ContactPage.vue')
+const PanoramaPage = () => import('@/views/PanoramaPage.vue')
+const NotFoundPage = () => import('@/views/NotFoundPage.vue')
+const MaintenancePage = () => import('@/views/MaintenancePage.vue')
 import WelcomePage from '@/views/WelcomePage.vue'
 import SplashVideoPage from '@/components/common/SplashVideoPage.vue'
 
-import LoginPage from '@/views/auth/LoginPage.vue'
-import ForgotPasswordPage from '@/views/auth/ForgotPasswordPage.vue'
-import ResetPasswordPage from '@/views/auth/ResetPasswordPage.vue'
-import RegisterPage from '@/views/auth/RegisterPage.vue'
-import AuthCallbackPage from '@/views/auth/AuthCallbackPage.vue'
-import BerandaAdminPage from '@/views/Admin/AdminDashboard.vue'
-import AdminAksesTimPage from '@/views/Admin/AdminAksesTim.vue'
-import AdminKavlingPage from '@/views/Admin/AdminKavling.vue'
-import AdminKavlingDetailPage from '@/views/Admin/AdminDetailKavling.vue'
-import AdminPembeliPage from '@/views/Admin/AdminPembeli.vue'
-import AdminPembeliDetailPage from '@/views/Admin/AdminPembeliDetail.vue'
-import AdminGabungDataPage from '@/views/Admin/AdminGabungDataPage.vue'
-import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
-import AdminLainnyaPage from '@/views/Admin/AdminLainnya.vue'
-import AdminContentPage from '@/views/Admin/AdminContentPage.vue'
-import AdminSurveyRequestsPage from '@/views/Admin/AdminSurveyRequestsPage.vue'
-import SPKAdminPage from '@/views/Admin/SPKAdminPage.vue'
-import AdminReviewsPage from '@/views/Admin/AdminReviewsPage.vue'
-import TinjauSPKPage from '@/views/Admin/TinjauSPKPage.vue'
-import BerandaMarketingPage from '@/views/marketing/BerandaMarketingPage.vue'
-import KavlingMarketingPage from '@/views/marketing/KavlingMarketingPage.vue'
-import CalonPembeliMarketingPage from '@/views/marketing/CalonPembeliMarketingPage.vue'
-import TambahCalonPembeliPage from '@/views/marketing/TambahCalonPembeli.vue'
-import DetailCalonPembeliPage from '@/views/marketing/DetailCalonPembeliPage.vue'
-import SPKMarketingPage from '@/views/marketing/SPKMarketingPage.vue'
-import TindakLanjutPage from '@/views/marketing/TindakLanjutPage.vue'
-import LainnyaPage from '@/views/marketing/LainnyaPage.vue'
-import MarketingSpkStatusPage from '@/views/marketing/MarketingSpkStatusPage.vue'
-import MarketingPaymentsPage from '@/views/marketing/MarketingPaymentsPage.vue'
-import MarketingCommissionPage from '@/views/marketing/MarketingCommissionPage.vue'
-import HeadDashboardPage from '@/views/marketing-head/HeadDashboardPage.vue'
-import HeadClientsPage from '@/views/marketing-head/HeadClientsPage.vue'
-import HeadClientDetailPage from '@/views/marketing-head/HeadClientDetailPage.vue'
-import HeadCrmPage from '@/views/marketing-head/HeadCrmPage.vue'
-import HeadSpkPage from '@/views/marketing-head/HeadSpkPage.vue'
-import HeadPaymentsPage from '@/views/marketing-head/HeadPaymentsPage.vue'
-import HeadReportsPage from '@/views/marketing-head/HeadReportsPage.vue'
-import HeadCommissionPage from '@/views/marketing-head/HeadCommissionPage.vue'
-import HeadMorePage from '@/views/marketing-head/HeadMorePage.vue'
-import BerandaClientPage from '@/views/client/BerandaClientPage.vue'
-import PembayaranClientPage from '@/views/client/PembayaranClientPage.vue' 
-import AkunPage from '@/views/account/AkunPage.vue'
-import DokumenClientPage from '@/views/client/DokumenClientPage.vue'
-import KavlingClientPage from '@/views/client/KavlingClientPage.vue'
-import KavlingClientDetailPage from '@/views/client/KavlingClientDetailPage.vue'
-import SPKClientPage from '@/views/client/SPKClientPage.vue'
-import SettingsPage from '@/views/account/SettingsPage.vue'
+const LoginPage = () => import('@/views/auth/LoginPage.vue')
+const ForgotPasswordPage = () => import('@/views/auth/ForgotPasswordPage.vue')
+const ResetPasswordPage = () => import('@/views/auth/ResetPasswordPage.vue')
+const RegisterPage = () => import('@/views/auth/RegisterPage.vue')
+const AuthCallbackPage = () => import('@/views/auth/AuthCallbackPage.vue')
+const BerandaAdminPage = () => import('@/views/Admin/AdminDashboard.vue')
+const AdminAksesTimPage = () => import('@/views/Admin/AdminAksesTim.vue')
+const AdminKavlingPage = () => import('@/views/Admin/AdminKavling.vue')
+const AdminKavlingDetailPage = () => import('@/views/Admin/AdminDetailKavling.vue')
+const AdminPembeliPage = () => import('@/views/Admin/AdminPembeli.vue')
+const AdminPembeliDetailPage = () => import('@/views/Admin/AdminPembeliDetail.vue')
+const AdminGabungDataPage = () => import('@/views/Admin/AdminGabungDataPage.vue')
+const AdminKeuanganPage = () => import('@/views/Admin/AdminKeuangan.vue')
+const AdminLainnyaPage = () => import('@/views/Admin/AdminLainnya.vue')
+const AdminContentPage = () => import('@/views/Admin/AdminContentPage.vue')
+const AdminSurveyRequestsPage = () => import('@/views/Admin/AdminSurveyRequestsPage.vue')
+const SPKAdminPage = () => import('@/views/Admin/SPKAdminPage.vue')
+const AdminReviewsPage = () => import('@/views/Admin/AdminReviewsPage.vue')
+const TinjauSPKPage = () => import('@/views/Admin/TinjauSPKPage.vue')
+const BerandaMarketingPage = () => import('@/views/marketing/BerandaMarketingPage.vue')
+const KavlingMarketingPage = () => import('@/views/marketing/KavlingMarketingPage.vue')
+const CalonPembeliMarketingPage = () => import('@/views/marketing/CalonPembeliMarketingPage.vue')
+const TambahCalonPembeliPage = () => import('@/views/marketing/TambahCalonPembeli.vue')
+const DetailCalonPembeliPage = () => import('@/views/marketing/DetailCalonPembeliPage.vue')
+const SPKMarketingPage = () => import('@/views/marketing/SPKMarketingPage.vue')
+const TindakLanjutPage = () => import('@/views/marketing/TindakLanjutPage.vue')
+const LainnyaPage = () => import('@/views/marketing/LainnyaPage.vue')
+const MarketingSpkStatusPage = () => import('@/views/marketing/MarketingSpkStatusPage.vue')
+const MarketingPaymentsPage = () => import('@/views/marketing/MarketingPaymentsPage.vue')
+const MarketingCommissionPage = () => import('@/views/marketing/MarketingCommissionPage.vue')
+const HeadDashboardPage = () => import('@/views/marketing-head/HeadDashboardPage.vue')
+const HeadClientsPage = () => import('@/views/marketing-head/HeadClientsPage.vue')
+const HeadClientDetailPage = () => import('@/views/marketing-head/HeadClientDetailPage.vue')
+const HeadCrmPage = () => import('@/views/marketing-head/HeadCrmPage.vue')
+const HeadSpkPage = () => import('@/views/marketing-head/HeadSpkPage.vue')
+const HeadPaymentsPage = () => import('@/views/marketing-head/HeadPaymentsPage.vue')
+const HeadReportsPage = () => import('@/views/marketing-head/HeadReportsPage.vue')
+const HeadCommissionPage = () => import('@/views/marketing-head/HeadCommissionPage.vue')
+const HeadMorePage = () => import('@/views/marketing-head/HeadMorePage.vue')
+const BerandaClientPage = () => import('@/views/client/BerandaClientPage.vue')
+const PembayaranClientPage = () => import('@/views/client/PembayaranClientPage.vue')
+const AkunPage = () => import('@/views/account/AkunPage.vue')
+const DokumenClientPage = () => import('@/views/client/DokumenClientPage.vue')
+const KavlingClientPage = () => import('@/views/client/KavlingClientPage.vue')
+const KavlingClientDetailPage = () => import('@/views/client/KavlingClientDetailPage.vue')
+const SPKClientPage = () => import('@/views/client/SPKClientPage.vue')
+const SettingsPage = () => import('@/views/account/SettingsPage.vue')
 import { setupAuthGuards } from '@/router/guards'
 
 const routes: Array<RouteRecordRaw> = [
