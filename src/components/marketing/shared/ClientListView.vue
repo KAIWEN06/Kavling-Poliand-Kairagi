@@ -57,7 +57,7 @@
           <input v-model="filters.to" class="mk-input" type="date" />
         </label>
       </div>
-      <button v-if="hasFilter" type="button" class="mk-link" @click="resetFilters">Hapus semua filter</button>
+      <button v-if="hasFilter" type="button" class="mk-link" @click="resetFilters">Hapus filter</button>
     </div>
 
     <SkeletonRowList v-if="loading" :rows="5" :fields="4" :badges="[3]" label="Memuat data klien" />

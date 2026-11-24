@@ -1,23 +1,21 @@
 <template>
   <section v-if="features.length || isAdmin" class="section">
-    <div class="section-heading">
-      <div>
-        <h2>Kenapa Memilih PoliLand?</h2>
-        <span class="heading-line"></span>
-      </div>
+    <SectionHeader title="Kenapa memilih PoliLand?">
       <AdminEditButton v-if="isAdmin" label="Edit keunggulan" @click="editOpen = true" />
-    </div>
+    </SectionHeader>
 
     <p v-if="!features.length" class="empty-hint">Belum ada keunggulan. Tekan “Edit keunggulan” untuk menambahkan.</p>
-    <div v-else class="horizontal-scroll">
-      <article v-for="feature in features" :key="feature.id || feature.title" class="feature-card">
-        <div class="feature-icon green">
-          <ion-icon :icon="resolveCmsIcon(feature.icon)" />
-        </div>
-        <h3>{{ feature.title }}</h3>
-        <p>{{ feature.description }}</p>
-      </article>
-    </div>
+    <ul v-else class="feature-scroll">
+      <li v-for="(feature, i) in features" :key="feature.id || feature.title" class="feature-item">
+        <article class="feature-card" :style="{ '--i': Math.min(i, 8) }">
+          <span class="feature-icon">
+            <ion-icon :icon="resolveCmsIcon(feature.icon)" aria-hidden="true" />
+          </span>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.description }}</p>
+        </article>
+      </li>
+    </ul>
 
     <CmsPanelModal v-model="editOpen" title="Edit keunggulan" panel="home" section="features" @saved="load" />
   </section>
@@ -31,6 +29,7 @@ import { resolveCmsIcon } from '@/utils/cmsIcons'
 import { useCmsAdmin } from '@/composables/useCmsAdmin'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 
 const features = ref<CmsFeature[]>([])
 const editOpen = ref(false)
@@ -43,21 +42,58 @@ onMounted(load)
 </script>
 
 <style scoped>
-.section { padding: 30px 16px 0; }
-.section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
-.section-heading h2 { margin: 0; color: #2D2D2D; font-size: 20px; line-height: 1.2; font-weight: 800; letter-spacing: -0.3px; }
-.heading-line { display: block; width: 34px; height: 3px; margin-top: 7px; background: #556B2F; border-radius: 999px; }
-.empty-hint { margin: 0; padding: 14px; border: 1px dashed #d5d0c4; border-radius: 12px; color: #6b6b6b; font-size: 11px; line-height: 1.5; }
-.horizontal-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-right: -16px; padding-right: 16px; scrollbar-width: none; }
-.horizontal-scroll::-webkit-scrollbar { display: none; }
-.feature-card { flex: 0 0 190px; min-height: 165px; padding: 16px; background: #FFFFFF; border: 1px solid #EDE0D6; border-radius: 13px; box-shadow: 0 4px 14px rgba(45, 45, 45, 0.035); }
-.feature-icon { width: 38px; height: 38px; margin-bottom: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 19px; }
+.section { padding: 36px 20px 0; }
+.empty-hint { margin: 0; padding: 16px; border: 1px dashed var(--border-strong, #d5d0c4); border-radius: var(--radius-card, 16px); color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.55; }
 
-/* Warna kelas ikon disesuaikan dengan palet Poliland Kairagi (Olive, Forest, Gold/Warning) */
-.feature-icon.green { color: #556B2F; background: #E6ECDF; }
-.feature-icon.blue { color: #4A7C59; background: #E8EFE9; }
-.feature-icon.yellow { color: #B38F27; background: #FDF8EC; }
+.feature-scroll {
+  display: flex;
+  gap: 12px;
+  margin: 0 -20px;
+  padding: 2px 20px 12px;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.feature-scroll::-webkit-scrollbar { display: none; }
+.feature-item { flex: 0 0 min(250px, 72vw); scroll-snap-align: start; }
 
-.feature-card h3 { margin: 0 0 7px; color: #2D2D2D; font-size: 13px; font-weight: 800; }
-.feature-card p { margin: 0; color: #686868; font-size: 10px; line-height: 1.55; }
+.feature-card {
+  height: 100%;
+  min-height: 190px;
+  padding: 20px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-panel, 20px);
+  background: var(--surface-primary, #fff);
+  box-shadow: var(--shadow-sm);
+  animation: feature-in 560ms var(--ease-spring) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.feature-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  border-radius: 15px;
+  background: var(--green-100, #e8eee4);
+  color: var(--poliland-green, #355a2c);
+  font-size: 24px;
+}
+.feature-card h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary, #252525);
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.feature-card p { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.6; }
+
+@keyframes feature-in { from { opacity: 0; translate: 18px 0; scale: 0.97; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card { animation: none; }
+}
 </style>

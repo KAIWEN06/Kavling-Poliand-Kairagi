@@ -1,11 +1,8 @@
 <template>
   <div class="siteplan-preview-card">
     <div class="siteplan-header">
-      <div>
-        <span class="eyebrow">DENAH INTERAKTIF</span>
-        <h3>Temukan Kaveling Anda</h3>
-      </div>
-      <ion-icon :icon="mapOutline" />
+      <h3>Temukan kaveling Anda</h3>
+      <span class="header-icon"><ion-icon :icon="mapOutline" aria-hidden="true" /></span>
     </div>
 
     <div class="mini-siteplan">
@@ -21,21 +18,21 @@
       />
     </div>
 
-    <div class="siteplan-legend">
-      <span><i class="available"></i> Tersedia</span>
-      <span><i class="booking"></i> Dipesan</span>
-      <span><i class="sold"></i> Terjual</span>
-    </div>
+    <ul class="siteplan-legend" aria-label="Status kaveling">
+      <li><i class="available"></i> Tersedia</li>
+      <li><i class="booking"></i> Dipesan</li>
+      <li><i class="sold"></i> Terjual</li>
+    </ul>
 
-    <ion-button class="primary-button full-button" @click="$emit('goToSiteplan')">
-      Lihat Denah Kavling
-      <ion-icon slot="end" :icon="arrowForwardOutline" />
-    </ion-button>
+    <button class="primary-btn" type="button" @click="$emit('goToSiteplan')">
+      Lihat denah kaveling
+      <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IonButton, IonIcon } from '@ionic/vue'
+import { IonIcon } from '@ionic/vue'
 import { mapOutline, arrowForwardOutline } from 'ionicons/icons'
 import siteplanImage from '@/assets/siteplan/Siteplan.png'
 import { nextTick, ref, watch } from 'vue'
@@ -116,23 +113,47 @@ watch(
 </script>
 
 <style scoped>
-.eyebrow { display: block; margin-bottom: 6px; color: #8CA072; font-size: 9px; font-weight: 800; letter-spacing: 1px; }
-.siteplan-preview-card { margin-top: 14px; padding: 16px; background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(26, 26, 26, 0.04); }
-.siteplan-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-.siteplan-header h3 { margin: 2px 0 0; color: #1A1A1A; font-size: 15px; font-weight: 800; }
-.siteplan-header > ion-icon { color: #8CA072; font-size: 22px; }
-.mini-siteplan { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1252 / 1257; padding: 10px; border-radius: 10px; background: #FAFAF7; overflow: hidden; }
+.siteplan-preview-card { margin-top: 14px; padding: 18px; overflow: hidden; border: 1px solid var(--border-default, #eae7e0); border-radius: var(--radius-panel, 20px); background: var(--surface-primary, #fff); box-shadow: var(--shadow-sm); }
+.siteplan-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.siteplan-header h3 { margin: 0; color: var(--text-primary, #252525); font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-size: 22px; line-height: 1.15; font-weight: 650; letter-spacing: -0.01em; }
+.header-icon { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 14px; background: var(--green-100, #e8eee4); color: var(--poliland-green, #355a2c); font-size: 22px; }
+.mini-siteplan { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1252 / 1257; padding: 10px; overflow: hidden; border-radius: 14px; background: var(--pl-paper, #f9f5ec); }
 .siteplan-image, .siteplan-layer { position: absolute; inset: 10px; width: calc(100% - 20px); height: calc(100% - 20px); border-radius: 8px; }
 .siteplan-image { display: block; object-fit: contain; }
 .siteplan-layer { pointer-events: none; }
 .siteplan-layer :deep(svg) { display: block; width: 100%; height: 100%; overflow: visible; }
 .siteplan-layer :deep(path) { vector-effect: non-scaling-stroke; }
-.siteplan-legend { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 13px; }
-.siteplan-legend span { display: flex; align-items: center; gap: 5px; color: #6B6B6B; font-size: 9px; }
-.siteplan-legend i { width: 7px; height: 7px; border-radius: 50%; }
-.siteplan-legend .available { background: #2E7D32; }
-.siteplan-legend .booking { background: #F2A900; }
-.siteplan-legend .sold { background: #D32F2F; }
-.primary-button { --background: #B8860B; --background-hover: #9e7309; --color: #FFFFFF; --border-radius: 9px; font-weight: 700; }
-.full-button { width: 100%; margin: 14px 0 0; min-height: 42px; font-size: 11px; }
+.siteplan-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; padding: 0; list-style: none; }
+.siteplan-legend li { display: flex; align-items: center; gap: 7px; color: var(--text-secondary, #5f5f66); font-size: 13px; font-weight: 600; }
+.siteplan-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.siteplan-legend .available { background: #2e7d32; }
+.siteplan-legend .booking { background: #f2a900; }
+.siteplan-legend .sold { background: #d32f2f; }
+
+.primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--poliland-gold, #cba044);
+  color: var(--ink, #1b1f1a);
+  font: 800 15px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  box-shadow: 0 12px 26px -10px rgba(203, 160, 68, 0.85);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.primary-btn ion-icon { font-size: 20px; }
+.primary-btn:active { transform: scale(0.97); }
+.primary-btn:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .primary-btn:active { transform: none; }
+}
 </style>

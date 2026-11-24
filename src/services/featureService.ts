@@ -373,7 +373,7 @@ export function getYouTubeEmbedUrl(url: string | null | undefined): string | nul
   if (!videoId) {
     return null
   }
-  return `https://www.youtube.com/embed/${videoId}`
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0`
 }
 
 export function getYouTubeThumbnail(url: string | null | undefined): string | null {
@@ -381,7 +381,8 @@ export function getYouTubeThumbnail(url: string | null | undefined): string | nu
   if (!videoId) {
     return null
   }
-  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+  // maxresdefault tidak ada di banyak video (404 -> kotak abu-abu); hqdefault selalu ada.
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
 }
 
 export function isYouTubeUrl(url: string | null | undefined): boolean {

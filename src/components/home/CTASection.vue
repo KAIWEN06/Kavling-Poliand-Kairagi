@@ -1,30 +1,25 @@
 <template>
   <section v-if="ctaTitle || isAdmin" class="cta-section">
     <div class="cta-card">
+      <SceneBackdrop class="cta-scene" height="58%" />
       <div class="cta-content">
-
         <h2>{{ ctaTitle || 'Judul ajakan belum diisi' }}</h2>
-
         <p v-if="ctaText">{{ ctaText }}</p>
 
-        <ion-button
+        <button
           v-if="hasWhatsapp || isAdmin"
-          class="whatsapp-button"
+          class="cta-btn"
+          type="button"
           :disabled="!hasWhatsapp"
           @click="handleWhatsapp"
         >
-          <ion-icon
-            slot="start"
-            :icon="logoWhatsapp"
-          />
-
+          <ion-icon :icon="logoWhatsapp" aria-hidden="true" />
           Hubungi via WhatsApp
-        </ion-button>
+        </button>
 
         <div v-if="isAdmin" class="cta-admin">
           <AdminEditButton label="Edit ajakan" @click="editOpen = true" />
         </div>
-
       </div>
     </div>
 
@@ -39,10 +34,8 @@ import { HOME_KEYS, toWaNumber } from '@/utils/homeContent'
 import { useCmsAdmin } from '@/composables/useCmsAdmin'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
-import {
-  IonButton,
-  IonIcon
-} from '@ionic/vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
+import { IonIcon } from '@ionic/vue'
 
 import {
   logoWhatsapp
@@ -78,138 +71,58 @@ const handleWhatsapp = () => {
 </script>
 
 <style scoped>
-
-/* =========================================================
-   CTA SECTION
-========================================================= */
-
-.cta-section {
-  display: block;
-
-  width: 100%;
-
-  margin: 0;
-  padding: 18px 10px 0;
-
-  box-sizing: border-box;
-
-  background: #FAFAF7;
-}
-
-/* =========================================================
-   CTA CARD
-========================================================= */
+.cta-section { display: block; width: 100%; margin: 0; padding: 36px 16px 0; box-sizing: border-box; }
 
 .cta-card {
-  display: block;
-
-  width: 100%;
-
-  margin: 0;
-
-  box-sizing: border-box;
-
-  border-radius: 18px;
-
+  position: relative;
   overflow: hidden;
-
+  border-radius: 24px;
   background:
-    linear-gradient(
-      135deg,
-      #556B2F,
-      #3F5222
-    );
-
-  box-shadow:
-    0 10px 25px
-    rgba(85, 107, 47, 0.2);
-
-  border:
-    1px solid
-    rgba(140, 160, 114, 0.2);
+    radial-gradient(90% 80% at 100% 0%, rgba(244, 214, 154, 0.26) 0%, rgba(244, 214, 154, 0) 60%),
+    linear-gradient(155deg, var(--green-700, #355a2c) 0%, var(--green-900, #1f3519) 100%);
+  box-shadow: var(--shadow-md);
+  color: #fff;
 }
-
-/* =========================================================
-   CONTENT
-========================================================= */
-
-.cta-content {
-  width: 100%;
-
-  box-sizing: border-box;
-
-  padding: 28px 20px;
-
-  text-align: center;
-
-  color: #FFFFFF;
-}
-
-/* =========================================================
-   TITLE
-========================================================= */
+.cta-scene { z-index: 0; }
+.cta-content { position: relative; z-index: 2; padding: 36px 24px 96px; }
 
 .cta-content h2 {
   margin: 0;
-
-  color: #FFFFFF;
-
-  font-size: 23px;
-
-  line-height: 1.15;
-
-  font-weight: 850;
-
-  letter-spacing: -0.3px;
+  color: #fff;
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: clamp(28px, 7.6vw, 34px);
+  line-height: 1.1;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
+.cta-content p { max-width: 34ch; margin: 12px 0 22px; color: rgba(244, 241, 232, 0.92); font-size: 15px; line-height: 1.6; }
 
-/* =========================================================
-   DESCRIPTION
-========================================================= */
-
-.cta-content p {
-  max-width: 280px;
-
-  margin: 12px auto 18px;
-
-  color: #FAFAF7;
-
-  opacity: 0.9;
-
-  font-size: 10px;
-
-  line-height: 1.5;
+.cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--poliland-gold, #cba044);
+  color: var(--ink, #1b1f1a);
+  font: 800 15px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  box-shadow: 0 12px 26px -10px rgba(203, 160, 68, 0.85);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-base) var(--ease-spring);
 }
+.cta-btn ion-icon { font-size: 22px; }
+.cta-btn:active { transform: scale(0.97); }
+.cta-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.cta-btn:disabled { opacity: 0.55; box-shadow: none; cursor: not-allowed; }
 
-/* =========================================================
-   WHATSAPP
-========================================================= */
+.cta-admin { display: flex; margin-top: 14px; }
 
-.cta-admin { display: flex; justify-content: center; margin-top: 14px; }
-
-.whatsapp-button {
-  --background: #2E7D32;
-  --background-hover: #236327;
-
-  --color: #FFFFFF;
-
-  --border-radius: 999px;
-
-  min-height: 42px;
-
-  margin: 0;
-
-  padding: 0 4px;
-
-  font-size: 10px;
-
-  font-weight: 800;
-
-  text-transform: uppercase;
-
-  box-shadow:
-    0 4px 12px
-    rgba(46, 125, 50, 0.3);
+@media (prefers-reduced-motion: reduce) {
+  .cta-btn:active { transform: none; }
 }
-
 </style>

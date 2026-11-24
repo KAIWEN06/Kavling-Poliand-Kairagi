@@ -26,6 +26,10 @@ import {
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import AvatarCropModal from '@/components/account/AvatarCropModal.vue'
+import AvatarViewer from '@/components/account/AvatarViewer.vue'
+import PhoneVerifySheet from '@/components/account/PhoneVerifySheet.vue'
+import { findRegisteredNumber } from '@/services/phoneOtpService'
 import { authService } from '@/services/auth/authService'
 import { supabase } from '@/services/config/supabase'
 import { profileService } from '@/services/profile/profileService'
@@ -51,6 +55,12 @@ const sharedUser = useCurrentUser()
 const gate = useClientProfileGate()
 const avatarInput = ref<HTMLInputElement | null>(null)
 const isUploadingAvatar = ref(false)
+const cropFile = ref<File | null>(null)
+const viewerOpen = ref(false)
+// Verifikasi nomor: terbuka bila nomor yang diisi sudah ada di data (mis. diinput Marketing).
+const otpOpen = ref(false)
+const otpPhone = ref('')
+let phoneVerified = false
 
 const form = reactive({
   full_name: '',
@@ -362,6 +372,15 @@ async function saveCustomerProfile() {
       if (error) throw error
       customerId.value = Number(data.id)
     } else {
+      // Nomor yang sudah ada berarti datanya dibuat pihak lain (mis. Marketing).
+      // Buktikan kepemilikan nomor lewat OTP, lalu tautkan, jangan membuat baris ganda.
+      if (!phoneVerified) {
+        const registered = await findRegisteredNumber(payload.phone, payload.whatsapp_phone)
+        if (registered) {
+          openPhoneVerification(registered)
+          return
+        }
+      }
       const { data, error } = await supabase
         .from('customers')
         .insert({ ...payload, registration_source: 'Client' })
@@ -376,28 +395,57 @@ async function saveCustomerProfile() {
     void gate.check()
   } catch (error: any) {
     console.error('Gagal menyimpan data customer.', error)
-    profileError.value = error?.message || 'Data diri gagal disimpan. Silakan coba lagi.'
+    // Jalur cadangan bila nomor baru terdaftar di antara pengecekan dan penyimpanan.
+    if (error?.hint === 'phone_needs_verification' && !phoneVerified) {
+      openPhoneVerification(normalizePhone(form.phone))
+    } else {
+      profileError.value = error?.message || 'Data diri gagal disimpan. Silakan coba lagi.'
+    }
   } finally {
     isSaving.value = false
+    phoneVerified = false
   }
+}
+
+function openPhoneVerification(phone: string) {
+  otpPhone.value = phone
+  otpOpen.value = true
+}
+
+async function onPhoneVerified(linkedCustomerId: number | null) {
+  otpOpen.value = false
+  if (linkedCustomerId !== null) customerId.value = linkedCustomerId
+  phoneVerified = true
+  // Lanjutkan penyimpanan: baris yang tertaut diperbarui dengan data yang baru diisi.
+  await saveCustomerProfile()
 }
 
 function openAvatarPicker() {
   avatarInput.value?.click()
 }
 
-async function uploadAvatar(event: Event) {
+function onAvatarTap() {
+  if (avatarUrl.value) viewerOpen.value = true
+  else openAvatarPicker()
+}
+
+function onAvatarPicked(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  if (!file || !userId.value) return
-
-  const invalid = profileService.validateAvatar(file)
+  input.value = '' // izinkan memilih file yang sama lagi
+  if (!file) return
+  const invalid = profileService.validateAvatarSource(file)
   if (invalid) {
     profileError.value = invalid
-    input.value = ''
     return
   }
+  profileError.value = ''
+  cropFile.value = file
+}
 
+async function uploadAvatar(file: File) {
+  if (!userId.value) return
+  cropFile.value = null
   isUploadingAvatar.value = true
   profileError.value = ''
   try {
@@ -411,7 +459,6 @@ async function uploadAvatar(event: Event) {
     profileError.value = error?.message || 'Foto profil gagal diunggah.'
   } finally {
     isUploadingAvatar.value = false
-    input.value = ''
   }
 }
 
@@ -467,20 +514,22 @@ onMounted(loadCustomerProfile)
           <!-- Kartu Identitas & Foto Profil -->
           <section class="account-card profile-hero" aria-labelledby="account-title">
             <div class="avatar-row">
-              <button
-                type="button"
-                class="avatar-picker"
-                :disabled="isUploadingAvatar"
-                :aria-label="avatarUrl ? 'Ganti foto profil' : 'Unggah foto profil'"
-                @click="openAvatarPicker"
-              >
-                <img v-if="avatarUrl" :src="avatarUrl" alt="Foto profil" class="avatar-image" />
-                <ion-icon v-else :icon="personCircleOutline" class="avatar-placeholder" />
-                <span class="avatar-camera" aria-hidden="true">
+              <div class="avatar-wrap">
+                <button
+                  type="button"
+                  class="avatar-picker"
+                  :disabled="isUploadingAvatar"
+                  :aria-label="avatarUrl ? 'Lihat foto profil' : 'Unggah foto profil'"
+                  @click="onAvatarTap"
+                >
+                  <img v-if="avatarUrl" :src="avatarUrl" alt="Foto profil" class="avatar-image" />
+                  <ion-icon v-else :icon="personCircleOutline" class="avatar-placeholder" />
+                </button>
+                <button type="button" class="avatar-camera" aria-label="Ganti foto profil" :disabled="isUploadingAvatar" @click="openAvatarPicker">
                   <ion-spinner v-if="isUploadingAvatar" name="crescent" class="camera-spinner" />
-                  <ion-icon v-else :icon="cameraOutline" />
-                </span>
-              </button>
+                  <ion-icon v-else :icon="cameraOutline" aria-hidden="true" />
+                </button>
+              </div>
 
               <div class="avatar-copy">
                 <strong class="profile-name">
@@ -488,7 +537,7 @@ onMounted(loadCustomerProfile)
                 </strong>
                 <span v-if="authEmail" class="profile-email">{{ authEmail }}</span>
                 <span class="avatar-hint">
-                  {{ isUploadingAvatar ? 'Mengunggah foto...' : 'JPG, PNG, atau WEBP · Maks. 3 MB' }}
+                  {{ isUploadingAvatar ? 'Mengunggah foto...' : avatarUrl ? 'Ketuk foto untuk melihatnya' : 'JPG, PNG, atau WEBP' }}
                 </span>
                 <button
                   type="button"
@@ -505,9 +554,14 @@ onMounted(loadCustomerProfile)
                 class="visually-hidden"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                @change="uploadAvatar"
+                aria-label="Pilih foto profil"
+                @change="onAvatarPicked"
               />
             </div>
+
+            <AvatarCropModal :file="cropFile" @cancel="cropFile = null" @confirm="uploadAvatar" />
+            <AvatarViewer :open="viewerOpen" :url="avatarUrl" @close="viewerOpen = false" />
+            <PhoneVerifySheet :open="otpOpen" :phone="otpPhone" @cancel="otpOpen = false" @verified="onPhoneVerified" />
 
             <!-- Status Kelengkapan Profil -->
             <div v-if="!isProfileComplete" class="status-banner status-banner--warning" role="status">
@@ -672,7 +726,7 @@ onMounted(loadCustomerProfile)
                 @click="showLogoutConfirm = true"
               >
                 <ion-icon slot="start" :icon="logOutOutline" />
-                Keluar dari Akun
+                Keluar
               </ion-button>
             </div>
 
@@ -696,7 +750,7 @@ onMounted(loadCustomerProfile)
                 >
                   <ion-spinner v-if="isLoggingOut" slot="start" name="crescent" />
                   <ion-icon v-else slot="start" :icon="logOutOutline" />
-                  {{ isLoggingOut ? 'Sedang keluar...' : 'Ya, Keluar' }}
+                  {{ isLoggingOut ? 'Keluar...' : 'Ya, keluar' }}
                 </ion-button>
               </div>
             </div>
@@ -782,7 +836,7 @@ onMounted(loadCustomerProfile)
   display: grid;
   width: 76px;
   height: 76px;
-  flex: 0 0 76px;
+  overflow: hidden;
   place-items: center;
   padding: 0;
   border: 2px solid var(--border-default, #eae7e0);
@@ -825,19 +879,46 @@ onMounted(loadCustomerProfile)
   font-size: 48px;
 }
 
+.avatar-wrap {
+  position: relative;
+  flex: 0 0 76px;
+  width: 76px;
+  height: 76px;
+}
+
 .avatar-camera {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
+  right: -4px;
+  bottom: -4px;
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   place-items: center;
+  padding: 0;
   border: 2px solid var(--surface-primary, #ffffff);
   border-radius: 50%;
   background: var(--poliland-green, #355a2c);
   color: #ffffff;
-  font-size: 14px;
+  font-size: 15px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease-out);
+}
+
+/* Perluas area sentuh ke 44px tanpa membesarkan lencana. */
+.avatar-camera::before {
+  position: absolute;
+  inset: -8px;
+  content: '';
+}
+
+.avatar-camera:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.avatar-camera:focus-visible {
+  outline: 3px solid var(--poliland-green, #355a2c);
+  outline-offset: 2px;
 }
 
 .camera-spinner {

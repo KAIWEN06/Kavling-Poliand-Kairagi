@@ -69,7 +69,7 @@
               <AppButton size="medium" :loading="savingSchedule"
                 :disabled="savingSchedule"
                 @click="saveIndividualSchedules">
-                Simpan perubahan jadwal
+                Simpan jadwal
               </AppButton>
               <p v-if="scheduleSaveMessage" class="schedule-save-message" role="status">{{ scheduleSaveMessage }}</p>
               <p v-if="scheduleError" class="schedule-save-error" role="alert">{{ scheduleError }}</p>
@@ -337,7 +337,7 @@ async function saveProgress() {
 
     if (hasScheduleChanges.value) {
       errorMessage.value =
-        'Simpan perubahan jadwal pembayaran terlebih dahulu sebelum menyelesaikan proses notaris.'
+        'Simpan jadwal pembayaran terlebih dahulu sebelum menyelesaikan proses notaris.'
       progressOpen.value = false
       return
     }

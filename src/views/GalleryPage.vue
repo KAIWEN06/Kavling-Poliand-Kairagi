@@ -1,65 +1,51 @@
 <template>
   <ion-page>
     <ion-content class="gallery-content">
-      <div class="gallery-page">
+      <div class="gallery-page pl-surface">
+        <!-- HERO: adegan Welcome, bukit terdepan krem agar mengalir ke galeri -->
         <section class="gallery-hero">
-          <template v-if="isLoading">
-            <div class="hero-copy gallery-hero-skeleton-copy">
-              <Skeleton width="82px" height="22px" border-radius="999px" />
-              <Skeleton width="255px" height="34px" border-radius="7px" />
-              <Skeleton width="215px" height="34px" border-radius="7px" />
-              <Skeleton width="92%" height="10px" border-radius="5px" />
-              <Skeleton width="76%" height="10px" border-radius="5px" />
-            </div>
-          </template>
-          <template v-else>
-            <div class="hero-copy">
-              <h1>Temukan lingkungan<br />investasi Anda.</h1>
-              <p>
-                Lihat suasana kawasan, fasilitas, akses, dan perkembangan
-                PoliLand Kairagi melalui koleksi foto kami.
-              </p>
-              <div v-if="isAdmin" class="hero-admin">
-                <AdminEditButton label="Tambah foto" :icon="addOutline" @click="openAdd" />
-              </div>
-            </div>
-          </template>
+          <SceneBackdrop class="hero-scene" height="54%" breathe sparkle solid-front="#F9F5EC" />
 
-          <div class="hero-decoration">
-            <template v-if="isLoading">
-              <Skeleton width="82px" height="82px" border-radius="50%" />
-            </template>
-            <template v-else>
-              <div class="hero-ring hero-ring-one"></div>
-              <div class="hero-ring hero-ring-two"></div>
-              <ion-icon :icon="imageOutline" />
-            </template>
+          <div class="hero-copy">
+            <h1 aria-label="Temukan lingkungan investasi Anda.">
+              <span v-for="(line, i) in heroLines" :key="line" class="hero-line" aria-hidden="true">
+                <motion.span
+                  class="hero-line-inner"
+                  :initial="reduced ? false : { y: '110%' }"
+                  :animate="{ y: '0%' }"
+                  :transition="{ duration: 0.75, delay: 0.25 + i * 0.12, ease: MOTION_EASE_OUT }"
+                >{{ line }}</motion.span>
+              </span>
+            </h1>
+            <motion.p
+              class="hero-sub"
+              :initial="reduced ? false : { opacity: 0, y: 10 }"
+              :animate="{ opacity: 1, y: 0 }"
+              :transition="{ duration: 0.6, delay: 0.55, ease: MOTION_EASE_OUT }"
+            >Foto kawasan, fasilitas, dan akses.</motion.p>
+            <motion.div
+              v-if="isAdmin"
+              class="hero-admin"
+              :initial="reduced ? false : { opacity: 0, y: 10 }"
+              :animate="{ opacity: 1, y: 0 }"
+              :transition="{ duration: 0.5, delay: 0.7, ease: MOTION_EASE_OUT }"
+            >
+              <AdminEditButton label="Tambah foto" :icon="addOutline" @click="openAdd" />
+            </motion.div>
           </div>
         </section>
 
+        <!-- KATEGORI -->
         <section class="category-section">
-          <div class="section-heading">
-            <template v-if="isLoading">
-              <div class="gallery-section-heading-skeleton">
-                <Skeleton width="65px" height="8px" border-radius="4px" />
-                <Skeleton width="118px" height="20px" border-radius="5px" />
-              </div>
-              <Skeleton width="50px" height="9px" border-radius="4px" />
-            </template>
-            <template v-else>
-              <div>
-                <span class="section-label">JELAJAHI</span>
-                <h2>Kategori Foto</h2>
-              </div>
-              <span class="photo-count">{{ filteredPhotos.length }} foto</span>
-            </template>
-          </div>
+          <SectionHeader title="Kategori foto">
+            <span v-if="!isLoading" class="photo-count">{{ filteredPhotos.length }} foto</span>
+          </SectionHeader>
 
           <div class="category-scroll">
             <template v-if="isLoading">
               <Skeleton v-for="i in 5" :key="`category-skeleton-${i}`"
                 :width="i === 1 ? '67px' : i === 2 ? '78px' : i === 3 ? '92px' : i === 4 ? '100px' : '78px'"
-                height="42px" border-radius="999px" />
+                height="44px" border-radius="999px" />
             </template>
             <template v-else>
               <button
@@ -67,9 +53,10 @@
                 :key="category.id"
                 class="category-chip"
                 :class="{ active: selectedCategory === category.id }"
+                type="button"
                 @click="selectedCategory = category.id"
               >
-                <ion-icon :icon="category.icon" />
+                <ion-icon :icon="category.icon" aria-hidden="true" />
                 <span>{{ category.label }}</span>
               </button>
             </template>
@@ -101,6 +88,7 @@
               :key="photo.id"
               class="photo-card"
               :class="{ featured: index === 0 && selectedCategory === 'all' }"
+              :style="{ '--i': Math.min(index, 8) }"
               @click="openPhoto(photo)"
             >
               <div class="photo-image">
@@ -127,30 +115,20 @@
           />
         </section>
 
-        <section class="gallery-cta">
-          <template v-if="isLoading">
-            <Skeleton width="48px" height="48px" border-radius="50%" />
-            <div class="cta-copy gallery-cta-skeleton">
-              <Skeleton width="82px" height="8px" border-radius="4px" />
-              <Skeleton width="205px" height="20px" border-radius="5px" />
-              <Skeleton width="100%" height="8px" border-radius="4px" />
-              <Skeleton width="82%" height="8px" border-radius="4px" />
-            </div>
-            <Skeleton width="108px" height="40px" border-radius="9px" />
-          </template>
-          <template v-else>
-            <div class="cta-icon"><ion-icon :icon="locationOutline" /></div>
-            <div class="cta-copy">
-              <span class="section-label">LIHAT LANGSUNG</span>
+        <!-- CTA: panel hijau seperti halaman Tentang -->
+        <ScrollReveal v-if="!isLoading" variant="scale">
+          <section class="gallery-cta">
+            <SceneBackdrop class="cta-scene" height="58%" />
+            <div class="cta-body">
               <h2>Tertarik dengan lokasinya?</h2>
-              <p>Datang dan lihat langsung lingkungan PoliLand Kairagi bersama tim kami.</p>
+              <p>Kunjungi kawasan bersama tim kami.</p>
+              <router-link class="cta-btn" to="/contact">
+                Hubungi kami
+                <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
+              </router-link>
             </div>
-            <AppButton class="cta-button" fill="solid" router-link="/contact">
-              Hubungi Kami
-              <ion-icon slot="end" :icon="arrowForwardOutline" />
-            </AppButton>
-          </template>
-        </section>
+          </section>
+        </ScrollReveal>
       </div>
 
       <AppModal
@@ -203,7 +181,13 @@ import {
   IonIcon,
   IonPage,
 } from '@ionic/vue'
+import { motion } from 'motion-v'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
+import ScrollReveal from '@/components/ui/ScrollReveal.vue'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { MOTION_EASE_OUT } from '@/utils/motionTokens'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
@@ -217,7 +201,6 @@ import {
   arrowForwardOutline,
   expandOutline,
   gridOutline,
-  imageOutline,
   imagesOutline,
   locationOutline,
 } from 'ionicons/icons'
@@ -242,6 +225,8 @@ interface GalleryPhoto {
 
 const toast = useToast()
 const { isAdmin } = useCmsAdmin()
+const reduced = useReducedMotion()
+const heroLines = ['Temukan lingkungan', 'investasi Anda.']
 
 /** Foto dan kategori sepenuhnya berasal dari database (diatur Admin). */
 const rows = ref<GalleryRow[]>([])
@@ -344,7 +329,7 @@ onBeforeUnmount(() => {
   --gallery-slate: #2d2d2d;
   --gallery-gray: #6b6b6b;
   --gallery-silver: #e5e5e5;
-  --gallery-background: #fafaf7;
+  --gallery-background: var(--pl-paper, #f9f5ec);
   --gallery-surface: #ffffff;
   --gallery-olive: #556b2f;
   --gallery-sage: #8ca072;
@@ -355,194 +340,102 @@ onBeforeUnmount(() => {
 }
 
 .gallery-content {
-  --background: var(--gallery-background);
-  /* Diberi padding-bottom yang mencukupi tinggi tabbar (74px) + margin/safe area (~20px) + ekstra spasi agar lega */
+  --background: var(--pl-paper, #f9f5ec);
   --padding-bottom: calc(110px + env(safe-area-inset-bottom));
 }
 
-.gallery-header {
-  --background: rgba(250, 250, 247, 0.94);
-  backdrop-filter: blur(14px);
-}
+.gallery-page { padding-bottom: 28px; }
 
-.gallery-header ion-toolbar {
-  --background: transparent;
-  --color: var(--gallery-charcoal);
-  --border-width: 0;
-  min-height: 62px;
-}
-
-.gallery-header ion-title {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.gallery-header ion-back-button,
-.header-icon-button {
-  --color: var(--gallery-charcoal);
-}
-
-.header-icon-button ion-icon {
-  font-size: 21px;
-}
-
-.gallery-page {
-  width: min(100%, 1180px);
-  margin: 0 auto;
-  padding: 18px 18px 28px;
-}
-
+/* ---------- Hero ---------- */
 .gallery-hero {
   position: relative;
-  min-height: 270px;
-  overflow: hidden;
   display: flex;
-  align-items: center;
-  padding: 34px;
-  border-radius: 28px;
-  background: linear-gradient(110deg, rgba(26,26,26,.98), rgba(45,45,45,.96) 55%, rgba(85,107,47,.94));
-  box-shadow: 0 18px 45px rgba(26,26,26,.13);
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: clamp(420px, 66dvh, 540px);
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px 0;
+  overflow: hidden;
+  background:
+    radial-gradient(110% 60% at 100% 0%, rgba(244, 214, 154, 0.26) 0%, rgba(244, 214, 154, 0) 62%),
+    linear-gradient(165deg, var(--green-700, #355a2c) 0%, var(--green-900, #1f3519) 100%);
+  color: #fff;
 }
-
-.hero-copy {
-  position: relative;
-  z-index: 2;
-  max-width: 620px;
-}
+.hero-scene { z-index: 1; }
+.hero-copy { position: relative; z-index: 3; padding-bottom: 150px; }
 
 .eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 11px;
-  margin-bottom: 15px;
-  border: 1px solid rgba(244,227,178,.32);
-  border-radius: 999px;
-  color: var(--gallery-gold-light);
-  background: rgba(255,255,255,.06);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .08em;
+  display: block;
+  margin-bottom: 14px;
+  color: var(--poliland-gold-soft, #f4d69a);
+  font: 800 11px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-
-.eyebrow ion-icon { font-size: 15px; }
-
 .gallery-hero h1 {
   margin: 0;
   color: #fff;
-  font-size: clamp(30px, 6vw, 48px);
-  line-height: 1.06;
-  font-weight: 850;
-  letter-spacing: -.045em;
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: clamp(38px, 10.8vw, 54px);
+  line-height: 1.05;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
-
-.gallery-hero p {
-  max-width: 560px;
-  margin: 15px 0 0;
-  color: rgba(255,255,255,.72);
-  font-size: 14px;
-  line-height: 1.7;
+.hero-line { display: block; overflow: hidden; padding-bottom: 0.08em; }
+.hero-line-inner { display: block; will-change: transform; }
+.hero-sub {
+  max-width: 30ch;
+  margin: 14px 0 0;
+  color: rgba(244, 241, 232, 0.92);
+  font-size: 16px;
+  line-height: 1.55;
 }
+.hero-admin { margin-top: 16px; }
 
-.hero-decoration {
-  position: absolute;
-  right: -35px;
-  bottom: -55px;
-  width: 300px;
-  height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(244,227,178,.22);
-}
-
-.hero-decoration > ion-icon {
-  position: relative;
-  z-index: 2;
-  font-size: 96px;
-}
-
-.hero-ring {
-  position: absolute;
-  border: 1px solid rgba(244,227,178,.18);
-  border-radius: 50%;
-}
-
-.hero-ring-one { width: 230px; height: 230px; }
-.hero-ring-two { width: 310px; height: 310px; }
-
-.category-section {
-  padding: 28px 2px 18px;
-}
-
-.section-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 15px;
-}
-
-.section-label {
-  display: block;
-  color: var(--gallery-gold);
-  font-size: 10px;
-  font-weight: 850;
-  letter-spacing: .14em;
-}
-
-.section-heading h2 {
-  margin: 4px 0 0;
-  color: var(--gallery-charcoal);
-  font-size: 22px;
-  line-height: 1.15;
-  font-weight: 850;
-}
-
-.photo-count {
-  color: var(--gallery-gray);
-  font-size: 12px;
-  font-weight: 700;
-}
+/* ---------- Kategori ---------- */
+.category-section { padding: 8px 20px 4px; }
+.photo-count { color: var(--text-secondary, #5f5f66); font-size: 13px; font-weight: 700; white-space: nowrap; }
 
 .category-scroll {
   display: flex;
   gap: 9px;
+  margin: 0 -20px;
+  padding: 2px 20px 10px;
   overflow-x: auto;
-  padding: 2px 1px 7px;
   scrollbar-width: none;
+  scroll-snap-type: x proximity;
 }
-
 .category-scroll::-webkit-scrollbar { display: none; }
 
 .category-chip {
   flex: 0 0 auto;
-  min-height: 42px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0 15px;
-  border: 1px solid var(--gallery-stone);
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong, #d5d0c4);
   border-radius: 999px;
-  color: var(--gallery-slate);
-  background: var(--gallery-surface);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 750;
+  background: var(--surface-primary, #fff);
+  color: var(--text-primary, #252525);
+  font: 700 14px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  scroll-snap-align: start;
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-base) var(--ease-spring);
 }
-
-.category-chip ion-icon { font-size: 17px; }
-
+.category-chip ion-icon { font-size: 18px; }
+.category-chip:active { transform: scale(0.96); }
+.category-chip:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
 .category-chip.active {
-  border-color: var(--gallery-olive);
+  border-color: var(--poliland-green, #355a2c);
+  background: var(--poliland-green, #355a2c);
   color: #fff;
-  background: var(--gallery-olive);
-  box-shadow: 0 7px 18px rgba(85,107,47,.2);
+  box-shadow: 0 8px 18px -8px rgba(53, 90, 44, 0.6);
 }
+
+/* ---------- Foto ---------- */
+.photos-section { padding: 14px 16px 0; }
 
 .photo-grid {
   display: grid;
@@ -555,31 +448,42 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
   overflow: hidden;
-  border-radius: 19px;
-  background: var(--gallery-surface);
-  box-shadow: 0 5px 20px rgba(26,26,26,.07);
+  border-radius: var(--radius-panel, 20px);
+  background: var(--surface-primary, #fff);
+  box-shadow: var(--shadow-md);
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  /* Kartu masuk berurutan; --i dibatasi 8 agar kartu di bawah layar tidak menunda. */
+  animation: photo-in 560ms var(--ease-spring) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.photo-card:active { transform: scale(0.97); }
+.photo-card:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 3px; }
+.photo-card-skeleton { pointer-events: none; animation: none; }
+
+@keyframes photo-in {
+  from { opacity: 0; translate: 0 22px; scale: 0.97; }
 }
 
 .photo-image {
   position: relative;
   aspect-ratio: 1 / 1.12;
   overflow: hidden;
-  background: var(--gallery-sand);
+  background: var(--gallery-sand, #ede6d6);
 }
-
 .photo-card.featured { grid-column: span 2; }
-.photo-card.featured .photo-image { aspect-ratio: 16 / 8.5; }
+.photo-card.featured .photo-image { aspect-ratio: 16 / 9; }
 
 .photo-image img {
+  display: block;
   width: 100%;
   height: 100%;
-  display: block;
   object-fit: cover;
   transition: transform var(--dur-slow) var(--ease-out);
 }
-
 @media (hover: hover) and (pointer: fine) {
   .photo-card:hover .photo-image img { transform: scale(1.045); }
 }
@@ -591,216 +495,127 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: space-between;
   padding: 12px;
-  background: linear-gradient(to bottom, rgba(0,0,0,.48), transparent 35%, rgba(0,0,0,.78));
+  background: linear-gradient(to bottom, rgba(27, 40, 22, 0.5), transparent 35%, rgba(27, 40, 22, 0.86));
 }
-
 .photo-top,
-.photo-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.photo-bottom {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-end;
-}
+.photo-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.photo-bottom { flex-direction: column; align-items: flex-start; justify-content: flex-end; }
 
 .photo-category {
   display: inline-flex;
   width: fit-content;
-  padding: 5px 8px;
-  border-radius: 7px;
-  color: #fff;
-  background: rgba(26,26,26,.66);
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: rgba(27, 40, 22, 0.72);
+  -webkit-backdrop-filter: blur(7px);
   backdrop-filter: blur(7px);
-  font-size: 9px;
+  color: #fff;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
-
 .zoom-button {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255,255,255,.3);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  color: #fff;
-  background: rgba(26,26,26,.45);
+  background: rgba(27, 40, 22, 0.5);
+  -webkit-backdrop-filter: blur(7px);
   backdrop-filter: blur(7px);
-}
-
-.zoom-button ion-icon { font-size: 15px; }
-
-.photo-bottom span {
-  color: rgba(255,255,255,.76);
-  font-size: 9px;
-  font-weight: 600;
-}
-
-.photo-bottom strong {
-  margin-top: 3px;
   color: #fff;
-  font-size: 13px;
-  line-height: 1.25;
 }
+.zoom-button ion-icon { font-size: 16px; }
 
-.photo-grid.compact { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.photo-bottom span { color: rgba(255, 255, 255, 0.9); font-size: 12px; font-weight: 600; line-height: 1.3; }
+.photo-bottom strong { margin-top: 3px; color: #fff; font-size: 14px; line-height: 1.25; }
+
+.photo-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .photo-grid.compact .photo-card.featured { grid-column: span 3; }
 .photo-grid.compact .photo-card.featured .photo-image { aspect-ratio: 16 / 7; }
 
-.empty-state {
-  padding: 65px 20px;
-  text-align: center;
-}
+.gallery-skeleton-overlay { opacity: 1; background: linear-gradient(180deg, transparent 40%, rgba(27, 40, 22, 0.42) 100%); }
+.gallery-skeleton-overlay .photo-top,
+.gallery-skeleton-overlay .photo-bottom { opacity: 1; }
+.gallery-skeleton-overlay .photo-bottom { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 
-.empty-icon {
-  width: 58px;
-  height: 58px;
-  margin: 0 auto 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 17px;
-  color: var(--gallery-olive);
-  background: var(--gallery-sand);
-}
-
-.empty-icon ion-icon { font-size: 27px; }
-.empty-state h3 { margin: 0; color: var(--gallery-charcoal); font-size: 18px; }
-.empty-state p { margin: 6px 0 0; color: var(--gallery-gray); font-size: 13px; }
-
+/* ---------- CTA ---------- */
 .gallery-cta {
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 18px;
-  margin-top: 28px;
-  padding: 22px;
+  margin: 32px 16px 0;
   overflow: hidden;
-  border: 1px solid rgba(85,107,47,.16);
-  border-radius: 23px;
-  background: linear-gradient(135deg, #fff, #f4f0e5);
+  border-radius: 24px;
+  background:
+    radial-gradient(90% 80% at 100% 0%, rgba(244, 214, 154, 0.26) 0%, rgba(244, 214, 154, 0) 60%),
+    linear-gradient(155deg, var(--green-700, #355a2c) 0%, var(--green-900, #1f3519) 100%);
+  box-shadow: var(--shadow-md);
+  color: #fff;
 }
-
-.cta-icon {
-  width: 52px;
-  height: 52px;
-  display: flex;
+.cta-scene { z-index: 0; }
+.cta-body { position: relative; z-index: 2; padding: 36px 24px 96px; }
+.gallery-cta h2 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: clamp(28px, 7.6vw, 34px);
+  line-height: 1.1;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.gallery-cta p {
+  max-width: 34ch;
+  margin: 12px 0 22px;
+  color: rgba(244, 241, 232, 0.92);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.cta-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
-  color: var(--gallery-olive);
-  background: rgba(85,107,47,.1);
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 14px;
+  background: var(--poliland-gold, #cba044);
+  color: var(--ink, #1b1f1a);
+  font: 800 15px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  text-decoration: none;
+  box-shadow: 0 12px 26px -10px rgba(203, 160, 68, 0.85);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-base) var(--ease-spring);
 }
+.cta-btn ion-icon { font-size: 20px; }
+.cta-btn:active { transform: scale(0.97); }
+.cta-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
-.cta-icon ion-icon { font-size: 25px; }
-.cta-copy { position: relative; z-index: 1; }
-
-.cta-copy h2 {
-  margin: 3px 0 4px;
-  color: var(--gallery-charcoal);
-  font-size: 18px;
-  font-weight: 850;
-}
-
-.cta-copy p {
-  margin: 0;
-  color: var(--gallery-gray);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-
+/* ---------- Lightbox ---------- */
+.lightbox-image { display: block; width: 100%; max-height: 52dvh; object-fit: contain; border-radius: 12px; background: #000; }
 .lightbox-info { margin-top: 12px; }
-.lightbox-info .photo-category { display: inline-block; margin-bottom: 8px; padding: 3px 10px; border-radius: 999px; background: var(--gallery-olive); color: #fff; font-size: 11px; font-weight: 800; }
-.lightbox-info p { margin: 0; color: #475569; font-size: 14px; line-height: 1.6; }
+.lightbox-info .photo-category { display: inline-block; margin-bottom: 8px; padding: 3px 10px; border-radius: 999px; background: var(--poliland-green, #355a2c); color: #fff; font-size: 11px; font-weight: 800; }
+.lightbox-info p { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.6; }
+.confirm-text { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.6; }
 
 @media (min-width: 700px) {
-  .gallery-page { padding: 28px 28px 28px; }
-  .gallery-hero { min-height: 320px; padding: 46px; }
-  .photo-grid { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+  .gallery-page { max-width: 1100px; margin: 0 auto; }
+  .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
   .photo-card.featured { grid-column: span 2; }
-  .photo-card.featured .photo-image { aspect-ratio: 16 / 10; }
   .photo-image { aspect-ratio: 1 / 1; }
 }
-
 @media (min-width: 1024px) {
-  .gallery-page { padding-top: 34px; }
-  .gallery-hero { min-height: 350px; }
-  .photo-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
-  .photo-card.featured { grid-column: span 2; grid-row: span 2; }
-  .photo-card.featured .photo-image { aspect-ratio: auto; height: 100%; min-height: 460px; }
-  .photo-grid.compact { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .photo-grid,
+  .photo-grid.compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .photo-card.featured,
   .photo-grid.compact .photo-card.featured { grid-column: span 2; grid-row: span 2; }
+  .photo-card.featured .photo-image { aspect-ratio: auto; height: 100%; min-height: 460px; }
 }
 
-@media (max-width: 560px) {
-  .gallery-page { padding-inline: 14px; }
-  .gallery-hero { min-height: 290px; padding: 27px 23px; border-radius: 23px; }
-  .hero-decoration { right: -95px; bottom: -80px; }
-  .gallery-cta { grid-template-columns: auto 1fr; }
-  .cta-button { grid-column: 1 / -1; width: 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .photo-card { animation: none; }
+  .photo-card:active,
+  .category-chip:active,
+  .cta-btn:active { transform: none; }
 }
-
-/* Internal skeleton — follows the same GalleryPage layout */
-.gallery-hero-skeleton-copy {
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  gap:8px;
-  width:min(100%,560px);
-}
-
-.gallery-section-heading-skeleton {
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  gap:5px;
-}
-
-.gallery-skeleton-grid { align-items:stretch; }
-
-.photo-card-skeleton {
-  position:relative;
-  pointer-events:none;
-}
-
-.photo-card-skeleton .photo-image {
-  position:relative;
-  overflow:hidden;
-}
-
-.gallery-skeleton-overlay {
-  opacity:1;
-  background:linear-gradient(180deg,transparent 40%,rgba(26,26,26,.42) 100%);
-}
-
-.gallery-skeleton-overlay .photo-top,
-.gallery-skeleton-overlay .photo-bottom { opacity:1; }
-
-.gallery-skeleton-overlay .photo-bottom {
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  gap:6px;
-}
-
-.gallery-cta-skeleton {
-  display:flex;
-  flex:1;
-  min-width:0;
-  flex-direction:column;
-  align-items:flex-start;
-  gap:7px;
-}
-
-.hero-admin { margin-top: 18px; }
-.lightbox-image { display: block; width: 100%; max-height: 52dvh; object-fit: contain; border-radius: 12px; background: #000; }
-.confirm-text { margin: 0; color: #717178; font-size: 14px; line-height: 1.6; }
 </style>

@@ -5,7 +5,7 @@
         <h2 id="hours-title">Jam Operasional</h2>
         <p>Atur hari dan rentang waktu yang bisa dipilih klien untuk meminta survei lokasi. Zona waktu WITA (Asia/Makassar).</p>
       </div>
-      <button class="btn btn-primary" type="button" :disabled="saving || loading" @click="save">{{ saving ? 'Menyimpan…' : 'Simpan jam operasional' }}</button>
+      <button class="btn btn-primary" type="button" :disabled="saving || loading" @click="save">{{ saving ? 'Menyimpan…' : 'Simpan jam' }}</button>
     </header>
 
     <p v-if="loading" class="state" role="status">Memuat jam operasional…</p>

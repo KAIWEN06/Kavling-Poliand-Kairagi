@@ -4,6 +4,7 @@ import type { UserRole } from '@/services/auth/authService'
 
 export const AVATAR_BUCKET = 'client-avatars'
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024
+export const AVATAR_SOURCE_MAX_BYTES = 10 * 1024 * 1024
 export const AVATAR_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -107,6 +108,14 @@ export const profileService = {
     if (value && !/^[0-9+\-\s()]{8,20}$/.test(value)) throw new Error('Format nomor telepon tidak valid.')
     const { error } = await supabase.from('customers').update({ phone: value || null }).eq('user_id', userId)
     if (error) throw error
+  },
+
+  /** Foto asli sebelum dipotong: batas lebih longgar, hasil potongan yang divalidasi ketat. */
+  validateAvatarSource(file: File): string | null {
+    if (!AVATAR_TYPES[file.type]) return 'Format foto harus JPG, JPEG, PNG, atau WEBP.'
+    if (file.size > AVATAR_SOURCE_MAX_BYTES) return 'Ukuran foto maksimal 10 MB.'
+    if (file.size === 0) return 'File foto kosong.'
+    return null
   },
 
   validateAvatar(file: File): string | null {

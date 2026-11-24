@@ -43,6 +43,25 @@ ion-button {
   font-weight: var(--font-weight-semibold);
 }
 
+/* Teks tombol selalu satu baris. Bila ruang kurang, persingkat label
+   atau ganti dengan ikon; jangan biarkan turun ke baris kedua. */
+ion-button,
+ion-button::part(native),
+.btn,
+.mk-btn,
+[class*='-btn'],
+[class*='btn-'],
+[class*='-button'] {
+  white-space: nowrap;
+}
+
+ion-button .app-button__content,
+.btn,
+.mk-btn {
+  max-width: 100%;
+  min-width: 0;
+}
+
 /* ---------------------------------------------------------------
    Utilitas tipografi design system v2
    --------------------------------------------------------------- */

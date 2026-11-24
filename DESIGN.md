@@ -7,6 +7,8 @@ Dokumen terpadu ini menggabungkan dua dokumen sumber:
 
 > **Catatan penggunaan:** Jika terdapat perbedaan antara rekomendasi desain dan kondisi implementasi aktual, keduanya dipertahankan sesuai konteksnya. Bagian Design System menjelaskan standar/pedoman desain, sedangkan bagian Implementation Specification menjelaskan kondisi dan kontrak implementasi yang tercatat. Jangan menganggap rekomendasi sebagai fitur yang sudah diterapkan.
 
+> **Patokan tampilan:** `WelcomePage.vue` dan `AboutPage.vue`. Semua halaman publik harus terasa satu keluarga dengan keduanya. Aturannya ada di Bagian I §12 (bahasa visual dan gerak), §13 (aturan teks), dan §14 (kontras terverifikasi).
+
 ---
 
 # BAGIAN I — DESIGN SYSTEM
@@ -62,8 +64,8 @@ Arah visual PoliLand adalah **Modern-Natural** yang memadukan ketenangan hijau a
 
 ### 3.1 Proporsi Warna 60-30-10
 
-- **60% Warna Dominan (Netral/Permukaan)**: Latar belakang hangat (`#FAF9F6` di Light Mode) dan permukaan kartu bersih (`#FFFFFF`) untuk kenyamanan baca jangka panjang.
-- **30% Warna Sekunder (Permukaan Lembut & Struktur)**: Permukaan sekunder (`#F5F3EE`), garis batas halus (`#EAE7E0`), dan teks sekunder (`#717178`) untuk membedakan hierarki kartu dan bento grid.
+- **60% Warna Dominan (Netral/Permukaan)**: Latar belakang hangat (`#FAF9F6` di Light Mode; halaman publik memakai krem `#F9F5EC` / `--pl-paper`) dan permukaan kartu bersih (`#FFFFFF`) untuk kenyamanan baca jangka panjang.
+- **30% Warna Sekunder (Permukaan Lembut & Struktur)**: Permukaan sekunder (`#F5F3EE`), garis batas halus (`#EAE7E0`), dan teks sekunder (`#5F5F66`) untuk membedakan hierarki kartu dan bento grid.
 - **10% Warna Aksen Tegas (Brand & CTA)**: Hijau PoliLand (`#355A2C`) untuk tombol aksi utama dan indikator aktif, serta Emas PoliLand (`#CBA044`) sebagai aksen visual/lencana (_badge_).
 
 ### 3.2 Brand & Semantic Tokens (Light & Dark Mode)
@@ -73,34 +75,44 @@ Arah visual PoliLand adalah **Modern-Natural** yang memadukan ketenangan hijau a
 | **Brand Primary**   | `--poliland-green`     | `#355A2C`  | `#5C8D4E`               | Tombol utama (CTA), ikon aktif, fokus   |
 | **Brand Accent**    | `--poliland-gold`      | `#CBA044`  | `#DFB863`               | Aksen grafis, highlight promo, lencana  |
 | **Gold Soft**       | `--poliland-gold-soft` | `#F4D69A`  | `#3D3118`               | Latar lembut sorotan/badge              |
-| **Gold Text**       | `--poliland-gold-text` | `#966A12`  | `#F4D69A`               | Teks aksen emas (lolos kontras WCAG AA) |
+| **Gold Text**       | `--poliland-gold-text` | `#805708`  | `#F4D69A`               | Teks aksen emas (5,9:1 di krem, lolos AA) |
+| **Paper**           | `--pl-paper`           | `#F9F5EC`  | `#121412`               | Latar halaman publik (krem hangat)      |
+| **Forest**          | `--green-800` / `--green-900` | `#2B4824` / `#1F3519` | sama        | Panel hero, statistik, dan CTA bergaya Welcome |
 | **App Background**  | `--app-background`     | `#FAF9F6`  | `#121412`               | Latar belakang utama halaman            |
 | **Surface Primary** | `--surface-primary`    | `#FFFFFF`  | `#1C1F1C`               | Kartu utama, modal, bottom sheet        |
 | **Surface Muted**   | `--surface-muted`      | `#F5F3EE`  | `#262A26`               | Input field, kartu sekunder, bento tile |
 | **Text Primary**    | `--text-primary`       | `#252525`  | `#F3F4F2`               | Judul dan teks utama                    |
-| **Text Secondary**  | `--text-secondary`     | `#63636A`  | `#A3A6A0`               | Subjudul, metadata, placeholder         |
+| **Text Secondary**  | `--text-secondary`     | `#5F5F66`  | `#A3A6A0`               | Subjudul, metadata, placeholder (5,2:1 di krem gelap) |
 | **Border Default**  | `--border-default`     | `#EAE7E0`  | `#323732`               | Garis pemisah dan tepi kartu            |
 | **Status Success**  | `--status-success`     | `#355A2C`  | `#5C8D4E`               | Status tersedia, berhasil disimpan      |
-| **Status Warning**  | `--status-warning`     | `#966A12`  | `#E5B95C`               | Status _booking_ / menunggu konfirmasi  |
+| **Status Warning**  | `--status-warning`     | `#805708`  | `#E5B95C`               | Status _booking_ / menunggu konfirmasi  |
 | **Status Danger**   | `--status-danger`      | `#D94B45`  | `#F06A65`               | Status terjual, error validasi, hapus   |
 
 > **Aturan Kontras & Warna**:
 >
 > - Teks normal wajib memenuhi rasio kontras minimal **4.5:1** (WCAG AA), dan teks besar/ikon interaktif minimal **3:1**.
-> - Jangan gunakan `--poliland-gold` (`#CBA044`) secara langsung untuk teks kecil di atas latar terang; gunakan `--poliland-gold-text` (`#966A12`).
+> - Jangan gunakan `--poliland-gold` (`#CBA044`) secara langsung untuk teks kecil di atas latar terang; gunakan `--poliland-gold-text` (`#805708`).
+> - Jangan pernah menaruh teks putih di atas emas `#CBA044` (2,4:1, gagal). Di atas emas pakai `--ink` (`#1B1F1A`, 6,9:1).
+> - Abu pucat seperti `#A7A7A7`, `#94a3b8`, dan `--text-tertiary` (`#8A8A90`) hanya untuk elemen dekoratif atau disabled, bukan teks yang harus dibaca.
 > - Status (Tersedia, Booking, Terjual, Error) **tidak boleh hanya mengandalkan warna**—wajib disertai teks label atau ikon pendukung.
 
 ---
 
 ## 4. Typography
 
-Jenis huruf utama adalah **Plus Jakarta Sans** (`--font-primary`, `--font-sans`, `--ion-font-family`) yang dirancang untuk keterbacaan optimal di layar ponsel.
+Dua keluarga huruf:
+
+- **Plus Jakarta Sans** (`--font-primary`, `--font-ui`, `--font-sans`, `--ion-font-family`): semua teks antarmuka dan badan teks.
+- **Fraunces Variable** (`--font-display`, serif editorial): judul halaman, judul section, dan angka besar. Weight `600–650`, `letter-spacing: -0.02em`. Jangan dipakai untuk teks badan, label, atau tombol.
 
 ### Skala Tipografi Mobile
 
 | Peran Teks          | Ukuran        | Line-Height | Weight        | Penggunaan                                         |
 | :------------------ | :------------ | :---------- | :------------ | :------------------------------------------------- |
-| **Display / Hero**  | `24px – 28px` | `1.25`      | `700` / `800` | Judul halaman utama, ringkasan harga/metrik utama  |
+| **Display (serif)** | `clamp(34px, 10vw, 52px)` | `1.06` | `650` | Judul hero halaman publik (Welcome, Tentang, Kontak, Galeri, Progress) |
+| **Section (serif)** | `clamp(24px, 6.8vw, 30px)` | `1.12` | `650` | Judul section (`SectionHeader`, otomatis lewat `pl-surface`) |
+| **Angka (serif)**   | `30px – 38px` | `1`         | `650`         | Statistik, persentase (`CountUp`)                  |
+| **Display / Hero**  | `24px – 28px` | `1.25`      | `700` / `800` | Halaman internal (dashboard role): judul dan ringkasan harga/metrik |
 | **Section Title**   | `18px – 20px` | `1.35`      | `700`         | Judul bagian (_section_), judul modal/bottom-sheet |
 | **Card Title**      | `16px`        | `1.4`       | `600`         | Nomor kavling, nama pelanggan, judul kartu         |
 | **Body Primary**    | `14px – 16px` | `1.5`       | `400` / `500` | Paragraf deskripsi, isi formulir, catatan          |
@@ -170,7 +182,7 @@ Gerak dipakai untuk memberi umpan balik, menunjukkan asal-usul elemen, atau meng
 | :--------------- | :----------------------------- | :------------------------------------------------- |
 | `--ease-out`     | `cubic-bezier(0.22, 1, 0.36, 1)` | Standar untuk masuk, keluar, dan hover             |
 | `--ease-drawer`  | `cubic-bezier(0.32, 0.72, 0, 1)` | Modal dan sheet saat masuk                         |
-| `--ease-spring`  | `cubic-bezier(0.34, 1.4, 0.64, 1)` | Hanya untuk momen yang memang playful (mis. toast masuk) |
+| `--ease-spring`  | `cubic-bezier(0.34, 1.4, 0.64, 1)` | Momen playful: kartu masuk, lepas tekan tombol, blok `scale` saat discroll (lihat §12.3) |
 | `--dur-instant`  | `90ms`                         | Umpan balik tekan (`:active`)                      |
 | `--dur-fast`     | `160ms`                        | Hover, perubahan warna, chip, tooltip kecil        |
 | `--dur-base`     | `240ms`                        | Dropdown, tab, transisi halaman, backdrop          |
@@ -311,6 +323,128 @@ Sebelum menyelesaikan pembaruan UI/UX maupun fitur data:
 2. **Kontras & Aksesibilitas**: Pastikan rasio kontras teks minimal **4.5:1**, `:focus-visible` terlihat jelas, dan state _loading/empty/error_ informatif.
 3. **Integritas Audit & Build**: Pastikan trigger audit berjalan akurat tanpa duplikasi, lalu jalankan validasi TypeScript (`vue-tsc`), _production build_, dan `git diff --check`.
 4. **Motion**: Tidak ada `transition: all`, durasi/kurva manual, `ease-in` pada UI, atau hover bergerak tanpa `@media (hover: hover) and (pointer: fine)` (lihat bagian 6.1).
+5. **Halaman publik**: Lolos daftar periksa §12.5 (rasa Welcome), §13 (teks tidak redundan), dan §14 (kontras terverifikasi).
+
+---
+
+## 12. Bahasa Visual Welcome (Halaman Publik)
+
+Halaman publik (Welcome, Beranda, Siteplan, Galeri, Progress dan detailnya, Tentang, Kontak) memakai satu bahasa visual. Pengguna yang masuk dari Welcome tidak boleh merasa pindah ke aplikasi lain.
+
+### 12.1 Unsur tetap
+
+| Unsur | Aturan |
+| :--- | :--- |
+| Permukaan | Krem `--pl-paper` (`#F9F5EC`). Kartu putih `--surface-primary` di atasnya. Bukan putih atau abu dingin. |
+| Panel gelap | Hero, statistik, dan CTA memakai gradasi hijau hutan (`--green-800` ke `--green-900`) dengan cahaya emas di pojok kanan atas (`radial-gradient` emas `rgba(244,214,154,.22)`). |
+| Latar adegan | `SceneBackdrop`: matahari, tiga lapis bukit, garis petak kavling. Satu per hero, dan boleh di penutup halaman atau kartu CTA. Tidak di setiap kartu. |
+| Peralihan | Pada hero berfoto atau hero yang diikuti halaman krem, bukit terdepan diisi warna latar (`solid-front="#F9F5EC"`) agar panel mengalir ke isi tanpa garis potong. |
+| Judul | Serif Fraunces (§4). Judul hero naik per baris dari garis bawahnya (mask `overflow: hidden`, `y: 110%` ke `0`). |
+| Garis judul | Garis emas 40px x 3px di bawah judul section (`SectionHeader`, atau `.heading-line` lewat `pl-surface`). |
+| Aksen | Hijau = aksi dan teks penting. Emas = garis, angka di atas panel gelap, dan tombol utama di atas panel gelap (teks `--ink`). |
+| Bayangan | Hanya `--shadow-sm/md/lg`. Dilarang `rgba(0,0,0,x)` abu generik. |
+| Radius | `--radius-control` 12, `--radius-card` 16, `--radius-panel` 20; panel hero 24–28. |
+| Ikon | SVG/ionicons. Dilarang emoji. |
+
+### 12.2 Komponen bersama
+
+| Kebutuhan | Komponen |
+| :--- | :--- |
+| Matahari, bukit, garis petak, titik cahaya | `ui/SceneBackdrop.vue` (`breathe`, `sparkle`, `sway`, `solid-front`) |
+| Kepala section | `ui/SectionHeader.vue` (`title`, `eyebrow` opsional, slot aksi) |
+| Muncul saat discroll | `ui/ScrollReveal.vue` (`variant` up, fade, scale; `delay`; `enabled`) |
+| Angka naik dari 0 | `ui/CountUp.vue` (menerima teks CMS bebas seperti "120+", "1.200", "4,5 Ha") |
+| Masuk berurutan saat halaman dibuka | `ui/Reveal.vue` (`order`) |
+| Rasa global | Kelas `pl-surface` pada pembungkus halaman (`src/theme/poliland-look.css`) menyeragamkan judul `section h2`, garis emas, label, dan tombol "Lihat Semua". |
+
+### 12.3 Gerak: bermain, tapi tidak mengganggu
+
+Gerak boleh lebih hidup daripada dashboard, dengan batas berikut. Semua memakai token §6.1, hanya `transform`, `translate`, `scale`, dan `opacity`.
+
+| Tingkat | Gerak | Nilai |
+| :--- | :--- | :--- |
+| Masuk halaman | Judul naik per baris, lalu paragraf dan tombol menyusul | `700ms` `--ease-out`, jeda `70–120ms`, total di bawah `1,3s` |
+| Foto hero | Turun dari `scale(1.14)` ke `1` | `2,6s` `--ease-out` |
+| Latar | Bukit naik berurutan, garis petak tergambar (`pathLength`) | `0,8s` dan `1,2s` |
+| Ambient (hanya hero) | Matahari berdenyut (`breathe`), bukit belakang bergoyang 6px (`sway`), 7 titik cahaya naik (`sparkle`) | `7s`, `14–19s`, `9–12s`, berulang, `pointer-events: none` |
+| Discroll | Blok muncul sekali: fade + naik 18px (`up`) atau membesar dengan pantulan (`scale`) | `480ms`; `scale` memakai `--ease-spring` untuk transform |
+| Daftar kartu | Masuk berurutan, jeda `60–70ms` per kartu, indeks dibatasi 8 | `560ms` `--ease-spring` |
+| Angka dan bar | `CountUp` dan bar progres tumbuh dari kiri | `0,9–1,4s`, mulai setelah judul masuk |
+| Tekan | Turun ke `scale(0.97)`, lepas dengan sedikit pantulan | tekan `--dur-fast`, lepas `--dur-base` `--ease-spring` |
+
+Batas agar tidak mengganggu:
+
+- Gerak ambient hanya di hero dan tidak pernah di atas teks yang sedang dibaca; titik cahaya kecil (4px), redup, dan tidak menerima sentuhan.
+- Satu hero, satu `breathe`. Tidak ada gerak berulang di daftar, kartu, atau formulir.
+- Elemen yang dipakai ratusan kali sehari (tab bar, input, chip filter saat diganti) hanya memberi umpan balik tekan, bukan animasi masuk.
+- `prefers-reduced-motion`: semua gerak ambient mati (`sparkle` disembunyikan), animasi masuk diganti fade pendek, konten tetap tampil.
+- Di dalam animasi, jangan menyentuh `width`, `height`, `top`, atau `left`. Goyangan bukit memakai properti `translate` agar tidak bentrok dengan `transform` dari motion-v.
+
+### 12.4 Sentuh (mobile native)
+
+Target sentuh minimal 44x44px. `touch-action: manipulation` dan `-webkit-tap-highlight-color: transparent` pada kontrol. Hover hanya di `@media (hover: hover) and (pointer: fine)`. Semua yang bisa ditekan punya `:active`. Input 16px. Tinggi layar pakai `dvh`. Beri ruang bawah untuk tab bar dan `env(safe-area-inset-bottom)`.
+
+### 12.5 Daftar periksa halaman publik
+
+- [ ] Latar krem, bukan putih atau abu dingin.
+- [ ] Hero memakai panel hijau hutan dan `SceneBackdrop`; judul serif naik per baris.
+- [ ] Judul section serif dengan garis emas.
+- [ ] Ada urutan masuk dan reveal saat scroll; reduced-motion ditangani.
+- [ ] Setiap tombol dan kartu punya `:active`.
+- [ ] Teks lolos §14; tidak ada putih di atas emas.
+- [ ] Teks lolos §13: tidak ada kata atau ide yang muncul dua kali di layar yang sama.
+- [ ] Tidak ada fitur, data CMS, atau rute yang hilang.
+- [ ] Bila disandingkan dengan Welcome dan Tentang, layar terasa satu keluarga.
+
+---
+
+## 13. Aturan Teks: Singkat, Tidak Redundan
+
+Halaman dibangun dari banyak komponen, dan tiap komponen sering punya judul, label, dan deskripsi sendiri. Akibatnya kata yang sama bisa muncul dua kali di satu layar. Aturan ini mencegahnya.
+
+1. **Satu gagasan, satu tempat.** Jika judul sudah menyebut "Kemajuan Pembangunan", jangan tambah label "Pembangunan PoliLand" di atasnya atau kalimat "Pantau perkembangan pembangunan" di bawahnya.
+2. **Label kecil (eyebrow) harus menambah informasi.** Boleh bila memberi konteks yang tidak ada di judul (mis. "Dokumentasi kawasan" di atas "Galeri & Fasilitas"). Dilarang bila hanya sinonim judul ("Siapa kami" di atas "Profil Kami", "Lihat langsung" di atas "Video Profil").
+3. **Paragraf pembuka hero: satu kalimat, maksimal 12 kata**, dan hanya berisi yang belum dikatakan judul. Tanpa "Kami siap membantu", "Temukan", "Nikmati", "Hadir untuk Anda".
+4. **Jangan menyebut nama halaman di dalam isinya.** Tab bar dan judul sudah memberi tahu pengguna ada di mana.
+5. **Satu angka, satu tempat.** Jangan tampilkan jumlah yang sama dua kali (mis. jumlah proyek di dua judul section).
+6. **Tombol berisi aksi**, bukan kalimat: "Hubungi via WhatsApp", "Buka Peta", "Coba Lagi".
+7. **Pesan kosong dan error: apa yang terjadi + apa yang bisa dilakukan**, satu kalimat. Contoh: "Denah belum bisa dimuat. Periksa koneksi, lalu coba lagi."
+8. **Pola tulisan mesin yang dihindari** (aturan skill `humanizer`): "bukan X melainkan Y", kalimat penutup yang mengulang paragraf, tiga hal berurutan hanya agar terdengar lengkap, "terdepan", "inovatif", "solusi terbaik", tanda pisah (—) sebagai penyambung, tebal di setiap label.
+9. **Cek sebelum selesai:** baca seluruh layar dari atas ke bawah. Jika dua teks berbeda bisa digabung atau satu bisa dihapus tanpa kehilangan informasi, hapus.
+
+Teks dari CMS (isi dari Admin) tidak diedit oleh kode. Aturan ini berlaku untuk teks yang ditulis di kode, yaitu judul tetap, label, tombol, dan pesan status.
+
+---
+
+## 14. Kontras Terverifikasi
+
+Rasio dihitung dengan rumus WCAG 2.x. Teks normal minimal 4,5:1, teks besar (24px, atau 19px tebal) dan ikon bermakna minimal 3:1.
+
+| Teks | Latar | Rasio | Hasil |
+| :--- | :--- | ---: | :--- |
+| `--text-primary` `#252525` | krem `#F9F5EC` | 14,1 | Lolos |
+| `--text-secondary` `#5F5F66` | krem gelap `#F1E8D4` | 5,2 | Lolos (nilai lama `#717178` hanya 3,98 dan 4,45) |
+| `--poliland-gold-text` `#805708` | krem `#F9F5EC` | 5,9 | Lolos (nilai lama `#966A12` hanya 4,42) |
+| `--poliland-gold-text` `#805708` | putih | 6,4 | Lolos |
+| `--poliland-green` `#355A2C` | krem | 7,3 | Lolos |
+| `--green-800` `#2B4824` | krem gelap `#F1E8D4` | 8,4 | Lolos |
+| Putih `#FFFFFF` | hijau `#355A2C` | 7,9 | Lolos |
+| `--poliland-gold-soft` `#F4D69A` | `--green-800` | 7,3 | Lolos |
+| `--poliland-gold-soft` `#F4D69A` | `--green-900` | 9,4 | Lolos |
+| `--on-forest` `#F4F1E8` | `--green-800` | 9,1 | Lolos |
+| `#F4F1E8` pada 88% | `--green-800` | 7,4 | Lolos |
+| `--ink` `#1B1F1A` | emas `#CBA044` | 6,9 | Lolos |
+| Putih `#FFFFFF` | emas `#CBA044` | 2,4 | **Gagal. Dilarang.** |
+| `#A7A7A7` / `--pl-warm-gray` | krem | sekitar 2,2 | **Gagal.** Hanya dekoratif. |
+| `--text-tertiary` `#8A8A90` | putih | 3,4 | **Gagal untuk teks.** Hanya disabled. |
+
+Aturan tambahan:
+
+- **Teks di atas foto** harus melewati lapisan gelap bernuansa hijau (`rgba(27,40,22,.5–.9)`) dan boleh diberi `text-shadow` tipis. Uji dengan foto asli yang paling terang.
+- **Teks di atas panel hijau** hanya memakai `#FFFFFF`, `--on-forest`, atau `--poliland-gold-soft`. Teks sekunder di panel gelap memakai `#F4F1E8` dengan opasitas minimal 85%.
+- **Label kecil (11–12px)** memakai `--poliland-gold-text` atau `--text-secondary`, bukan emas `#CBA044`.
+- **Jangan menurunkan opasitas teks** di bawah 85% di atas panel gelap; gunakan warna token, bukan `opacity: .5`.
+- Tulis rasio baru ke tabel ini saat menambah pasangan warna.
 
 ---
 
@@ -386,7 +520,7 @@ Font tokens:
 | `--poliland-green`          | `#355A2C` | Primary brand and action color                |
 | `--poliland-gold`           | `#CBA044` | Brand accent and graphic accent               |
 | `--poliland-gold-soft`      | `#F4D69A` | Soft gold surface accent                      |
-| `--poliland-gold-text`      | `#966A12` | Accessible gold text on light surfaces        |
+| `--poliland-gold-text`      | `#805708` | Accessible gold text on light surfaces (5.9:1 on cream) |
 | `--poliland-gold-text-soft` | `#805708` | Accessible deeper gold text on cream surfaces |
 
 Brand gold must not be used as text by default. Gold used as text should use a gold text token and be contrast-tested.
@@ -399,7 +533,8 @@ Brand gold must not be used as text by default. Gold used as text should use a g
 | Primary surface        | `--surface-primary` | `#FFFFFF`                   |
 | Muted surface          | `--surface-muted`   | `#F5F3EE`                   |
 | Primary text           | `--text-primary`    | `#252525`                   |
-| Secondary text         | `--text-secondary`  | `#717178`                   |
+| Secondary text         | `--text-secondary`  | `#5F5F66`                   |
+| Public page surface    | `--pl-paper`        | `#F9F5EC`                   |
 | Default border         | `--border-default`  | `#EAE7E0`                   |
 | Success                | `--status-success`  | Alias to `--poliland-green` |
 | Warning                | `--status-warning`  | Alias to `--poliland-gold`  |
@@ -426,16 +561,10 @@ Every shared component must have a visible `:focus-visible` treatment. Native bu
 
 ## 9. Spacing System
 
-The project does not currently define a complete named spacing scale in CSS. Existing spacing is primarily expressed with component-specific pixel or Tailwind values.
+`src/theme/variables.css` defines `--space-1` to `--space-16` (4, 8, 12, 16, 20, 24, 32, 40, 48, 64px). New code uses these tokens. Older components still contain literal pixel values; migrate them when a component is otherwise being edited, not in a separate sweep.
 
-Current recommended development rule:
-
-- Use the existing component layout before introducing a new spacing scale.
-- Reuse values consistently within a component.
-- Preserve current page layout and page padding.
-- Propose any named spacing tokens before implementation.
-
-This spacing section records the current state; it does not claim tokens that do not exist.
+- Preserve current page layout and page padding when standardizing a component.
+- Public pages use 16px (mobile) and 24px (from 768px) horizontal page padding.
 
 ## 10. Border Radius
 
@@ -453,7 +582,7 @@ Existing shared components still contain literal radius values. Their standardiz
 
 Shadows should communicate elevation, not act as decoration on every surface.
 
-The project currently uses component-local shadows. A named shared elevation scale is not yet defined, so it should not be documented as implemented.
+`src/theme/variables.css` defines `--shadow-sm`, `--shadow-md`, and `--shadow-lg` in a dark-green tint (`rgba(31, 53, 25, ...)`), not neutral gray. New code uses these tokens. Component-local shadows remain in older components and are migrated when those components are edited.
 
 ## 12. Ionic Theme Integration
 
@@ -666,7 +795,7 @@ The component does not own form submission or data persistence. The parent page 
   title="Edit data customer"
   variant="bottom-sheet"
   :loading="saving"
-  confirm-text="Simpa"
+  confirm-text="Simpan"
   @confirm="saveCustomer"
 >
   <form class="customer-form" @submit.prevent="saveCustomer">
@@ -827,12 +956,6 @@ Recommendations:
 - Add size, loading, and native attribute forwarding deliberately.
 
 Existing use that needs review includes `DetailPanel.vue`, where `variant="secondary"` is currently forwarded as an undeclared attribute and no wrapper variant is implemented.
-
-### ContactPage
-
-The location card button has no event handler at [ContactPage.vue](/C:/Users/Kevin/Desktop/Kavling-PoliLand-Kairagi-v2/poliland-mobile/src/views/ContactPage.vue:103). The page already defines real link cards for WhatsApp and telephone, but the stored values are placeholders at [ContactPage.vue](/C:/Users/Kevin/Desktop/Kavling-PoliLand-Kairagi-v2/poliland-mobile/src/views/ContactPage.vue:188).
-
-The recommended action cannot be selected until the owner provides the real contact source and destination. The location button should either navigate to or trigger an approved existing WhatsApp or telephone contact flow.
 
 ### AppInput
 
@@ -1130,6 +1253,10 @@ Defined in `src/theme/variables.css`: `--ease-out`, `--ease-in`, `--ease-drawer`
 | Shared modal (Vue)     | `src/components/ui/AppModal.vue`                           |
 | Ionic modal and sheet  | `src/utils/modalAnimation.ts` (must match `AppModal.vue`)  |
 | Staggered entrance     | `src/components/ui/Reveal.vue`                             |
+| Scroll reveal          | `src/components/ui/ScrollReveal.vue`                       |
+| Section heading reveal | `src/components/ui/SectionHeader.vue`                      |
+| Count-up numbers       | `src/components/ui/CountUp.vue`                            |
+| Scene (sun, hills, sparkle) | `src/components/ui/SceneBackdrop.vue`                 |
 | Reduced-motion global  | `src/styles/main.css`                                      |
 | JS reduced-motion      | `src/composables/useReducedMotion.ts`                      |
 | Toast                  | `src/components/ui/ToastHost.vue`                          |
@@ -1145,6 +1272,7 @@ Defined in `src/theme/variables.css`: `--ease-out`, `--ease-in`, `--ease-drawer`
 
 ### Known gaps
 
+- Public pages (Home, Siteplan, Gallery, Progress and detail, About, Contact) follow Bagian I §12. The bars on the Progress list and detail pages grow with `scaleX` from the left; the bar in the Home `ProgressPreview` still animates `width` (listed below).
 - Progress and chart bars still animate layout properties: `ProgressPreview.vue` (`width`), `AdminKeuangan.vue` `.chart-bar` (`height`), `BerandaClientPage.vue` `.hero__fill` (`width`), `AdminDashboard.vue` `.inv__seg` (`width`), `BerandaMarketingPage.vue` `.funnel__seg` (`flex-grow`). Converting them to `scaleX`/`scaleY` distorts rounded corners, so they are left as is.
 - `SearchBox.vue` and `MobileTabBar.vue` (`.icon-wrap`) animate `width`, `height`, or `padding`.
 - `Reveal` is not applied to pages whose top level is a `v-if`/`v-else` chain: SPK Client, Akun Client, Detail Kaveling, Keuangan, Pembeli, Detail Pembeli, Reviews, Akses Tim, Tinjau SPK, Profile, Settings, Tambah Calon Pembeli, Tindak Lanjut.

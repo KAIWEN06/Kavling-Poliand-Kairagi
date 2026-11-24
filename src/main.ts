@@ -9,6 +9,7 @@ import { authService } from '@/services/auth/authService'
 import { consumeOAuthUrlError } from '@/services/auth/authUrlError'
 import { poliPageTransition } from '@/utils/pageTransition'
 import { installInputGuard } from '@/utils/inputGuard'
+import { alertEnterAnimation, alertLeaveAnimation } from '@/utils/modalAnimation'
 
 // Ionic Core
 import '@ionic/vue/css/core.css'
@@ -41,6 +42,7 @@ import './styles/marketing-module.css'
 
 // Global Theme
 import './theme/variables.css'
+import './theme/poliland-look.css'
 
 // Filter input global (angka/huruf/email sesuai jenis field)
 installInputGuard()
@@ -49,7 +51,11 @@ installInputGuard()
 const app = createApp(App)
 
 app
-  .use(IonicVue, { navAnimation: poliPageTransition })
+  .use(IonicVue, {
+    navAnimation: poliPageTransition,
+    alertEnter: alertEnterAnimation,
+    alertLeave: alertLeaveAnimation,
+  })
   .use(router)
 
 // Initialize application

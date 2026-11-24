@@ -77,6 +77,7 @@ const googleLoading = ref(false)
 // Loading visual untuk initial page load dan Pull-to-Refresh.
 // Tidak bergantung pada request auth/Supabase agar tidak pernah stuck.
 const isPageLoading = ref(true)
+const entered = ref(false)
 const isRefreshing = ref(false)
 const REFRESH_DURATION = 1800
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
@@ -114,6 +115,8 @@ function handleRefresh() {
 function finishInitialLoad() {
   window.setTimeout(() => {
     isPageLoading.value = false
+    // Animasi masuk dimulai bersamaan skeleton memudar.
+    entered.value = true
   }, 800)
 }
 
@@ -339,8 +342,8 @@ async function loginWithGoogle() {
 <template>
   <ion-page>
     <ion-content class="auth-content" :fullscreen="true">
-      <main class="auth-shell">
-        <div class="auth-topbar">
+      <main class="auth-shell" :class="{ 'is-entered': entered }">
+        <div class="auth-topbar reveal reveal--fade" style="--i: 0">
           <button
             class="back-home-button"
             type="button"
@@ -354,15 +357,15 @@ async function loginWithGoogle() {
           </button>
         </div>
 
-        <section class="auth-visual" aria-label="Maskot PoliLand">
+        <section class="auth-visual reveal reveal--pop" style="--i: 1" aria-label="Maskot PoliLand">
           <MascotCanvas ref="mascotRef" />
         </section>
 
-        <ion-card class="auth-card">
-          <ion-card-header>
+        <ion-card class="auth-card reveal" style="--i: 2">
+          <ion-card-header class="reveal reveal--fade" style="--i: 3">
             <ion-card-title>SELAMAT DATANG</ion-card-title>
             <span class="title-ornament" aria-hidden="true"></span>
-            <p class="subtitle">Masuk untuk mengakses aplikasi<br class="desktop-break" /> PoliLand Kairagi</p>
+            <p class="subtitle">Masuk untuk mengakses PoliLand Kairagi</p>
           </ion-card-header>
 
           <ion-card-content>
@@ -378,7 +381,7 @@ async function loginWithGoogle() {
                 :disabled="resendLoading || !email.trim()"
                 @click="resendSignupConfirmation"
               >
-                {{ resendLoading ? 'Mengirim...' : 'Kirim ulang email konfirmasi' }}
+                {{ resendLoading ? 'Mengirim...' : 'Kirim ulang email' }}
               </button>
               <ion-text v-if="resendMessage" :color="resendMessage.startsWith('Permintaan') ? 'success' : 'danger'">
                 <p class="message" role="status">{{ resendMessage }}</p>
@@ -387,6 +390,7 @@ async function loginWithGoogle() {
 
             <form class="auth-form" @submit.prevent="submitLogin">
                 <AppInput
+                  class="reveal" style="--i: 4"
                   v-model="email"
                   input-id="login-email"
                   label="Email"
@@ -399,6 +403,7 @@ async function loginWithGoogle() {
                   @blur="mascotRef?.setEmailFocus(false)"
                 />
                 <AppInput
+                  class="reveal" style="--i: 5"
                   v-model="password"
                   input-id="login-password"
                   label="Kata sandi"
@@ -411,16 +416,13 @@ async function loginWithGoogle() {
                   @blur="mascotRef?.setPasswordFocus(false, showPassword)"
                   @visibility-change="togglePasswordVisibility"
                 />
-              <div>
-                
-              </div>
-
-              <div class="password-tools password-tools--right">
+              <div class="password-tools password-tools--right reveal reveal--fade" style="--i: 6">
                 <RouterLink to="/forgot-password">Lupa kata sandi?</RouterLink>
               </div>
               
               <AppButton
-                class="submit-button"
+                class="submit-button reveal"
+                style="--i: 6"
                 type="submit"
                 expand="block"
                 :disabled="loading"
@@ -438,12 +440,13 @@ async function loginWithGoogle() {
 
             </form>
 
-            <div class="separator"><span>atau</span></div>
+            <div class="separator reveal reveal--fade" style="--i: 7"><span>atau</span></div>
 
             <ion-button
               expand="block"
               fill="outline"
-              class="google-button"
+              class="google-button reveal"
+              style="--i: 7"
               :disabled="loading || googleLoading"
               @click="loginWithGoogle"
             > 
@@ -454,20 +457,14 @@ async function loginWithGoogle() {
               </span>
             </ion-button>
 
-            <RouterLink class="register-link" to="/register">
-              <span class="register-icon" aria-hidden="true">
-                <ion-icon :icon="personAddOutline" />
-              </span>
-              <span class="register-copy">
-                <small>Belum punya akun?</small>
-                <strong>Daftar sekarang</strong>
-              </span>
-              <span class="register-arrow" aria-hidden="true">›</span>
+            <RouterLink class="register-link reveal" style="--i: 8" to="/register">
+              <ion-icon :icon="personAddOutline" aria-hidden="true" />
+              <span>Daftar akun baru</span>
             </RouterLink>
           </ion-card-content>
         </ion-card>
 
-        <footer class="auth-footer">
+        <footer class="auth-footer reveal reveal--fade" style="--i: 9">
           <strong>PoliLand Kairagi</strong>
           <span>Solusi Investasi Tanah Masa Depan</span>
         </footer>
@@ -500,12 +497,12 @@ async function loginWithGoogle() {
                 </div>
 
                 <div class="login-skeleton-form">
-                  <Skeleton width="100%" height="58px" border-radius="15px" />
-                  <Skeleton width="100%" height="58px" border-radius="15px" />
+                  <Skeleton width="100%" height="66px" border-radius="12px" />
+                  <Skeleton width="100%" height="66px" border-radius="12px" />
                   <div class="login-skeleton-forgot">
                     <Skeleton width="105px" height="12px" border-radius="6px" />
                   </div>
-                  <Skeleton width="100%" height="44px" border-radius="10px" />
+                  <Skeleton width="100%" height="48px" border-radius="12px" />
                 </div>
 
                 <div class="login-skeleton-separator">
@@ -514,19 +511,9 @@ async function loginWithGoogle() {
                   <Skeleton width="100%" height="1px" border-radius="1px" />
                 </div>
 
-                <Skeleton width="100%" height="58px" border-radius="15px" />
-
+                <Skeleton width="100%" height="48px" border-radius="12px" />
                 <div class="login-skeleton-register">
-                  <Skeleton
-                    width="44px"
-                    height="44px"
-                    border-radius="14px"
-                  />
-                  <div class="login-skeleton-register-copy">
-                    <Skeleton width="105px" height="11px" border-radius="5px" />
-                    <Skeleton width="125px" height="14px" border-radius="6px" />
-                  </div>
-                  <Skeleton width="12px" height="25px" border-radius="5px" />
+                  <Skeleton width="100%" height="48px" border-radius="12px" />
                 </div>
               </section>
 
@@ -543,12 +530,19 @@ async function loginWithGoogle() {
 </template>
 
 <style scoped>
+/* =========================================================
+   LOGIN: satu layar, tanpa scroll di ponsel umum.
+   Maskot menyusut/hilang lebih dulu bila layar pendek,
+   semua tombol satu baris (nowrap).
+   ========================================================= */
+
 .auth-content {
-  --background: #f8f5ee;
-  --overflow: auto;
+  --background: #f7f3ea;
+  --overflow: auto; /* cadangan untuk layar sangat pendek */
 }
 
 .auth-shell {
+  --mascot-basis: 150px;
   position: relative;
   isolation: isolate;
   box-sizing: border-box;
@@ -557,11 +551,8 @@ async function loginWithGoogle() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  box-sizing: border-box;
-  padding: max(0px, env(safe-area-inset-top)) 14px max(70px, env(safe-area-inset-bottom));
+  padding: env(safe-area-inset-top, 0px) 14px max(12px, env(safe-area-inset-bottom, 0px));
   overflow-x: hidden;
-  overflow-y: visible;
   background-color: #f7f3ea;
   background-image: radial-gradient(ellipse at 50% 10%, rgb(255 255 255 / 28%) 0%, transparent 68%);
 }
@@ -573,7 +564,7 @@ async function loginWithGoogle() {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 220px;
+  height: 170px;
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20900%20240%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20fill%3D%22%23e8dfc7%22%20d%3D%22M0%2018%20C120%2044%20185%20102%20310%20124%20C435%20151%20510%20149%20620%20113%20C730%2077%20810%2034%20900%2016%20L900%20240%20L0%20240Z%22%2F%3E%3Cpath%20fill%3D%22%23f8f5ee%22%20d%3D%22M0%200%20C115%2036%20190%2095%20310%20112%20C425%20132%20520%20139%20630%20102%20C740%2066%20820%2025%20900%200%20L900%2075%20C800%20103%20732%20146%20620%20174%20C500%20205%20418%20190%20300%20166%20C170%20140%20100%2082%200%2060Z%22%2F%3E%3Cpath%20fill%3D%22%23aab39a%22%20d%3D%22M0%2083%20C105%20107%20187%20164%20310%20181%20C425%20199%20520%20211%20630%20174%20C750%20134%20820%2091%20900%2074%20L900%20240%20L0%20240Z%22%2F%3E%3Cpath%20fill%3D%22%238e9d80%22%20d%3D%22M0%20130%20C115%20151%20187%20202%20310%20215%20C430%20231%20520%20235%20635%20205%20C744%20176%20822%20131%20900%20116%20L900%20240%20L0%20240Z%22%2F%3E%3C%2Fsvg%3E");
   background-repeat: no-repeat;
@@ -581,82 +572,127 @@ async function loginWithGoogle() {
   background-size: 100% 100%;
 }
 
+/* ---------- Animasi masuk ----------
+   Elemen disembunyikan sampai skeleton selesai (.is-entered),
+   lalu naik bergantian lewat --i. Fill 'backwards' supaya
+   state :active tombol tidak tertimpa setelah animasi selesai. */
+.auth-shell:not(.is-entered) .reveal {
+  opacity: 0;
+}
+
+.auth-shell.is-entered .reveal {
+  animation: reveal-up 520ms var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.auth-shell.is-entered .reveal--fade {
+  animation-name: reveal-fade;
+  animation-duration: 420ms;
+}
+
+.auth-shell.is-entered .reveal--pop {
+  animation-name: reveal-pop;
+  animation-duration: 640ms;
+  animation-timing-function: var(--ease-spring);
+}
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes reveal-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes reveal-pop {
+  from { opacity: 0; transform: translateY(10px) scale(.86); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell.is-entered .reveal {
+    animation: none;
+  }
+}
+
+/* ---------- Topbar ---------- */
 .auth-topbar {
   position: relative;
   z-index: 3;
-  width: min(100%, 520px);
-  min-height: 60px;
+  width: min(100%, 480px);
+  min-height: 52px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin: 0 auto;
-  padding: 4px 2px 2px;
   box-sizing: border-box;
+  padding: 4px 2px 0;
 }
+
 .back-home-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 18px;
-
   border: 1.5px solid #77806f;
   border-radius: 30px;
-
   background: transparent;
-
-  color: #77806f;
-
+  color: #5f6858;
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
-
+  white-space: nowrap;
   cursor: pointer;
-
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
   transition:
-    background-color .2s ease,
-    color .2s ease,
-    border-color .2s ease,
-    transform .15s ease;
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .back-home-button:hover {
-    background: #B8860B;
-    color: #FFFFFF;
+    background: #8a6508;
+    border-color: #8a6508;
+    color: #fff;
   }
 }
 
 .back-home-button:active {
-  background: #A2770A;
-  border-color: #A2770A;
-  color: #FFFFFF;
-
-  transform: scale(.98);
+  background: #755407;
+  border-color: #755407;
+  color: #fff;
+  transform: scale(.97);
 }
 
 .back-home-button:focus-visible {
   outline: 2px solid #77806f;
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
 .back-home-button ion-icon {
-  font-size: 10px;
+  font-size: 16px;
   flex-shrink: 0;
 }
+
+/* ---------- Maskot ---------- */
 .auth-visual {
   position: relative;
   z-index: 1;
-  width: min(100%, 520px);
-  min-height: clamp(170px, 27dvh, 300px);
-  height: clamp(170px, 27dvh, 300px);
-  flex: 0 0 auto;
+  width: min(100%, 480px);
+  flex: 1 1 var(--mascot-basis);
+  min-height: 0;
+  max-height: 280px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0 auto;
   overflow: visible;
   background: transparent !important;
 }
@@ -680,55 +716,72 @@ async function loginWithGoogle() {
   background: transparent !important;
 }
 
+/* ---------- Kartu ---------- */
 .auth-card {
   position: relative;
   z-index: 2;
   box-sizing: border-box;
-  width: min(100%, 520px);
-  min-height: 0;
+  width: min(100%, 480px);
   flex: 0 0 auto;
-  margin: 0 auto 0;
+  margin: 0;
   border: 1.5px solid rgb(196 190 177 / 85%);
-  border-radius: 28px;
+  border-radius: 26px;
   background: rgb(255 253 248 / 96%);
   box-shadow: 0 8px 24px rgb(54 49 36 / 15%);
   overflow: visible;
 }
 
 ion-card-header {
-  padding: 22px 20px 8px;
+  flex-direction: column; /* Ionic default column-reverse membalik urutan judul */
+  padding: 16px 20px 2px;
   text-align: center;
 }
+
 ion-card-title {
-  color: #b9964e;
-  font-size: clamp(21px, 5vw, 27px);
+  color: #a07f33;
+  font-size: clamp(20px, 5.4vw, 26px);
   line-height: 1.15;
   font-weight: 800;
   letter-spacing: .005em;
+  white-space: nowrap;
 }
+
 .title-ornament {
   display: block;
-  width: 76px;
-  height: 4px;
-  margin: 22px auto 25px;
+  width: 64px;
+  height: 3px;
+  margin: 10px auto;
+  border-radius: 2px;
   background: #c4a052;
 }
+
 .subtitle {
   margin: 0;
-  color: #77806f;
-  font-size: clamp(14px, 3.6vw, 18px);
-  line-height: 1.45;
+  color: #5f6858;
+  font-size: clamp(13px, 3.5vw, 15px);
+  line-height: 1.4;
   font-weight: 600;
 }
-ion-card-content { padding: 8px 20px 20px; }
-.message { margin: 0 0 8px; font-size: 12px; line-height: 1.35; }
+
+ion-card-content {
+  padding: 8px 18px 16px;
+}
+
+.message {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .confirmation-resend {
   display: grid;
   justify-items: start;
   gap: 6px;
   margin: 0 0 10px;
 }
+
 .confirmation-resend button {
+  min-height: 32px;
   padding: 0;
   border: 0;
   color: #805708;
@@ -737,153 +790,97 @@ ion-card-content { padding: 8px 20px 20px; }
   font-size: 13px;
   font-weight: 700;
   text-decoration: underline;
+  white-space: nowrap;
   cursor: pointer;
+  touch-action: manipulation;
 }
-.confirmation-resend button:disabled { opacity: .55; cursor: default; }
-.confirmation-resend .message { margin: 0; }
 
+.confirmation-resend button:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.confirmation-resend .message {
+  margin: 0;
+}
+
+/* ---------- Form ---------- */
 .auth-form {
   display: grid;
-  gap: 14px;
-  margin-top: 10px;
-}
-ion-input {
-  --background: #fff;
-  --color: #77806f;
-  --placeholder-color: #929292;
-  --placeholder-opacity: 1;
-  --highlight-color-focused: #c3a052;
-  --padding-start: 14px;
-  --padding-end: 12px;
-  min-height: 58px;
-  border: 1.5px solid #c9c9c9;
-  border-radius: 15px;
-  font-size: 15px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
-ion-input input:-webkit-autofill,
-ion-input input:-webkit-autofill:focus,
-ion-input input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #fff inset !important;
-  -webkit-text-fill-color: #77806f !important;
-  background-clip: text !important;
+.auth-form :deep(.app-field) {
+  gap: 4px;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  ion-input input:-webkit-autofill:hover {
-    -webkit-box-shadow: 0 0 0 30px #fff inset !important;
-    -webkit-text-fill-color: #77806f !important;
-    background-clip: text !important;
-  }
+.auth-form :deep(.app-field__label) {
+  font-size: 13px;
+  line-height: 1.3;
 }
 
-ion-input::part(native) {
-  background-color: transparent !important;
+.auth-form :deep(input) {
+  font-size: 16px; /* cegah iOS zoom saat fokus */
 }
 
-ion-input.has-focus {
-  border-color: #c3a052;
-  box-shadow: 0 0 0 3px rgb(195 160 82 / 14%);
-}
-.password-field {
-  position: relative;
-  isolation: isolate;
-  width: 100%;
-  min-width: 0;
-}
-.password-field .password-ion-input {
-  position: relative;
-  z-index: 1;
-  --padding-end: 52px;
-  width: 100%;
-}
-.password-visibility-button {
-  position: absolute;
-  z-index: 10;
-  top: 50%;
-  right: 7px;
-  transform: translateY(-50%);
-  width: 38px;
-  height: 40px;
-  flex: 0 0 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border: 1px solid #d5d6d2;
-  border-radius: 11px;
-  padding: 0;
-  color: #454b46;
-  background: #f0f1ee;
-  box-shadow: 0 1px 3px rgb(35 40 35 / 12%);
-  font-size: 23px;
-  line-height: 1;
-  cursor: pointer;
-  pointer-events: auto;
-  -webkit-tap-highlight-color: transparent;
-}
-.password-visibility-button ion-icon {
-  display: block;
-  width: 23px;
-  height: 23px;
-  min-width: 23px;
-  color: inherit;
-  pointer-events: none;
-}
-.password-visibility-button:focus { outline: none; }
-.password-visibility-button:focus-visible {
-  outline: 2px solid #c3a052;
-  outline-offset: 1px;
-}
-.password-tools--right {
-  justify-content: flex-end;
-}
 .password-tools {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  gap: 10px;
-  margin: -2px 2px 4px;
-  color: #b18e45;
-  font-size: 13px;
-  font-weight: 650;
+  margin: -6px 0 -2px;
 }
+
 .password-tools a {
-  color: #b18e45;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 2px;
+  color: #7d5e1a;
+  font-size: 13px;
+  font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
+
+.password-tools a:active {
+  opacity: .65;
+}
+
+.password-tools a:focus-visible {
+  outline: 2px solid #b18e45;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 .submit-button {
-  --background: #b18e45;
-  --background-activated: #967638;
-  --background-hover: #a27f3e;
-
+  --background: #8a6a24;
+  --background-activated: #6f551c;
+  --background-hover: #7a5d1f;
   --color: #ffffff;
-
-  --border-radius: 10px;
-
-  --box-shadow:
-    0 4px 12px rgb(177 142 69 / 20%);
-
-  margin: 2px 0 0;
-
-  min-height: 44px;
-
-  font-size: 14px;
-
+  --border-radius: 12px;
+  --box-shadow: 0 4px 12px rgb(138 106 36 / 24%);
+  margin: 0;
+  min-height: 48px;
+  font-size: 15px;
   font-weight: 700;
-
-  letter-spacing: .01em;
+  letter-spacing: .02em;
+  white-space: nowrap;
 }
 
+/* ---------- Pemisah + Google + Daftar ---------- */
 .separator {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 16px 0 13px;
-  color: #8c8c8c;
+  margin: 10px 0;
+  color: #6b6b66;
   font-size: 13px;
+  line-height: 1;
 }
+
 .separator::before,
 .separator::after {
   content: '';
@@ -891,114 +888,121 @@ ion-input.has-focus {
   flex: 1;
   background: #dedbd5;
 }
+
 .google-button {
   --color: #333;
   --border-color: #cecece;
   --border-width: 1.5px;
-  --border-radius: 15px;
+  --border-radius: 12px;
   --background: #fff;
   --background-activated: #f8f4eb;
-  min-height: 58px;
+  margin: 0;
+  min-height: 48px;
   font-size: 15px;
   font-weight: 650;
+  white-space: nowrap;
 }
+
 .google-label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  white-space: nowrap;
 }
+
 .google-logo-image {
   display: block;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   object-fit: contain;
 }
 
 .register-link {
   display: flex;
   align-items: center;
-  gap: 13px;
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 18px;
-  padding: 12px 14px;
-  border: 1px solid #ead9b1;
-  border-radius: 16px;
-  background: #fbf1d9;
-  color: #262724;
-  text-decoration: none;
-}
-.register-icon {
-  display: flex;
-  flex: 0 0 54px;
-  width: 44px;
-  height: 44px;
-  align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  background: #eac66b;
-  color: #604a20;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border: 1.5px solid #e3cf9a;
+  border-radius: 12px;
+  background: #fbf1d9;
+  color: #4d3b0f;
+  font-size: 15px;
+  font-weight: 750;
+  white-space: nowrap;
+  text-decoration: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
 }
-.register-icon ion-icon { font-size: 20px; }
-.register-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; }
-.register-copy small { color: #7f7d72; font-size: 13px; }
-.register-copy strong { font-size: 16px; line-height: 1.2; }
-.register-arrow { font-size: 34px; line-height: 1; font-weight: 300; }
 
+.register-link ion-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
 
+@media (hover: hover) and (pointer: fine) {
+  .register-link:hover {
+    background: #f6e6bd;
+  }
+}
 
+.register-link:active {
+  background: #f1dca8;
+  transform: scale(.98);
+}
+
+.register-link:focus-visible {
+  outline: 2px solid #8a6a24;
+  outline-offset: 2px;
+}
+
+/* ---------- Footer ---------- */
 .auth-footer {
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  box-sizing: border-box;
+  gap: 2px;
   width: 100%;
-  flex: 0 0 auto;
-  padding: 14px 8px 10px;
-  margin: 0;
+  box-sizing: border-box;
+  padding: 12px 8px 4px;
   text-align: center;
-  font-size: 12px;
-  line-height: 1.35;
-  margin-top: 10px; /* Atau gunakan -8px jika ingin dinaikkan lebih tinggi lagi mendekati card */
-  padding: 12px 8px 30px;
 }
 
 .auth-footer strong {
-  display: block;
-  margin: 0;
-  color: #43523f;
-  font-size: 14px;
-  line-height: 1.35;
+  color: #2f3b2b;
+  font-size: 13px;
+  line-height: 1.3;
   font-weight: 700;
 }
 
 .auth-footer span {
-  display: block;
-  margin: 0;
-  color: #5f6858;
+  color: #3f4a3a;
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
-
-
 /* =========================================================
-   LOGIN SKELETON
-   Menggunakan komponen ui/Skeleton.vue yang sudah ada.
+   SKELETON (mengikuti tata letak ringkas di atas)
    ========================================================= */
 
 .login-skeleton-overlay {
   position: absolute;
   inset: 0;
   z-index: 9999;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   background: #f7f3ea;
 }
 
@@ -1010,38 +1014,40 @@ ion-input.has-focus {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: max(0px, env(safe-area-inset-top)) 14px max(70px, env(safe-area-inset-bottom));
+  padding: env(safe-area-inset-top, 0px) 14px max(12px, env(safe-area-inset-bottom, 0px));
   background-color: #f7f3ea;
 }
 
 .login-skeleton-topbar {
-  width: min(100%, 520px);
-  min-height: 60px;
+  width: min(100%, 480px);
+  min-height: 52px;
   display: flex;
   align-items: center;
-  padding: 4px 2px 2px;
+  padding: 4px 2px 0;
   box-sizing: border-box;
 }
 
 .login-skeleton-visual {
-  width: min(100%, 520px);
-  height: clamp(170px, 27dvh, 300px);
+  width: min(100%, 480px);
+  flex: 1 1 150px;
+  min-height: 0;
+  max-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
 }
 
 .login-skeleton-visual :deep(.skeleton) {
   opacity: .72;
+  max-height: 100%;
 }
 
 .login-skeleton-card {
   box-sizing: border-box;
-  width: min(100%, 520px);
-  padding: 22px 20px 20px;
+  width: min(100%, 480px);
+  padding: 16px 18px 16px;
   border: 1.5px solid rgb(196 190 177 / 85%);
-  border-radius: 28px;
+  border-radius: 26px;
   background: rgb(255 253 248 / 96%);
   box-shadow: 0 8px 24px rgb(54 49 36 / 15%);
 }
@@ -1050,19 +1056,18 @@ ion-input.has-focus {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .login-skeleton-form {
   display: grid;
-  gap: 14px;
-  margin-top: 25px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .login-skeleton-forgot {
   display: flex;
   justify-content: flex-end;
-  margin: -2px 2px 4px;
 }
 
 .login-skeleton-separator {
@@ -1070,27 +1075,11 @@ ion-input.has-focus {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
-  margin: 16px 0 13px;
+  margin: 10px 0;
 }
 
 .login-skeleton-register {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  box-sizing: border-box;
-  width: 100%;
-  margin-top: 18px;
-  padding: 12px 14px;
-  border: 1px solid #ead9b1;
-  border-radius: 16px;
-  background: #fbf1d9;
-}
-
-.login-skeleton-register-copy {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 6px;
+  margin-top: 10px;
 }
 
 .login-skeleton-footer {
@@ -1099,8 +1088,7 @@ ion-input.has-focus {
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 14px 8px 30px;
-  margin-top: 10px;
+  padding: 12px 8px 4px;
 }
 
 .login-skeleton-fade-enter-active,
@@ -1113,75 +1101,61 @@ ion-input.has-focus {
   opacity: 0;
 }
 
+/* =========================================================
+   RESPONSIF
+   ========================================================= */
+
 @media (min-width: 700px) {
-  .login-skeleton-shell {
-    padding: 18px 24px max(22px, env(safe-area-inset-bottom));
+  .auth-shell {
+    --mascot-basis: 220px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 
+  .auth-visual,
   .login-skeleton-visual {
-    width: min(100%, 580px);
-    height: clamp(240px, 34dvh, 380px);
+    max-height: 340px;
   }
 }
 
-@media (max-height: 760px) {
-  .login-skeleton-shell {
-    padding-top: max(0px, env(safe-area-inset-top));
-    padding-bottom: max(24px, env(safe-area-inset-bottom));
+/* Layar pendek: padatkan dulu, lalu buang elemen dekoratif. */
+@media (max-height: 780px) {
+  .auth-footer,
+  .login-skeleton-footer {
+    display: none;
+  }
+}
+
+@media (max-height: 740px) {
+  .auth-shell {
+    --mascot-basis: 110px;
   }
 
+  .auth-topbar,
   .login-skeleton-topbar {
     min-height: 48px;
   }
+}
 
-  .login-skeleton-visual {
-    height: clamp(130px, 22dvh, 210px);
+@media (max-height: 700px) {
+  .subtitle,
+  .title-ornament {
+    display: none;
   }
 
-  .login-skeleton-card {
+  ion-card-header {
     padding-top: 14px;
   }
 
-  .login-skeleton-form {
-    gap: 9px;
-    margin-top: 18px;
-  }
-
-  .login-skeleton-card > .login-skeleton-separator {
-    margin-top: 12px;
+  .auth-shell {
+    --mascot-basis: 84px;
   }
 }
 
-@media (min-width: 700px) {
-  .auth-shell {
-    min-height: 100%;
-    padding: 18px 24px max(22px, env(safe-area-inset-bottom));
+@media (max-height: 640px) {
+  .auth-visual,
+  .login-skeleton-visual {
+    display: none;
   }
-  .auth-card { max-height: none; }
-  .auth-visual {
-    width: min(100%, 580px);
-    min-height: clamp(240px, 34dvh, 380px);
-    height: clamp(240px, 34dvh, 380px);
-  }
-}
-
-@media (max-height: 760px) {
-  .auth-shell {
-    padding-top: max(0px, env(safe-area-inset-top));
-    padding-bottom: max(24px, env(safe-area-inset-bottom));
-  }
-  .auth-topbar { min-height: 48px; }
-  .auth-visual {
-    min-height: clamp(130px, 22dvh, 210px);
-    height: clamp(130px, 22dvh, 210px);
-  }
-  .auth-card { min-height: max-content; }
-  ion-card-header { padding-top: 14px; }
-  .title-ornament { margin: 12px auto 14px; }
-  .auth-form { gap: 9px; }
-  ion-input { min-height: 50px; }
-  .submit-button, .google-button { min-height: 50px; }
-  .register-link { margin-top: 12px; }
-  .auth-footer { padding-top: 14px; padding-bottom: 8px; }
 }
 </style>

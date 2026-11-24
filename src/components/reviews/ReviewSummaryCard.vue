@@ -1,6 +1,6 @@
 <template>
   <div class="summary" aria-label="Ringkasan ulasan">
-    <!-- Rating rata-rata -->
+    <!-- Penilaian rata-rata -->
     <div class="block">
       <template v-if="loading">
         <span class="skeleton skeleton--lg" />
@@ -8,14 +8,14 @@
       </template>
       <template v-else-if="hasReviews">
         <p class="big">{{ formatAverage(stats!.average!) }}<span class="big-unit">/5</span></p>
-        <p class="muted">Rating rata-rata</p>
+        <p class="muted">Penilaian rata-rata</p>
         <div class="avg-row">
           <StarRating :model-value="stats!.average!" readonly :size="20" />
           <span class="count">({{ formatNumber(stats!.total) }} ulasan)</span>
         </div>
       </template>
       <template v-else>
-        <p class="big big--empty">Belum ada rating</p>
+        <p class="big big--empty">Belum ada penilaian</p>
         <p class="muted">Belum ada ulasan yang dipublikasikan.</p>
       </template>
     </div>
@@ -27,7 +27,7 @@
       <template v-if="hasReviews">
         <p class="big">{{ recommendPercent }}%</p>
         <p class="muted">Merekomendasikan PoliLand Kairagi</p>
-        <ul class="dist" aria-label="Sebaran rating">
+        <ul class="dist" aria-label="Sebaran penilaian">
           <li v-for="n in [5, 4, 3, 2, 1]" :key="n">
             <span class="dist-label">{{ n }}</span>
             <span class="dist-track" aria-hidden="true">
@@ -91,50 +91,17 @@ const formatAverage = (n: number) => n.toLocaleString('id-ID', { minimumFraction
 </script>
 
 <style scoped>
-.summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: var(--space-4) var(--space-8);
-  padding: var(--space-4);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--surface-primary);
-  box-shadow: var(--shadow-sm);
-}
+.summary { display: flex; flex-wrap: wrap; align-items: stretch; gap: 20px 32px; padding: 22px 20px; border: 1px solid var(--border-default, #eae7e0); border-radius: var(--radius-panel, 20px); background: var(--surface-primary, #fff); box-shadow: var(--shadow-md); }
 
-.block {
-  display: flex;
-  min-width: 200px;
-  flex: 1 1 200px;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-}
+.block { display: flex; min-width: 200px; flex: 1 1 200px; flex-direction: column; justify-content: center; gap: 6px; }
 
-.big {
-  margin: 0;
-  color: var(--text-primary);
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: var(--font-weight-bold);
-  line-height: 1.1;
-}
+.big { margin: 0; color: var(--poliland-green, #355a2c); font-family: var(--font-display); font-size: 44px; font-weight: 650; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 
-.big-unit {
-  color: var(--text-secondary);
-  font-size: var(--font-size-xl);
-}
+.big-unit { color: var(--text-secondary, #5f5f66); font-size: 22px; font-weight: 500; }
 
-.big--empty {
-  font-size: var(--font-size-xl);
-}
+.big--empty { color: var(--text-primary, #252525); font-size: 24px; line-height: 1.2; }
 
-.muted {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-base);
-}
+.muted { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 15px; line-height: 1.5; }
 
 .avg-row {
   display: flex;
@@ -143,10 +110,7 @@ const formatAverage = (n: number) => n.toLocaleString('id-ID', { minimumFraction
   margin-top: var(--space-1);
 }
 
-.count {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-}
+.count { color: var(--text-secondary, #5f5f66); font-size: 14px; }
 
 .divider {
   display: none;
@@ -154,29 +118,11 @@ const formatAverage = (n: number) => n.toLocaleString('id-ID', { minimumFraction
   background: var(--border-default);
 }
 
-.dist {
-  display: grid;
-  gap: 4px;
-  margin: var(--space-2) 0 0;
-  padding: 0;
-  list-style: none;
-}
+.dist { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
 
-.dist li {
-  display: grid;
-  grid-template-columns: 12px 1fr 28px;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-}
+.dist li { display: grid; grid-template-columns: 14px 1fr 32px; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary, #5f5f66); }
 
-.dist-track {
-  height: 6px;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--surface-sunken);
-}
+.dist-track { height: 8px; overflow: hidden; border-radius: 999px; background: var(--surface-sunken, #f0ede5); }
 
 .dist-fill {
   display: block;
@@ -190,13 +136,7 @@ const formatAverage = (n: number) => n.toLocaleString('id-ID', { minimumFraction
   font-variant-numeric: tabular-nums;
 }
 
-.prompt {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.3;
-}
+.prompt { margin: 0; color: var(--text-primary, #252525); font-family: var(--font-display); font-size: 22px; font-weight: 650; line-height: 1.25; letter-spacing: -0.01em; }
 
 .rate-row {
   display: flex;
@@ -206,49 +146,30 @@ const formatAverage = (n: number) => n.toLocaleString('id-ID', { minimumFraction
 }
 
 .note-link {
-  padding: 0;
+  min-height: 44px;
+  padding: 0 4px;
   border: 0;
   background: none;
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  color: var(--poliland-green, #355a2c);
+  font: 800 14px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 4px;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .note-link:hover {
-    color: var(--poliland-green);
-  }
-}
-
-.write-btn {
-  align-self: flex-start;
-  margin-top: var(--space-2);
-  padding: 8px 20px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--poliland-green);
-  color: #fff;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .write-btn:hover {
-    background: var(--green-800);
-  }
-}
+.write-btn:active { transform: scale(0.97); }
+.write-btn { align-self: flex-start; min-height: 52px; margin-top: 10px; padding: 0 26px; border: 0; border-radius: 14px; background: var(--poliland-gold, #cba044); color: var(--ink, #1b1f1a); font: 800 15px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif); box-shadow: 0 12px 26px -10px rgba(203, 160, 68, 0.85); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: transform var(--dur-base) var(--ease-spring); }
 
 .write-btn:focus-visible,
 .note-link:focus-visible {
-  outline: none;
-  box-shadow: var(--ring-focus);
+  outline: 3px solid var(--poliland-gold, #cba044);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .write-btn:active { transform: none; }
 }
 
 .skeleton {

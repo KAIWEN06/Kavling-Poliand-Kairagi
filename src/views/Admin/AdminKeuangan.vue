@@ -2,7 +2,7 @@
   <ion-page class="admin-finance-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
-    <AppPullRefresh scoped :refresh-handler="() => loadTransactions(true)" />
+    <AppPullRefresh scoped :refresh-handler="refreshTransactions" />
 
     <ion-content :fullscreen="true">
       <main class="finance-shell">
@@ -152,7 +152,7 @@
                     <ion-icon :icon="downloadOutline" /> Lihat bukti pengembalian
                   </a>
                   <p v-if="refundProofError" class="proof-refund-error" role="alert">{{ refundProofError }}</p>
-                  <button v-if="refundProofError" type="button" class="quiet-action" @click="loadSelectedPaymentProof()">Coba muat bukti lagi</button>
+                  <button v-if="refundProofError" type="button" class="quiet-action" @click="loadSelectedPaymentProof()">Muat ulang</button>
                 </template>
 
                 <template v-else>
@@ -180,28 +180,31 @@
                   <p v-if="refundError" class="proof-refund-error" role="alert">{{ refundError }}</p>
                   <button type="button" class="proof-refund-submit" :disabled="refundSubmitting || !refundFile" @click="submitRefundProof">
                     <ion-spinner v-if="refundSubmitting" name="crescent" />
-                    {{ refundSubmitting ? 'Menyimpan...' : 'Simpan bukti pengembalian' }}
+                    {{ refundSubmitting ? 'Menyimpan...' : 'Simpan bukti' }}
                   </button>
                 </template>
               </section>
               <div v-if="selectedProofPayment.payment.status === 'Pending'" class="proof-review-actions">
-                <button type="button" class="proof-verify-button" :disabled="reviewSaving || !proofSignedUrl" @click="reviewPayment('Confirmed')">
-                  <ion-spinner v-if="reviewSaving && reviewTargetStatus === 'Confirmed'" name="crescent" /><ion-icon v-else :icon="shieldCheckmarkOutline" /> Verifikasi
-                </button>
+                <SlideToConfirm
+                  variant="success"
+                  label="Geser untuk verifikasi pembayaran"
+                  :disabled="reviewSaving || !proofSignedUrl"
+                  :loading="reviewSaving && reviewTargetStatus === 'Confirmed'"
+                  @confirm="reviewPayment('Confirmed')"
+                />
                 <div class="proof-review-secondary">
                   <button type="button" class="proof-reject-button" :disabled="reviewSaving" @click="openReviewDialog('Rejected')"><ion-icon :icon="closeCircleOutline" /> Tolak Transaksi</button>
-                  <button type="button" class="proof-reupload-button" :disabled="reviewSaving" @click="openReviewDialog('Needs Reupload')"><ion-icon :icon="refreshOutline" /> Minta Upload Ulang</button>
+                  <button type="button" class="proof-reupload-button" :disabled="reviewSaving" @click="openReviewDialog('Needs Reupload')"><ion-icon :icon="refreshOutline" /> Minta unggah ulang</button>
                 </div>
               </div>
               <div v-else-if="selectedProofPayment.payment.review_note || selectedProofPayment.payment.note" class="proof-review-note"><strong>Catatan Admin</strong><p>{{ selectedProofPayment.payment.review_note || selectedProofPayment.payment.note }}</p></div>
-              <button type="button" class="proof-back-button" @click="closePaymentPage"><ion-icon :icon="chevronBackOutline" /> Kembali</button>
             </template>
           </section>
         </template>
 
         <template v-else-if="paymentPage === 'add'">
           <section class="payment-flow-page payment-create-page">
-            <button type="button" class="report-back-link" @click="closePaymentPage"><ion-icon :icon="chevronBackOutline" /> Kembali ke Detail Keuangan</button>
+            <button type="button" class="report-back-link" @click="closePaymentPage"><ion-icon :icon="chevronBackOutline" /> Kembali</button>
             <StatusIllustration v-if="!selectedReportLot" variant="not-found-404" size="sm" title="Transaksi tidak ditemukan" description="Kembali ke laporan dan pilih transaksi yang benar." />
             <template v-else>
               <section class="payment-step-card">
@@ -258,7 +261,7 @@
                 </div>
               </section>
               <button type="button" class="payment-save-button" :disabled="paymentSaving || !canCreatePayment" @click="saveNewPayment">
-                <ion-spinner v-if="paymentSaving" name="crescent" /><ion-icon v-else :icon="saveOutline" /> {{ paymentSaving ? 'Menyimpan...' : 'Simpan Transaksi Pembayaran' }}
+                <ion-spinner v-if="paymentSaving" name="crescent" /><ion-icon v-else :icon="saveOutline" /> {{ paymentSaving ? 'Menyimpan...' : 'Simpan transaksi' }}
               </button>
               <button type="button" class="payment-cancel-button" :disabled="paymentSaving" @click="closePaymentPage">Batal</button>
             </template>
@@ -363,7 +366,7 @@
 
               <button type="button" class="bank-add-button" @click="openBankEditor()">
                 <ion-icon :icon="addOutline" aria-hidden="true" />
-                Tambah Rekening Bank
+                Tambah rekening
               </button>
             </template>
           </section>
@@ -419,7 +422,7 @@
 
                 <button type="button" class="instruction-add" @click="addInstructionStep">
                   <ion-icon :icon="addOutline" aria-hidden="true" />
-                  Tambah Butir Langkah
+                  Tambah langkah
                 </button>
 
                 <div class="instruction-field instruction-notes-field">
@@ -440,7 +443,7 @@
                   <button type="button" class="instruction-save" :disabled="instructionSaving || !canSaveInstruction" @click="savePaymentInstruction">
                     <ion-spinner v-if="instructionSaving" name="crescent" />
                     <ion-icon v-else :icon="saveOutline" aria-hidden="true" />
-                    {{ instructionSaving ? 'Menyimpan...' : 'Simpan Perubahan Instruksi' }}
+                    {{ instructionSaving ? 'Menyimpan...' : 'Simpan instruksi' }}
                   </button>
                   <button v-if="instructionExists" type="button" class="instruction-delete" :disabled="instructionSaving" @click="deletePaymentInstruction">
                     <ion-icon :icon="trashOutline" aria-hidden="true" />
@@ -563,7 +566,7 @@
                   <span>{{ payment.method }}</span>
                 </div>
                 <p v-if="payment.note">{{ payment.note }}</p>
-                <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" /> {{ payment.refundStatus === 'Refunded' ? 'Lihat Bukti Refund' : 'Lihat Bukti Pembayaran' }}</button>
+                <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" /> {{ payment.refundStatus === 'Refunded' ? 'Bukti refund' : 'Bukti bayar' }}</button>
               </article>
               <StatusIllustration v-if="!selectedReportLot.payments.length" variant="empty-data" size="sm" title="Belum ada riwayat pembayaran" description="Pembayaran untuk kaveling ini akan tercatat di sini." />
             </section>
@@ -613,7 +616,7 @@
               <button type="button" class="export-button" :disabled="pdfExporting" @click="exportReport">
                 <ion-spinner v-if="pdfExporting" name="crescent" />
                 <ion-icon v-else :icon="downloadOutline" aria-hidden="true" />
-                {{ pdfExporting ? 'Menyiapkan PDF...' : 'Unduh PDF' }}
+                {{ pdfExporting ? 'Menyiapkan...' : 'Unduh PDF' }}
               </button>
             </div>
             <p v-if="pdfError" class="report-pdf-error" role="alert">{{ pdfError }}</p>
@@ -720,7 +723,7 @@
                     </div>
                     <div class="report-lot-progress-label"><span>Progres Pembayaran</span><strong>{{ lot.progress.toFixed(1) }}% <small>({{ lot.paidPaymentCount }} pembayaran terkonfirmasi)</small></strong></div>
                     <div class="report-progress-track"><span :style="{ width: `${lot.progress}%` }" /></div>
-                    <button type="button" class="report-detail-button" @click="openReportLot(lot)">Lihat Detail Keuangan <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
+                    <button type="button" class="report-detail-button" @click="openReportLot(lot)">Detail <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
                   </article>
                 </div>
                 <StatusIllustration v-else :variant="reportQuery ? 'no-result' : 'empty-data'" size="sm" :title="reportQuery ? 'Kavling tidak ditemukan' : 'Belum ada transaksi kavling'" :description="reportQuery ? 'Tidak ada kavling yang cocok dengan pencarian.' : 'Data akan tampil setelah ada transaksi.'" />
@@ -910,7 +913,7 @@
 
               <AppButton class="payment-plan-add-button" variant="secondary" expand="block" @click="openPlanEditor()">
                 <ion-icon :icon="addOutline" aria-hidden="true" />
-                Tambah Skema Cicilan
+                Tambah skema
               </AppButton>
               <AppButton class="payment-plan-back-button" variant="neutral" expand="block" @click="activeView = 'verification'">
                 <ion-icon :icon="chevronBackOutline" aria-hidden="true" />
@@ -932,7 +935,7 @@
             <button v-if="query" type="button" aria-label="Hapus pencarian" @click="query = ''"><ion-icon :icon="closeOutline" aria-hidden="true" /></button>
           </label>
 
-          <SkeletonRowList v-if="loading" :rows="4" :fields="3" :badges="[3]" label="Memuat transaksi" />
+          <SkeletonRowList v-if="loading || refreshing" :rows="4" :fields="3" :badges="[3]" label="Memuat transaksi" />
           <StatusIllustration
               v-else-if="errorMessage"
               :variant="resolveErrorVariant(errorMessage)"
@@ -961,18 +964,13 @@
                 <div class="transaction-details"><div><span>Nominal pembayaran</span><strong>{{ formatCurrency(transaction.amount) }}</strong></div><div><span>{{ transaction.method }}</span><time :datetime="transaction.date">{{ formatDate(transaction.date) }}</time></div></div>
                 <div class="transaction-actions">
                   <button type="button" class="primary-action" @click="handleFinanceTransactionAction(transaction)">
-                    <ion-icon :icon="transaction.status === 'pending' ? checkmarkCircleOutline : documentTextOutline" aria-hidden="true" />
-                    {{ transaction.reviewStatus === 'Needs Reupload'
-                      ? 'Lihat Bukti'
-                      : transaction.status === 'pending'
-                        ? 'Verifikasi'
-                        : transaction.refundStatus === 'Refunded'
-                          ? 'Lihat Bukti Pengembalian'
-                          : transaction.refundStatus === 'Pending Refund'
-                            ? 'Unggah Bukti Pengembalian'
-                            : 'Lihat Bukti' }}
+                    <ion-icon :icon="eyeOutline" aria-hidden="true" />
+                    Lihat
                   </button>
-                  <button type="button" class="quiet-action" @click="openReportForTransaction(transaction.id)">Detail Keuangan</button>
+                  <button v-if="transaction.spkRequestId" type="button" class="quiet-action spk-link-action" @click="openRelatedSpk(transaction)">
+                    <ion-icon :icon="documentTextOutline" aria-hidden="true" />
+                    Buka SPK
+                  </button>
                 </div>
               </article>
             </section>
@@ -1001,11 +999,14 @@
 
         <AppModal
           v-model="reviewDialogOpen"
-          :title="reviewTargetStatus === 'Rejected' ? 'Tolak Transaksi' : 'Minta Upload Ulang'"
+          :title="reviewTargetStatus === 'Rejected' ? 'Tolak Transaksi' : 'Minta unggah ulang'"
           variant="dialog"
           :loading="reviewSaving"
           :confirm-disabled="!reviewReason.trim()"
           :confirm-text="reviewTargetStatus === 'Rejected' ? 'Tolak Pembayaran' : 'Kirim Permintaan'"
+          :confirm-variant="reviewTargetStatus === 'Rejected' ? 'danger' : 'primary'"
+          slide-confirm
+          :slide-label="reviewTargetStatus === 'Rejected' ? 'Geser untuk menolak' : 'Geser untuk mengirim'"
           @confirm="submitPaymentReview"
         >
           <div class="payment-review-dialog">
@@ -1017,7 +1018,7 @@
 
         <AppModal
           v-model="bankModalOpen"
-          :title="editingBankId ? 'Edit Rekening Bank' : 'Tambah Rekening Bank'"
+          :title="editingBankId ? 'Edit Rekening Bank' : 'Tambah rekening'"
           variant="bottom-sheet"
           :loading="bankSaving"
           :confirm-disabled="!canSaveBank"
@@ -1055,7 +1056,7 @@
 
         <AppModal
           v-model="planModalOpen"
-          :title="editingPlanId ? 'Edit Skema Cicilan' : 'Tambah Skema Cicilan'"
+          :title="editingPlanId ? 'Edit Skema Cicilan' : 'Tambah skema'"
           variant="bottom-sheet"
           :loading="planSaving"
           :confirm-disabled="!canSavePlan"
@@ -1112,6 +1113,9 @@
           variant="dialog"
           :loading="planDeleting"
           confirm-text="Hapus Skema"
+          confirm-variant="danger"
+          slide-confirm
+          slide-label="Geser untuk menghapus"
           @confirm="deletePaymentPlan"
         >
           <div class="payment-plan-delete-content">
@@ -1134,6 +1138,8 @@
       :title="cancellationDecision === 'Approved' ? 'Setujui Pembatalan' : 'Tolak Pengajuan Pembatalan'"
       :confirm-text="cancellationDecision === 'Approved' ? 'Setujui dan Lepaskan Kavling' : 'Tolak Pengajuan'"
       :confirm-variant="cancellationDecision === 'Approved' ? 'danger' : 'neutral'"
+      slide-confirm
+      :slide-label="cancellationDecision === 'Approved' ? 'Geser untuk melepas kavling' : 'Geser untuk menolak'"
       :loading="cancellationDecisionSaving"
       :confirm-disabled="cancellationDecisionNote.trim().length < 3"
       @confirm="saveCancellationDecision"
@@ -1154,10 +1160,11 @@ import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
+import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
-import { addCircleOutline, addOutline, businessOutline, calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, closeCircleOutline, closeOutline, copyOutline, createOutline, documentTextOutline, downloadOutline, imageOutline, informationCircleOutline, peopleOutline, pieChartOutline, refreshOutline, saveOutline, searchOutline, shieldCheckmarkOutline, starOutline, timeOutline, trashOutline, walletOutline } from 'ionicons/icons'
+import { addCircleOutline, addOutline, businessOutline, calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, eyeOutline, chevronBackOutline, chevronForwardOutline, closeCircleOutline, closeOutline, copyOutline, createOutline, documentTextOutline, downloadOutline, imageOutline, informationCircleOutline, peopleOutline, pieChartOutline, refreshOutline, saveOutline, searchOutline, shieldCheckmarkOutline, starOutline, timeOutline, trashOutline, walletOutline } from 'ionicons/icons'
 import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -1175,6 +1182,7 @@ import { purchaseCancellationService, type PurchaseCancellationRequest } from '@
 import { paymentService, type InstallmentScheduleRecord, type PaymentDetail } from '@/services/Finance/paymentService'
 import { supabase } from '@/services/config/supabase'
 import AppModal from '@/components/ui/AppModal.vue'
+import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import type { FinanceAdminPaymentRecord, FinanceCustomerRecord, FinancePaymentRecord, FinanceTransactionRecord } from '@/types/finance'
 import FinanceAmountBreakdown from '@/components/Admin/finance/FinanceAmountBreakdown.vue'
@@ -1296,6 +1304,7 @@ const transactions = ref<FinanceTransaction[]>([])
 const activeFilter = ref<FinanceStatus>('pending')
 const query = ref('')
 const loading = ref(true)
+const refreshing = ref(false)
 const errorMessage = ref('')
 const actionMessage = ref('')
 const route = useRoute()
@@ -1962,6 +1971,10 @@ async function openPaymentProof(paymentId: number, focusRefund = false) {
     })
   }
 }
+function openRelatedSpk(transaction: FinanceTransaction) {
+  if (!transaction.spkRequestId) return
+  void router.push({ name: 'AdminSPK', query: { spkId: transaction.spkRequestId } })
+}
 function handleFinanceTransactionAction(transaction: FinanceTransaction) {
   if (
     transaction.refundStatus
@@ -2282,21 +2295,6 @@ async function openReportLot(lot: ReportLot) {
   }
   if (lot.paymentType === 'Installment') await loadSchedulesForSelectedLot()
   window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-function openReportForTransaction(paymentId: string) {
-  const payment = allReportPayments.value.find((item: ReportPayment) => item.id === paymentId)
-  if (!payment) {
-    showMessage('Data transaksi belum tersedia pada laporan.')
-    return
-  }
-  const lot = reportLots.value.find((item: ReportLot) => item.transactionId === payment.transactionId)
-  if (lot) {
-    activeView.value = 'reports'
-    activeReportTab.value = 'lots'
-    void openReportLot(lot)
-  } else {
-    void openPaymentProof(Number(paymentId))
-  }
 }
 function openAddPayment() {
   if (!selectedReportLot.value || selectedReportLot.value.remaining <= 0) return
@@ -2665,6 +2663,10 @@ function initials(name: string) { return name.split(' ').filter(Boolean).slice(0
 function statusLabel(status: FinanceStatus) { return status === 'pending' ? 'Menunggu' : status === 'verified' ? 'Terverifikasi' : 'Ditolak / Terlambat' }
 function showMessage(message: string) { actionMessage.value = message; window.setTimeout(() => { actionMessage.value = '' }, 2800) }
 
+function refreshTransactions() {
+  return withRefreshSkeleton(refreshing, () => loadTransactions(true))
+}
+
 async function loadTransactions(silent = false) {
   if (!silent) loading.value = true
   errorMessage.value = ''
@@ -2985,9 +2987,12 @@ onMounted(async () => {
 .finance-search { display: flex; align-items: center; gap: 9px; min-height: 46px; margin-top: 12px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }.finance-search > ion-icon { color: var(--text-secondary); font-size: 18px; }.finance-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 13px; }.finance-search button { display: grid; width: 32px; height: 32px; place-items: center; border: 0; background: transparent; color: var(--text-secondary); }
 .transaction-list { display: grid; gap: 12px; margin-top: 16px; }.transaction-card { min-width: 0; padding: 15px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }.transaction-head { display: flex; align-items: center; gap: 10px; }.customer-mark { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 12px; font-size: 12px; font-weight: var(--font-weight-bold); }.customer-mark--pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }.customer-mark--verified { background: var(--status-success-bg); color: var(--poliland-green); }.customer-mark--overdue { background: color-mix(in srgb, var(--status-danger) 11%, white); color: var(--status-danger); }.transaction-customer { min-width: 0; flex: 1; }.transaction-customer h2 { margin: 0; font-size: 14px; }.transaction-customer p { margin: 3px 0 0; color: var(--text-secondary); font-size: 11px; overflow-wrap: anywhere; }.status-badge { flex: 0 0 auto; padding: 5px 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 10px; font-weight: var(--font-weight-semibold); }.status-badge--pending { color: var(--poliland-gold-text); background: var(--poliland-gold-soft); }.status-badge--verified { color: var(--poliland-green); background: var(--status-success-bg); }.status-badge--overdue { color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 10%, white); }
 .finance-pager { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(90px, 1fr); align-items: center; gap: 14px; margin-top: 18px; padding: 16px 0 4px; border-top: 1px solid var(--border-default); }.finance-pager-controls { grid-column: 2; display: flex; align-items: center; gap: 6px; max-width: 100%; overflow-x: auto; scrollbar-width: none; padding: 3px; border: 1px solid var(--border-default); border-radius: var(--radius-panel); background: var(--surface-muted); }.finance-pager-controls::-webkit-scrollbar { display: none; }.finance-pager-btn, .finance-pager-number { min-width: 44px; height: 44px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-primary); color: var(--text-primary); font: inherit; font-weight: var(--font-weight-bold); cursor: pointer; }.finance-pager-btn { display: inline-flex; align-items: center; justify-content: center; font-size: 20px; }.finance-pager-number.active { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }.finance-pager-btn:disabled, .finance-pager-number:disabled { cursor: default; border-color: transparent; background: transparent; opacity: 1; }.finance-pager-position { grid-column: 3; color: var(--text-secondary); font-size: 12px; text-align: center; white-space: nowrap; }
-.transaction-details { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); }.transaction-details strong { display: block; margin-top: 4px; font-size: 18px; }.transaction-details time { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 10px; text-align: right; }.transaction-actions { display: flex; gap: 8px; margin-top: 12px; }.transaction-actions button { min-height: 44px; padding: 0 12px; border-radius: var(--radius-control); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.primary-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--poliland-green); background: var(--poliland-green); color: #fff; }.secondary-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-primary); }.quiet-action { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-secondary); }.action-message { position: fixed; right: 16px; bottom: calc(94px + env(safe-area-inset-bottom)); left: 16px; z-index: 9000; margin: 0 auto; max-width: 520px; padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); box-shadow: 0 8px 24px rgb(37 37 37 / 15%); color: var(--text-primary); font-size: 12px; text-align: center; }.finance-state { display: flex; flex-direction: column; align-items: center; gap: 9px; margin-top: 16px; padding: 34px 18px; border: 1px dashed var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); text-align: center; }.finance-state ion-icon, .finance-state ion-spinner { color: var(--poliland-green); font-size: 28px; }.finance-state strong { font-size: 14px; }.finance-state p { max-width: 390px; margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
+.transaction-details { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); }.transaction-details strong { display: block; margin-top: 4px; font-size: 18px; }.transaction-details time { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 10px; text-align: right; }.transaction-actions { display: flex; gap: 8px; margin-top: 12px; }.transaction-actions button { min-height: 44px; padding: 0 12px; border-radius: var(--radius-control); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.spk-link-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; color: var(--poliland-green); border-color: var(--poliland-green); }
+.spk-link-action:active { transform: scale(0.97); }
+.primary-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--poliland-green); background: var(--poliland-green); color: #fff; }.secondary-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-primary); }.quiet-action { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-secondary); }.action-message { position: fixed; right: 16px; bottom: calc(94px + env(safe-area-inset-bottom)); left: 16px; z-index: 9000; margin: 0 auto; max-width: 520px; padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); box-shadow: 0 8px 24px rgb(37 37 37 / 15%); color: var(--text-primary); font-size: 12px; text-align: center; }.finance-state { display: flex; flex-direction: column; align-items: center; gap: 9px; margin-top: 16px; padding: 34px 18px; border: 1px dashed var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); text-align: center; }.finance-state ion-icon, .finance-state ion-spinner { color: var(--poliland-green); font-size: 28px; }.finance-state strong { font-size: 14px; }.finance-state p { max-width: 390px; margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 @media (max-width: 600px) { .finance-header { align-items: stretch; flex-direction: column; gap: 12px; }.finance-shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-inline: 0; padding: 0; }.shortcut-card { min-height: 96px; padding: 11px 9px; }.finance-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }.overview-card { padding: 11px; }.overview-card strong { font-size: 20px; }.transaction-actions { flex-wrap: wrap; }.primary-action, .secondary-action { flex: 1 1 100%; }.quiet-action { flex: 1 1 100%; }.finance-pager { grid-template-columns: 1fr; gap: 8px; }.finance-pager-controls { grid-column: 1; justify-self: center; }.finance-pager-position { grid-column: 1; } }
+.transaction-actions .primary-action, .transaction-actions .spk-link-action { flex: 1 1 0; min-width: 0; white-space: nowrap; }
 @media (max-width: 600px) {
   .report-heading { align-items: flex-start; flex-direction: column; gap: 12px; margin-top: 20px; }
   .export-button { width: 100%; }

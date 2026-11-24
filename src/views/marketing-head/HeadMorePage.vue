@@ -24,7 +24,7 @@
     </Reveal>
 
     <button type="button" class="mk-btn mk-btn--ghost mk-logout" :disabled="loggingOut" @click="logout">
-      {{ loggingOut ? 'Keluar…' : 'Keluar dari akun' }}
+      {{ loggingOut ? 'Keluar…' : 'Keluar' }}
     </button>
     <p v-if="logoutError" class="mk-danger-text" role="alert">{{ logoutError }}</p>
   </MarketingPageLayout>

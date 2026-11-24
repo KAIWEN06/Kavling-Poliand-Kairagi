@@ -33,6 +33,7 @@ import {
   type ClientSpkNotaryStatus,
   type ClientSpkRecord,
 } from '@/services/clientSpkService'
+import { getLotsHeldBySpkSafe, lotHoldNote as buildLotHoldNote, type HeldLots } from '@/services/lotHoldService'
 
 const ionRouter = useIonRouter()
 const route = useRoute()
@@ -54,6 +55,8 @@ const creating = ref(false)
 const createError = ref('')
 const availableLots = ref<LotRecord[]>([])
 const lotLoading = ref(false)
+/** Kavling yang sedang ditahan SPK aktif: lot id -> batas penahanan (null bila menunggu keputusan Admin). */
+const heldLots = ref<HeldLots>(new Map())
 const lotSearchQuery = ref('')
 const selectedLotId = ref<number | null>(null)
 const paymentScheme = ref<'Cash' | 'Installment'>('Cash')
@@ -222,8 +225,12 @@ const filteredCreateLots = computed(() => {
   })
 })
 const selectedCreateLot = computed(() =>
-  availableLots.value.find(lot => lot.id === selectedLotId.value) || null,
+  availableLots.value.find(lot => lot.id === selectedLotId.value && !heldLots.value.has(lot.id)) || null,
 )
+
+function lotHoldNote(lotId: number) {
+  return buildLotHoldNote(heldLots.value, lotId)
+}
 const selectedCreateLotPrice = computed(() =>
   selectedCreateLot.value ? selectedCreateLotPriceForLot(selectedCreateLot.value) : null,
 )
@@ -398,7 +405,11 @@ async function openCreateForm(preferredLotId: number | null = null) {
   }
 
   try {
-    const lots = await lotService.getLots()
+    const [lots, held] = await Promise.all([
+      lotService.getLots(),
+      getLotsHeldBySpkSafe(),
+    ])
+    heldLots.value = held
     availableLots.value = lots.filter(lot => {
       const status = (lot.status || '').toLocaleLowerCase('id-ID')
       return status === 'available' || status === 'tersedia'
@@ -406,7 +417,11 @@ async function openCreateForm(preferredLotId: number | null = null) {
     const preferredLot = preferredLotId === null
       ? null
       : availableLots.value.find(lot => lot.id === preferredLotId)
-    if (preferredLot) await selectCreateLot(preferredLot)
+    if (preferredLot && held.has(preferredLot.id)) {
+      createError.value = `Kaveling ${preferredLot.lot_number} sedang diproses pengajuan SPK lain. Silakan pilih kaveling lain.`
+    } else if (preferredLot) {
+      await selectCreateLot(preferredLot)
+    }
   } catch (error) {
     availableLots.value = []
     createError.value = getClientSpkErrorMessage(error, 'Daftar kaveling gagal dimuat.')
@@ -430,6 +445,7 @@ function closeCreateForm() {
 }
 
 async function selectCreateLot(lot: LotRecord) {
+  if (heldLots.value.has(lot.id)) return
   selectedLotId.value = lot.id
   selectedPlanId.value = null
   downPaymentInput.value = ''
@@ -786,7 +802,7 @@ onIonViewWillEnter(handleRouteIntent)
               >
                 <strong>Bukti pembayaran SPK perlu diunggah ulang</strong>
                 <p>{{ record.payment.bookingPaymentReviewNote || 'Admin meminta bukti pembayaran yang lebih jelas.' }}</p>
-                <button type="button" @click.stop="openDetail(record)">Unggah bukti sekarang</button>
+                <button type="button" @click.stop="openDetail(record)">Unggah bukti</button>
               </div>
 
               <div class="spk-person">
@@ -908,12 +924,14 @@ onIonViewWillEnter(handleRouteIntent)
           <p v-if="lotLoading" class="spk-lot-empty">Memuat kaveling tersedia...</p>
           <div v-else class="spk-lot-list" role="group" aria-label="Pilih kaveling">
             <button v-for="lot in filteredCreateLots" :key="lot.id" type="button"
-              class="spk-lot-option" :class="{ selected: selectedLotId === lot.id }"
+              class="spk-lot-option" :class="{ selected: selectedLotId === lot.id, held: heldLots.has(lot.id) }"
+              :disabled="heldLots.has(lot.id)"
               :aria-pressed="selectedLotId === lot.id" @click="selectCreateLot(lot)">
               <span class="spk-lot-check" aria-hidden="true">{{ selectedLotId === lot.id ? '✓' : '' }}</span>
               <span>
                 <strong>{{ lot.lot_number }}</strong>
                 <small>{{ getCreateLotBlockName(lot) }}</small>
+                <small v-if="heldLots.has(lot.id)" class="spk-lot-hold" role="note">{{ lotHoldNote(lot.id) }}</small>
               </span>
               <b>{{ formatCurrency(selectedCreateLotPriceForLot(lot)) }}</b>
             </button>
@@ -1113,7 +1131,7 @@ onIonViewWillEnter(handleRouteIntent)
             class="spk-refund-proof-button"
             @click="openRefundProof"
           >
-            Lihat bukti pengembalian
+            Lihat bukti
           </button>
         </section>
 
@@ -1141,7 +1159,7 @@ onIonViewWillEnter(handleRouteIntent)
             @click="submitBookingFeeReupload"
           >
             <ion-spinner v-if="reuploadSubmitting" name="crescent" />
-            {{ reuploadSubmitting ? 'Mengirim bukti...' : 'Kirim bukti pengganti' }}
+            {{ reuploadSubmitting ? 'Mengirim...' : 'Kirim bukti' }}
           </button>
           <p v-if="reuploadError" class="spk-reupload-error" role="alert">{{ reuploadError }}</p>
         </section>
@@ -1273,6 +1291,9 @@ onIonViewWillEnter(handleRouteIntent)
 .spk-lot-search { display:grid; gap:6px; }
 .spk-lot-list { display:grid; gap:8px; max-height:260px; overflow:auto; padding:2px; }
 .spk-lot-option { display:grid; grid-template-columns:22px minmax(0,1fr) auto; align-items:center; gap:9px; min-height:58px; border:1px solid var(--border-default,#e1e7de); border-radius:10px; background:var(--surface-primary,#fff); padding:9px 10px; color:var(--text-primary,#263329); text-align:left; cursor:pointer; }
+.spk-lot-option.held { cursor:not-allowed; background:var(--surface-secondary,#f3f4f1); opacity:.8; }
+.spk-lot-option.held>b { color:var(--text-secondary,#7b8679); }
+.spk-lot-option .spk-lot-hold { color:var(--status-warning-text,#7a5410); font-size:10px; font-weight:700; }
 .spk-lot-option.selected { border-color:var(--poliland-green,#55784b); background:var(--status-success-bg,#f1f6ee); }
 .spk-lot-check { display:grid; place-items:center; width:20px; height:20px; border:1px solid var(--border-default,#d9e0d6); border-radius:6px; color:#fff; font-size:12px; }
 .spk-lot-option.selected .spk-lot-check { border-color:var(--poliland-green,#355a2c); background:var(--poliland-green,#355a2c); }

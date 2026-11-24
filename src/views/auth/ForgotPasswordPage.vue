@@ -71,70 +71,38 @@ async function sendResetLink() {
   <ion-page>
     <ion-content class="auth-content" :fullscreen="true">
       <main class="auth-shell">
-
-        <!-- =========================
-             MASCOT
-             ========================= -->
         <section
-          class="auth-visual"
+          class="auth-visual reveal reveal--pop"
+          style="--i: 0"
           aria-label="Maskot PoliLand"
         >
           <MascotCanvas ref="mascotRef" />
         </section>
 
-        <!-- =========================
-             FORGOT PASSWORD CARD
-             ========================= -->
-        <ion-card class="auth-card">
-
-          <ion-card-header>
-   
-            <ion-card-title>
-              Lupa kata sandi?
-            </ion-card-title>
-
+        <ion-card class="auth-card reveal" style="--i: 1">
+          <ion-card-header class="reveal reveal--fade" style="--i: 2">
+            <ion-card-title>Lupa kata sandi?</ion-card-title>
             <p class="subtitle">
-              Masukkan email akunmu untuk menerima tautan
-              reset kata sandi PoliLand Kairagi.
+              Masukkan email akunmu untuk menerima tautan reset kata sandi.
             </p>
           </ion-card-header>
 
           <ion-card-content>
-
-            <!-- Success message -->
-            <ion-text
-              v-if="sent"
-              color="success"
-            >
-              <p
-                class="message success-message"
-                role="status"
-              >
-                Jika email tersebut terdaftar, tautan reset
-                kata sandi akan dikirim. Periksa inbox dan folder spam.
+            <ion-text v-if="sent" color="success">
+              <p class="message success-message" role="status">
+                Jika email tersebut terdaftar, tautan reset kata sandi akan
+                dikirim. Periksa inbox dan folder spam.
               </p>
             </ion-text>
 
-            <!-- Error message -->
-            <ion-text
-              v-if="errorMessage"
-              color="danger"
-            >
-              <p
-                class="message"
-                role="alert"
-              >
-                {{ errorMessage }}
-              </p>
+            <ion-text v-if="errorMessage" color="danger">
+              <p class="message" role="alert">{{ errorMessage }}</p>
             </ion-text>
 
-            <form
-              class="auth-form"
-              @submit.prevent="sendResetLink"
-            >
-
-              <!-- Email -->
+            <form class="auth-form" @submit.prevent="sendResetLink">
               <AppInput
+                class="reveal"
+                style="--i: 3"
                 v-model="email"
                 input-id="forgot-password-email"
                 label="Email"
@@ -148,462 +116,335 @@ async function sendResetLink() {
                 @blur="handleEmailBlur"
               />
 
-              <!-- Submit -->
               <AppButton
-                class="submit-button"
+                class="submit-button reveal"
+                style="--i: 4"
                 type="submit"
                 expand="block"
                 :disabled="loading"
                 color="primary"
               >
-                <IonSpinner
-                  v-if="loading"
-                  name="crescent"
-                />
-
-                <span v-else>
-                  Kirim tautan reset
-                </span>
+                <IonSpinner v-if="loading" name="crescent" />
+                <span v-else>Kirim tautan reset</span>
               </AppButton>
 
-                     <button
-            class="back-home-button"
-            type="button"
-            @click="router.push('/login')"
-          >
-            <ion-icon
-              :icon="arrowBackOutline"
-              aria-hidden="true"
-            />
-            <span>kembali ke login</span>
-          </button>
-
+              <button
+                class="back-home-button reveal"
+                style="--i: 5"
+                type="button"
+                @click="router.push('/login')"
+              >
+                <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
+                <span>Kembali ke login</span>
+              </button>
             </form>
-
           </ion-card-content>
         </ion-card>
 
-        <!-- =========================
-             BOTTOM WAVES
-             ========================= -->
-        <div
-          class="bottom-waves"
-          aria-hidden="true"
-        >
+        <div class="bottom-waves" aria-hidden="true">
           <div class="wave wave-back"></div>
           <div class="wave wave-middle"></div>
           <div class="wave wave-front"></div>
         </div>
-
       </main>
     </ion-content>
   </ion-page>
 </template>
 
 <style scoped>
-/* =========================
-   PAGE
-   ========================= */
+/* =========================================================
+   LUPA KATA SANDI: satu layar, tombol satu baris.
+   ========================================================= */
 
 .auth-content {
   --background: #faf7f2;
+  --overflow: auto; /* cadangan untuk layar sangat pendek */
 }
-
-/* =========================
-   MAIN LAYOUT
-   ========================= */
 
 .auth-shell {
   position: relative;
   isolation: isolate;
-
   box-sizing: border-box;
-
   width: 100%;
-  height: 100%;
   min-height: 100%;
-
-  display: grid;
-
-  grid-template-rows:
-    minmax(130px, 26dvh)
-    minmax(0, 1fr);
-
-  align-items: stretch;
-  justify-items: center;
-
-  gap: 0;
-
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding:
-    max(6px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-top, 0px))
     14px
-    max(6px, env(safe-area-inset-bottom));
-
+    max(16px, env(safe-area-inset-bottom, 0px));
   overflow: hidden;
-
   background:
-    radial-gradient(
-      ellipse at 50% 0%,
-      rgb(231 222 202 / 72%) 0%,
-      rgb(250 247 242 / 0%) 48%
-    ),
-    linear-gradient(
-      180deg,
-      #f7f4ec 0%,
-      #faf7f2 56%,
-      #f3ead9 100%
-    );
+    radial-gradient(ellipse at 50% 0%, rgb(231 222 202 / 72%) 0%, rgb(250 247 242 / 0%) 48%),
+    linear-gradient(180deg, #f7f4ec 0%, #faf7f2 56%, #f3ead9 100%);
 }
 
-/* =========================
-   MASCOT
-   ========================= */
+/* ---------- Animasi masuk (selaras dengan login) ---------- */
+.auth-shell .reveal {
+  animation: reveal-up 520ms var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
 
+.auth-shell .reveal--fade {
+  animation-name: reveal-fade;
+  animation-duration: 420ms;
+}
+
+.auth-shell .reveal--pop {
+  animation-name: reveal-pop;
+  animation-duration: 640ms;
+  animation-timing-function: var(--ease-spring);
+}
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes reveal-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes reveal-pop {
+  from { opacity: 0; transform: translateY(10px) scale(.86); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell .reveal {
+    animation: none;
+  }
+}
+
+/* ---------- Maskot ---------- */
 .auth-visual {
   position: relative;
   z-index: 2;
-
   width: min(100%, 440px);
-
+  flex: 0 1 200px;
   min-height: 0;
-  height: 100%;
-
+  height: 200px;
   display: flex;
-
   justify-content: center;
   align-items: center;
-
-  margin: 0 auto;
-
   overflow: visible;
 }
 
-/* =========================
-   CARD
-   ========================= */
+.auth-visual :deep(.mascot-canvas) {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+}
 
+.auth-visual :deep(canvas) {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: transparent !important;
+}
+
+/* ---------- Kartu ---------- */
 .auth-card {
   position: relative;
   z-index: 3;
-
   box-sizing: border-box;
-
   width: min(100%, 440px);
-  height: 100%;
-
-  min-height: 0;
-
+  flex: 0 0 auto;
   margin: 0;
-
   border: 1px solid rgb(217 210 196 / 62%);
   border-radius: 24px;
-
   background: rgb(255 255 255 / 94%);
-
-  box-shadow:
-    0 12px 32px rgb(42 77 57 / 9%);
-
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  overscroll-behavior: contain;
-
-  scrollbar-width: none;
+  box-shadow: 0 12px 32px rgb(42 77 57 / 9%);
+  overflow: visible;
 }
-
-.auth-card::-webkit-scrollbar {
-  display: none;
-}
-
-/* =========================
-   HEADER
-   ========================= */
 
 ion-card-header {
-  padding: 10px 16px 2px;
-}
-
-.back-link {
-  display: inline-flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  width: fit-content;
-
-  margin: 0 0 9px;
-
-  color: #496347;
-
-  font-size: 12px;
-
-  line-height: 1.2;
-
-  font-weight: 650;
-
-  text-decoration: none;
-
-  -webkit-tap-highlight-color: transparent;
-}
-
-.back-link span:first-child {
-  display: inline-flex;
-
-  align-items: center;
-  justify-content: center;
-
-  width: 24px;
-  height: 24px;
-
-  border: 1px solid #d9d2c4;
-
-  border-radius: 50%;
-
-  background: #faf7f2;
-
-  font-size: 17px;
-
-  line-height: 1;
-}
-
-.back-link:focus-visible {
-  outline: 2px solid #8ca072;
-
-  outline-offset: 3px;
-
-  border-radius: 6px;
+  flex-direction: column; /* Ionic default column-reverse membalik urutan judul */
+  padding: 18px 18px 2px;
+  text-align: center;
 }
 
 ion-card-title {
   color: #1a2824;
-
-  font-size: clamp(20px, 4.5vw, 24px);
-
-  line-height: 1.1;
-
+  font-size: clamp(20px, 5.4vw, 24px);
+  line-height: 1.15;
   font-weight: 800;
-
-  letter-spacing: -.035em;
+  letter-spacing: -.02em;
+  white-space: nowrap;
 }
 
 .subtitle {
-  margin: 3px 0 0;
-
-  color: #6b706d;
-
-  font-size: 12px;
-
-  line-height: 1.4;
+  margin: 6px 0 0;
+  color: #5f6561;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-/* =========================
-   CONTENT
-   ========================= */
-
 ion-card-content {
-  padding: 4px 16px 12px;
+  padding: 6px 18px 18px;
 }
 
 .message {
-  margin: 0 0 6px;
-
-  font-size: 11px;
-
+  margin: 0 0 8px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
 .success-message {
-  color: #39704f;
+  color: #2f6247;
 }
 
-/* =========================
-   FORM
-   ========================= */
-
+/* ---------- Form ---------- */
 .auth-form {
   display: grid;
-
   gap: 10px;
-
   margin-top: 8px;
 }
 
-/* =========================
-   APP BUTTON
-   ========================= */
+.auth-form :deep(.app-field) {
+  gap: 4px;
+}
 
-.back-home-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  min-height: 42px;
-  padding: 0 18px;
-
-  border: 1.5px solid #77806f;
-  border-radius: 30px;
-
-  background: transparent;
-
-  color: #77806f;
-
-  font-family: inherit;
+.auth-form :deep(.app-field__label) {
   font-size: 13px;
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition:
-    background-color .2s ease,
-    color .2s ease,
-    border-color .2s ease,
-    transform .15s ease;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .back-home-button:hover {
-    background: #B8860B;
-    color: #FFFFFF;
-  }
+.auth-form :deep(input) {
+  font-size: 16px; /* cegah iOS zoom saat fokus */
 }
-
-.back-home-button:active {
-  background: #A2770A;
-  border-color: #A2770A;
-  color: #FFFFFF;
-
-  transform: scale(.98);
-}
-
-.back-home-button:focus-visible {
-  outline: 2px solid #77806f;
-  outline-offset: 1px;
-}
-
-.back-home-button ion-icon {
-  font-size: 24px;
-  flex-shrink: 0;
-} 
 
 .submit-button {
   --background: #2e6a50;
   --background-activated: #24563f;
   --background-hover: #285e47;
-
   --color: #ffffff;
-
-  --border-radius: 10px;
-
-  --box-shadow:
-    0 4px 12px rgb(46 106 80 / 16%);
-
+  --border-radius: 12px;
+  --box-shadow: 0 4px 12px rgb(46 106 80 / 16%);
   margin: 2px 0 0;
-
-  min-height: 44px;
-
-  font-size: 14px;
-
+  min-height: 48px;
+  font-size: 15px;
   font-weight: 700;
-
   letter-spacing: .01em;
+  white-space: nowrap;
 }
 
-/* =========================
-   BOTTOM WAVES
-   ========================= */
+.back-home-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1.5px solid #77806f;
+  border-radius: 12px;
+  background: transparent;
+  color: #4d5647;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
 
+@media (hover: hover) and (pointer: fine) {
+  .back-home-button:hover {
+    background: #eef1e9;
+  }
+}
+
+.back-home-button:active {
+  background: #e1e6d9;
+  transform: scale(.98);
+}
+
+.back-home-button:focus-visible {
+  outline: 2px solid #2e6a50;
+  outline-offset: 2px;
+}
+
+.back-home-button ion-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* ---------- Gelombang bawah ---------- */
 .bottom-waves {
   position: absolute;
-
   left: 0;
   right: 0;
   bottom: 0;
-
   height: 145px;
-
   z-index: 1;
-
   pointer-events: none;
-
   overflow: hidden;
 }
 
 .wave {
   position: absolute;
-
   left: -15%;
-
   width: 130%;
-
   height: 150px;
-
-  border-radius:
-    50% 50% 0 0 /
-    70% 70% 0 0;
+  border-radius: 50% 50% 0 0 / 70% 70% 0 0;
 }
 
-/* Layer belakang */
 .wave-back {
   bottom: -112px;
-
   background: #dedfca;
-
-  transform:
-    rotate(-7deg)
-    translateX(-5%);
+  transform: rotate(-7deg) translateX(-5%);
 }
 
-/* Layer tengah */
 .wave-middle {
   bottom: -122px;
-
   background: #b2bea4;
-
-  transform:
-    rotate(7deg)
-    translateX(5%);
+  transform: rotate(7deg) translateX(5%);
 }
 
-/* Layer depan */
 .wave-front {
   bottom: -134px;
-
   background: #91a282;
-
-  transform:
-    rotate(-5deg)
-    translateX(-3%);
+  transform: rotate(-5deg) translateX(-3%);
 }
 
-/* =========================
-   RESPONSIVE
-   ========================= */
-
-@media (max-width: 380px) {
-  .auth-shell {
-    grid-template-rows:
-      minmax(120px, 24dvh)
-      minmax(0, 1fr);
-
-    padding-inline: 12px;
-  }
-
-  ion-card-header {
-    padding: 9px 14px 2px;
-  }
-
-  ion-card-content {
-    padding: 4px 14px 12px;
-  }
-
-  ion-card-title {
-    font-size: 21px;
+/* ---------- Responsif ---------- */
+@media (max-height: 700px) {
+  .auth-visual {
+    flex-basis: 130px;
+    height: 130px;
   }
 
   .subtitle {
-    font-size: 11.5px;
+    display: none;
+  }
+}
+
+@media (max-height: 580px) {
+  .auth-visual {
+    display: none;
+  }
+}
+
+@media (min-width: 700px) {
+  .auth-visual {
+    flex-basis: 260px;
+    height: 260px;
   }
 }
 </style>

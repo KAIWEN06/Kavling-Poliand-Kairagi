@@ -18,6 +18,27 @@ const poseClip: Record<MascotPose, MascotClip> = {
 const FPS = 25
 const FRAME_MS = 1000 / FPS
 const MAX_FRAMES = 500
+const DISCOVERY_BATCH = 24
+
+/** Jumlah frame tiap klip, dipakai agar semua frame diminta sekaligus. Bila ada yang tidak
+ *  cocok dengan isi folder, pemuat tetap menemukan jumlah sebenarnya lewat batch. */
+const FRAME_COUNTS: Partial<Record<MascotClip, number>> = {
+  passwordCover: 56, coverEnter: 21, coverExit: 21, passwordPeek: 50, peekEnter: 11,
+  peekExit: 19, pointDown: 38, wave: 57, peekToCover: 11, passwordError: 85,
+  idle: 25, lookDown: 25, lookDownEnter: 12, lookDownExit: 12,
+}
+
+const frameUrl = (folder: string, n: number) =>
+  `/mascot-frames/${folder}/frame-${String(n).padStart(4, '0')}.webp`
+
+function loadImage(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => resolve(null)
+    image.src = url
+  })
+}
 
 export function useMascotAnimation() {
   const currentClip = ref<MascotClip>('idle')
@@ -43,6 +64,7 @@ export function useMascotAnimation() {
   let introTimer: ReturnType<typeof setTimeout> | undefined
   let introAction: IntroClip | null = null
   let nextIntroClip: IntroClip = 'wave'
+  let hasDrawn = false
 
   function draw(image: HTMLImageElement) {
     if (!canvas || !ctx || !image.complete || !image.naturalWidth) return
@@ -50,6 +72,7 @@ export function useMascotAnimation() {
     if (canvas.height !== image.naturalHeight) canvas.height = image.naturalHeight
     // Gambar frame baru langsung tanpa clearRect agar tidak muncul kilatan kosong.
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+    hasDrawn = true
   }
 
   function loadClipFrames(clip: MascotClip): Promise<HTMLImageElement[]> {
@@ -59,20 +82,24 @@ export function useMascotAnimation() {
     const folder = mascotAnimations[clip]
     const promise = (async () => {
       const frames: HTMLImageElement[] = []
-      for (let i = 1; i <= MAX_FRAMES; i++) {
-        const image = new Image()
-        const url = `/mascot-frames/${folder}/frame-${String(i).padStart(4, '0')}.webp`
-        const loaded = await new Promise<boolean>((resolve) => {
-          image.onload = () => resolve(true)
-          image.onerror = () => resolve(false)
-          image.src = url
-        })
-        if (!loaded) {
-          if (frames.length === 0) throw new Error(`Frame tidak ditemukan: ${url}`)
-          break
+      const hint = FRAME_COUNTS[clip]
+      let start = 1
+      let size = hint ?? DISCOVERY_BATCH
+      // Satu batch diminta paralel; batch berikutnya hanya bila frame belum habis.
+      while (start <= MAX_FRAMES) {
+        const batch = await Promise.all(
+          Array.from({ length: size }, (_, i) => loadImage(frameUrl(folder, start + i))),
+        )
+        let ended = false
+        for (const image of batch) {
+          if (!image) { ended = true; break }
+          frames.push(image)
         }
-        frames.push(image)
+        if (ended || (hint !== undefined && frames.length >= hint)) break
+        start += size
+        size = DISCOVERY_BATCH
       }
+      if (frames.length === 0) throw new Error(`Frame tidak ditemukan: ${frameUrl(folder, 1)}`)
       return frames
     })()
     frameCache.set(clip, promise)
@@ -253,8 +280,13 @@ export function useMascotAnimation() {
   function attachCanvas(element: HTMLCanvasElement | null) {
     if (!element || disposed) return
     canvas = element
-    ctx = element.getContext('2d', { alpha: false })
-    // Background video/frame memang dikonversi tanpa transparansi.
+    // Canvas dengan alpha:false berwarna hitam sampai frame pertama digambar (kilatan hitam
+    // saat halaman dibuka). Frame sendiri tidak transparan, jadi alpha default aman dipakai.
+    ctx = element.getContext('2d')
+    // Tampilkan frame pertama segera, tanpa menunggu seluruh klip selesai dimuat.
+    void loadImage(frameUrl(mascotAnimations.idle, 1)).then((image) => {
+      if (image && !hasDrawn && !disposed) draw(image)
+    })
     void playClip('idle', true)
     scheduleIntro(1400)
   }

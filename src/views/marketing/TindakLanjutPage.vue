@@ -194,7 +194,7 @@
           @click="saveFollowup"
         >
           <span v-if="saving" class="button-spinner"></span>
-          {{ saving ? 'Menyimpan...' : 'Simpan Tindak Lanjut' }}
+          {{ saving ? 'Menyimpan...' : 'Simpan' }}
         </button>
       </section>
 

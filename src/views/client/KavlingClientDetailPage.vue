@@ -340,10 +340,13 @@
                 <ion-icon :icon="callOutline" slot="start" />
                 <span>Chat Admin</span>
               </AppButton>
-              <AppButton class="single-line-btn" variant="secondary" expand="block" @click="openOrderForm">
-                <span>PESAN</span>
+              <AppButton class="single-line-btn" variant="secondary" expand="block" :disabled="isHeldBySpk" @click="openOrderForm">
+                <span>{{ isHeldBySpk ? 'SEDANG DIPROSES' : 'PESAN' }}</span>
               </AppButton>
             </div>
+            <p v-if="isHeldBySpk" class="order-hold-note" role="note">
+              {{ heldNote }}. Kaveling ini sedang punya pengajuan SPK aktif, jadi belum bisa dipesan. Coba cek lagi nanti atau hubungi Admin.
+            </p>
             <p class="contact-caption">
               Ada pertanyaan soal harga, skema bayar, atau lokasi? Langsung tanya Admin aja.
             </p>
@@ -454,6 +457,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
 import worriedChoosingDayMascot from '@/assets/mascot/Worried Mascot Choosing a Day.png'
 import { lotService, type LotRecord } from '@/services/lotService'
+import { getLotsHeldBySpkSafe, lotHoldNote, type HeldLots } from '@/services/lotHoldService'
 import { contactsService, type OperatingHoursConfig, type DayKey } from '@/services/contactService'
 import { surveyService, isSurveySlotConflict, type ClientSurveyRequest } from '@/services/surveyService'
 
@@ -462,6 +466,10 @@ const route = useRoute()
 const router = useRouter()
 const lotId = computed(() => Number(route.params.id))
 const lot = ref<LotRecord | null>(null)
+/** Kavling yang sedang ditahan pengajuan SPK aktif. */
+const heldLots = ref<HeldLots>(new Map())
+const isHeldBySpk = computed(() => Boolean(lot.value && heldLots.value.has(lot.value.id)))
+const heldNote = computed(() => (lot.value ? lotHoldNote(heldLots.value, lot.value.id) : ''))
 const loading = ref(true)
 const loadError = ref(false)
 const errorMessage = ref('')
@@ -967,11 +975,13 @@ async function loadDetail() {
   loadError.value = false
   errorMessage.value = ''
   try {
-    const [rows, contactSettings, latestRequests] = await Promise.all([
+    const [rows, contactSettings, latestRequests, held] = await Promise.all([
       lotService.getClientLots(),
       contactsService.getClientContactSettings(),
       surveyService.getClientRequests(lotId.value),
+      getLotsHeldBySpkSafe(),
     ])
+    heldLots.value = held
     lot.value = rows.find((row) => Number(row.id) === lotId.value) ?? null
     clientSurveyRequests.value = latestRequests
     surveyRequestStatus.value = latestRequests[0] ?? null
@@ -1873,6 +1883,7 @@ textarea.form-control {
   padding: 4px 0 10px;
 }
 
+.order-hold-note { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--poliland-gold) 14%, white); color: var(--poliland-gold-text-soft); font-size: 12px; font-weight: 700; line-height: 1.5; }
 .contact-caption {
   margin: 0;
   padding: 0 8px 4px;

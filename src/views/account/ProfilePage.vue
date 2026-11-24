@@ -24,41 +24,33 @@
           <!-- Kartu Identitas & Foto Profil -->
           <section class="account-card profile-hero" aria-label="Identitas akun">
             <div class="avatar-row">
-              <button
-                type="button"
-                class="avatar-picker"
-                :disabled="uploading"
-                :aria-label="profile.avatarUrl ? 'Ganti foto profil' : 'Unggah foto profil'"
-                @click="fileInput?.click()"
-              >
-                <img v-if="previewUrl || profile.avatarUrl" :src="previewUrl || profile.avatarUrl" alt="Foto profil" class="avatar-image" />
-                <ion-icon v-else :icon="personCircleOutline" class="avatar-placeholder" />
-                <span class="avatar-camera" aria-hidden="true">
+              <div class="avatar-wrap">
+                <button
+                  type="button"
+                  class="avatar-picker"
+                  :disabled="uploading"
+                  :aria-label="profile.avatarUrl ? 'Lihat foto profil' : 'Unggah foto profil'"
+                  @click="onAvatarTap"
+                >
+                  <img v-if="profile.avatarUrl" :src="profile.avatarUrl" alt="Foto profil" class="avatar-image" />
+                  <ion-icon v-else :icon="personCircleOutline" class="avatar-placeholder" />
+                </button>
+                <button type="button" class="avatar-camera" aria-label="Ganti foto profil" :disabled="uploading" @click="pickFile">
                   <ion-spinner v-if="uploading" name="crescent" class="camera-spinner" />
-                  <ion-icon v-else :icon="cameraOutline" />
-                </span>
-              </button>
+                  <ion-icon v-else :icon="cameraOutline" aria-hidden="true" />
+                </button>
+              </div>
 
               <div class="avatar-copy">
                 <strong class="profile-name">{{ displayName }}</strong>
                 <span v-if="profile.email" class="profile-email">{{ profile.email }}</span>
                 <span v-if="roleLabel" class="role-chip">{{ roleLabel }}</span>
-
-                <template v-if="!pendingFile">
-                  <span class="avatar-hint">JPG, PNG, atau WEBP · Maks. 2 MB</span>
-                  <button type="button" class="avatar-change-btn" @click="fileInput?.click()">
-                    {{ profile.avatarUrl ? 'Ganti foto profil' : 'Unggah foto profil' }}
-                  </button>
-                </template>
-                <template v-else>
-                  <span class="avatar-hint">Pratinjau foto baru. Simpan untuk menerapkan.</span>
-                  <div class="avatar-actions">
-                    <button type="button" class="avatar-change-btn avatar-change-btn--primary" :disabled="uploading" @click="saveAvatar">
-                      {{ uploading ? 'Mengunggah...' : 'Simpan foto' }}
-                    </button>
-                    <button type="button" class="avatar-change-btn" :disabled="uploading" @click="cancelAvatar">Batal</button>
-                  </div>
-                </template>
+                <span class="avatar-hint">
+                  {{ uploading ? 'Mengunggah foto...' : profile.avatarUrl ? 'Ketuk foto untuk melihatnya' : 'JPG, PNG, atau WEBP' }}
+                </span>
+                <button type="button" class="avatar-change-btn" :disabled="uploading" @click="pickFile">
+                  {{ profile.avatarUrl ? 'Ganti foto profil' : 'Unggah foto profil' }}
+                </button>
               </div>
 
               <input
@@ -70,6 +62,9 @@
                 @change="onFilePicked"
               />
             </div>
+
+            <AvatarCropModal :file="cropFile" @cancel="cropFile = null" @confirm="saveAvatar" />
+            <AvatarViewer :open="viewerOpen" :url="profile.avatarUrl" @close="viewerOpen = false" />
 
             <div v-if="avatarError" class="feedback-alert feedback-alert--error" role="alert">
               <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
@@ -152,7 +147,7 @@
                 @click="showLogoutConfirm = true"
               >
                 <ion-icon slot="start" :icon="logOutOutline" />
-                Keluar dari Akun
+                Keluar
               </ion-button>
             </div>
 
@@ -165,7 +160,7 @@
                 <ion-button class="confirm-proceed-btn" color="danger" :disabled="loggingOut" @click="logout">
                   <ion-spinner v-if="loggingOut" slot="start" name="crescent" />
                   <ion-icon v-else slot="start" :icon="logOutOutline" />
-                  {{ loggingOut ? 'Sedang keluar...' : 'Ya, Keluar' }}
+                  {{ loggingOut ? 'Keluar...' : 'Ya, keluar' }}
                 </ion-button>
               </div>
             </div>
@@ -179,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import {
   IonButton,
   IonContent,
@@ -202,6 +197,8 @@ import {
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import AvatarCropModal from '@/components/account/AvatarCropModal.vue'
+import AvatarViewer from '@/components/account/AvatarViewer.vue'
 import { authService } from '@/services/auth/authService'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useToast } from '@/composables/useToast'
@@ -248,8 +245,8 @@ const saving = ref(false)
 const infoError = ref('')
 
 const fileInput = ref<HTMLInputElement | null>(null)
-const pendingFile = ref<File | null>(null)
-const previewUrl = ref('')
+const cropFile = ref<File | null>(null)
+const viewerOpen = ref(false)
 const uploading = ref(false)
 const avatarError = ref('')
 
@@ -291,9 +288,13 @@ async function saveInfo() {
   }
 }
 
-function revokePreview() {
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
-  previewUrl.value = ''
+function pickFile() {
+  fileInput.value?.click()
+}
+
+function onAvatarTap() {
+  if (profile.value?.avatarUrl) viewerOpen.value = true
+  else pickFile()
 }
 
 function onFilePicked(event: Event) {
@@ -302,34 +303,25 @@ function onFilePicked(event: Event) {
   input.value = '' // izinkan memilih file yang sama lagi
   if (!file) return
   avatarError.value = ''
-  const invalid = profileService.validateAvatar(file)
+  const invalid = profileService.validateAvatarSource(file)
   if (invalid) {
     avatarError.value = invalid
     toast.error(invalid)
     return
   }
-  revokePreview()
-  pendingFile.value = file
-  previewUrl.value = URL.createObjectURL(file)
+  cropFile.value = file
 }
 
-function cancelAvatar() {
-  pendingFile.value = null
-  avatarError.value = ''
-  revokePreview()
-}
-
-async function saveAvatar() {
+async function saveAvatar(file: File) {
   const p = profile.value
-  const file = pendingFile.value
-  if (!p || !file) return
+  if (!p) return
+  cropFile.value = null
   uploading.value = true
   avatarError.value = ''
   try {
     const url = await profileService.uploadAvatar(p.id, file, p.avatarUrl)
     // State global diperbarui: avatar di header & semua halaman langsung berubah.
     patch({ avatarUrl: url })
-    cancelAvatar()
     toast.success('Foto profil berhasil diperbarui.')
     void refresh()
   } catch (error) {
@@ -339,8 +331,6 @@ async function saveAvatar() {
     uploading.value = false
   }
 }
-
-onBeforeUnmount(revokePreview)
 </script>
 
 <style scoped>
@@ -390,7 +380,6 @@ onBeforeUnmount(revokePreview)
   display: grid;
   width: 76px;
   height: 76px;
-  flex: 0 0 76px;
   place-items: center;
   padding: 0;
   border: 2px solid var(--border-default, #eae7e0);
@@ -433,19 +422,50 @@ onBeforeUnmount(revokePreview)
   font-size: 48px;
 }
 
+.avatar-wrap {
+  position: relative;
+  flex: 0 0 76px;
+  width: 76px;
+  height: 76px;
+}
+
+.avatar-picker {
+  overflow: hidden;
+}
+
 .avatar-camera {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
+  right: -4px;
+  bottom: -4px;
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   place-items: center;
+  padding: 0;
   border: 2px solid var(--surface-primary, #ffffff);
   border-radius: 50%;
   background: var(--poliland-green, #355a2c);
   color: #ffffff;
-  font-size: 14px;
+  font-size: 15px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease-out);
+}
+
+/* Perluas area sentuh ke 44px tanpa membesarkan lencana. */
+.avatar-camera::before {
+  position: absolute;
+  inset: -8px;
+  content: '';
+}
+
+.avatar-camera:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.avatar-camera:focus-visible {
+  outline: 3px solid var(--poliland-green, #355a2c);
+  outline-offset: 2px;
 }
 
 .camera-spinner {

@@ -332,6 +332,8 @@
       :confirm-disabled="!deleteChecked || deleteUsages.length > 0 || deleteChecking || deleteSaving || Boolean(deleteError)"
       confirm-text="Hapus data"
       confirm-variant="danger"
+      slide-confirm
+      slide-label="Geser untuk menghapus"
       cancel-text="Batal"
       @confirm="confirmDeleteCustomer"
       @cancel="closeDeleteConfirmation"

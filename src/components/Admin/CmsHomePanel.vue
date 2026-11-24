@@ -131,9 +131,45 @@
         <div class="fields">
           <label class="field wide">Deskripsi singkat
             <textarea v-model="aboutDescription" rows="4" maxlength="500" placeholder="Ceritakan singkat tentang PoliLand Kairagi."></textarea>
-            <span class="hint">{{ aboutDescription.length }}/500 karakter. Video profil diatur lewat tombol Ubah Video di bagian ini pada Beranda.</span>
+            <span class="hint">{{ aboutDescription.length }}/500 karakter.</span>
           </label>
         </div>
+
+        <div class="video-field">
+          <div class="video-head">
+            <h4>Video profil</h4>
+            <div class="seg" role="group" aria-label="Sumber video">
+              <button type="button" :class="{ on: videoSource === 'youtube' }" :aria-pressed="videoSource === 'youtube'" @click="setVideoSource('youtube')">YouTube</button>
+              <button type="button" :class="{ on: videoSource === 'upload' }" :aria-pressed="videoSource === 'upload'" @click="setVideoSource('upload')">Unggah file</button>
+            </div>
+          </div>
+
+          <label v-if="videoSource === 'youtube'" class="field wide">Link YouTube
+            <input v-model="videoUrl" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…">
+            <span v-if="videoUrl && !isYouTubeUrl(videoUrl)" class="hint">Link belum dikenali sebagai YouTube.</span>
+          </label>
+          <div v-else class="image-actions">
+            <label class="btn btn-secondary file-btn">
+              {{ selectedVideo ? 'Ganti file video' : 'Pilih file video' }}
+              <input type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" @change="selectVideo">
+            </label>
+            <span class="hint">{{ selectedVideo ? selectedVideo.name : (videoUrl && !isYouTubeUrl(videoUrl) ? 'Video sudah terpasang.' : 'MP4, WEBM, OGG, atau MOV. Maksimal 50 MB.') }}</span>
+          </div>
+
+          <label class="field wide">Judul video
+            <input v-model="videoTitle" maxlength="80" placeholder="Video Profil PoliLand">
+          </label>
+
+          <div v-if="videoUrl || selectedVideo" class="image-actions">
+            <label class="btn btn-secondary file-btn">
+              {{ thumbSrc ? 'Ganti sampul' : 'Pilih sampul (opsional)' }}
+              <input type="file" accept="image/jpeg,image/png,image/webp" @change="selectThumb">
+            </label>
+            <button class="btn btn-danger" type="button" @click="clearVideo">Hapus video</button>
+            <span class="hint">Sampul YouTube diambil otomatis bila kosong.</span>
+          </div>
+        </div>
+
         <ul class="rows">
           <li v-for="(_, index) in aboutPoints" :key="index" class="row-item">
             <label class="field grow">Poin {{ index + 1 }}
@@ -167,6 +203,7 @@ import { cmsService, type CmsFeature, type CmsHero } from '@/services/cmsService
 import { contactsService } from '@/services/contactService'
 import { CMS_ICON_OPTIONS, resolveCmsIcon } from '@/utils/cmsIcons'
 import { HOME_KEYS, parseHighlights, parsePoints, type HomeHighlight } from '@/utils/homeContent'
+import { featureService, isYouTubeUrl, getYouTubeThumbnail, type VideoItem } from '@/services/featureService'
 
 type Section = 'hero' | 'highlights' | 'features' | 'about' | 'cta'
 
@@ -204,6 +241,77 @@ const localPreview = ref('')
 
 const previewSrc = computed(() => localPreview.value || hero.image_url || '')
 
+// Video profil (tabel `videos`, satu video aktif)
+const savedVideo = ref<VideoItem | null>(null)
+const videoSource = ref<'youtube' | 'upload'>('youtube')
+const videoUrl = ref('')
+const videoTitle = ref('')
+const thumbUrl = ref('')
+const selectedVideo = ref<File | null>(null)
+const selectedThumb = ref<File | null>(null)
+const thumbPreview = ref('')
+const thumbSrc = computed(() => thumbPreview.value || thumbUrl.value || (isYouTubeUrl(videoUrl.value) ? getYouTubeThumbnail(videoUrl.value) : '') || '')
+
+function setVideoSource(source: 'youtube' | 'upload') {
+  videoSource.value = source
+  if (source === 'upload') { if (isYouTubeUrl(videoUrl.value)) videoUrl.value = '' }
+  else selectedVideo.value = null
+}
+
+function selectVideo(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (!['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'].includes(file.type)) { notify('Format video harus MP4, WEBM, OGG, atau MOV.', 'error'); input.value = ''; return }
+  if (file.size > 50 * 1024 * 1024) { notify('Ukuran video maksimal 50 MB.', 'error'); input.value = ''; return }
+  selectedVideo.value = file
+}
+
+function selectThumb(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { notify('Sampul harus JPG, PNG, atau WEBP.', 'error'); input.value = ''; return }
+  if (file.size > 5 * 1024 * 1024) { notify('Ukuran sampul maksimal 5 MB.', 'error'); input.value = ''; return }
+  if (thumbPreview.value) URL.revokeObjectURL(thumbPreview.value)
+  selectedThumb.value = file
+  thumbPreview.value = URL.createObjectURL(file)
+}
+
+function clearVideo() {
+  if (thumbPreview.value) URL.revokeObjectURL(thumbPreview.value)
+  thumbPreview.value = ''
+  selectedVideo.value = null
+  selectedThumb.value = null
+  videoUrl.value = ''
+  thumbUrl.value = ''
+}
+
+async function saveVideo() {
+  const old = savedVideo.value
+  const hasVideo = !!(videoUrl.value.trim() || selectedVideo.value)
+  if (!hasVideo) {
+    if (old?.id) await featureService.deleteVideo(old.id, old.video_url, old.thumbnail_url || undefined)
+    savedVideo.value = null
+    return
+  }
+  let url = videoUrl.value.trim()
+  if (selectedVideo.value) url = (await featureService.uploadVideo(selectedVideo.value)).url
+  let thumb = thumbUrl.value
+  if (selectedThumb.value) thumb = (await featureService.uploadThumbnail(selectedThumb.value)).url
+  else if (isYouTubeUrl(url)) thumb = thumb || getYouTubeThumbnail(url) || ''
+  const payload: VideoItem = { title: videoTitle.value.trim() || 'Video Profil PoliLand', video_url: url, thumbnail_url: thumb || null, is_active: true, sort_order: 0 }
+  savedVideo.value = old?.id ? await featureService.updateVideo(old.id, payload) : await featureService.createVideo(payload)
+  // bersihkan berkas lama yang sudah tidak dipakai
+  if (old && old.video_url !== url) await featureService.deleteVideoFile(old.video_url)
+  if (old?.thumbnail_url && old.thumbnail_url !== thumb) await featureService.deleteThumbnailFile(old.thumbnail_url)
+  videoUrl.value = url
+  thumbUrl.value = thumb
+  selectedVideo.value = null
+  selectedThumb.value = null
+  if (thumbPreview.value) { URL.revokeObjectURL(thumbPreview.value); thumbPreview.value = '' }
+}
+
 watch(ctaPreset, (value) => { if (value !== 'custom') hero.cta_url = value })
 watch(customCtaUrl, (value) => { if (ctaPreset.value === 'custom') hero.cta_url = value.trim() })
 
@@ -223,6 +331,16 @@ async function load() {
     highlights.value = parseHighlights(valueOf(HOME_KEYS.highlights))
     aboutDescription.value = valueOf(HOME_KEYS.aboutDescription)
     aboutPoints.value = parsePoints(valueOf(HOME_KEYS.aboutPoints))
+    if (shows('about')) {
+      const video = await featureService.getVideo()
+      if (video) {
+        savedVideo.value = video
+        videoUrl.value = video.video_url || ''
+        videoTitle.value = video.title || ''
+        thumbUrl.value = video.thumbnail_url || ''
+        videoSource.value = isYouTubeUrl(video.video_url) ? 'youtube' : 'upload'
+      }
+    }
   } catch (error) {
     notify(error instanceof Error ? error.message : 'Konten beranda gagal dimuat.', 'error')
   } finally {
@@ -282,6 +400,7 @@ function validate(): string | null {
     const incomplete = features.value.findIndex((feature) => !feature.title.trim() || !feature.description.trim())
     if (incomplete !== -1) return `Keunggulan nomor ${incomplete + 1} belum lengkap. Isi judul dan deskripsi, atau hapus.`
   }
+  if (shows('about') && videoSource.value === 'youtube' && videoUrl.value.trim() && !isYouTubeUrl(videoUrl.value)) return 'Link video harus berupa link YouTube yang valid.'
   if (shows('highlights') && highlights.value.some((item) => !item.value.trim() || !item.label.trim())) return 'Setiap sorotan harus punya isi dan keterangan, atau hapus yang kosong.'
   return null
 }
@@ -306,6 +425,7 @@ async function save(): Promise<boolean> {
     const entries: { key: string; label: string; value: string }[] = []
     if (shows('cta')) entries.push({ key: HOME_KEYS.ctaTitle, label: 'Judul ajakan beranda', value: cta.title }, { key: HOME_KEYS.ctaText, label: 'Teks ajakan beranda', value: cta.text })
     if (shows('highlights')) entries.push({ key: HOME_KEYS.highlights, label: 'Sorotan Beranda', value: JSON.stringify(highlights.value.map((item) => ({ icon: item.icon, value: item.value.trim(), label: item.label.trim() }))) })
+    if (shows('about')) await saveVideo()
     if (shows('about')) entries.push(
       { key: HOME_KEYS.aboutDescription, label: 'Deskripsi Tentang Kami', value: aboutDescription.value },
       { key: HOME_KEYS.aboutPoints, label: 'Poin Tentang Kami', value: JSON.stringify(aboutPoints.value.map((point) => point.trim()).filter(Boolean)) },
@@ -324,7 +444,7 @@ async function save(): Promise<boolean> {
 
 defineExpose({ save, saving, loading })
 onMounted(load)
-onBeforeUnmount(resetLocalPreview)
+onBeforeUnmount(() => { resetLocalPreview(); if (thumbPreview.value) URL.revokeObjectURL(thumbPreview.value) })
 </script>
 
 <style scoped src="./cmsPanel.css"></style>
@@ -344,6 +464,12 @@ onBeforeUnmount(resetLocalPreview)
 .file-btn { position: relative; cursor: pointer; }
 .file-btn input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; pointer-events: none; }
 .file-btn:focus-within { outline: 3px solid color-mix(in srgb, var(--poliland-green) 35%, transparent); outline-offset: 2px; }
+.video-field { display: grid; gap: 12px; margin: 16px 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
+.video-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.video-head h4 { margin: 0; font-size: 14px; font-weight: 800; }
+.seg { display: inline-flex; padding: 3px; gap: 3px; border-radius: 999px; background: var(--surface-muted); }
+.seg button { min-block-size: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.seg button.on { background: var(--poliland-green); color: #fff; }
 .rows { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .row-item { display: flex; align-items: end; gap: 10px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
 .row-fields { flex: 1; display: grid; gap: 10px; min-width: 0; }

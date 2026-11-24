@@ -7,7 +7,7 @@
         <header class="intro">
           <h1>Ulasan Pelanggan</h1>
           <p>Periksa ulasan klien sebelum ditampilkan di halaman Beranda.</p>
-          <AppButton class="terms-open" size="small" variant="neutral" fill="outline" @click="openTerms">Kelola kata terlarang</AppButton>
+          <AppButton class="terms-open" size="small" variant="neutral" fill="outline" @click="openTerms">Kata terlarang</AppButton>
         </header>
 
         <nav class="tabs" aria-label="Status ulasan">

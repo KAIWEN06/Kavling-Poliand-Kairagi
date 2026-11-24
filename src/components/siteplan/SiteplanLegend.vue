@@ -50,11 +50,11 @@
               id="siteplan-legend-title"
               class="legend-title"
             >
-              Keterangan Siteplan
+              Keterangan denah
             </div>
 
             <div class="legend-subtitle">
-              Status dan area siteplan
+              Status kaveling dan area
             </div>
           </div>
         </div>
@@ -76,7 +76,7 @@
       <!-- Status Kavling -->
       <div class="legend-section">
         <div class="section-label">
-          STATUS KAVELING
+          Status kaveling
         </div>
 
         <div class="legend-list">
@@ -139,7 +139,7 @@
       <!-- Area Siteplan -->
       <div class="legend-section">
         <div class="section-label">
-          AREA SITEPLAN
+          Area denah
         </div>
 
         <div class="legend-list compact">
@@ -199,484 +199,164 @@ defineEmits<{
 </script>
 
 <style scoped>
-/* =====================================================
-   CONTAINER
-===================================================== */
-
+/* Wadah tombol legenda */
 .siteplan-legend {
   position: relative;
   left: auto;
   top: auto;
-  width: 42px;
-  height: 42px;
-
+  width: 44px;
+  height: 44px;
   z-index: 100;
-
   pointer-events: auto;
 }
 
-
-/* =====================================================
-   TOGGLE BUTTON
-===================================================== */
-
+/* Tombol buka */
 .legend-toggle {
   position: relative;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  width: 42px;
-  height: 42px;
-
+  width: 44px;
+  height: 44px;
   padding: 0;
-
-  border: 1px solid rgba(148, 163, 184, 0.45);
-
-  border-radius: 12px;
-
-  background:
-    rgba(255, 255, 255, 0.94);
-
-  color: #1f2937;
-
-  box-shadow:
-    0 8px 20px rgba(15, 23, 42, 0.12);
-
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--poliland-green, #355a2c);
+  box-shadow: var(--shadow-md);
   -webkit-backdrop-filter: blur(12px);
-
+  backdrop-filter: blur(12px);
   cursor: pointer;
-
   touch-action: manipulation;
-
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-base, 200ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
+.legend-toggle ion-icon { font-size: 22px; }
+.legend-toggle:active { transform: scale(0.94); }
+.legend-toggle:focus-visible,
+.legend-close:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
 
-.legend-toggle ion-icon {
-  font-size: 20px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .legend-toggle:hover {
-    background: #ffffff;
-  
-    box-shadow:
-      0 10px 24px rgba(15, 23, 42, 0.16);
-  
-    transform: translateY(-1px);
-  }
-}
-
-.legend-toggle:active {
-  transform: scale(0.94);
-}
-
-
-/* =====================================================
-   LEGEND PANEL
-===================================================== */
-
+/* Panel di tengah layar */
 .legend {
   position: fixed;
-
-  /* benar-benar di tengah viewport */
   left: 50%;
   top: 50%;
-
-  /* center horizontal + vertical */
   transform: translate(-50%, -50%) scale(0.97);
-
-  width: min(260px, calc(100vw - 32px));
-
+  width: min(300px, calc(100vw - 32px));
   box-sizing: border-box;
-
-  /* tetap aman kalau layar pendek */
   max-height: calc(100dvh - 32px);
-
   overflow-y: auto;
   overscroll-behavior: contain;
-
-  padding: 15px;
-
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  border-radius: 16px;
-
-  background: rgba(255, 255, 255, 0.97);
-
-  box-shadow:
-    0 20px 45px rgba(15, 23, 42, 0.16),
-    0 4px 12px rgba(15, 23, 42, 0.06);
-
-  backdrop-filter: blur(16px);
+  padding: 18px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-panel, 20px);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: blur(16px);
-
+  backdrop-filter: blur(16px);
   z-index: 99999;
-
   opacity: 0;
   visibility: hidden;
-
   transform-origin: center center;
-
-  transition:
-    opacity 200ms ease,
-    transform 200ms ease,
-    visibility 200ms ease;
-
+  transition: opacity 200ms var(--ease-out, ease), transform 200ms var(--ease-out, ease), visibility 200ms;
   pointer-events: none;
 }
-
 .legend.open {
   opacity: 1;
   visibility: visible;
-
-  transform:
-    translate(-50%, -50%)
-    scale(1);
-
+  transform: translate(-50%, -50%) scale(1);
   pointer-events: auto;
 }
 
-/* =====================================================
-   HEADER
-===================================================== */
-
-.legend-header {
-  display: flex;
-
-  align-items: flex-start;
-  justify-content: space-between;
-
-  gap: 12px;
-
-  margin-bottom: 14px;
-}
-
-.legend-heading {
-  display: flex;
-
-  align-items: center;
-
-  gap: 10px;
-
-  min-width: 0;
-}
-
+/* Kepala */
+.legend-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.legend-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .legend-heading-icon {
   display: flex;
-
   align-items: center;
   justify-content: center;
-
-  width: 34px;
-  height: 34px;
-
   flex-shrink: 0;
-
-  border-radius: 10px;
-
-  background: #f3f4f6;
-
-  color: #374151;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--green-100, #e8eee4);
+  color: var(--poliland-green, #355a2c);
 }
-
-.legend-heading-icon ion-icon {
-  font-size: 18px;
-}
-
+.legend-heading-icon ion-icon { font-size: 21px; }
 .legend-title {
-  font-size: 13px;
-
-  font-weight: 700;
-
-  line-height: 1.3;
-
-  color: #111827;
+  color: var(--text-primary, #252525);
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
-
-.legend-subtitle {
-  margin-top: 2px;
-
-  font-size: 10px;
-
-  line-height: 1.3;
-
-  color: #9ca3af;
-}
-
-
-/* =====================================================
-   CLOSE BUTTON
-===================================================== */
+.legend-subtitle { margin-top: 2px; color: var(--text-secondary, #5f5f66); font-size: 13px; line-height: 1.35; }
 
 .legend-close {
   display: flex;
-
   align-items: center;
   justify-content: center;
-
-  width: 28px;
-  height: 28px;
-
   flex-shrink: 0;
-
+  width: 44px;
+  height: 44px;
+  margin: -6px -8px 0 0;
   padding: 0;
-
   border: 0;
-
-  border-radius: 8px;
-
+  border-radius: 12px;
   background: transparent;
-
-  color: #6b7280;
-
+  color: var(--text-secondary, #5f5f66);
   cursor: pointer;
-
-  transition:
-    background 160ms ease,
-    color 160ms ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 160ms ease;
 }
+.legend-close ion-icon { font-size: 22px; }
+.legend-close:active { background: var(--surface-sunken, #f0ede5); }
 
-.legend-close ion-icon {
-  font-size: 17px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .legend-close:hover {
-    background: #f3f4f6;
-  
-    color: #111827;
-  }
-}
-
-
-/* =====================================================
-   SECTION
-===================================================== */
-
-.legend-section {
-  width: 100%;
-}
-
+/* Bagian */
+.legend-section { width: 100%; }
 .section-label {
-  margin-bottom: 7px;
-
-  font-size: 9px;
-
-  font-weight: 700;
-
-  line-height: 1.2;
-
-  letter-spacing: 0.1em;
-
-  color: #9ca3af;
+  margin-bottom: 8px;
+  color: var(--poliland-gold-text, #805708);
+  font: 800 12px/1.2 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
+.legend-list { display: flex; flex-direction: column; gap: 2px; }
+.legend-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 8px; border-radius: 12px; }
+.legend-indicator { width: 14px; height: 14px; flex-shrink: 0; border-radius: 50%; box-shadow: 0 0 0 4px rgba(53, 90, 44, 0.08); }
+.status-available { background: #2e7d32; }
+.status-booked { background: #f2a900; }
+.status-sold { background: #d32f2f; }
 
+.legend-item-content { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.legend-item-title { color: var(--text-primary, #252525); font-size: 15px; font-weight: 700; line-height: 1.3; }
+.legend-item-description { color: var(--text-secondary, #5f5f66); font-size: 13px; line-height: 1.35; }
 
-/* =====================================================
-   LEGEND LIST
-===================================================== */
+.legend-divider { width: 100%; height: 1px; margin: 12px 0; background: var(--border-default, #eae7e0); }
 
-.legend-list {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 3px;
-}
-
-.legend-item {
-  display: flex;
-
-  align-items: center;
-
-  gap: 10px;
-
-  padding: 7px 8px;
-
-  border-radius: 9px;
-
-  transition:
-    background 150ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .legend-item:hover {
-    background: #f8fafc;
-  }
-}
-
-
-/* =====================================================
-   STATUS INDICATOR
-===================================================== */
-
-.legend-indicator {
-  width: 11px;
-  height: 11px;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-
-  box-shadow:
-    0 0 0 3px rgba(148, 163, 184, 0.08);
-}
-
-.status-available {
-  background: #22c55e;
-}
-
-.status-booked {
-  background: #facc15;
-}
-
-.status-sold {
-  background: #ef4444;
-}
-
-
-/* =====================================================
-   ITEM CONTENT
-===================================================== */
-
-.legend-item-content {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 1px;
-
-  min-width: 0;
-}
-
-.legend-item-title {
-  font-size: 12px;
-
-  font-weight: 600;
-
-  line-height: 1.3;
-
-  color: #374151;
-}
-
-.legend-item-description {
-  font-size: 10px;
-
-  line-height: 1.3;
-
-  color: #9ca3af;
-}
-
-
-/* =====================================================
-   DIVIDER
-===================================================== */
-
-.legend-divider {
-  width: 100%;
-
-  height: 1px;
-
-  margin: 12px 0;
-
-  background:
-    #e5e7eb;
-}
-
-
-/* =====================================================
-   SITEPLAN AREA
-===================================================== */
-
-.legend-list.compact {
-  gap: 1px;
-}
-
-.compact-item {
-  padding: 6px 8px;
-}
-
-.legend-line {
-  display: block;
-
-  width: 20px;
-  height: 4px;
-
-  flex-shrink: 0;
-
-  border-radius: 999px;
-}
-
-.road {
-  background: #2b2b2b;
-}
-
-.drainage {
-  background: #0ea5e9;
-}
-
-.green-area {
-  background: #15803d;
-}
-
-
-/* =====================================================
-   RESPONSIVE
-===================================================== */
+.legend-list.compact { gap: 0; }
+.compact-item { min-height: 44px; }
+.legend-line { display: block; flex-shrink: 0; width: 24px; height: 5px; border-radius: 999px; }
+.road { background: #2b2b2b; }
+.drainage { background: #0ea5e9; }
+.green-area { background: #15803d; }
 
 @media (max-width: 480px) {
   .legend {
-    width: min(
-      245px,
-      calc(100vw - 80px)
-    );
-
-    /*
-     * Sisakan ruang untuk bottom navigation.
-     */
-    max-height: calc(
-      100dvh - var(--tabbar-space) - 24px
-    );
-
-    /*
-     * Pastikan panel tidak keluar
-     * dari sisi kiri layar.
-     */
+    width: min(300px, calc(100vw - 48px));
+    max-height: calc(100dvh - var(--tabbar-space) - 24px);
     right: calc(var(--map-edge) + 52px);
   }
-
-  .legend-toggle {
-    width: 42px;
-    height: 42px;
-  }
 }
-
-
-/* =====================================================
-   DESKTOP
-===================================================== */
-
 @media (min-width: 768px) {
-  .legend {
-    max-height: calc(100dvh - 100px);
-  }
+  .legend { max-height: calc(100dvh - 100px); }
 }
-
-/* =====================================================
-   REDUCED MOTION
-===================================================== */
-
 @media (prefers-reduced-motion: reduce) {
   .legend,
   .legend-toggle,
-  .legend-close,
-  .legend-item {
-    transition: none;
-  }
+  .legend-close { transition: none; }
+  .legend-toggle:active { transform: none; }
 }
 </style>

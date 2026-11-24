@@ -122,7 +122,7 @@
               <h1>Kelola Anggota</h1>
             </div>
             <AppButton v-if="canCreate" variant="primary" size="medium" @click="openCreate">
-              <ion-icon :icon="addOutline" slot="start" />Tambah Anggota
+              <ion-icon :icon="addOutline" slot="start" />Tambah
             </AppButton>
           </header>
 

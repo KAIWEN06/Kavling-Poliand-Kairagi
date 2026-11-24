@@ -3,9 +3,9 @@
     <!-- Rating -->
     <div class="field">
       <div class="rating-row">
-        <StarRating v-model="rating" :size="24" label="Rating ulasan" />
+        <StarRating v-model="rating" :size="24" label="Penilaian ulasan" />
         <span class="rating-label" aria-live="polite">
-          {{ rating ? `${rating.toFixed(1)} dari 5` : 'Pilih rating' }}
+          {{ rating ? `${rating.toFixed(1)} dari 5` : 'Pilih penilaian' }}
         </span>
       </div>
       <p v-if="errors.rating" class="error" role="alert">{{ errors.rating }}</p>

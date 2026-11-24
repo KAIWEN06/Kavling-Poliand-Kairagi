@@ -2,7 +2,7 @@
   <ion-page class="admin-buyers-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
-    <AppPullRefresh scoped :refresh-handler="() => loadCustomers(true)" />
+    <AppPullRefresh scoped :refresh-handler="refreshCustomers" />
 
     <ion-content :fullscreen="true">
       <main class="buyers-content">
@@ -26,7 +26,7 @@
           </button>
         </div>
 
-        <SkeletonCardList v-if="loading" :count="5" :lines="3" label="Memuat calon pembeli" />
+        <SkeletonCardList v-if="loading || refreshing" :count="5" :lines="3" label="Memuat calon pembeli" />
 
         <div v-else-if="errorMessage" class="buyers-state" role="alert">
           <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
@@ -110,6 +110,8 @@
       :confirm-disabled="!deleteChecked || deleteUsages.length > 0 || deleteChecking || deleteSaving || Boolean(deleteError)"
       confirm-text="Hapus data"
       confirm-variant="danger"
+      slide-confirm
+      slide-label="Geser untuk menghapus"
       cancel-text="Batal"
       @confirm="confirmDeleteCustomer"
       @cancel="closeDeleteConfirmation"
@@ -344,6 +346,7 @@
 
 <script setup lang="ts">
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
+import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useIonRouter, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import {
@@ -392,6 +395,7 @@ const customers = ref<Customer[]>([])
 const query = ref('')
 const selectedFilter = ref<FilterValue>('all')
 const loading = ref(true)
+const refreshing = ref(false)
 const errorMessage = ref('')
 const deleteTarget = ref<Customer | null>(null)
 const deleteModalOpen = ref(false)
@@ -494,6 +498,10 @@ function hasTransactionAndPayment(row: any) {
 
 function blockLabel(block: any) {
   return block?.name || block?.code || 'Blok belum tercatat'
+}
+
+function refreshCustomers() {
+  return withRefreshSkeleton(refreshing, () => loadCustomers(true))
 }
 
 async function loadCustomers(silent = false) {

@@ -18,6 +18,7 @@ import {
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { supabase } from '@/services/config/supabase'
 import { paymentService } from '@/services/Finance/paymentService'
 import { purchaseCancellationService } from '@/services/Finance/purchaseCancellationService'
@@ -699,7 +700,7 @@ onMounted(loadPaymentData)
               :disabled="latestCancellation?.status === 'Pending'"
               @click="openCancellationForm"
             >
-              {{ latestCancellation?.status === 'Pending' ? 'Pengajuan menunggu Admin' : 'Ajukan Pembatalan Pembelian' }}
+              {{ latestCancellation?.status === 'Pending' ? 'Menunggu Admin' : 'Batalkan pembelian' }}
             </button>
           </div>
           <div v-else class="empty-inline">Belum ada transaksi kaveling pada akun ini.</div>
@@ -888,11 +889,13 @@ onMounted(loadPaymentData)
                   <span>{{ paymentCategory === 'Cash Purchase' ? 'Pelunasan tunai' : paymentCategory === 'Down Payment' ? 'Pembayaran DP' : 'Total pembayaran cicilan' }}</span>
                   <strong>{{ formatCurrency(paymentAmount) }}</strong>
                 </div>
-                <button class="submit-payment-button" type="button" :disabled="!canSubmitPayment" @click="submitPayment">
-                  <ion-spinner v-if="submitting" name="crescent" />
-                  <ion-icon v-else :icon="cloudUploadOutline" />
-                  {{ submitting ? 'Mengirim bukti...' : 'Kirim Bukti Pembayaran' }}
-                </button>
+                <SlideToConfirm
+                  class="submit-payment-slide"
+                  label="Geser untuk kirim bukti"
+                  :disabled="!canSubmitPayment"
+                  :loading="submitting"
+                  @confirm="submitPayment"
+                />
               </template>
 
               <div v-if="paymentBlockedReason && isSpkCompleted" class="payment-notice warning">
@@ -991,7 +994,7 @@ onMounted(loadPaymentData)
               >
                 <ion-spinner v-if="reuploadSubmitting" name="crescent" />
                 <ion-icon v-else :icon="cloudUploadOutline" />
-                {{ reuploadSubmitting ? 'Mengirim bukti...' : 'Kirim Bukti Pengganti' }}
+                {{ reuploadSubmitting ? 'Mengirim...' : 'Kirim bukti' }}
               </button>
               <button
                 type="button"
@@ -1020,6 +1023,9 @@ onMounted(loadPaymentData)
       v-model="cancellationModalOpen"
       title="Ajukan Pembatalan Pembelian"
       confirm-text="Kirim Pengajuan"
+      confirm-variant="danger"
+      slide-confirm
+      slide-label="Geser untuk ajukan pembatalan"
       :loading="cancellationSubmitting"
       :confirm-disabled="cancellationReason.trim().length < 5"
       @confirm="submitCancellationRequest"

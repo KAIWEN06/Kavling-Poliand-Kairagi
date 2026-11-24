@@ -177,7 +177,7 @@
         </div>
 
         <!-- LOADING -->
-        <SkeletonLotList v-if="loading" :count="4" />
+        <SkeletonLotList v-if="loading || refreshing" :count="4" />
 
         <!-- ERROR -->
         <StatusIllustration
@@ -222,11 +222,15 @@
                     <p>{{ lot.meta }}</p>
                   </div>
 
-                  <span :class="['kv-badge', lot.status]">
+                  <span :class="['kv-badge', lot.status, { held: lot.status === 'available' && heldLots.has(lot.id) }]">
                     <ion-icon :icon="statusIcon[lot.status]" aria-hidden="true" />
-                    {{ statusLabel[lot.status] }}
+                    {{ lot.status === 'available' && heldLots.has(lot.id) ? 'Sedang diproses' : statusLabel[lot.status] }}
                   </span>
                 </div>
+
+                <p v-if="lot.status === 'available' && heldLots.has(lot.id)" class="kv-hold" role="note">
+                  {{ lotHoldNote(heldLots, lot.id) }}
+                </p>
 
                 <LotSurveyMarker v-if="surveyByLot.get(lot.id)" :info="surveyByLot.get(lot.id)!" />
 
@@ -255,7 +259,7 @@
 
                     <button type="button" class="kv-detail" :disabled="!lot.hasPanorama" @click="openPanorama(lot)">
                       <ion-icon :icon="cubeOutline" aria-hidden="true" />
-                      {{ lot.hasPanorama ? 'Lihat 360°' : '360° belum tersedia' }}
+                      {{ lot.hasPanorama ? 'Lihat 360°' : 'Tanpa 360°' }}
                     </button>
                   </div>
                 </div>
@@ -320,6 +324,7 @@
 
 <script setup lang="ts">
 import SkeletonLotList from '@/components/ui/skeletons/SkeletonLotList.vue'
+import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
 import Reveal from '@/components/ui/Reveal.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -358,6 +363,7 @@ import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { useSiteplan } from '@/composables/useSiteplant'
 import { lotService, type LotRecord } from '@/services/lotService'
+import { getLotsHeldBySpkSafe, lotHoldNote, type HeldLots } from '@/services/lotHoldService'
 import LotSurveyMarker from '@/components/common/LotSurveyMarker.vue'
 import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
 import { pinSurveyLots, surveyService, type LotSurveyInfo } from '@/services/surveyService'
@@ -451,7 +457,10 @@ watch(siteplanLots, async () => {
 
 const lots = ref<Lot[]>([])
 const surveyByLot = ref<Map<number, LotSurveyInfo>>(new Map())
+/** Kavling tersedia yang sedang ditahan pengajuan SPK aktif. */
+const heldLots = ref<HeldLots>(new Map())
 const loading = ref(true)
+const refreshing = ref(false)
 const loadError = ref(false)
 
 const statusFilter = ref<StatusFilter>('all')
@@ -591,15 +600,17 @@ async function load(showSpinner: boolean) {
   loadError.value = false
 
   try {
-    const [rows, surveys] = await Promise.all([
+    const [rows, surveys, held] = await Promise.all([
       lotService.getLots(),
       surveyService.getMySchedule().catch((error: unknown) => {
         console.error('Gagal memuat jadwal survei', error)
         return new Map<number, LotSurveyInfo>()
       }),
+      getLotsHeldBySpkSafe(),
     ])
     lots.value = rows.map(mapLot)
     surveyByLot.value = surveys
+    heldLots.value = held
   } catch (error) {
     console.error('Gagal memuat kaveling', error)
     loadError.value = true
@@ -611,13 +622,15 @@ async function load(showSpinner: boolean) {
 /* muat saat halaman dibuka; kunjungan berikutnya memuat ulang tanpa spinner */
 onIonViewWillEnter(() => load(lots.value.length === 0))
 
-async function refreshAll() {
-  await Promise.all([
-    load(false),
-    Promise.resolve(reloadSiteplan()).catch((error: unknown) => {
-      console.error('Gagal refresh siteplan:', error)
-    }),
-  ])
+function refreshAll() {
+  return withRefreshSkeleton(refreshing, () =>
+    Promise.all([
+      load(false),
+      Promise.resolve(reloadSiteplan()).catch((error: unknown) => {
+        console.error('Gagal refresh siteplan:', error)
+      }),
+    ]),
+  )
 }
 
 /* ---------- pencarian ---------- */
@@ -1560,6 +1573,8 @@ h2 {
 
 .kv-badge.available { background: var(--status-success-bg); color: var(--poliland-green); }
 .kv-badge.booked { background: color-mix(in srgb, var(--poliland-gold) 20%, white); color: var(--poliland-gold-text-soft); }
+.kv-badge.held { background: color-mix(in srgb, var(--poliland-gold) 20%, white); color: var(--poliland-gold-text-soft); }
+.kv-hold { margin: 0; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--poliland-gold) 14%, white); color: var(--poliland-gold-text-soft); font-size: 12px; font-weight: 700; }
 .kv-badge.sold { background: color-mix(in srgb, var(--status-danger) 11%, white); color: color-mix(in srgb, var(--status-danger) 70%, black); }
 
 /* ---------- harga + aksi: dua baris terpisah ---------- */

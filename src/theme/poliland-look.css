@@ -1,0 +1,60 @@
+/* =====================================================================
+   PoliLand Look: rasa visual WelcomePage yang dibawa ke semua halaman.
+   Pakai class `pl-surface` pada pembungkus halaman publik agar judul,
+   label, garis emas, dan tombol mengikuti bahasa yang sama.
+   Panduan lengkap: .claude/skills/poliland-design/SKILL.md
+   ===================================================================== */
+
+:root {
+  --pl-paper: #F9F5EC; /* permukaan krem hangat halaman */
+  --pl-paper-deep: #F1E8D4;
+}
+
+/* Judul section: serif editorial, bukan sans tebal generik. */
+.pl-surface section h2:not(.pl-keep) {
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: clamp(24px, 6.8vw, 30px);
+  line-height: 1.12;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+/* Garis emas di bawah judul menggantikan garis hijau lama. */
+.pl-surface span.heading-line {
+  width: 40px;
+  background: var(--poliland-gold, #cba044);
+}
+
+/* Label kecil di atas judul. */
+.pl-surface span.eyebrow {
+  color: var(--poliland-gold-text, #966a12);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+/* Tombol teks "Lihat Semua": target sentuh 44px dan panah yang bergeser. */
+.pl-surface button.see-all {
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--poliland-green, #355a2c);
+  font-size: 13px;
+  font-weight: 800;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Kartu: permukaan putih hangat, bayangan hijau tipis, respons saat ditekan. */
+.pl-surface .pl-card {
+  background: var(--surface-primary, #fff);
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-card, 16px);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.pl-surface .pl-card:active { transform: scale(0.98); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-surface .pl-card { transition: none; }
+  .pl-surface .pl-card:active { transform: none; }
+}

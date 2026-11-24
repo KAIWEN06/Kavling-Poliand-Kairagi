@@ -1,7 +1,7 @@
 <template>
-  <section id="ulasan-client" class="reviews-band" aria-labelledby="reviews-heading">
+  <section id="ulasan-client" class="reviews-band" aria-label="Ulasan klien">
     <div class="container">
-      <h2 id="reviews-heading" class="heading">Ulasan Klien</h2>
+      <SectionHeader title="Ulasan klien" />
       <p class="subheading">Pengalaman dan cerita mereka bersama PoliLand Kairagi.</p>
 
       <div class="summary-wrap">
@@ -16,17 +16,17 @@
           </template>
         </p>
         <div class="selects">
-          <label class="sr-only" for="review-filter">Filter rating</label>
+          <label class="sr-only" for="review-filter">Saring berdasarkan bintang</label>
           <select id="review-filter" v-model="ratingFilter">
-            <option :value="null">Semua rating</option>
+            <option :value="null">Semua bintang</option>
             <option v-for="n in [5, 4, 3, 2, 1]" :key="n" :value="n">{{ n }} bintang</option>
           </select>
           <label class="sr-only" for="review-sort">Urutkan</label>
           <select id="review-sort" v-model="sort">
             <option value="newest">Terbaru</option>
             <option value="oldest">Terlama</option>
-            <option value="highest">Rating tertinggi</option>
-            <option value="lowest">Rating terendah</option>
+            <option value="highest">Bintang terbanyak</option>
+            <option value="lowest">Bintang tersedikit</option>
           </select>
         </div>
       </div>
@@ -44,12 +44,12 @@
 
         <div v-else-if="!reviews.length" class="state">
           <template v-if="ratingFilter !== null">
-            Belum ada ulasan dengan rating {{ ratingFilter }} bintang.
+            Belum ada ulasan dengan {{ ratingFilter }} bintang.
           </template>
           <template v-else>
             <strong>Belum ada ulasan yang dipublikasikan.</strong>
             Jadilah klien pertama yang membagikan pengalaman bersama PoliLand Kairagi.
-            <button type="button" class="link" @click="openForm()">Tulis ulasan pertama</button>
+            <button type="button" class="link" @click="openForm()">Tulis ulasan</button>
           </template>
         </div>
 
@@ -92,7 +92,7 @@
         <div v-else-if="!writer.loggedIn" class="gate" role="status">
           <p>Anda perlu masuk terlebih dahulu untuk memberikan ulasan.</p>
           <div class="gate-actions">
-            <button type="button" class="btn btn--primary" @click="goLogin">Masuk untuk menulis ulasan</button>
+            <button type="button" class="btn btn--primary" @click="goLogin">Masuk untuk ulas</button>
             <button type="button" class="btn btn--neutral" @click="formOpen = false">Tutup</button>
           </div>
         </div>
@@ -158,6 +158,7 @@
 </template>
 
 <script setup lang="ts">
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonIcon } from '@ionic/vue'
@@ -260,7 +261,7 @@ async function toggleHelpful(review: PublicReview) {
   // Helpful dihitung per akun agar tidak bisa dimanipulasi.
   const { loggedIn } = await reviewService.getWriterState()
   if (!loggedIn) {
-    toast.info('Masuk terlebih dahulu untuk memberi penilaian Helpful.')
+    toast.info('Masuk terlebih dahulu untuk menandai ulasan ini membantu.')
     return
   }
   votingId.value = review.id
@@ -351,75 +352,28 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.reviews-band {
-  width: 100%;
-  padding: var(--space-8) 0;
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font-family: var(--font-primary);
-}
+.reviews-band { width: 100%; padding: 36px 0 8px; background: transparent; color: var(--text-primary); font-family: var(--font-primary); }
 
-.container {
-  max-width: 1024px;
-  margin: 0 auto;
-  padding: 0 var(--space-4);
-}
+.container { max-width: 1024px; margin: 0 auto; padding: 0 20px; }
 
-.heading {
-  margin: 0;
-  color: var(--text-primary);
-  font-family: var(--font-display);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--leading-snug);
-}
+.subheading { margin: -6px 0 0; color: var(--text-secondary, #5f5f66); font-size: 15px; line-height: 1.55; }
 
-.subheading {
-  margin: 4px 0 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-}
+.summary-wrap { margin-top: 20px; }
 
-.summary-wrap { margin-top: var(--space-6); }
+.controls { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; padding-bottom: 16px; }
 
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: var(--space-6);
-  padding-bottom: var(--space-5);
-}
-
-.showing { margin: 0; color: var(--text-primary); font-size: var(--font-size-sm); }
+.showing { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; }
 .strong { font-weight: var(--font-weight-semibold); }
 
-.selects { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.selects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 
-select {
-  padding: 8px 32px 8px 12px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background-color: var(--surface-muted);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--font-size-sm);
-}
+select { width: 100%; min-height: 48px; padding: 0 40px 0 16px; border: 1px solid var(--border-strong, #d5d0c4); border-radius: 14px; background-color: var(--surface-primary, #fff); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9' fill='none'%3E%3Cpath d='M1 1.5l6 6 6-6' stroke='%23355a2c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; background-size: 14px 9px; color: var(--text-primary); font: inherit; font-size: 16px; font-weight: 600; text-overflow: ellipsis; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
 
-select:focus { outline: none; border-color: var(--poliland-green); box-shadow: var(--ring-focus); }
+select:focus { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; border-color: var(--poliland-green); box-shadow: none; }
 
-.list { border-top: 1px solid var(--border-default); }
-.list > :deep(.review + .review) { border-top: 1px solid var(--border-default); }
+.list { display: grid; gap: 14px; }
 
-.state {
-  display: grid;
-  gap: var(--space-2);
-  justify-items: start;
-  margin: 0;
-  padding: var(--space-8) 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-base);
-  line-height: var(--leading-body);
-}
+.state { display: grid; gap: var(--space-2); justify-items: start; margin: 0; padding: 22px 18px; border: 1px dashed var(--border-strong, #d5d0c4); border-radius: var(--radius-card, 16px); background: var(--surface-primary, #fff); color: var(--text-secondary, #5f5f66); font-size: 15px; line-height: var(--leading-body); }
 .state strong { color: var(--text-primary); }
 .state--error { color: var(--danger-text); }
 
@@ -430,54 +384,26 @@ select:focus { outline: none; border-color: var(--poliland-green); box-shadow: v
   background: var(--surface-sunken);
 }
 
-.link {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--poliland-green);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
+.link { min-height: 44px; padding: 0; border: 0; background: none; color: var(--poliland-green); font: inherit; font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; touch-action: manipulation; }
 
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4) 0;
-  border-top: 1px solid var(--border-default);
-  border-bottom: 1px solid var(--border-default);
-}
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 10px 10px 10px 18px; border: 1px solid var(--border-default, #eae7e0); border-radius: 16px; background: var(--surface-primary, #fff); box-shadow: var(--shadow-sm); }
 
-.pager-info { margin: 0; color: var(--text-secondary); font-size: var(--font-size-sm); }
+.pager-info { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; }
 .pager .strong { color: var(--text-primary); }
 
 .pager-controls { display: inline-flex; }
 
-.pg {
-  display: inline-grid;
-  place-items: center;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--border-default);
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--font-size-sm);
-}
+.pg { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; padding: 0 14px; border: 1px solid var(--border-strong, #d5d0c4); background: var(--surface-primary, #fff); color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 700; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 button.pg { cursor: pointer; transition: background var(--dur-fast) var(--ease-out); }
 @media (hover: hover) and (pointer: fine) {
   button.pg:hover:not(:disabled) { background: var(--surface-muted); }
 }
-button.pg:disabled { color: var(--text-tertiary); cursor: default; }
+button.pg:disabled { color: var(--text-secondary, #5f5f66); opacity: 0.6; cursor: default; }
+button.pg:active:not(:disabled) { background: var(--surface-sunken, #f0ede5); }
 button.pg:focus-visible { outline: none; box-shadow: var(--ring-focus); position: relative; z-index: 1; }
-.pg--start { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
-.pg--end { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.pg--start { border-radius: 12px 0 0 12px; }
+.pg--end { border-radius: 0 12px 12px 0; }
 .pg--label { margin: 0 -1px; }
 
 .add { margin-top: var(--space-8); scroll-margin-top: var(--space-6); }
@@ -503,14 +429,7 @@ button.pg:focus-visible { outline: none; box-shadow: var(--ring-focus); position
 .delete-copy { margin: 0; color: var(--text-secondary); font-size: var(--font-size-sm); line-height: var(--leading-body); }
 .gate-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
-.btn {
-  padding: 10px 20px;
-  border-radius: var(--radius-sm);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-}
+.btn { min-height: 44px; padding: 0 22px; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .btn:focus-visible { outline: none; box-shadow: var(--ring-focus); }
 .btn--primary { border: 1px solid var(--poliland-green); background: var(--poliland-green); color: #fff; }
 @media (hover: hover) and (pointer: fine) {
@@ -524,7 +443,6 @@ button.pg:focus-visible { outline: none; box-shadow: var(--ring-focus); position
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 @media (min-width: 640px) {
-  .heading { font-size: var(--font-size-2xl); }
   .controls { flex-direction: row; align-items: center; justify-content: space-between; }
 }
 

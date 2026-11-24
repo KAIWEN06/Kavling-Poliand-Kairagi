@@ -1,17 +1,13 @@
 <template>
   <section v-if="loading || items.length || isAdmin" class="progress-section">
-    <div class="section-heading">
-      <div>
-        <h2>Kemajuan Pembangunan</h2>
-        <span class="heading-line"></span>
-      </div>
+    <SectionHeader title="Kemajuan pembangunan">
       <div class="heading-actions">
         <AdminEditButton v-if="isAdmin" label="Tambah update" :icon="addOutline" @click="openAdd" />
         <button v-if="items.length" class="see-all" type="button" @click="router.push('/progress')">
-          Lihat Semua <ion-icon :icon="chevronForwardOutline" />
+          Lihat semua <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </SectionHeader>
 
     <div v-if="loading" class="loading-box"><ion-spinner name="crescent" color="primary" /></div>
 
@@ -66,6 +62,7 @@ import { useRouter } from 'vue-router'
 import { IonIcon, IonSpinner } from '@ionic/vue'
 import { addOutline, calendarOutline, chevronForwardOutline, constructOutline, createOutline, trashOutline } from 'ionicons/icons'
 import AppModal from '@/components/ui/AppModal.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsItemFormModal from '@/components/Admin/CmsItemFormModal.vue'
 import { progressService, type ProgressItem } from '@/services/progressService'
@@ -138,39 +135,43 @@ onUnmounted(() => window.removeEventListener('poliland:refresh-progress', handle
 </script>
 
 <style scoped>
-.progress-section { width: 100%; padding: 28px 16px 0; box-sizing: border-box; }
-.section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.section-heading h2 { margin: 0; color: #1a1a1a; font-size: 20px; line-height: 1.2; font-weight: 800; letter-spacing: -0.3px; }
-.heading-line { display: block; width: 34px; height: 3px; margin-top: 7px; background: #556b2f; border-radius: 999px; }
+.progress-section { width: 100%; padding: 36px 20px 0; box-sizing: border-box; }
 .heading-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
-.see-all { display: flex; align-items: center; gap: 3px; min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: #556b2f; font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer; }
-.see-all ion-icon { font-size: 14px; }
+.see-all { display: inline-flex; align-items: center; gap: 3px; min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--poliland-green, #355a2c); font: 700 14px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif); white-space: nowrap; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.see-all ion-icon { font-size: 16px; transition: transform var(--dur-base) var(--ease-spring); }
+.see-all:active ion-icon { transform: translateX(3px); }
+.see-all:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
 
 .loading-box { display: flex; justify-content: center; padding: 28px 0; }
-.empty-hint { margin: 0; padding: 16px; border: 1px dashed #d5d0c4; border-radius: 12px; color: #6b6b6b; font-size: 12px; line-height: 1.5; }
+.empty-hint { margin: 0; padding: 16px; border: 1px dashed var(--border-strong, #d5d0c4); border-radius: var(--radius-card, 16px); color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.55; }
 
-.progress-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.progress-card { position: relative; border: 1px solid #e5e5e5; border-radius: 16px; background: #fff; box-shadow: 0 3px 10px rgba(15, 23, 42, .04); }
-.card-open { display: flex; align-items: stretch; gap: 12px; width: 100%; padding: 10px; border: 0; border-radius: 16px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.card-open:focus-visible { outline: 3px solid #556b2f; outline-offset: 2px; }
-.thumb { flex: none; display: grid; place-items: center; width: 92px; min-height: 92px; overflow: hidden; border-radius: 12px; background: #ede6d6; color: #556b2f; font-size: 28px; }
+.progress-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.progress-card { position: relative; border: 1px solid var(--border-default, #eae7e0); border-radius: var(--radius-card, 16px); background: var(--surface-primary, #fff); box-shadow: var(--shadow-sm); transition: transform var(--dur-base) var(--ease-spring); }
+.progress-card:has(.card-open:active) { transform: scale(0.97); }
+.card-open { display: flex; align-items: stretch; gap: 14px; width: 100%; padding: 10px; border: 0; border-radius: var(--radius-card, 16px); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.card-open:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
+.thumb { flex: none; display: grid; place-items: center; width: 104px; min-height: 104px; overflow: hidden; border-radius: 12px; background: var(--green-100, #e8eee4); color: var(--poliland-green, #355a2c); font-size: 30px; }
 .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.body { flex: 1; min-width: 0; display: grid; align-content: center; gap: 5px; }
+.body { flex: 1; min-width: 0; display: grid; align-content: center; gap: 6px; }
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.badge { padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; background: #e8eee4; color: #355a2c; }
-.badge-ongoing { background: #fbf0d8; color: #805708; }
-.badge-planned { background: #f5f3ee; color: #717178; }
-.date { display: inline-flex; align-items: center; gap: 4px; color: #717178; font-size: 11px; }
-.title { color: #1a1a1a; font-size: 14px; font-weight: 800; line-height: 1.3; }
-.desc { display: -webkit-box; overflow: hidden; color: #6b6b6b; font-size: 12px; line-height: 1.45; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
-.bar-row { display: flex; align-items: center; gap: 8px; }
-.track { flex: 1; height: 6px; overflow: hidden; border-radius: 999px; background: #ede6d6; }
-.fill { display: block; height: 100%; border-radius: inherit; background: #556b2f; }
-.pct { color: #355a2c; font-size: 12px; font-weight: 800; }
+.badge { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: var(--green-100, #e8eee4); color: var(--poliland-green, #355a2c); }
+.badge-ongoing { background: var(--gold-50, #fbf0d8); color: var(--poliland-gold-text, #805708); }
+.badge-planned { background: var(--surface-sunken, #f0ede5); color: var(--text-secondary, #5f5f66); }
+.date { display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary, #5f5f66); font-size: 12px; }
+.title { color: var(--text-primary, #252525); font-size: 16px; font-weight: 800; line-height: 1.3; }
+.desc { display: -webkit-box; overflow: hidden; color: var(--text-secondary, #5f5f66); font-size: 13px; line-height: 1.45; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.track { flex: 1; height: 7px; overflow: hidden; border-radius: 999px; background: var(--surface-sunken, #f0ede5); }
+.fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green-600, #3e6a31), var(--poliland-green, #355a2c)); }
+.pct { color: var(--poliland-green, #355a2c); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 .card-admin { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
-.mini { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: #fff; color: #966a12; font-size: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, .2); cursor: pointer; }
-.mini.danger { color: #d94b45; }
-.mini:focus-visible { outline: 3px solid #556b2f; outline-offset: 2px; }
-.confirm-text { margin: 0; color: #717178; font-size: 14px; line-height: 1.6; }
+.mini { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: #fff; color: var(--poliland-gold-text, #805708); font-size: 18px; box-shadow: var(--shadow-sm); cursor: pointer; touch-action: manipulation; }
+.mini.danger { color: var(--status-danger, #b3261e); }
+.mini:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
+.confirm-text { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-card:has(.card-open:active) { transform: none; }
+}
 </style>

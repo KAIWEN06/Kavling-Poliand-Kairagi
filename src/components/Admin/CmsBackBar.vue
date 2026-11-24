@@ -3,7 +3,7 @@
     <div v-if="visible" class="cms-back" role="region" aria-label="Mode pratinjau Admin">
       <button class="cms-back__btn" type="button" @click="backToCms">
         <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
-        <span>Kembali ke Kelola Konten</span>
+        <span>Kembali</span>
       </button>
     </div>
   </Transition>

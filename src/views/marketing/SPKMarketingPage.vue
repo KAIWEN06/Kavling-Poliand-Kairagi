@@ -775,22 +775,13 @@
         <!-- =================================================
              SUBMIT
              ================================================= -->
-        <button
-          type="button"
-          class="submit-button"
-          :disabled="submitting || !canSubmit"
-          @click="submitSPK"
-        >
-          <ion-spinner
-            v-if="submitting"
-            name="crescent"
-          />
-
-          <template v-else>
-            <span>Ajukan SPK</span>
-            <ion-icon :icon="arrowForwardOutline" />
-          </template>
-        </button>
+        <SlideToConfirm
+          class="submit-slide"
+          label="Geser untuk ajukan SPK"
+          :disabled="!canSubmit"
+          :loading="submitting"
+          @confirm="submitSPK"
+        />
 
 
         <p
@@ -867,6 +858,7 @@ import {
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
 
@@ -885,6 +877,7 @@ import {
   type PaymentPlan,
   type SPKDocumentFile,
 } from '@/services/marketing/spkService'
+import { getLotsHeldBySpkSafe } from '@/services/lotHoldService'
 
 
 
@@ -1173,6 +1166,12 @@ async function loadLot() {
     if (!data) {
       lotError.value =
         'Kaveling tidak ditemukan atau sudah tidak tersedia.'
+      return
+    }
+
+    if (data.id && (await getLotsHeldBySpkSafe()).has(data.id)) {
+      lotError.value =
+        'Kaveling ini sedang diproses pengajuan SPK lain, jadi belum bisa diajukan. Silakan pilih kaveling lain atau coba lagi nanti.'
       return
     }
 

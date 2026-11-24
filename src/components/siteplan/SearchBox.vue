@@ -1807,7 +1807,7 @@ onBeforeUnmount(() => {
   border-radius: 14px;
 
   background: transparent;
-  color: #6b7280;
+  color: var(--text-secondary, #5f5f66);
 
   cursor: pointer;
 
@@ -1821,7 +1821,7 @@ onBeforeUnmount(() => {
 .search-icon {
   flex: 0 0 auto;
   font-size: 20px;
-  color: #6b7280;
+  color: var(--text-secondary, #5f5f66);
 }
 
 .search-input {
@@ -1836,11 +1836,11 @@ onBeforeUnmount(() => {
   background: transparent;
 
   font-size: 16px;
-  color: #111827;
+  color: var(--text-primary, #252525);
 }
 
 .search-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-secondary, #5f5f66);
 }
 
 /* =========================================================
@@ -1889,8 +1889,8 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 10px;
 
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--surface-sunken, #f0ede5);
+  color: var(--text-primary, #252525);
 
   transition:
     160ms ease;
@@ -1965,13 +1965,13 @@ onBeforeUnmount(() => {
 .filter-title {
   font-size: 17px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary, #252525);
 }
 
 .filter-subtitle {
   margin-top: 3px;
-  font-size: 11px;
-  color: #9ca3af;
+  font-size: 13px;
+  color: var(--text-secondary, #5f5f66);
 }
 
 .filter-close {
@@ -1979,18 +1979,18 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
 
-  flex: 0 0 32px;
+  flex: 0 0 44px;
 
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
 
   padding: 0;
 
   border: none;
   border-radius: 9px;
 
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--surface-sunken, #f0ede5);
+  color: var(--text-secondary, #5f5f66);
 }
 
 /* =========================================================
@@ -2004,12 +2004,12 @@ onBeforeUnmount(() => {
 .filter-label {
   margin-bottom: 8px;
 
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 
   letter-spacing: 0.1em;
 
-  color: #9ca3af;
+  color: var(--text-secondary, #5f5f66);
 }
 
 /* =========================================================
@@ -2037,9 +2037,9 @@ onBeforeUnmount(() => {
   border-radius: 11px;
 
   background: #ffffff;
-  color: #374151;
+  color: var(--text-primary, #252525);
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 
   text-align: left;
@@ -2063,9 +2063,9 @@ onBeforeUnmount(() => {
 
   border-radius: 8px;
 
-  background: #f3f4f6;
+  background: var(--surface-sunken, #f0ede5);
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -2087,7 +2087,7 @@ onBeforeUnmount(() => {
   outline: none;
 
   background: #ffffff;
-  color: #111827;
+  color: var(--text-primary, #252525);
 
   font-size: 13px;
 }
@@ -2105,10 +2105,10 @@ onBeforeUnmount(() => {
 
   margin-top: 6px;
 
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 
-  color: #9ca3af;
+  color: var(--text-secondary, #5f5f66);
 }
 
 /* =========================================================
@@ -2142,12 +2142,12 @@ onBeforeUnmount(() => {
 
 .price-mode strong {
   font-size: 12px;
-  color: #374151;
+  color: var(--text-primary, #252525);
 }
 
 .price-mode small {
-  font-size: 10px;
-  color: #9ca3af;
+  font-size: 12px;
+  color: var(--text-secondary, #5f5f66);
 }
 
 .price-mode.active {
@@ -2197,7 +2197,7 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 600;
 
-  color: #6b7280;
+  color: var(--text-secondary, #5f5f66);
 }
 
 .price-input-wrapper .filter-input,
@@ -2252,7 +2252,7 @@ onBeforeUnmount(() => {
   border-radius: 10px;
 
   background: #f9fafb;
-  color: #6b7280;
+  color: var(--text-secondary, #5f5f66);
 
   font-size: 12px;
   font-weight: 600;
@@ -2308,7 +2308,7 @@ onBeforeUnmount(() => {
 
   text-align: center;
 
-  color: #6b7280;
+  color: var(--text-secondary, #5f5f66);
 }
 
 
@@ -2333,7 +2333,7 @@ onBeforeUnmount(() => {
   border: none;
   border-bottom: 1px solid #f3f4f6;
 
-  color: #111827;
+  color: var(--text-primary, #252525);
 
   text-align: left;
 }
@@ -2368,14 +2368,14 @@ onBeforeUnmount(() => {
 }
 
 .result-price {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  color: #9a7625;
+  color: var(--poliland-gold-text, #805708);
 }
 
 .search-result small {
-  font-size: 10px;
-  color: #6b7280;
+  font-size: 12px;
+  color: var(--text-secondary, #5f5f66);
 }
 
 /* =========================================================

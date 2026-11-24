@@ -26,6 +26,7 @@ import AdminKavlingPage from '@/views/Admin/AdminKavling.vue'
 import AdminKavlingDetailPage from '@/views/Admin/AdminDetailKavling.vue'
 import AdminPembeliPage from '@/views/Admin/AdminPembeli.vue'
 import AdminPembeliDetailPage from '@/views/Admin/AdminPembeliDetail.vue'
+import AdminGabungDataPage from '@/views/Admin/AdminGabungDataPage.vue'
 import AdminKeuanganPage from '@/views/Admin/AdminKeuangan.vue'
 import AdminLainnyaPage from '@/views/Admin/AdminLainnya.vue'
 import AdminContentPage from '@/views/Admin/AdminContentPage.vue'
@@ -150,6 +151,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/admin/pembeli/:id/edit',
     name: 'AdminPembeliEdit',
     component: DetailCalonPembeliPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/gabung-data',
+    name: 'AdminGabungData',
+    component: AdminGabungDataPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {

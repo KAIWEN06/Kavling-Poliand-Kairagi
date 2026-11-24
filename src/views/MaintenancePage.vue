@@ -1,13 +1,11 @@
 <template>
   <ion-page>
     <ion-content :fullscreen="true">
-      <StatusIllustration
-        variant="maintenance"
-        size="lg"
-        fill
-        eager
-        style="--status-state-min-height: 100%"
-        :on-action="goToHome"
+      <PublicStateScreen
+        title="Sedang dirapikan"
+        description="Kami sedang memperbarui layanan. Coba lagi beberapa saat lagi."
+        action-label="Kembali ke Beranda"
+        @action="goToHome"
       />
     </ion-content>
   </ion-page>
@@ -16,7 +14,7 @@
 <script setup lang="ts">
 import { IonPage, IonContent } from '@ionic/vue'
 import { useRouter } from 'vue-router'
-import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import PublicStateScreen from '@/components/ui/PublicStateScreen.vue'
 
 const router = useRouter()
 const goToHome = () => router.push('/home')

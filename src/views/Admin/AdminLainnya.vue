@@ -28,7 +28,7 @@
 import Reveal from '@/components/ui/Reveal.vue'
 import { ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { calendarOutline, chatbubbleEllipsesOutline, documentTextOutline, gridOutline, mapOutline, peopleOutline, settingsOutline, walletOutline } from 'ionicons/icons'
+import { calendarOutline, chatbubbleEllipsesOutline, documentTextOutline, gitMergeOutline, gridOutline, mapOutline, peopleOutline, settingsOutline, walletOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -45,6 +45,7 @@ const actions: QuickAction[] = [
   { label: 'Akses tim', icon: settingsOutline, tone: 'green', route: '/admin/akses-tim' },
   { label: 'SPK', icon: documentTextOutline, tone: 'gold', route: '/admin/spk' },
   { label: 'Ulasan klien', icon: chatbubbleEllipsesOutline, tone: 'green', route: '/admin/ulasan' },
+  { label: 'Data ganda', icon: gitMergeOutline, tone: 'neutral', route: '/admin/gabung-data' },
 ]
 
 async function handleAction(action: QuickAction) {

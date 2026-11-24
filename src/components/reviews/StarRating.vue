@@ -60,7 +60,7 @@ const props = withDefaults(
     size?: number
     label?: string
   }>(),
-  { readonly: false, size: 16, label: 'Beri rating' },
+  { readonly: false, size: 16, label: 'Beri penilaian' },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: number] }>()
@@ -95,17 +95,21 @@ function step(delta: number) {
 }
 
 .star--off {
-  color: var(--text-tertiary);
+  color: #8f8a7d; /* 3,4:1 di atas putih, cukup untuk ikon bermakna */
 }
 
 .star-btn {
   display: inline-grid;
   place-items: center;
+  min-width: 40px;
+  min-height: 44px;
   padding: 2px;
   border: 0;
   border-radius: var(--radius-xs);
   background: transparent;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: transform var(--dur-fast) var(--ease-out);
 }
 
@@ -115,9 +119,11 @@ function step(delta: number) {
   }
 }
 
+.star-btn:active { transform: scale(0.92); }
+
 .star-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--ring-focus);
+  outline: 3px solid var(--poliland-gold, #cba044);
+  outline-offset: 1px;
 }
 
 @media (prefers-reduced-motion: reduce) {

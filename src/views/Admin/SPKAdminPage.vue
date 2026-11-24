@@ -218,7 +218,7 @@
               @click="openRefundProof(selectedRequest)"
             >
               <ion-icon :icon="eyeOutline" />
-              Lihat bukti pengembalian
+              Lihat bukti
               <ion-icon :icon="chevronForwardOutline" />
             </button>
           </template>
@@ -281,7 +281,7 @@
               :disabled="refundSubmitting || !refundFile || !refundMethod.trim() || !refundTransferAt"
               @click="submitRefundProof(selectedRequest)"
             >
-              {{ refundSubmitting ? 'Menyimpan...' : 'Simpan pengembalian' }}
+              {{ refundSubmitting ? 'Menyimpan...' : 'Simpan' }}
             </AppButton>
             <p class="spk-refund-footnote">Dengan menyimpan, Admin menyatakan pengembalian Booking Fee telah dilakukan dan bukti yang dilampirkan sesuai.</p>
           </template>
@@ -294,12 +294,12 @@
     </AppModal>
 
     <AppModal v-model="approveOpen" title="Setujui pengajuan SPK?" variant="dialog"
-      :loading="saving" :confirm-disabled="!actionRequest || !canApproveSPK(actionRequest)" confirm-text="Ya, setujui" cancel-text="Batal" @confirm="confirmApprove">
+      :loading="saving" :confirm-disabled="!actionRequest || !canApproveSPK(actionRequest)" confirm-text="Ya, setujui" cancel-text="Batal" slide-confirm slide-label="Geser untuk menyetujui" confirm-variant="success" @confirm="confirmApprove">
       <div class="spk-confirm-copy"><p>SPK <strong>{{ actionRequest?.spk_number }}</strong> akan disetujui.</p><p>Status kaveling <strong>{{ actionRequest?.lot_number }}</strong> akan berubah menjadi <strong>Booking</strong>.</p><p>Pastikan data dan dokumen telah diperiksa. Persetujuan tidak dapat dilakukan jika kaveling sudah tidak tersedia.</p></div>
     </AppModal>
 
     <AppModal v-model="rejectOpen" title="Tolak pengajuan SPK" variant="dialog"
-      :loading="saving" :confirm-disabled="!rejectionReason.trim()" confirm-text="Tolak SPK" confirm-variant="danger"
+      :loading="saving" :confirm-disabled="!rejectionReason.trim()" confirm-text="Tolak SPK" confirm-variant="danger" slide-confirm slide-label="Geser untuk menolak SPK"
       cancel-text="Batal" @confirm="confirmReject">
       <div class="spk-reject-form"><p>Pilih kategori yang sesuai. Booking Fee hanya dapat digunakan ulang jika penolakan terjadi karena kesalahan administratif.</p>
         <label>Kategori penolakan <b>*</b>
@@ -360,7 +360,7 @@
               </div>
               <template v-if="selectedCustomerSource === 'Admin'">
                 <button type="button" class="spk-add-customer-toggle" @click="showNewCustomerForm = !showNewCustomerForm">
-                  {{ showNewCustomerForm ? 'Tutup form client baru' : '+ Tambah client baru' }}
+                  {{ showNewCustomerForm ? 'Tutup form' : 'Client baru' }}
                 </button>
                 <div v-if="showNewCustomerForm" class="spk-new-customer-form">
                 <label>Nama lengkap <b>*</b><input v-model.trim="newCustomer.full_name" data-input="name" required placeholder="Nama sesuai KTP" /></label>
@@ -405,7 +405,7 @@
                 </template>
                 <small v-if="newCustomerRegionsLoading" role="status">Memuat data wilayah...</small>
                 <label>Detail alamat<textarea v-model.trim="newCustomer.street_address" rows="2" placeholder="Nama jalan, nomor rumah, gedung, dan detail lainnya" /></label>
-                  <button type="button" class="spk-add-customer-save" :disabled="!newCustomer.full_name.trim() || (!newCustomer.phone.trim() && !newCustomer.whatsapp_phone.trim())" @click="saveNewCustomerForSPK">Simpan dan pilih klien</button>
+                  <button type="button" class="spk-add-customer-save" :disabled="!newCustomer.full_name.trim() || (!newCustomer.phone.trim() && !newCustomer.whatsapp_phone.trim())" @click="saveNewCustomerForSPK">Simpan & pilih</button>
                 </div>
               </template>
             </template>

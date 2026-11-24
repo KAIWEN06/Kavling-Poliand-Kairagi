@@ -46,11 +46,13 @@ export type LotInstallment = {
         id?: string | number
         plan_name?: string
         months?: number
+        margin_percent?: number | string | null
       }
     | {
         id?: string | number
         plan_name?: string
         months?: number
+        margin_percent?: number | string | null
       }[]
     | null
 }
@@ -354,53 +356,23 @@ export async function getLotInstallments(
     return []
   }
 
+  /*
+   * Simulasi cicilan hanya butuh tenor dan margin dari payment_plans,
+   * yang boleh dibaca publik. Tabel lot_installments hanya bisa dibaca
+   * pengguna yang sudah login, sehingga tamu selalu melihat daftar kosong.
+   */
   const { data, error } = await supabase
-    .from('lot_installments')
-    .select(`
-      id,
-      monthly_payment,
-      payment_plans (
-        id,
-        plan_name,
-        months,
-        margin_percent
-      )
-    `)
-    .eq('lot_id', lotId)
+    .from('payment_plans')
+    .select('id, plan_name, months, margin_percent')
+    .order('months', { ascending: true })
 
   if (error) {
     throw error
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | SORT BY TENOR
-  |--------------------------------------------------------------------------
-  |
-  | 6 bulan
-  | 12 bulan
-  | 24 bulan
-  | 36 bulan
-  |
-  */
-
-  const sorted = ((data || []) as LotInstallment[]).sort((a, b) => {
-    const left = Array.isArray(a.payment_plans)
-      ? a.payment_plans[0]?.months ?? 0
-      : a.payment_plans?.months ?? 0
-
-    const right = Array.isArray(b.payment_plans)
-      ? b.payment_plans[0]?.months ?? 0
-      : b.payment_plans?.months ?? 0
-
-    return left - right
-  })
-
-  return sorted.filter((item, index, rows) => {
-    const plan = Array.isArray(item.payment_plans) ? item.payment_plans[0] : item.payment_plans
-    return rows.findIndex((candidate) => {
-      const candidatePlan = Array.isArray(candidate.payment_plans) ? candidate.payment_plans[0] : candidate.payment_plans
-      return candidatePlan?.id === plan?.id
-    }) === index
-  })
+  return (data || []).map((plan: any) => ({
+    id: plan.id,
+    monthly_payment: 0,
+    payment_plans: plan,
+  }))
 }

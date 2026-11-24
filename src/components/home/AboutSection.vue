@@ -1,33 +1,12 @@
 <template>
   <section v-if="showSection" class="section about-section">
-    <div class="section-heading simple-heading">
-      <div v-if="loading" class="skeleton-heading">
-        <Skeleton
-          width="78px"
-          height="10px"
-          border-radius="5px"
-        />
-
-        <Skeleton
-          width="125px"
-          height="24px"
-          border-radius="6px"
-        />
-
-        <Skeleton
-          width="34px"
-          height="3px"
-          border-radius="999px"
-        />
-      </div>
-
-      <div v-else>
-        <span class="eyebrow">TENTANG POLILAND</span>
-        <h2>Tentang Kami</h2>
-        <span class="heading-line"></span>
-      </div>
-      <AdminEditButton v-if="isAdmin" label="Edit teks" @click="editTextOpen = true" />
+    <div v-if="loading" class="skeleton-heading skeleton-head-gap">
+      <Skeleton width="125px" height="24px" border-radius="6px" />
+      <Skeleton width="34px" height="3px" border-radius="999px" />
     </div>
+    <SectionHeader v-else title="Tentang kami">
+      <AdminEditButton v-if="isAdmin" label="Edit teks" @click="editTextOpen = true" />
+    </SectionHeader>
 
     <div class="about-content">
       <!-- ==========================================
@@ -116,28 +95,20 @@
 
         <!-- DATA ASLI -->
         <template v-else>
-          <p v-if="aboutText">{{ aboutText }}</p>
+          <p v-if="aboutText" class="about-lead">{{ aboutText }}</p>
           <p v-else-if="isAdmin" class="empty-hint">Deskripsi belum diisi. Tekan “Edit teks”.</p>
 
           <div v-if="aboutPoints.length" class="check-list">
             <div v-for="(point, index) in aboutPoints" :key="index">
-              <ion-icon :icon="checkmarkCircleOutline" />
+              <ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" />
               <span>{{ point }}</span>
             </div>
           </div>
 
-          <ion-button
-            class="text-button"
-            fill="clear"
-            @click="handleSeeAll"
-          >
-            Selengkapnya Tentang Kami
-
-            <ion-icon
-              slot="end"
-              :icon="arrowForwardOutline"
-            />
-          </ion-button>
+          <button class="text-btn" type="button" @click="handleSeeAll">
+            Selengkapnya
+            <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
+          </button>
         </template>
       </div>
 
@@ -192,9 +163,11 @@
 
             <button
               class="play-button"
+              type="button"
+              aria-label="Putar video profil"
               @click="handlePlayVideo"
             >
-              <ion-icon :icon="play" />
+              <ion-icon :icon="play" aria-hidden="true" />
             </button>
           </template>
 
@@ -233,6 +206,7 @@
           :src="getYouTubeEmbedUrl(videoData.video_url) || ''"
           :title="videoData.title"
           class="video-iframe"
+          referrerpolicy="strict-origin-when-cross-origin"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowfullscreen
         />
@@ -450,6 +424,7 @@ import {
 
 import { useRouter } from 'vue-router'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
@@ -633,7 +608,7 @@ onUnmounted(() => {
 const thumbnail = computed(() => {
 
   return (
-    videoData.value?.thumbnail_url ||
+    videoData.value?.thumbnail_url?.replace('/maxresdefault.jpg', '/hqdefault.jpg') ||
 
     (
       isYouTubeUrl(
@@ -1257,74 +1232,12 @@ const handlePlayVideo = () => {
    SECTION
 ========================================== */
 
-.section {
-  padding: 30px 16px 0;
-}
-
-.section-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.section-heading h2 {
-  margin: 0;
-
-  color: #1e293b;
-
-  font-size: 20px;
-
-  line-height: 1.2;
-
-  font-weight: 800;
-
-  letter-spacing: -0.3px;
-}
-
-.heading-line {
-  display: block;
-
-  width: 34px;
-
-  height: 3px;
-
-  margin-top: 7px;
-
-  background: #556B2F;
-
-  border-radius: 999px;
-}
-
-.about-section {
-  padding-top: 35px;
-}
-
-.simple-heading {
-  margin-bottom: 15px;
-}
-
 .skeleton-heading {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
 }
-
-.eyebrow {
-  display: block;
-
-  margin-bottom: 6px;
-
-  color: #556B2F;
-
-  font-size: 9px;
-
-  font-weight: 800;
-
-  letter-spacing: 1px;
-}
-
 
 /* ==========================================
    ABOUT CONTENT
@@ -1338,60 +1251,119 @@ const handlePlayVideo = () => {
   gap: 18px;
 }
 
-.about-text p {
+/* ==========================================
+   BAGIAN PUBLIK (rasa Welcome)
+========================================== */
+.section { padding: 36px 20px 0; }
+.about-section { padding-top: 40px; }
+.skeleton-head-gap { margin-bottom: 16px; }
+
+.about-lead {
   margin: 0;
-
-  color: #475569;
-
-  font-size: 12px;
-
-  line-height: 1.7;
+  color: var(--text-primary, #252525);
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: clamp(19px, 5.2vw, 22px);
+  line-height: 1.5;
+  font-weight: 450;
+  letter-spacing: -0.01em;
 }
-
-.check-list {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 9px;
-
-  margin-top: 15px;
-}
-
+.check-list { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
 .check-list div {
   display: flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  color: #334155;
-
-  font-size: 10px;
-
-  font-weight: 600;
-}
-
-.check-list ion-icon {
-  color: #556B2F;
-
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-card, 16px);
+  background: var(--surface-primary, #fff);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary, #252525);
   font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.check-list ion-icon { flex: 0 0 auto; margin-top: 1px; color: var(--poliland-green, #355a2c); font-size: 22px; }
+
+.text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--poliland-green, #355a2c);
+  font: 800 15px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.text-btn ion-icon { font-size: 18px; transition: transform var(--dur-base) var(--ease-spring); }
+.text-btn:active ion-icon { transform: translateX(4px); }
+.text-btn:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 3px; }
+
+.admin-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--poliland-green, #355a2c);
+  color: #fff;
+  font: 700 13px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  box-shadow: var(--shadow-sm);
+  touch-action: manipulation;
 }
 
-.text-button {
-  margin: 12px 0 0;
-
-  --color: #556B2F;
-
-  --padding-start: 0;
-
-  --padding-end: 0;
-
-  font-size: 10px;
-
-  font-weight: 700;
+.about-image {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-panel, 20px);
+  background: var(--green-900, #1f3519);
+  box-shadow: var(--shadow-lg);
+  outline: 1px solid rgba(203, 160, 68, 0.35);
+  outline-offset: 5px;
 }
+.about-image img { width: 100%; height: 100%; object-fit: cover; }
 
+.play-button {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--poliland-gold, #cba044);
+  color: var(--ink, #1b1f1a);
+  font-size: 28px;
+  box-shadow: 0 12px 26px -8px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: scale var(--dur-base) var(--ease-spring);
+}
+.play-button:active { scale: 0.94; }
+.play-button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.video-empty-box p { margin: 0; color: var(--on-forest, #f4f1e8); font-size: 14px; font-weight: 600; line-height: 1.5; }
+.video-empty-box .empty-icon { color: var(--poliland-gold-soft, #f4d69a); }
+.empty-hint { padding: 14px; border: 1px dashed var(--border-strong, #d5d0c4); border-radius: var(--radius-card, 16px); color: var(--text-secondary, #5f5f66) !important; font-size: 14px !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .text-btn:active ion-icon,
+  .play-button:active { transform: none; scale: 1; }
+}
 
 /* ==========================================
    SKELETON TEXT
@@ -1444,58 +1416,6 @@ const handlePlayVideo = () => {
   z-index: 10;
 }
 
-.admin-edit-btn {
-  display: inline-flex;
-
-  align-items: center;
-
-  gap: 4px;
-
-  min-height: 36px;
-
-  padding: 0 12px;
-
-  background: #556B2F;
-
-  color: #ffffff;
-
-  border-radius: 999px;
-
-  font-size: 11px;
-
-  font-weight: 700;
-
-  border: none;
-
-  box-shadow:
-    0 4px 10px
-    rgba(85, 107, 47, 0.3);
-}
-
-.about-image {
-  position: relative;
-
-  aspect-ratio: 16 / 9;
-
-  overflow: hidden;
-
-  border-radius: 15px;
-
-  box-shadow:
-    0 8px 22px
-    rgba(15, 23, 42, 0.12);
-
-  background: #f1f5f9;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  border: 1px solid #e2e8f0;
-}
-
 .about-image img {
   width: 100%;
 
@@ -1533,45 +1453,6 @@ const handlePlayVideo = () => {
    VIDEO PLAY BUTTON
 ========================================== */
 
-.play-button {
-  position: absolute;
-
-  left: 50%;
-
-  top: 50%;
-
-  transform:
-    translate(-50%, -50%);
-
-  width: 48px;
-
-  height: 48px;
-
-  border: 0;
-
-  border-radius: 50%;
-
-  background:
-    rgba(255, 255, 255, 0.94);
-
-  color: #556B2F;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  font-size: 20px;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 4px 12px
-    rgba(0, 0, 0, 0.2);
-}
-
-
 /* ==========================================
    EMPTY VIDEO
 ========================================== */
@@ -1587,21 +1468,10 @@ const handlePlayVideo = () => {
 .empty-icon {
   font-size: 24px;
 
-  color: #94a3b8;
+  color: var(--text-secondary, #5F5F66);
 
   margin-bottom: 4px;
 }
-
-.video-empty-box p {
-  margin: 0;
-
-  font-size: 10px;
-
-  font-weight: 600;
-
-  color: #64748b;
-}
-
 
 /* ==========================================
    VIDEO PLAYER (dalam AppModal)
@@ -1621,14 +1491,6 @@ const handlePlayVideo = () => {
   height: 100%;
   border: none;
 }
-
-.empty-hint {
-  padding: 12px;
-  border: 1px dashed #d5d0c4;
-  border-radius: 10px;
-  color: #6b6b6b !important;
-}
-
 
 /* ==========================================
    FORM ADMIN (dalam AppModal)

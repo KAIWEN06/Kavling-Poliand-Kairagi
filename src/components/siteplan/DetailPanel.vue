@@ -15,7 +15,7 @@
       <!-- HEADER -->
       <header class="detail-header">
         <div>
-          <div class="detail-label">PoliLand Kairagi</div>
+          <div class="detail-label">Kaveling</div>
           <h2>{{ lot.lot_number || lot.polygon_id || '-' }}</h2>
         </div>
 
@@ -47,7 +47,7 @@
               @click="open360"
             >
               <ion-icon :icon="compassOutline" aria-hidden="true"></ion-icon>
-              Lihat Panorama 360°
+              Panorama 360°
             </button>
           </div>
         </div>
@@ -94,17 +94,17 @@
               </strong>
             </div>
 
-            <div class="spec-card">
+            <div class="spec-card" :class="{ 'spec-card--wide': !hasPromo }">
               <small>Harga Cash</small>
               <strong>
                 {{ formatCurrency(lot.cash_price) }}
               </strong>
             </div>
 
-            <div class="spec-card">
+            <div v-if="hasPromo" class="spec-card">
               <small>Harga Promo</small>
               <strong>
-                {{ formatCurrency(lot.promo_price || lot.cash_price) }}
+                {{ formatCurrency(lot.promo_price) }}
               </strong>
             </div>
           </div>
@@ -137,7 +137,7 @@
             v-if="activeTab === 'cash'"
             class="cash-box"
           >
-            <div class="price-row">
+            <div v-if="hasPromo" class="price-row">
               <span>Harga Cash</span>
 
               <strong>
@@ -145,7 +145,7 @@
               </strong>
             </div>
 
-            <div class="normal-price">
+            <div v-if="hasPromo" class="normal-price">
               <span>Harga Promo</span>
 
               <del>
@@ -153,7 +153,15 @@
               </del>
 
               <strong>
-                {{ formatCurrency(lot.promo_price || lot.cash_price) }}
+                {{ formatCurrency(lot.promo_price) }}
+              </strong>
+            </div>
+
+            <div v-else class="price-row price-row--single">
+              <span>Harga Cash</span>
+
+              <strong>
+                {{ formatCurrency(lot.cash_price) }}
               </strong>
             </div>
           </div>
@@ -418,41 +426,47 @@
       </div>
       <div class="purchase-text">
         <h2>Informasi Pembelian</h2>
+        <span class="purchase-rule" aria-hidden="true"></span>
 
-        <p>
-          Untuk melakukan pembelian kaveling, kami membutuhkan
-          data diri Anda untuk keperluan administrasi dengan Notaris.
-        </p>
-
-        <p>
-          Data tersebut juga diperlukan agar Anda dapat
-          memantau perkembangan proses pembelian kaveling,
-          termasuk informasi pembayaran dan status transaksi Anda.
-        </p>
+        <ul class="purchase-reasons">
+          <li>
+            <span class="purchase-reason-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+            </span>
+            <span>Notaris memerlukan data diri Anda untuk administrasi pemesanan.</span>
+          </li>
+          <li>
+            <span class="purchase-reason-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+            </span>
+            <span>Dengan data itu, Anda bisa memantau pembayaran dan status transaksi.</span>
+          </li>
+        </ul>
 
         <p class="purchase-note">
           {{ props.clientMode
-            ? 'Lanjutkan ke formulir pembelian untuk mengajukan pemesanan kavling ini.'
-            : 'Silakan masuk atau daftar akun untuk melanjutkan proses pembelian.' }}
+            ? 'Lanjutkan ke formulir untuk mengajukan pemesanan.'
+            : 'Masuk atau daftar untuk melanjutkan.' }}
         </p>
       </div>
 
       <div class="purchase-actions">
         <AppButton
           expand="block"
-          class="cancel-purchase-button"
-          variant="secondary"
-          @click="closePurchaseModal"
+          class="continue-purchase-button"
+          @click="continuePurchase"
         >
-          Batal
+          {{ props.clientMode ? 'Lanjut ke SPK' : 'Lanjut ke Login' }}
         </AppButton>
 
         <AppButton
           expand="block"
-          class="continue-purchase-button"
-          @click="continuePurchase"
+          class="cancel-purchase-button"
+          variant="neutral"
+          fill="clear"
+          @click="closePurchaseModal"
         >
-          {{ props.clientMode ? 'Lanjutkan ke Formulir SPK' : 'Lanjutkan ke Login' }}
+          Batal
         </AppButton>
       </div>
     </div>
@@ -616,10 +630,16 @@ const loadingInstallments = ref(false)
  */
 const downPayment = ref(0)
 
+/* Harga promo dianggap diatur hanya jika terisi dan lebih murah dari harga cash. */
+const hasPromo = computed(() => {
+  const promo = Number(props.lot?.promo_price || 0)
+  const cash = Number(props.lot?.cash_price || 0)
+  return promo > 0 && (!cash || promo < cash)
+})
+
 const installmentBasePrice = computed(() => {
   return Number(
-    props.lot?.promo_price ||
-    props.lot?.cash_price ||
+    (hasPromo.value ? props.lot?.promo_price : props.lot?.cash_price) ||
     0
   )
 })
@@ -1120,7 +1140,7 @@ function getBlockCode(
   align-items: flex-end;
   justify-content: center;
 
-  background: rgba(26, 26, 26, 0.45);
+  background: rgba(27, 40, 22, 0.5);
 
   opacity: 0;
   visibility: hidden;
@@ -1145,9 +1165,11 @@ function getBlockCode(
 
   height: min(88dvh, 720px);
 
-  background: #ffffff;
+  background: var(--pl-paper, #f9f5ec);
 
-  border-radius: 22px 22px 0 0;
+  border-radius: 24px 24px 0 0;
+
+  box-shadow: var(--shadow-lg);
 
   overflow: hidden;
 
@@ -1157,7 +1179,7 @@ function getBlockCode(
   transform: translateY(100%);
 
   transition:
-    transform 0.25s ease;
+    transform 380ms var(--ease-drawer);
 }
 
 .detail-backdrop.open
@@ -1179,27 +1201,29 @@ function getBlockCode(
   padding: 18px 18px 10px;
 
   border-bottom:
-    1px solid #e5e5e5;
+    1px solid var(--border-default, #eae7e0);
 }
 
 .detail-label {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
 
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
 
   text-transform: uppercase;
 
-  color: #6b6b6b;
+  color: var(--poliland-gold-text, #966a12);
 }
 
 .detail-header h2 {
   margin: 4px 0 0;
 
-  font-size: 24px;
-  font-weight: 800;
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 
-  color: #1a1a1a;
+  color: var(--text-primary, #252525);
 }
 
 /* ===================================================== */
@@ -1321,7 +1345,7 @@ function getBlockCode(
 
   background: #fafaf7;
 
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 }
 
 .no-panorama-mascot {
@@ -1365,13 +1389,13 @@ function getBlockCode(
 }
 
 .status-box span {
-  font-size: 11px;
+  font-size: 13px;
 
   text-transform: uppercase;
 
   letter-spacing: 0.08em;
 
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 }
 
 .status-box strong {
@@ -1443,9 +1467,9 @@ function getBlockCode(
 }
 
 .spec-card small {
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 
-  font-size: 11px;
+  font-size: 13px;
 
   text-transform: uppercase;
 
@@ -1481,7 +1505,7 @@ function getBlockCode(
 
   background: #fafaf7;
 
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 
   padding: 10px;
 
@@ -1534,7 +1558,7 @@ function getBlockCode(
 
 .price-row span,
 .normal-price span {
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 
   font-size: 13px;
 }
@@ -1558,7 +1582,7 @@ function getBlockCode(
 }
 
 .normal-price del {
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 
   font-size: 12px;
 
@@ -1568,7 +1592,7 @@ function getBlockCode(
 .payment-note {
   font-size: 13px;
 
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 }
 
 /* ===================================================== */
@@ -1591,7 +1615,7 @@ function getBlockCode(
 }
 
 .down-payment-field label {
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1642,7 +1666,7 @@ function getBlockCode(
 }
 
 .installment-item span {
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 
   font-size: 13px;
 }
@@ -1656,9 +1680,9 @@ function getBlockCode(
 .installment-item small {
   grid-column: 1 / -1;
 
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* ===================================================== */
@@ -1668,7 +1692,7 @@ function getBlockCode(
 .detail-description {
   margin-top: 12px;
 
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 
   font-size: 13px;
 
@@ -1803,9 +1827,9 @@ function getBlockCode(
 }
 
 .survey-lot-info span {
-  font-size: 11px;
+  font-size: 13px;
 
-  color: #6b6b6b;
+  color: var(--text-secondary, #5f5f66);
 
   text-transform: uppercase;
 
@@ -1888,8 +1912,18 @@ function getBlockCode(
 }
 
 .purchase-modal-content {
-  padding: 28px 22px 24px;
-  background: #ffffff;
+  padding: 28px 22px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--pl-paper, #F9F5EC);
+  animation: purchase-rise 420ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+@keyframes purchase-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .purchase-modal-content { animation: none; }
 }
 
 /* ===================================================== */
@@ -1945,54 +1979,106 @@ function getBlockCode(
 }
 
 .purchase-text h2 {
-  margin: 0 0 12px;
+  margin: 0;
 
-  color: #1a1a1a;
+  color: var(--ink, #1b1f1a);
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
 
-  font-size: 20px;
-  line-height: 1.3;
+  font-size: 24px;
+  line-height: 1.2;
 
-  font-weight: 800;
+  font-weight: 700;
 }
 
-.purchase-text p {
-  margin: 0 0 12px;
+.purchase-rule {
+  display: block;
+  width: 36px;
+  height: 3px;
+  margin: 10px auto 18px;
+  border-radius: 2px;
+  background: var(--poliland-gold, #cba044);
+}
 
-  color: #6b6b6b;
+.purchase-reasons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 
-  font-size: 13px;
-  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  text-align: left;
+}
+
+.purchase-reasons li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(27, 31, 26, 0.06), 0 0 0 1px rgba(27, 31, 26, 0.05);
+
+  color: var(--text-secondary, #5f5f66);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.purchase-reason-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--pl-paper-deep, #f1e8d4);
+  color: var(--poliland-gold-text, #805708);
 }
 
 .purchase-text .purchase-note {
-  margin-top: 16px;
-  margin-bottom: 0;
+  margin: 18px 0 0;
 
-  color: #1a1a1a;
-
-  font-weight: 600;
+  color: var(--ink, #1b1f1a);
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 700;
 }
 
 .purchase-actions {
   display: flex;
   flex-direction: column;
 
-  gap: 8px;
+  gap: 4px;
 
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .cancel-purchase-button,
 .continue-purchase-button {
   margin: 0;
 
-  --border-radius: 12px;
+  --border-radius: 14px;
 
-  --padding-top: 13px;
-  --padding-bottom: 13px;
-
+  min-height: 48px;
   font-size: 14px;
   font-weight: 700;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.continue-purchase-button {
+  --padding-top: 14px;
+  --padding-bottom: 14px;
+}
+
+.cancel-purchase-button {
+  --color: var(--text-secondary, #5f5f66);
+  --background: transparent;
+  --background-activated: rgba(27, 31, 26, 0.06);
 }
 
 /* ===================================================== */
@@ -2025,71 +2111,176 @@ function getBlockCode(
   }
 }
 
-/* Refined detail presentation */
+/* ===================================================== */
+/* Tampilan mengikuti WelcomePage: krem hangat, hijau hutan, emas */
+/* ===================================================== */
+
+.detail-backdrop {
+  background: rgba(37, 37, 37, 0.5);
+}
+
 .detail-panel {
-  background: #FAFAF7;
+  background: var(--surface-muted, #f5f3ee);
+  color: var(--text-primary, #252525);
+  font-family: var(--font-primary, 'Plus Jakarta Sans', sans-serif);
 }
 
 .detail-header {
   min-height: 68px;
   padding: 14px 20px;
-  background: #FFFFFF;
+  background: transparent;
+  border-bottom: 1px solid rgba(53, 90, 44, 0.14);
 }
 
 .detail-label {
-  color: #6B6B6B;
+  color: #805708;
 }
 
 .detail-header h2 {
-  font-size: 22px;
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, #252525);
+}
+
+.close-button {
+  --background: #ffffff;
+  --background-hover: #ebe7dc;
+  --background-activated: #ebe7dc;
+  --color: var(--poliland-green, #355a2c);
+  --box-shadow: 0 0 0 1px rgba(53, 90, 44, 0.2);
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  margin: 0;
 }
 
 .detail-body {
   padding: 20px;
-  background: #FAFAF7;
+  background: transparent;
 }
 
 .media-preview,
 .no-panorama {
-  border-radius: 18px;
-  border: 1px solid #E5E5E5;
+  border-radius: 20px;
+  border: 0;
+  background: #ffffff;
 }
 
 .media-preview {
   height: 240px;
-  box-shadow: 0 8px 24px rgba(26, 26, 26, 0.06);
+  box-shadow: 0 14px 28px -16px rgba(53, 90, 44, 0.45);
+}
+
+.no-panorama {
+  min-height: 200px;
+  color: #63636a;
 }
 
 .view-360-button {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  background: #FFFFFF;
-  color: #1A1A1A;
-  box-shadow: 0 4px 14px rgba(26, 26, 26, 0.18);
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  background: #ffffff;
+  color: var(--poliland-green, #355a2c);
+  font: 700 14px/1 var(--font-primary, 'Plus Jakarta Sans', sans-serif);
+  box-shadow: 0 8px 20px -8px rgba(53, 90, 44, 0.5);
+  touch-action: manipulation;
+}
+
+.view-360-button:active {
+  transform: scale(0.97);
 }
 
 .status-box {
-  background: #FFFFFF;
-  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(53, 90, 44, 0.12);
+  border-radius: 16px;
 }
+
+.status-box span,
+.spec-card small,
+.survey-lot-info span {
+  color: #63636a;
+}
+
+.status-box strong.available { color: #2e7d32; }
+.status-box strong.booking { color: #8a5a00; }
+.status-box strong.sold { color: #b3261e; }
 
 .detail-section {
   padding: 18px;
-  margin-top: 16px;
-  border: 1px solid #E5E5E5;
-  border-radius: 16px;
-  background: #FFFFFF;
+  margin-top: 14px;
+  border: 1px solid rgba(53, 90, 44, 0.12);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px -18px rgba(53, 90, 44, 0.45);
 }
 
 .detail-section h3 {
-  font-size: 16px;
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text-primary, #252525);
 }
 
 .spec-card {
   min-height: 72px;
   justify-content: center;
-  background: #FAFAF7;
+  background: #faf8f4;
+  border: 1px solid #e5e1d6;
+  border-radius: 14px;
+}
+
+.spec-card strong {
+  font-size: 15px;
+  color: var(--text-primary, #252525);
+}
+
+.spec-card--wide {
+  grid-column: 1 / -1;
+}
+
+.price-row--single strong {
+  font-size: 22px;
+  color: var(--poliland-green, #355a2c);
+}
+
+/* Tab pembayaran */
+.payment-tabs {
+  padding: 4px;
+  gap: 4px;
+  border-radius: 14px;
+  background: #ebe7dc;
+}
+
+.payment-tabs button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #4a4a50;
+  font: 700 14px/1 var(--font-primary, 'Plus Jakarta Sans', sans-serif);
+  touch-action: manipulation;
+  transition: background var(--dur-base, 0.2s) var(--ease-out, ease-out),
+    color var(--dur-base, 0.2s) var(--ease-out, ease-out);
+}
+
+.payment-tabs button.active {
+  background: var(--poliland-green, #355a2c);
+  color: #ffffff;
+  box-shadow: 0 6px 14px -8px rgba(53, 90, 44, 0.8);
+}
+
+.payment-tabs button:focus-visible,
+.quick-dp-list button:focus-visible,
+.view-360-button:focus-visible {
+  outline: 3px solid var(--poliland-gold, #cba044);
+  outline-offset: 2px;
 }
 
 .cash-box,
@@ -2099,27 +2290,54 @@ function getBlockCode(
   padding: 0;
 }
 
+.price-row span,
+.normal-price span,
+.installment-item span,
+.payment-note {
+  color: #4a4a50;
+}
+
 .normal-price {
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid #E5E5E5;
+  border-top: 1px solid rgba(53, 90, 44, 0.14);
 }
 
 .normal-price del {
   grid-column: 1;
   grid-row: 2;
+  color: #63636a;
+  opacity: 1;
 }
 
 .normal-price strong {
   grid-column: 2;
   grid-row: 1 / span 2;
-  color: #556B2F;
+  color: var(--poliland-green, #355a2c);
   font-size: 22px;
 }
 
+/* Simulasi cicilan */
 .installment-price-summary {
-  border: none;
-  background: #FAFAF7;
+  border: 0;
+  border-radius: 16px;
+  background: #faf8f4;
+}
+
+.down-payment-field label {
+  color: #4a4a50;
+}
+
+.down-payment-field input {
+  min-height: 48px;
+  font-size: 16px;
+  border: 1.5px solid rgba(53, 90, 44, 0.35);
+  border-radius: 12px;
+}
+
+.down-payment-field input:focus {
+  border-color: var(--poliland-green, #355a2c);
+  box-shadow: 0 0 0 3px rgba(203, 160, 68, 0.35);
 }
 
 .quick-dp-list {
@@ -2130,47 +2348,139 @@ function getBlockCode(
 }
 
 .quick-dp-list button {
-  min-height: 42px;
-  border: 1px solid #D9D3C4;
-  border-radius: 10px;
-  background: #FFFFFF;
-  color: #556B2F;
-  font-weight: 700;
+  min-height: 44px;
+  border: 1.5px solid rgba(53, 90, 44, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--poliland-green, #355a2c);
+  font: 700 14px/1 var(--font-primary, 'Plus Jakarta Sans', sans-serif);
   cursor: pointer;
+  touch-action: manipulation;
+}
+
+.quick-dp-list button:active {
+  transform: scale(0.97);
+  background: #ebe7dc;
+}
+
+.remaining-price-row {
+  border-top: 1px solid rgba(53, 90, 44, 0.14);
 }
 
 .installment-item {
+  align-items: center;
   margin-bottom: 8px;
   padding: 14px;
-  border: 1px solid #E5E5E5;
-  border-radius: 12px;
-  background: #FFFFFF;
+  border: 1px solid rgba(53, 90, 44, 0.12);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.installment-item:last-child {
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(53, 90, 44, 0.12);
+}
+
+.installment-item span {
+  font-weight: 700;
+  color: var(--text-primary, #252525);
 }
 
 .installment-item strong {
-  font-size: 15px;
-  color: #556B2F;
+  font-size: 16px;
+  color: var(--poliland-green, #355a2c);
 }
 
+.detail-description {
+  color: #4a4a50;
+}
+
+/* Footer dan tombol aksi */
 .detail-footer {
-  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-  background: #FFFFFF;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: rgba(245, 243, 238, 0.97);
+  border-top: 1px solid rgba(53, 90, 44, 0.14);
 }
 
-.survey-button {
-  --background: #556B2F;
-  --background-hover: #4A5B29;
+.action-grid {
+  gap: 10px;
+  margin-bottom: 4px;
 }
 
-.buy-button {
-  --background: #2E4D2D;
-  --background-hover: #243E24;
+.detail-footer .survey-button.app-button.app-button,
+.detail-footer .buy-button.app-button.app-button {
+  --border-radius: 16px;
+  --min-height: 52px;
+  min-height: 52px;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-.ask-button {
-  min-height: 42px;
-  border-color: #D9D3C4;
-  color: #556B2F;
+/* Survei: tombol ghost seperti "Lihat kavling" */
+.detail-footer .survey-button.app-button.app-button {
+  --background: rgba(255, 255, 255, 0.7);
+  --background-hover: #ffffff;
+  --background-activated: #ebe7dc;
+  --color: var(--poliland-green, #355a2c);
+  --box-shadow: none;
+  --border-width: 1.5px;
+  --border-style: solid;
+  --border-color: rgba(53, 90, 44, 0.45);
+}
+
+/* Beli: tombol utama seperti "Masuk" */
+.detail-footer .buy-button.app-button.app-button {
+  --background: var(--poliland-green, #355a2c);
+  --background-hover: #2b4a24;
+  --background-activated: #243d1e;
+  --color: #ffffff;
+  --box-shadow: 0 10px 24px -10px rgba(53, 90, 44, 0.7);
+}
+
+.detail-footer .buy-button.app-button.app-button[disabled] {
+  --background: #d9d3c4;
+  --color: #4a4a50;
+  --box-shadow: none;
+  opacity: 1;
+}
+
+/* Tanya: tombol teks emas seperti "Daftar" */
+.detail-footer .ask-button.app-button.app-button {
+  --background: transparent;
+  --background-hover: rgba(203, 160, 68, 0.14);
+  --background-activated: rgba(203, 160, 68, 0.22);
+  --color: #805708;
+  --box-shadow: none;
+  --border-radius: 12px;
+  --min-height: 48px;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.detail-footer .ask-button.app-button.app-button:active {
+  background: transparent;
+}
+
+.confirm-survey-button.confirm-survey-button {
+  --background: var(--poliland-green, #355a2c);
+  --background-hover: #2b4a24;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 24px -10px rgba(53, 90, 44, 0.7);
+  min-height: 52px;
+}
+
+.survey-lot-info {
+  background: #faf8f4;
+  border-color: #e5e1d6;
 }
 
 @media (min-width: 900px) {
@@ -2183,9 +2493,9 @@ function getBlockCode(
     width: min(1180px, calc(100vw - 64px));
     max-width: none;
     height: min(840px, calc(100vh - 64px));
-    border-radius: 20px;
+    border-radius: 24px;
     transform: translateY(24px) scale(0.985);
-    box-shadow: 0 24px 80px rgba(26, 26, 26, 0.22);
+    box-shadow: 0 24px 80px rgba(37, 37, 37, 0.25);
   }
 
   .detail-backdrop.open .detail-panel {
@@ -2227,7 +2537,6 @@ function getBlockCode(
     display: grid;
     grid-template-columns: 1fr 240px;
     gap: 10px;
-    padding-bottom: 12px;
   }
 
   .action-grid {
@@ -2274,10 +2583,13 @@ function getBlockCode(
   .spec-grid {
     gap: 8px;
   }
+}
 
-  .quick-dp-list button {
-    font-size: 13px;
+@media (prefers-reduced-motion: reduce) {
+  .detail-backdrop,
+  .detail-panel,
+  .payment-tabs button {
+    transition: none;
   }
 }
 </style>
-

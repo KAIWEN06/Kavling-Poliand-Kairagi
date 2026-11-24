@@ -14,30 +14,19 @@
             :animate="{ y: 0, opacity: 1 }"
             :transition="{ duration: 0.8, delay: 0.05 + i * 0.1, ease: MOTION_EASE_OUT }"
           />
-          <!-- Garis petak kavling di bukit depan -->
-          <motion.g
-            class="parcel-lines"
-            :initial="reduced ? false : { opacity: 0 }"
-            :animate="{ opacity: 1 }"
-            :transition="{ duration: 0.6, delay: 0.7 }"
-          >
-            <path d="M0 176 C90 160 170 168 250 156 S350 150 390 154" />
-            <path d="M0 196 C100 182 180 190 260 178 S350 172 390 176" />
-            <path d="M120 163 L96 220 M200 160 L190 220 M278 154 L296 220" />
-          </motion.g>
+          <!-- Garis petak kavling digambar pelan seperti denah -->
+          <motion.path
+            v-for="(d, i) in parcelLines"
+            :key="'p' + i"
+            class="parcel-line"
+            :d="d"
+            :initial="reduced ? false : { pathLength: 0, opacity: 0 }"
+            :animate="{ pathLength: 1, opacity: 1 }"
+            :transition="{ duration: 1.2, delay: 0.7 + i * 0.18, ease: MOTION_EASE_OUT }"
+          />
         </svg>
 
         <header class="topbar">
-          <motion.img
-            :src="logo"
-            alt="PoliLand Kairagi"
-            class="brand-logo"
-            width="40"
-            height="40"
-            :initial="reduced ? false : { opacity: 0, scale: 0.8 }"
-            :animate="{ opacity: 1, scale: 1 }"
-            :transition="{ duration: 0.5, delay: 0.1, ease: MOTION_EASE_OUT }"
-          />
           <motion.button
             type="button"
             class="skip"
@@ -50,27 +39,36 @@
           </motion.button>
         </header>
 
-        <!-- Maskot menyapa di depan pintu. Ketuk untuk melambai lagi. -->
+        <!-- Maskot: menyapa, mengikuti sentuhan jari, dan bereaksi saat diketuk. -->
         <motion.button
           type="button"
           class="scene"
-          aria-label="Ketuk maskot PoliLand untuk melihatnya melambai"
+          aria-label="Sapa maskot PoliLand"
           :initial="reduced ? false : { opacity: 0, scale: 1.06, y: 14 }"
           :animate="{ opacity: 1, scale: 1, y: 0 }"
           :transition="{ duration: 0.9, delay: 0.15, ease: MOTION_EASE_OUT }"
-          :while-tap="reduced ? undefined : { scale: 0.97 }"
-          @click="playWave"
+          @click="interact"
+          @pointermove="onPointerMove"
+          @pointerleave="resetTilt"
+          @pointercancel="resetTilt"
         >
-          <img
-            :src="currentFrame"
-            class="scene-frame"
-            alt=""
-            width="1280"
-            height="720"
-            draggable="false"
-            fetchpriority="high"
-          />
+          <span ref="stageEl" class="scene-stage">
+            <canvas ref="canvasEl" class="scene-frame" width="1280" height="720" />
+          </span>
         </motion.button>
+
+        <div class="bubble-slot" aria-hidden="true">
+          <motion.div
+            v-if="showBubble"
+            :key="lineIndex"
+            class="bubble"
+            :initial="reduced ? false : { opacity: 0, scale: 0.85, y: 8 }"
+            :animate="{ opacity: 1, scale: 1, y: 0 }"
+            :transition="{ type: 'spring', stiffness: 380, damping: 26 }"
+          >
+            {{ story[lineIndex].text }}
+          </motion.div>
+        </div>
 
         <main class="copy">
           <h1 class="headline">
@@ -92,8 +90,7 @@
             :animate="{ opacity: 1, y: 0 }"
             :transition="{ duration: 0.6, delay: 0.95, ease: MOTION_EASE_OUT }"
           >
-            Kavling dengan legalitas jelas dan akses jalan yang baik. Lihat denahnya, pilih petaknya, pantau
-            prosesnya dari ponsel Anda.
+            Lihat denah, pilih petak yang cocok, lalu pantau pembayaran dan dokumennya dari ponsel.
           </motion.p>
         </main>
 
@@ -107,7 +104,7 @@
             :while-tap="reduced ? undefined : { scale: 0.97 }"
             @click="go('/login')"
           >
-            Masuk ke akun
+            Masuk
           </motion.button>
 
           <div class="secondary-row">
@@ -120,7 +117,7 @@
               :while-tap="reduced ? undefined : { scale: 0.97 }"
               @click="explore"
             >
-              Lihat kavling dulu
+              Lihat kavling
             </motion.button>
             <motion.button
               type="button"
@@ -143,7 +140,7 @@
 <script setup lang="ts">
 import { IonContent, IonPage } from '@ionic/vue'
 import { motion } from 'motion-v'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import logo from '@/assets/logos/logo.png'
 import { useReducedMotion } from '@/composables/useReducedMotion'
@@ -153,71 +150,182 @@ import { mascotAnimations } from '@/data/mascotAnimations'
 const router = useRouter()
 const reduced = useReducedMotion()
 
-const headlineLines = ['Kavling impian', 'Anda dimulai', 'dari pintu ini.']
+const headlineLines = ['Kaveling Siap Bangun,', 'Temukan Kaveling Impian Anda.']
 
-/** Tiga lapis bukit, dari belakang ke depan. Warna hijau merek dengan opasitas rendah. */
+/** Alur sapaan: tiap langkah punya gerakan maskot dan ucapannya sendiri. */
+const story = [
+  { text: 'Halo, saya Poli!', clip: 'wave' },
+  { text: 'Pilih kavling lewat tombol di bawah.', clip: 'point' },
+  { text: 'Sudah punya akun? Langsung masuk saja.', clip: 'wave' },
+] as const
+const lineIndex = ref(0)
+const showBubble = ref(false)
+
+/** Tiga lapis bukit, dari belakang ke depan. */
 const hills = [
   { d: 'M0 120 C70 96 150 112 230 98 S350 84 390 96 L390 220 L0 220 Z', fill: 'rgba(203,160,68,0.16)' },
   { d: 'M0 150 C80 126 160 142 240 128 S350 118 390 128 L390 220 L0 220 Z', fill: 'rgba(92,141,78,0.16)' },
   { d: 'M0 174 C90 156 170 166 250 154 S350 146 390 152 L390 220 L0 220 Z', fill: 'rgba(53,90,44,0.14)' },
 ]
 
-/* ---------- Animasi lambaian maskot (frame sequence) ---------- */
+const parcelLines = [
+  'M0 176 C90 160 170 168 250 156 S350 150 390 154',
+  'M0 196 C100 182 180 190 260 178 S350 172 390 176',
+  'M120 163 L96 220 M200 160 L190 220 M278 154 L296 220',
+]
 
-const FRAME_COUNT = 57
-const FRAME_DURATION = 40
-const frameUrl = (n: number) =>
-  `/mascot-frames/${mascotAnimations.wave}/frame-${String(n).padStart(4, '0')}.webp`
+/* ---------- Maskot: pemutar frame berbasis waktu (rAF) ---------- */
 
-const frameIndex = ref(1)
-const currentFrame = computed(() => frameUrl(frameIndex.value))
+type Clip = { dir: string; count: number; loop: boolean }
+const clips = {
+  idle: { dir: mascotAnimations.idle, count: 25, loop: true },
+  wave: { dir: mascotAnimations.wave, count: 57, loop: false },
+  point: { dir: mascotAnimations.pointDown, count: 38, loop: false },
+} satisfies Record<string, Clip>
+type ClipName = keyof typeof clips
 
-let waveTimer: number | null = null
-let waveStartTimer: number | null = null
-let framesReady = false
+const FRAME_MS = 40
+const frameUrl = (clip: Clip, n: number) =>
+  `/mascot-frames/${clip.dir}/frame-${String(n).padStart(4, '0')}.webp`
 
-const preloadFrames = () =>
-  Promise.all(
-    Array.from({ length: FRAME_COUNT }, (_, i) =>
-      new Promise<void>((resolve) => {
-        const image = new Image()
-        image.onload = () => resolve()
-        image.onerror = () => resolve()
-        image.src = frameUrl(i + 1)
-      }),
+const canvasEl = ref<HTMLCanvasElement | null>(null)
+const stageEl = ref<HTMLElement | null>(null)
+let ctx: CanvasRenderingContext2D | null = null
+
+let active: ClipName = 'idle'
+let clipStart = 0
+let rafId = 0
+let ready = false
+let drawn: HTMLImageElement | null = null
+let startTimer: number | null = null
+let storyTimer: number | null = null
+
+const frames: Partial<Record<ClipName, HTMLImageElement[]>> = {}
+const loading: Partial<Record<ClipName, Promise<void>>> = {}
+
+/** Muat semua frame satu klip ke memori (HTMLImageElement) agar ditampilkan tanpa jeda. */
+const preload = (name: ClipName) => {
+  const existing = loading[name]
+  if (existing) return existing
+  const clip = clips[name]
+  const task = Promise.all(
+    Array.from(
+      { length: clip.count },
+      (_, i) =>
+        new Promise<HTMLImageElement>((resolve) => {
+          const img = new Image()
+          img.onload = () => resolve(img)
+          img.onerror = () => resolve(img)
+          img.src = frameUrl(clip, i + 1)
+        }),
     ),
-  ).then(() => {
-    framesReady = true
+  ).then((list) => {
+    frames[name] = list
   })
+  loading[name] = task
+  return task
+}
 
-const stopWave = () => {
-  if (waveTimer !== null) {
-    window.clearInterval(waveTimer)
-    waveTimer = null
+const draw = (img: HTMLImageElement | undefined) => {
+  if (!img || img === drawn || !ctx || !canvasEl.value || !img.naturalWidth) return
+  const canvas = canvasEl.value
+  if (canvas.width !== img.naturalWidth) canvas.width = img.naturalWidth
+  if (canvas.height !== img.naturalHeight) canvas.height = img.naturalHeight
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  drawn = img
+}
+
+const play = (name: ClipName) => {
+  active = name
+  clipStart = performance.now()
+}
+
+/* Kemiringan halus mengikuti jari atau kursor. */
+let tiltX = 0
+let tiltY = 0
+let targetX = 0
+let targetY = 0
+
+const onPointerMove = (e: PointerEvent) => {
+  if (reduced.value) return // hanya kemiringan dekoratif yang dimatikan
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  targetX = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width - 0.5) * 2))
+  targetY = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height - 0.5) * 2))
+}
+
+const resetTilt = () => {
+  targetX = 0
+  targetY = 0
+}
+
+const tick = (now: number) => {
+  rafId = requestAnimationFrame(tick)
+
+  if (ready) {
+    let frame = Math.floor((now - clipStart) / FRAME_MS)
+    if (frame >= clips[active].count) {
+      if (clips[active].loop) {
+        frame %= clips[active].count
+      } else {
+        play('idle')
+        frame = 0
+      }
+    }
+    draw(frames[active]?.[frame])
+  }
+
+  // Interpolasi eksponensial: gerak mengalir tanpa patah.
+  tiltX += (targetX - tiltX) * 0.09
+  tiltY += (targetY - tiltY) * 0.09
+  const el = stageEl.value
+  if (el) {
+    el.style.transform = `translate3d(${(tiltX * 10).toFixed(2)}px, ${(tiltY * 5).toFixed(2)}px, 0) rotate(${(tiltX * 1.6).toFixed(2)}deg)`
   }
 }
 
-const playWave = () => {
-  if (reduced.value || !framesReady || waveTimer !== null) return
-  frameIndex.value = 1
-  waveTimer = window.setInterval(() => {
-    if (frameIndex.value < FRAME_COUNT) {
-      frameIndex.value++
-    } else {
-      stopWave()
-    }
-  }, FRAME_DURATION)
+/* Jalankan satu langkah, lalu lanjut otomatis ke langkah berikut setelah jeda. */
+const runStep = (i: number, auto: boolean) => {
+  if (storyTimer !== null) window.clearTimeout(storyTimer)
+  lineIndex.value = i
+  showBubble.value = true
+  const step = story[i]
+  play(step.clip)
+  if (auto && i < story.length - 1) {
+    storyTimer = window.setTimeout(() => runStep(i + 1, true), clips[step.clip].count * FRAME_MS + 2200)
+  }
+}
+
+const interact = () => {
+  if (!ready) return
+  runStep((lineIndex.value + 1) % story.length, false)
+}
+
+const onVisibility = () => {
+  cancelAnimationFrame(rafId)
+  if (!document.hidden) {
+    clipStart = performance.now()
+    rafId = requestAnimationFrame(tick)
+  }
 }
 
 onMounted(async () => {
-  await preloadFrames()
-  // Lambaian pertama berjalan sekali, setelah judul selesai muncul.
-  waveStartTimer = window.setTimeout(playWave, 350)
+  ctx = canvasEl.value?.getContext('2d') ?? null
+  rafId = requestAnimationFrame(tick)
+  document.addEventListener('visibilitychange', onVisibility)
+  await Promise.all([preload('idle'), preload('wave')])
+  draw(frames.idle?.[0])
+  ready = true
+  void preload('point')
+  // Maskot adalah karakter utama, jadi tetap bergerak walau reduced-motion aktif
+  // (sama seperti halaman Login). Yang dimatikan hanya gerak dekoratif lain.
+  startTimer = window.setTimeout(() => runStep(0, true), 350)
 })
 
 onBeforeUnmount(() => {
-  stopWave()
-  if (waveStartTimer !== null) window.clearTimeout(waveStartTimer)
+  cancelAnimationFrame(rafId)
+  document.removeEventListener('visibilitychange', onVisibility)
+  if (startTimer !== null) window.clearTimeout(startTimer)
+  if (storyTimer !== null) window.clearTimeout(storyTimer)
 })
 
 /* ---------- Navigasi ---------- */
@@ -291,11 +399,10 @@ const explore = () => {
   pointer-events: none;
 }
 
-.parcel-lines path {
+.parcel-line {
   fill: none;
-  stroke: rgba(53, 90, 44, 0.22);
+  stroke: rgba(53, 90, 44, 0.24);
   stroke-width: 0.8;
-  stroke-dasharray: 3 4;
 }
 
 .topbar {
@@ -303,7 +410,7 @@ const explore = () => {
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 20px;
 }
 
@@ -337,12 +444,20 @@ const explore = () => {
   overflow: hidden;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%),
-    linear-gradient(to bottom, #000 78%, transparent 100%);
+  touch-action: manipulation;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 10%, #000 88%, transparent 100%);
   -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%),
-    linear-gradient(to bottom, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 10%, #000 88%, transparent 100%);
   mask-composite: intersect;
+}
+
+.scene-stage {
+  position: absolute;
+  inset: 0;
+  display: block;
+  will-change: transform;
 }
 
 .scene-frame {
@@ -356,6 +471,28 @@ const explore = () => {
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Gelembung ucapan: tidak memakai ruang layout agar teks di bawahnya tidak bergeser. */
+.bubble-slot {
+  position: relative;
+  z-index: 3;
+  height: 0;
+}
+
+.bubble {
+  position: absolute;
+  top: -72px;
+  right: 24px;
+  max-width: 190px;
+  padding: 9px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: #fff;
+  box-shadow: 0 8px 20px -8px rgba(53, 90, 44, 0.35);
+  color: var(--poliland-green, #355a2c);
+  font: 700 13px/1.35 var(--font-primary, 'Plus Jakarta Sans', sans-serif);
+  transform-origin: bottom right;
+  pointer-events: none;
 }
 
 .copy {
@@ -407,6 +544,7 @@ const explore = () => {
   font-family: var(--font-primary, 'Plus Jakarta Sans', sans-serif);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .btn-primary {

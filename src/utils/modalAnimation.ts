@@ -1,25 +1,33 @@
 import { createAnimation } from '@ionic/vue'
-import { MOTION_EASE_DRAWER_CSS, MOTION_EASE_OUT_CSS } from '@/utils/motionTokens'
+import {
+  MODAL_ENTER_MS,
+  MODAL_LEAVE_MS,
+  MODAL_TRAVEL_PX,
+  MOTION_EASE_MODAL_IN_CSS,
+  MOTION_EASE_MODAL_OUT_CSS,
+} from '@/utils/motionTokens'
 // @ts-expect-error — builder internal Ionic tidak punya deklarasi tipe untuk path ini
 import { mdEnterAnimation } from '@ionic/core/dist/collection/components/modal/animations/md.enter.js'
 // @ts-expect-error — idem
 import { mdLeaveAnimation } from '@ionic/core/dist/collection/components/modal/animations/md.leave.js'
 
 /**
- * Animasi modal bersama untuk <IonModal> non-sheet.
- * Durasi & easing HARUS sama dengan AppModal.vue agar semua modal terasa konsisten.
- * Arah: selalu naik dari bawah ke atas. Enter 500ms (terlihat jelas), leave 340ms (lebih singkat).
+ * Animasi bersama untuk SEMUA overlay: <IonModal>, alert, dan AppModal.vue.
+ * Nilai durasi, kurva, dan jarak datang dari motionTokens.ts (cermin token CSS
+ * --dur-modal-*, --ease-modal-*, --modal-travel) supaya semuanya terasa sama.
+ *
+ * Gerak: naik pelan sejauh 40px sambil memudar masuk, lalu mengendap.
+ * Keluar lebih singkat dan tenang. Hanya transform dan opacity.
  */
-export const MODAL_ENTER_MS = 500
-export const MODAL_LEAVE_MS = 340
-export const MODAL_ENTER_EASING = MOTION_EASE_DRAWER_CSS
-export const MODAL_LEAVE_EASING = MOTION_EASE_OUT_CSS
+export { MODAL_ENTER_MS, MODAL_LEAVE_MS }
+export const MODAL_ENTER_EASING = MOTION_EASE_MODAL_IN_CSS
+export const MODAL_LEAVE_EASING = MOTION_EASE_MODAL_OUT_CSS
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-function build(baseEl: HTMLElement, direction: 'enter' | 'leave') {
+function build(baseEl: HTMLElement, direction: 'enter' | 'leave', wrapperSelector = '.modal-wrapper') {
   const root = baseEl.shadowRoot
   const entering = direction === 'enter'
   const duration = prefersReducedMotion() ? 1 : entering ? MODAL_ENTER_MS : MODAL_LEAVE_MS
@@ -28,22 +36,21 @@ function build(baseEl: HTMLElement, direction: 'enter' | 'leave') {
     .addElement(root?.querySelector('ion-backdrop') as Element)
     .fromTo('opacity', entering ? '0.01' : 'var(--backdrop-opacity)', entering ? 'var(--backdrop-opacity)' : '0.01')
 
-  // Selalu masuk dari tepi bawah layar. max(100%, 60vh) menjamin kartu kecil
-  // yang berada di tengah layar pun tetap menempuh jarak yang terlihat.
-  const offscreen = 'translateY(max(100%, 60vh))'
+  const away = `translateY(${MODAL_TRAVEL_PX}px) scale(0.985)`
+  const rest = 'translateY(0) scale(1)'
   const wrapper = createAnimation()
-    .addElement(root?.querySelector('.modal-wrapper') as Element)
+    .addElement(root?.querySelector(wrapperSelector) as Element)
     .keyframes(
       entering
         ? [
-            { offset: 0, opacity: '0', transform: offscreen },
-            { offset: 0.4, opacity: '1' },
-            { offset: 1, opacity: '1', transform: 'translateY(0)' },
+            { offset: 0, opacity: '0', transform: away },
+            { offset: 0.5, opacity: '1' },
+            { offset: 1, opacity: '1', transform: rest },
           ]
         : [
-            { offset: 0, opacity: '1', transform: 'translateY(0)' },
-            { offset: 0.6, opacity: '1' },
-            { offset: 1, opacity: '0', transform: offscreen },
+            { offset: 0, opacity: '1', transform: rest },
+            { offset: 0.4, opacity: '1' },
+            { offset: 1, opacity: '0', transform: away },
           ],
     )
 
@@ -56,6 +63,10 @@ function build(baseEl: HTMLElement, direction: 'enter' | 'leave') {
 
 export const modalEnterAnimation = (baseEl: HTMLElement) => build(baseEl, 'enter')
 export const modalLeaveAnimation = (baseEl: HTMLElement) => build(baseEl, 'leave')
+
+/** Dialog konfirmasi bawaan Ionic (alertController, <ion-alert>). Dipasang global di main.ts. */
+export const alertEnterAnimation = (baseEl: HTMLElement) => build(baseEl, 'enter', '.alert-wrapper')
+export const alertLeaveAnimation = (baseEl: HTMLElement) => build(baseEl, 'leave', '.alert-wrapper')
 
 /**
  * Modal SHEET (punya :breakpoints) — dibungkus, BUKAN diganti.

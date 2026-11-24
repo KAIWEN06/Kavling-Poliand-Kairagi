@@ -20,6 +20,13 @@
   </Teleport>
 </template>
 
+<script lang="ts">
+// Dipakai bersama oleh semua instance (MainLayout memasang satu yang global, halaman memasang yang scoped).
+// Tanpa koordinasi ini, satu gestur ditangkap dua instance sehingga loader muncul ganda.
+const scopedPageChecks = new Set<() => boolean>()
+let gestureOwner: symbol | null = null
+</script>
+
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -67,12 +74,25 @@ const indicatorOffset = computed(() => {
   return pull < REFRESH_HOLD ? pull - REFRESH_HOLD : (pull - REFRESH_HOLD) / 2
 })
 
+const instanceId = Symbol('pull-refresh')
 let tracking = false
 let pulling = false
+let releasing = false
+let animationToken = 0
 let startY = 0
 let startX = 0
 let scrollElement: HTMLElement | null = null
 let contentElement: HTMLElement | null = null
+
+function claimGesture() {
+  if (gestureOwner && gestureOwner !== instanceId) return false
+  gestureOwner = instanceId
+  return true
+}
+
+function freeGesture() {
+  if (gestureOwner === instanceId) gestureOwner = null
+}
 
 function activePageElement() {
   return Array.from(document.querySelectorAll<HTMLElement>('.ion-page'))
@@ -150,9 +170,12 @@ function updatePull(distance: number) {
 }
 
 function handleTouchStart(event: TouchEvent) {
-  if (isRefreshing.value || tracking || event.touches.length !== 1) return
+  if (isRefreshing.value || releasing || tracking || event.touches.length !== 1) return
+  if (gestureOwner && gestureOwner !== instanceId) return
   if (isExcludedRoute()) return
   if (props.scoped && !isOwnPageActive()) return
+  // Instance global mengalah bila halaman aktif punya instance scoped sendiri
+  if (!props.scoped && Array.from(scopedPageChecks).some(check => check())) return
 
   // Jangan mengambil alih gesture dari overlay/modal yang memiliki
   // scroll container sendiri.
@@ -163,6 +186,7 @@ function handleTouchStart(event: TouchEvent) {
 
   const touch = event.touches[0]
   if (!touch) return
+  if (!claimGesture()) return
 
   startY = touch.clientY
   startX = touch.clientX
@@ -176,6 +200,7 @@ function handleTouchMove(event: TouchEvent) {
   if (isInsideExcludedOverlay(event.target)) {
     tracking = false
     pulling = false
+    freeGesture()
     return
   }
 
@@ -187,11 +212,15 @@ function handleTouchMove(event: TouchEvent) {
 
   if (!pulling) {
     if (deltaY <= 5 || Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (deltaY < -5) tracking = false
+      if (deltaY < -5) {
+        tracking = false
+        freeGesture()
+      }
       return
     }
     if (!isAtTop()) {
       tracking = false
+      freeGesture()
       return
     }
     pulling = true
@@ -206,7 +235,10 @@ function handleTouchMove(event: TouchEvent) {
 
 async function handleTouchEnd() {
   tracking = false
-  if (!pulling) return
+  if (!pulling) {
+    freeGesture()
+    return
+  }
   pulling = false
 
   if (pullDistance.value >= REFRESH_THRESHOLD) await startRefresh()
@@ -215,7 +247,10 @@ async function handleTouchEnd() {
 
 async function handleTouchCancel() {
   tracking = false
-  if (!pulling) return
+  if (!pulling) {
+    freeGesture()
+    return
+  }
   pulling = false
   await release()
 }
@@ -253,11 +288,16 @@ async function startRefresh() {
 }
 
 function animateTo(target: number, duration: number) {
+  const token = ++animationToken
   return new Promise<void>(resolve => {
     const start = pullDistance.value
     const startTime = performance.now()
 
     function frame(now: number) {
+      if (token !== animationToken) {
+        resolve()
+        return
+      }
       const progress = Math.min((now - startTime) / duration, 1)
       const eased = 1 - Math.pow(1 - progress, 3)
       updatePull(start + (target - start) * eased)
@@ -271,11 +311,17 @@ function animateTo(target: number, duration: number) {
 }
 
 async function release() {
-  await animateTo(0, 380)
-  pullDistance.value = 0
-  isVisible.value = false
-  isReady.value = false
-  applyContentShift(0)
+  releasing = true
+  try {
+    await animateTo(0, 380)
+  } finally {
+    pullDistance.value = 0
+    isVisible.value = false
+    isReady.value = false
+    applyContentShift(0)
+    releasing = false
+    freeGesture()
+  }
 }
 
 function wait(ms: number) {
@@ -283,6 +329,7 @@ function wait(ms: number) {
 }
 
 onMounted(() => {
+  if (props.scoped) scopedPageChecks.add(isOwnPageActive)
   document.documentElement.style.overscrollBehaviorY = 'contain'
   document.body.style.overscrollBehaviorY = 'contain'
 
@@ -293,6 +340,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  scopedPageChecks.delete(isOwnPageActive)
+  freeGesture()
   document.removeEventListener('touchstart', handleTouchStart)
   document.removeEventListener('touchmove', handleTouchMove)
   document.removeEventListener('touchend', handleTouchEnd)

@@ -59,5 +59,12 @@ canvas {
   max-height: 100%;
   object-fit: contain;
   background: transparent;
+  /* Tepi frame dipudarkan ke semua sisi supaya aset menyatu dengan latar halaman. */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 10%, #000 88%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 10%, #000 88%, transparent 100%);
+  mask-composite: intersect;
 }
 </style>

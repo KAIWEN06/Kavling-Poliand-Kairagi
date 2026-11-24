@@ -2,7 +2,7 @@
   /* PoliLand Modern-Natural design tokens */
   --poliland-gold: #CBA044;
   --poliland-gold-soft: #F4D69A;
-  --poliland-gold-text: #966A12;
+  --poliland-gold-text: #805708;
   --poliland-gold-text-soft: #805708;
   --poliland-green: #355A2C;
 
@@ -10,7 +10,7 @@
   --surface-primary: #FFFFFF;
   --surface-muted: #F5F3EE;
   --text-primary: #252525;
-  --text-secondary: #717178;
+  --text-secondary: #5F5F66;
   --border-default: #EAE7E0;
 
   --status-success: var(--poliland-green);
@@ -129,6 +129,13 @@
   --dur-fast: 160ms;
   --dur-base: 240ms;
   --dur-slow: 380ms;
+
+  /* Modal, sheet, alert: satu bahasa gerak, pelan dan lembut. Cermin motionTokens.ts */
+  --ease-modal-in: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --ease-modal-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-modal-in: 520ms;
+  --dur-modal-out: 300ms;
+  --modal-travel: 40px;
 
   /* Layering: gunakan skala ini, bukan angka acak */
   --z-base: 1;

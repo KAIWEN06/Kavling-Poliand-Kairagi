@@ -1,13 +1,9 @@
 <template>
   <section v-if="loading || faqs.length || isAdmin" class="faq-section">
     <div class="faq-container">
-      <div class="faq-header">
-        <div>
-          <h2>Pertanyaan Umum</h2>
-          <span class="faq-line"></span>
-        </div>
+      <SectionHeader title="Pertanyaan umum">
         <AdminEditButton v-if="isAdmin" label="Tambah pertanyaan" :icon="addOutline" @click="openAdd" />
-      </div>
+      </SectionHeader>
 
       <div v-if="loading" class="faq-loading">
         <ion-spinner name="crescent" />
@@ -62,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { ref, onMounted } from 'vue'
 import { IonIcon, IonSpinner } from '@ionic/vue'
 import { addOutline, chevronUpOutline, chevronDownOutline, createOutline, trashOutline } from 'ionicons/icons'
@@ -129,261 +126,51 @@ onMounted(loadFaqs)
 
 
 <style scoped>
+.faq-section { display: block; width: 100%; margin: 0; padding: 36px 0 30px; box-sizing: border-box; }
+.faq-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; }
 
-/* =========================================================
-   SECTION
-========================================================= */
-
-.faq-section {
-  display: block;
-
-  width: 100%;
-
-  height: auto;
-  min-height: 0;
-
-  margin: 0;
-  padding: 28px 0 30px;
-
-  background: #FAFAF7;
-
-  box-sizing: border-box;
-
-  overflow: visible;
-}
-
-/* =========================================================
-   CONTAINER
-========================================================= */
-
-.faq-container {
-  display: block;
-
-  width: 100%;
-
-  max-width: 1200px;
-
-  margin: 0 auto;
-
-  padding: 0 16px;
-
-  box-sizing: border-box;
-}
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-.faq-header {
-  display: flex;
-
-  align-items: center;
-
-  margin-bottom: 16px;
-}
-
-.faq-header h2 {
-  margin: 0;
-
-  color: #1A1A1A;
-
-  font-size: 20px;
-
-  line-height: 1.2;
-
-  font-weight: 800;
-}
-
-.faq-line {
-  display: block;
-
-  width: 34px;
-  height: 3px;
-
-  margin-top: 7px;
-
-  background: #556B2F;
-
-  border-radius: 999px;
-}
-
-/* =========================================================
-   LIST
-========================================================= */
-
-.faq-list {
-  display: flex;
-
-  flex-direction: column;
-
-  width: 100%;
-
-  gap: 8px;
-}
-
-/* =========================================================
-   ITEM
-========================================================= */
+.faq-loading { display: flex; justify-content: center; padding: 24px 0; }
+.faq-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 
 .faq-item {
-  display: block;
-
-  width: 100%;
-
-  height: auto;
-
-  background: #FFFFFF;
-
-  border:
-    1px solid
-    #E3E3E3;
-
-  border-radius: 10px;
-
-  overflow: visible;
-
-  box-sizing: border-box;
-
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-card, 16px);
+  background: var(--surface-primary, #fff);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
-
-.faq-item.open {
-  border-color: #8CA072;
-
-  box-shadow:
-    0 4px 12px
-    rgba(0, 0, 0, 0.04);
-}
-
-/* =========================================================
-   QUESTION
-========================================================= */
+.faq-item.open { border-color: var(--poliland-gold, #cba044); box-shadow: var(--shadow-md); }
 
 .faq-question {
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
-
+  gap: 12px;
   width: 100%;
-
-  min-height: 48px;
-
+  min-height: 56px;
   margin: 0;
-
-  padding: 12px 14px;
-
+  padding: 14px 16px;
   border: 0;
-
-  outline: none;
-
+  border-radius: var(--radius-card, 16px);
   background: transparent;
-
-  color: #292929;
-
-  font-family: inherit;
-
-  font-size: 13px;
-
-  font-weight: 700;
-
-  line-height: 1.4;
-
+  color: var(--text-primary, #252525);
+  font: 700 15px/1.4 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
   text-align: left;
-
   cursor: pointer;
-
-  box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
+.faq-question:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
+.faq-question:active { background: var(--surface-sunken, #f0ede5); }
+.faq-question ion-icon { flex: 0 0 auto; color: var(--poliland-green, #355a2c); font-size: 20px; }
 
-.faq-question span {
-  flex: 1;
+.faq-answer { padding: 0 16px 16px; color: var(--text-secondary, #5f5f66); font-size: 15px; line-height: 1.7; white-space: pre-line; }
 
-  padding-right: 10px;
-}
-
-.faq-question ion-icon {
-  flex-shrink: 0;
-
-  color: #6B6B6B;
-
-  font-size: 15px;
-}
-
-/* =========================================================
-   ANSWER
-========================================================= */
-
-.faq-answer {
-  display: block;
-
-  width: 100%;
-
-  margin: 0;
-
-  padding: 0 14px 14px;
-
-  color: #666666;
-
-  font-size: 12px;
-
-  font-weight: 400;
-
-  line-height: 1.7;
-
-  box-sizing: border-box;
-}
-
-/* =========================================================
-   LOADING
-========================================================= */
-
-.faq-loading {
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  width: 100%;
-
-  min-height: 80px;
-}
-
-/* =========================================================
-   EMPTY
-========================================================= */
-
-.faq-empty {
-  width: 100%;
-
-  padding: 20px;
-
-  background: #FFFFFF;
-
-  border:
-    1px solid
-    #E3E3E3;
-
-  border-radius: 10px;
-
-  color: #777777;
-
-  font-size: 11px;
-
-  text-align: center;
-
-  box-sizing: border-box;
-}
-
-
-.faq-header { justify-content: space-between; gap: 12px; }
 .faq-admin { display: flex; gap: 8px; margin-top: 12px; }
-.faq-mini { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; padding: 0 12px; border: 1px solid #E3E3E3; border-radius: 10px; background: #FFFFFF; color: #355A2C; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.faq-mini.danger { color: #D94B45; }
-.faq-mini:focus-visible { outline: 3px solid #556B2F; outline-offset: 2px; }
-.faq-question:focus-visible { outline: 3px solid #556B2F; outline-offset: -3px; border-radius: 10px; }
-.confirm-text { margin: 0; color: #717178; font-size: 14px; line-height: 1.6; }
+.faq-mini { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--border-strong, #d5d0c4); border-radius: 12px; background: var(--surface-primary, #fff); color: var(--poliland-gold-text, #805708); font: 700 13px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif); cursor: pointer; touch-action: manipulation; }
+.faq-mini.danger { color: var(--status-danger, #b3261e); }
+.faq-mini:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
+
+.faq-empty { padding: 18px; border: 1px dashed var(--border-strong, #d5d0c4); border-radius: var(--radius-card, 16px); color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.55; text-align: center; }
+.confirm-text { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.6; }
 </style>

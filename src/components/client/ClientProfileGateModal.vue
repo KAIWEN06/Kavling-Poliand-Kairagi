@@ -33,7 +33,7 @@ function goToAccount() { void router.push('/client/akun') }
         <IonIcon :icon="personCircleOutline" class="gate-icon" aria-hidden="true" />
         <h2 id="gate-title">Lengkapi data diri Anda</h2>
         <p>Data diri Anda belum lengkap. Lengkapi dulu agar saat membuat SPK, data pembeli terisi otomatis.</p>
-        <button type="button" class="gate-btn" @click="goToAccount">Lengkapi Sekarang</button>
+        <button type="button" class="gate-btn" @click="goToAccount">Lengkapi</button>
       </div>
     </div>
   </Teleport>

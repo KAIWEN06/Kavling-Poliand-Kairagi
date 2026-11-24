@@ -71,7 +71,7 @@
           <div v-if="interest.payment_type === 'Installment'"><dt>Rencana tenor</dt><dd>{{ interest.plan ? formatPaymentPlanName(interest.plan.plan_name, interest.plan.months) : '-' }}</dd></div>
         </dl>
         <p class="mk-muted">Rencana tenor adalah preferensi awal, bukan jadwal pembayaran resmi.</p>
-        <button v-if="interest.lot?.panorama_url" type="button" class="mk-link" @click="router.push(`/panorama/${interest.lot.id}`)">Lihat panorama 360°</button>
+        <button v-if="interest.lot?.panorama_url" type="button" class="mk-link" @click="router.push(`/panorama/${interest.lot.id}`)">Panorama 360°</button>
       </article>
     </section>
 
@@ -327,7 +327,7 @@ import {
   NOTE_CATEGORIES,
   addFollowup,
   addNote,
-  contactAlreadyRegistered,
+  findContactConflict,
   getClientDetail,
   updateClientInfo,
   updateCrmStatus,
@@ -558,9 +558,12 @@ async function saveEdit() {
   saving.value = true
   try {
     const contactChanged = editForm.phone !== (c.value.phone || '') || editForm.whatsapp_phone !== (c.value.whatsapp_phone || '')
-    if (contactChanged && (await contactAlreadyRegistered(editForm.phone, editForm.whatsapp_phone, props.customerId))) {
-      formError.value = 'Nomor kontak sudah terdaftar pada klien lain. Periksa kembali agar tidak terjadi duplikasi.'
-      return
+    if (contactChanged) {
+      const conflict = await findContactConflict(editForm.phone, editForm.whatsapp_phone, props.customerId)
+      if (conflict) {
+        formError.value = conflict.message
+        return
+      }
     }
     await updateClientInfo(props.customerId, {
       full_name: editForm.full_name.trim(),

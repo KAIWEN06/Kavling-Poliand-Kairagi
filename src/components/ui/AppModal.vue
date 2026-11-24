@@ -3,7 +3,7 @@
     <div
       v-if="modelValue"
       class="app-modal"
-      :class="[`app-modal--${variant}`, { 'app-modal--no-footer': !showFooter }]"
+      :class="[`app-modal--${variant}`, { 'app-modal--no-footer': !showFooter, 'app-modal--slide': slideConfirm && showConfirm }]"
       :style="{ '--app-modal-keyboard-height': `${keyboardHeight}px` }"
       @click.self="handleBackdrop"
     >
@@ -47,11 +47,21 @@
 
         <footer v-if="showFooter" class="app-modal__footer">
           <slot name="footer">
+            <SlideToConfirm
+              v-if="showConfirm && slideConfirm"
+              class="app-modal__slide"
+              :label="slideLabel || confirmText"
+              :variant="slideVariant"
+              :loading="loading"
+              :disabled="confirmDisabled"
+              @confirm="$emit('confirm')"
+            />
+
             <AppButton
               v-if="showCancel"
               type="button"
               variant="neutral"
-              fill="outline"
+              :fill="slideConfirm ? 'clear' : 'outline'"
               :disabled="loading"
               @click="requestClose('cancel')"
             >
@@ -59,7 +69,7 @@
             </AppButton>
 
             <AppButton
-              v-if="showConfirm"
+              v-if="showConfirm && !slideConfirm"
               type="button"
               :variant="confirmVariant"
               :loading="loading"
@@ -82,6 +92,7 @@ import type { PluginListenerHandle } from '@capacitor/core'
 import { IonIcon } from '@ionic/vue'
 import { closeOutline } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
+import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 
 type ModalVariant = 'bottom-sheet' | 'dialog' | 'fullscreen'
 type ConfirmVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'neutral'
@@ -103,6 +114,9 @@ interface Props {
   confirmVariant?: ConfirmVariant
   loading?: boolean
   confirmDisabled?: boolean
+  /** Aksi penting: konfirmasi lewat geser, bukan ketuk. */
+  slideConfirm?: boolean
+  slideLabel?: string
   closeOnBackdrop?: boolean
   closeOnEscape?: boolean
   maxWidth?: string
@@ -124,6 +138,8 @@ const props = withDefaults(defineProps<Props>(), {
   confirmVariant: 'primary',
   loading: false,
   confirmDisabled: false,
+  slideConfirm: false,
+  slideLabel: '',
   closeOnBackdrop: true,
   closeOnEscape: true,
   maxWidth: '560px',
@@ -145,6 +161,10 @@ const titleId = `app-modal-title-${Math.random().toString(36).slice(2, 10)}`
 const previousActiveElement = ref<HTMLElement | null>(null)
 const previousBodyOverflow = ref('')
 const previousBodyOverscroll = ref('')
+
+const slideVariant = computed<'primary' | 'success' | 'danger' | 'neutral'>(() =>
+  props.confirmVariant === 'secondary' ? 'primary' : props.confirmVariant,
+)
 
 const panelStyle = computed(() => ({
   '--app-modal-max-width': props.maxWidth,
@@ -303,7 +323,6 @@ onBeforeUnmount(() => {
   align-items: flex-end;
   justify-content: center;
   padding: 0;
-  background: rgb(37 37 37 / 44%);
   overscroll-behavior: contain;
 }
 
@@ -403,6 +422,10 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
+.app-modal--slide .app-modal__footer {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .app-modal__close:focus-visible,
 .app-modal__panel :deep(button:focus-visible),
 .app-modal__panel :deep(input:focus-visible),
@@ -443,66 +466,67 @@ onBeforeUnmount(() => {
   padding-bottom: calc(18px + env(safe-area-inset-bottom));
 }
 
+/* Gerak modal: pendek, pelan, lembut. Token di theme/variables.css (--dur-modal-*, --ease-modal-*). */
 .app-modal {
-  --modal-ease-in: var(--ease-drawer);
-  --modal-ease-out: var(--ease-out);
-  /* jarak awal: selalu dari tepi bawah layar, juga untuk dialog di tengah */
-  --modal-offscreen: translateY(max(100%, 60dvh));
+  background: transparent;
 }
 
-.app-modal-enter-active,
-.app-modal-leave-active {
-  transition: background-color var(--modal-dur) var(--modal-ease);
+/* backdrop terpisah supaya hanya opacity yang beranimasi (tanpa repaint) */
+.app-modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgb(37 37 37 / 44%);
 }
 
-.app-modal-enter-active {
-  --modal-dur: 500ms;
-  --modal-ease: var(--modal-ease-in);
+.app-modal__panel {
+  position: relative;
+  z-index: 1;
 }
 
-.app-modal-leave-active {
-  --modal-dur: 340ms;
-  --modal-ease: var(--modal-ease-out);
+.app-modal-enter-active::before,
+.app-modal-leave-active::before {
+  transition: opacity var(--modal-dur) var(--modal-ease);
 }
 
-/* opacity selesai lebih cepat dari gerakan supaya panel sudah terlihat saat naik */
 .app-modal-enter-active .app-modal__panel,
 .app-modal-leave-active .app-modal__panel {
   transition:
     transform var(--modal-dur) var(--modal-ease),
-    opacity calc(var(--modal-dur) * 0.45) linear;
+    opacity var(--modal-dur) var(--modal-ease);
   will-change: transform, opacity;
 }
 
-.app-modal-leave-active .app-modal__panel {
-  transition-delay: 0s, calc(var(--modal-dur) * 0.55);
+.app-modal-enter-active {
+  --modal-dur: var(--dur-modal-in);
+  --modal-ease: var(--ease-modal-in);
 }
 
-.app-modal-enter-from,
-.app-modal-leave-to {
-  background: rgb(37 37 37 / 0%);
+.app-modal-leave-active {
+  --modal-dur: var(--dur-modal-out);
+  --modal-ease: var(--ease-modal-out);
+}
+
+.app-modal-enter-from::before,
+.app-modal-leave-to::before {
+  opacity: 0;
 }
 
 .app-modal-enter-from .app-modal__panel,
 .app-modal-leave-to .app-modal__panel {
-  transform: var(--modal-offscreen);
+  transform: translateY(var(--modal-travel)) scale(0.985);
   opacity: 0;
-}
-
-.app-modal--bottom-sheet.app-modal-enter-from .app-modal__panel,
-.app-modal--bottom-sheet.app-modal-leave-to .app-modal__panel,
-.app-modal--fullscreen.app-modal-enter-from .app-modal__panel,
-.app-modal--fullscreen.app-modal-leave-to .app-modal__panel {
-  transform: translateY(100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .app-modal-enter-active,
-  .app-modal-leave-active,
-  .app-modal-enter-active .app-modal__panel,
-  .app-modal-leave-active .app-modal__panel {
+  .app-modal-leave-active {
     --modal-dur: 1ms;
-    transition-delay: 0s;
+  }
+
+  .app-modal-enter-from .app-modal__panel,
+  .app-modal-leave-to .app-modal__panel {
+    transform: none;
   }
 }
 
@@ -523,11 +547,6 @@ onBeforeUnmount(() => {
     width: 100%;
     max-width: none;
     border-radius: 0;
-  }
-
-  .app-modal--bottom-sheet.app-modal-enter-from .app-modal__panel,
-  .app-modal--bottom-sheet.app-modal-leave-to .app-modal__panel {
-    transform: var(--modal-offscreen);
   }
 }
 </style>

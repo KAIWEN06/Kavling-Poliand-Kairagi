@@ -177,7 +177,7 @@
         </div>
 
         <!-- LOADING -->
-        <SkeletonLotList v-if="loading" :count="4" />
+        <SkeletonLotList v-if="loading || refreshing" :count="4" />
 
         <!-- ERROR -->
         <StatusIllustration
@@ -339,6 +339,7 @@
 
 <script setup lang="ts">
 import SkeletonLotList from '@/components/ui/skeletons/SkeletonLotList.vue'
+import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
 import Reveal from '@/components/ui/Reveal.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import {
@@ -466,6 +467,7 @@ watch(siteplanLots, async () => {
 
 const lots = ref<Lot[]>([])
 const loading = ref(true)
+const refreshing = ref(false)
 const loadError = ref(false)
 
 /* jadwal survei aktif, diambil terpisah supaya kegagalannya tidak memblokir daftar */
@@ -638,13 +640,15 @@ async function load(showSpinner: boolean) {
 /* muat saat halaman dibuka; kunjungan berikutnya memuat ulang tanpa spinner */
 onIonViewWillEnter(() => load(lots.value.length === 0))
 
-async function refreshAll() {
-  await Promise.all([
-    load(false),
-    Promise.resolve(reloadSiteplan()).catch((error: unknown) => {
-      console.error('Gagal refresh siteplan:', error)
-    }),
-  ])
+function refreshAll() {
+  return withRefreshSkeleton(refreshing, () =>
+    Promise.all([
+      load(false),
+      Promise.resolve(reloadSiteplan()).catch((error: unknown) => {
+        console.error('Gagal refresh siteplan:', error)
+      }),
+    ]),
+  )
 }
 
 /* ---------- pencarian ---------- */

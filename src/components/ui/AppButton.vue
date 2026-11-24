@@ -238,6 +238,9 @@ function handleClick(event: MouseEvent) {
 }
 
 .app-button__content {
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;

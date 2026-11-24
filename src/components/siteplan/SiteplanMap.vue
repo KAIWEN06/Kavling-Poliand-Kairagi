@@ -29,6 +29,8 @@
           draggable="false"
         />
 
+        <SiteplanScenery :paused="isDragging || !!dragState" />
+
         <div
           class="map-svg"
           v-html="svgRaw"
@@ -126,6 +128,7 @@ import Compass from './Compass.vue'
 import ZoomControl from './ZoomControl.vue'
 import MiniMap from './MiniMap.vue'
 import SearchBox from './SearchBox.vue'
+import SiteplanScenery from './SiteplanScenery.vue'
 
 
 const props = defineProps({

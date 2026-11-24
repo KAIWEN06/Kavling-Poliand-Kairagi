@@ -1,30 +1,25 @@
 <template>
   <section class="stats-section">
     <div class="stats-card">
-
       <!-- Total Kavling -->
       <div class="stat-item">
-        <div class="stat-icon sage-bg">
-          <ion-icon :icon="homeOutline" />
-        </div>
-
-        <div>
+        <span class="stat-icon"><ion-icon :icon="homeOutline" aria-hidden="true" /></span>
+        <div class="stat-text">
           <strong>
-            {{ loading ? '...' : `${totalLots}+` }}
+            <template v-if="loading">…</template>
+            <CountUp v-else :value="`${totalLots}+`" />
           </strong>
-          <span>Total Kaveling</span>
+          <span>Total kaveling</span>
         </div>
       </div>
 
       <!-- Terjual -->
       <div class="stat-item">
-        <div class="stat-icon sage-bg">
-          <ion-icon :icon="ribbonOutline" />
-        </div>
-
-        <div>
+        <span class="stat-icon"><ion-icon :icon="ribbonOutline" aria-hidden="true" /></span>
+        <div class="stat-text">
           <strong>
-            {{ loading ? '...' : `${soldCount}+` }}
+            <template v-if="loading">…</template>
+            <CountUp v-else :value="`${soldCount}+`" />
           </strong>
           <span>Terjual</span>
         </div>
@@ -32,16 +27,14 @@
 
       <!-- Sorotan yang diatur Admin (mis. legalitas, akses jalan) -->
       <div v-for="(item, index) in highlights" :key="`hl-${index}`" class="stat-item">
-        <div class="stat-icon" :class="index % 2 ? 'info-bg' : 'sage-bg'">
-          <ion-icon :icon="resolveCmsIcon(item.icon)" />
-        </div>
-
-        <div>
-          <strong>{{ item.value }}</strong>
+        <span class="stat-icon" :class="{ 'is-gold': index % 2 === 0 }">
+          <ion-icon :icon="resolveCmsIcon(item.icon)" aria-hidden="true" />
+        </span>
+        <div class="stat-text">
+          <strong><CountUp :value="String(item.value)" /></strong>
           <span>{{ item.label }}</span>
         </div>
       </div>
-
     </div>
 
     <div v-if="isAdmin" class="stats-admin">
@@ -64,6 +57,7 @@ import { HOME_KEYS, parseHighlights, type HomeHighlight } from '@/utils/homeCont
 import { useCmsAdmin } from '@/composables/useCmsAdmin'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
+import CountUp from '@/components/ui/CountUp.vue'
 
 const totalLots = ref(0)
 const soldCount = ref(0)
@@ -108,73 +102,51 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.stats-section {
-  position: relative;
-  z-index: 5;
-  margin-top: -44px;
-  padding: 0 14px;
-}
+.stats-section { position: relative; z-index: 5; margin-top: -44px; padding: 0 16px; }
 
 .stats-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E5E5;
-  border-radius: 18px;
-  padding: 17px 12px;
-  box-shadow: 0 12px 30px rgba(26, 26, 26, 0.1);
-
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 18px 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 12px;
+  padding: 22px 16px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-panel, 20px);
+  background: var(--surface-primary, #fff);
+  box-shadow: var(--shadow-md);
 }
 
-.stats-admin {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
+.stats-admin { display: flex; justify-content: flex-end; margin-top: 8px; }
 
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
+.stat-item { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .stat-icon {
-  width: 35px;
-  height: 35px;
-  flex: 0 0 35px;
-
-  border-radius: 10px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 18px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--green-100, #e8eee4);
+  color: var(--poliland-green, #355a2c);
+  font-size: 22px;
 }
+.stat-icon.is-gold { background: var(--gold-50, #fbf4e4); color: var(--poliland-gold-text, #805708); }
 
-.stat-icon.sage-bg {
-  background: #ECFDF5;
-  color: #8CA072;
-}
-
-.stat-icon.info-bg {
-  background: #F2F6FEB2;
-  color: #2F6FEB;
-}
-
+.stat-text { min-width: 0; }
 .stat-item strong {
   display: block;
-  color: #1A1A1A;
-  font-size: 15px;
-  font-weight: 850;
+  color: var(--text-primary, #252525);
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
-
-.stat-item span {
+.stat-text > span {
   display: block;
-  margin-top: 2px;
-  color: #6B6B6B;
-  font-size: 9px;
+  margin-top: 4px;
+  color: var(--text-secondary, #5f5f66);
+  font-size: 13px;
+  line-height: 1.3;
 }
 </style>

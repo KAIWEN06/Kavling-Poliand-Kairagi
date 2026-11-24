@@ -1,7 +1,17 @@
 <template>
   <section class="hero-section" :class="{ 'hero-section--plain': !hero.image_url }">
-    <img v-if="hero.image_url" :src="hero.image_url" alt="PoliLand Kairagi" class="hero-image" />
+    <motion.img
+      v-if="hero.image_url"
+      :src="hero.image_url"
+      alt="PoliLand Kairagi"
+      class="hero-image"
+      :initial="reduced ? false : { scale: 1.14 }"
+      :animate="{ scale: 1 }"
+      :transition="{ duration: 2.6, ease: MOTION_EASE_OUT }"
+    />
     <div class="hero-overlay"></div>
+    <!-- Bukit terdepan berwarna sama dengan halaman: foto mengalir ke permukaan krem. -->
+    <SceneBackdrop class="hero-scene" height="120px" :sun="false" :lines="false" solid-front="#F9F5EC" />
 
     <div v-if="isAdmin" class="hero-admin">
       <AdminEditButton label="Edit hero" @click="editOpen = true" />
@@ -14,16 +24,41 @@
         <Skeleton width="70%" height="14px" border-radius="6px" class="hero-skel" />
       </template>
       <template v-else-if="hero.title">
-        <h1>{{ hero.title }}</h1>
-        <p v-if="hero.subtitle" class="hero-subtitle">{{ hero.subtitle }}</p>
-        <p v-if="hero.description">{{ hero.description }}</p>
+        <h1 :aria-label="hero.title">
+          <span v-for="(word, i) in titleWords" :key="i" class="hero-word" aria-hidden="true">
+            <motion.span
+              class="hero-word-inner"
+              :initial="reduced ? false : { y: '110%' }"
+              :animate="{ y: '0%' }"
+              :transition="{ duration: 0.7, delay: 0.25 + i * 0.07, ease: MOTION_EASE_OUT }"
+            >{{ word }}</motion.span>
+          </span>
+        </h1>
+        <motion.p
+          v-if="hero.subtitle"
+          class="hero-subtitle"
+          :initial="reduced ? false : { opacity: 0, y: 10 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="{ duration: 0.6, delay: 0.6, ease: MOTION_EASE_OUT }"
+        >{{ hero.subtitle }}</motion.p>
+        <motion.p
+          v-if="hero.description"
+          :initial="reduced ? false : { opacity: 0, y: 10 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="{ duration: 0.6, delay: 0.72, ease: MOTION_EASE_OUT }"
+        >{{ hero.description }}</motion.p>
       </template>
       <h1 v-else class="hero-empty">PoliLand Kairagi</h1>
       <p v-if="!loading && !hero.title && isAdmin" class="hero-hint">Hero belum diisi. Tekan “Edit hero” untuk menambahkan judul dan gambar.</p>
 
-      <div class="hero-actions">
+      <motion.div
+        class="hero-actions"
+        :initial="reduced ? false : { opacity: 0, y: 22 }"
+        :animate="{ opacity: 1, y: 0 }"
+        :transition="reduced ? { duration: 0 } : { type: 'spring', stiffness: 260, damping: 22, delay: 0.9 }"
+      >
         <ion-button class="primary-button" @click="$emit('goToSiteplan')">
-          Lihat Denah Kavling
+          Lihat Denah
           <ion-icon slot="end" :icon="arrowForwardOutline" />
         </ion-button>
 
@@ -36,7 +71,7 @@
         <ion-button v-else-if="showCta" class="outline-button" fill="outline" :disabled="ctaDisabled" @click="handleCta">
           {{ hero.cta_text || 'Hubungi Kami' }}
         </ion-button>
-      </div>
+      </motion.div>
     </div>
 
     <CmsPanelModal v-model="editOpen" title="Edit hero" panel="home" section="hero" @saved="loadHeroData" />
@@ -47,6 +82,10 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonButton, IonIcon } from '@ionic/vue'
+import { motion } from 'motion-v'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { MOTION_EASE_OUT } from '@/utils/motionTokens'
 import { arrowForwardOutline } from 'ionicons/icons'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { contactsService } from '@/services/contactService'
@@ -58,11 +97,14 @@ import { toWaNumber } from '@/utils/homeContent'
 
 defineEmits(['goToSiteplan'])
 
+const reduced = useReducedMotion()
 const loading = ref(true)
 const whatsappNumber = ref('')
 const editOpen = ref(false)
 const { isAdmin } = useCmsAdmin()
 const hero = ref<CmsHero>({ title: '', subtitle: '', description: '', image_url: null, cta_text: 'Hubungi Kami', cta_url: 'whatsapp', is_active: true })
+
+const titleWords = computed(() => (hero.value.title || '').split(/\s+/).filter(Boolean))
 
 const router = useRouter()
 const ctaTarget = computed(() => (hero.value.cta_url || '').trim())
@@ -112,9 +154,11 @@ onMounted(() => {
 <style scoped>
 .hero-section {
   position: relative;
-  min-height: 430px;
-  overflow: visible;
+  min-height: 460px;
+  overflow: hidden;
 }
+
+.hero-scene { z-index: 1; }
 
 /* BACKGROUND */
 .hero-image {
@@ -134,14 +178,16 @@ onMounted(() => {
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(45,45,45,.78) 0%, rgba(45,45,45,.60) 48%, rgba(45,45,45,.90) 100%);
+  background:
+    radial-gradient(120% 60% at 100% 0%, rgba(244,214,154,.28) 0%, rgba(244,214,154,0) 60%),
+    linear-gradient(180deg, rgba(27,53,25,.72) 0%, rgba(31,53,25,.55) 48%, rgba(27,40,22,.88) 100%);
 }
 
 /* HERO CONTENT */
 .hero-content {
   position: relative;
   z-index: 2;
-  padding: 100px 22px 70px;
+  padding: 96px 24px 112px;
   color: #fff;
 }
 
@@ -157,24 +203,35 @@ onMounted(() => {
 .hero-content h1 {
   margin: 0;
   color: #fff;
-  font-size: 32px;
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: clamp(34px, 10vw, 44px);
   line-height: 1.08;
-  font-weight: 850;
-  letter-spacing: -.8px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
 
+/* Tiap kata naik dari garis bawahnya, sama seperti judul Welcome. */
+.hero-word {
+  display: inline-block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-right: 0.26em;
+  vertical-align: top;
+}
+.hero-word-inner { display: inline-block; will-change: transform; }
+
 .hero-content p {
-  margin: 18px 0 0;
-  max-width: 350px;
-  color: #FAF7D7;
-  font-size: 13px;
-  line-height: 1.65;
+  margin: 16px 0 0;
+  max-width: 34ch;
+  color: #F4F1E8;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .hero-content p.hero-subtitle {
-  margin: 10px 0 0;
-  color: #FFFFFF;
-  font-size: 14px;
+  margin: 12px 0 0;
+  color: var(--poliland-gold-soft, #F4D69A);
+  font-size: 15px;
   font-weight: 700;
   line-height: 1.4;
 }
@@ -189,25 +246,32 @@ onMounted(() => {
 
 .hero-actions ion-button {
   margin: 0;
-  min-height: 44px;
-  --border-radius: 10px;
-  font-size: 11px;
+  min-height: 48px;
+  --border-radius: 14px;
+  font-size: 14px;
   font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-base) var(--ease-spring);
 }
 
+.hero-actions ion-button:active { transform: scale(0.97); }
+
+/* Emas = penanda aksi utama di atas foto gelap. */
 .primary-button {
-  --background: #556B2F;
-  --background-hover: #4A7C59;
-  --color: #fff;
-  --border-radius: 10px;
-  font-weight: 800;
+  --background: var(--poliland-gold, #cba044);
+  --background-hover: #b68e3d;
+  --background-activated: #b68e3d;
+  --color: var(--ink, #1b1f1a);
+  --box-shadow: 0 10px 24px -10px rgba(203, 160, 68, 0.8);
 }
 
 .outline-button {
-  --border-color: rgba(249,245,236,.75);
+  --border-color: rgba(249,245,236,.7);
+  --border-width: 1.5px;
   --color: #fff;
-  --border-radius: 10px;
-  font-weight: 800;
 }
 
 /* SKELETON */
@@ -226,16 +290,12 @@ onMounted(() => {
     padding-right: 20px;
   }
 
-  .hero-content h1 {
-    font-size: 30px;
-  }
-
   .hero-content p {
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .hero-actions ion-button {
-    font-size: 10px;
+    font-size: 13px;
   }
 
   .contact-skeleton {

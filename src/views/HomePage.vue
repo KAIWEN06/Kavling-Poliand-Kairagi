@@ -1,26 +1,33 @@
 <template>
   <ion-page>
-    <div class="home-wrapper">
+    <div class="home-wrapper pl-surface">
       <ion-content :fullscreen="false" class="home-content" :scroll-events="true">
+        <!-- 1. Perkenalan -->
         <HeroSection @goToSiteplan="goToSiteplan" @contactWhatsapp="contactWhatsapp" />
-        <StatsSection />
-        <FeaturesSection />
-        <AboutSection />
-        <GalleryPreview />
-        <section class="section siteplan-section">
-          <div class="section-heading">
-            <div><h2>Lokasi & Denah Kavling</h2><span class="heading-line"></span></div>
-            <button class="see-all" type="button" @click="goToSiteplan">Denah <ion-icon :icon="chevronForwardOutline" /></button>
-          </div>
-          <LocationSection />
-          <SiteplanPreview :lots="lots" @goToSiteplan="goToSiteplan" />
-        </section>
-        <ProgressPreview />
-        <CustomerReviewsSection />
-        <div class="faq-section"><FAQSection /></div>
-        <CTASection @contactWhatsapp="contactWhatsapp" />
-        <ContactSection />
-        <div class="bottom-space" aria-hidden="true"></div>
+        <ScrollReveal :enabled="!isLoading" variant="scale"><StatsSection /></ScrollReveal>
+        <ScrollReveal :enabled="!isLoading"><AboutSection /></ScrollReveal>
+        <ScrollReveal :enabled="!isLoading"><FeaturesSection /></ScrollReveal>
+
+        <!-- 2. Bukti & produk -->
+        <ScrollReveal :enabled="!isLoading"><GalleryPreview /></ScrollReveal>
+        <ScrollReveal :enabled="!isLoading">
+          <section class="siteplan-section">
+            <SectionHeader title="Lokasi & denah kavling">
+              <button class="see-all" type="button" @click="goToSiteplan">Denah <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
+            </SectionHeader>
+            <LocationSection />
+            <SiteplanPreview :lots="lots" @goToSiteplan="goToSiteplan" />
+          </section>
+        </ScrollReveal>
+        <ScrollReveal :enabled="!isLoading"><ProgressPreview /></ScrollReveal>
+
+        <!-- 3. Kepercayaan & tindakan -->
+        <ScrollReveal :enabled="!isLoading"><CustomerReviewsSection /></ScrollReveal>
+        <ScrollReveal :enabled="!isLoading"><FAQSection /></ScrollReveal>
+        <ScrollReveal :enabled="!isLoading" variant="scale"><CTASection @contactWhatsapp="contactWhatsapp" /></ScrollReveal>
+        <ScrollReveal :enabled="!isLoading"><ContactSection /></ScrollReveal>
+
+        <!-- Penutup: bukit dan matahari yang sama dengan layar Welcome -->
       </ion-content>
 
       <Transition name="refresh-fade">
@@ -51,6 +58,9 @@ import CustomerReviewsSection from '@/components/home/CustomerReviewsSection.vue
 import FAQSection from '@/components/home/FAQSection.vue'
 import CTASection from '@/components/home/CTASection.vue'
 import ContactSection from '@/components/home/ContactSection.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
+import ScrollReveal from '@/components/ui/ScrollReveal.vue'
 import HomeSkeleton from '@/components/ui/skeletons/HomeSkeleton.vue'
 import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
 import { useToast } from '@/composables/useToast'
@@ -161,11 +171,11 @@ const contactWhatsapp = () => {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #FAFAF7;
+  background: var(--pl-paper, #F9F5EC);
 }
 
 .home-content {
-  --background: var(--home-background, #FAFAF7);
+  --background: var(--pl-paper, #F9F5EC);
 
   /*
    * Ruang bawah untuk fixed bottom tab bar.
@@ -187,91 +197,41 @@ const contactWhatsapp = () => {
   box-sizing: border-box;
 }
 
-.section {
-  width: 100%;
-  padding: 24px 16px 0;
-  box-sizing: border-box;
-}
-
-.section-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.section-heading h2 {
-  margin: 0;
-  color: #1A1A1A;
-  font-size: 20px;
-  line-height: 1.2;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-}
-
-.heading-line {
-  display: block;
-  width: 34px;
-  height: 3px;
-  margin-top: 7px;
-  background: #556B2F;
-  border-radius: 999px;
-}
-
 .see-all {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 0;
+  min-height: 44px;
+  padding: 0 4px;
   border: 0;
   background: transparent;
-  color: #556B2F;
-  font-size: 10px;
-  font-weight: 700;
+  color: var(--poliland-green, #355a2c);
+  font: 700 14px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
   white-space: nowrap;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .see-all ion-icon {
-  font-size: 14px;
+  font-size: 16px;
+  transition: transform var(--dur-base) var(--ease-spring);
 }
 
+.see-all:active ion-icon {
+  transform: translateX(3px);
+}
+
+.see-all:focus-visible {
+  outline: 3px solid var(--poliland-gold, #cba044);
+  outline-offset: 2px;
+}
+
+/* Jarak antar-bagian diatur masing-masing komponen; jangan menimpa elemen akar anak di sini. */
 .siteplan-section {
-  padding-top: 28px;
-}
-
-.faq-section {
-  display: block;
   width: 100%;
-  margin: 0;
-  padding: 28px 0 10px;
+  padding: 40px 20px 0;
   box-sizing: border-box;
-  background: #FAFAF7;
-  overflow: visible;
-}
-
-:deep(.cta-section) {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: auto;
-  min-height: 0;
-  margin: 0;
-  box-sizing: border-box;
-  overflow: visible;
-}
-
-.contact-section {
-  display: block;
-  width: 100%;
-  height: auto;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  background: #FAFAF7;
-  overflow: visible;
 }
 
 /*
@@ -285,7 +245,26 @@ const contactWhatsapp = () => {
   min-height: 110px;
   margin: 0;
   padding: 0;
-  background: #FAFAF7;
+  background: var(--pl-paper, #F9F5EC);
+}
+
+.home-footer {
+  position: relative;
+  height: 190px;
+  margin-top: 24px;
+  overflow: hidden;
+}
+
+.home-footer__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  margin: 0;
+  text-align: center;
+  color: var(--green-800, #2b4824);
+  font: 700 12px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  letter-spacing: 0.08em;
 }
 
 .refresh-overlay {
@@ -293,7 +272,7 @@ const contactWhatsapp = () => {
   inset: 0;
   z-index: 9999;
   overflow-y: auto;
-  background: #FAFAF7;
+  background: var(--pl-paper, #F9F5EC);
 }
 
 .refresh-fade-enter-active,
@@ -306,10 +285,4 @@ const contactWhatsapp = () => {
   opacity: 0;
 }
 
-@media (min-width: 768px) {
-  .section {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-}
 </style>

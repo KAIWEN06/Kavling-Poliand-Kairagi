@@ -395,6 +395,62 @@ export async function contactAlreadyRegistered(phone: string | null, whatsapp: s
   return data === true
 }
 
+export interface ContactConflict {
+  /** Pesan siap tampil: apa yang terjadi dan langkah berikutnya. */
+  message: string
+  /** Id client yang bisa dibuka pemanggil; null bila datanya bukan miliknya. */
+  customerId: number | null
+}
+
+const GENERIC_CONFLICT =
+  'Nomor kontak ini sudah terdaftar sebagai client lain. Hubungi Kepala Marketing atau Admin untuk penanganannya.'
+
+/** Mengembalikan null bila nomor belum dipakai, selain itu penjelasan siapa yang memegangnya. */
+export async function findContactConflict(
+  phone: string | null,
+  whatsapp: string | null,
+  excludeId?: number | null,
+): Promise<ContactConflict | null> {
+  const { data, error } = await supabase.rpc('lookup_contact_owner', {
+    p_phone: phone || null,
+    p_whatsapp: whatsapp || null,
+    p_exclude_id: excludeId ?? null,
+  })
+  if (error) {
+    // Fungsi belum ada di database (migrasi belum diterapkan): pakai pengecekan lama.
+    if (error.code === 'PGRST202') {
+      return (await contactAlreadyRegistered(phone, whatsapp, excludeId)) ? { message: GENERIC_CONFLICT, customerId: null } : null
+    }
+    fail(error)
+  }
+
+  const result = data as { status: string; customer_id: number | null; customer_name: string | null }
+  if (result.status === 'free') return null
+
+  const name = result.customer_name?.trim()
+  const customerId = result.customer_id ?? null
+  switch (result.status) {
+    case 'mine':
+      return { message: `Nomor ini sudah ada di daftar Anda${name ? ` atas nama ${name}` : ''}.`, customerId }
+    case 'other_marketing':
+      return {
+        message: name
+          ? `Nomor ini sudah ditangani Marketing lain, atas nama ${name}. Pindahkan lewat Admin bila perlu.`
+          : 'Nomor ini sudah ditangani Marketing lain. Minta Kepala Marketing atau Admin memindahkannya.',
+        customerId,
+      }
+    case 'unassigned':
+      return {
+        message: name
+          ? `Nomor ini sudah terdaftar atas nama ${name} tanpa Marketing penanggung jawab. Tetapkan penanggung jawabnya lewat Admin.`
+          : 'Nomor ini sudah terdaftar dan belum punya Marketing penanggung jawab. Minta Admin menetapkan Anda.',
+        customerId,
+      }
+    default:
+      return { message: GENERIC_CONFLICT, customerId }
+  }
+}
+
 // ---------------------------------------------------------------------
 // SPK, pembayaran, jadwal, komisi (BACA-SAJA)
 // ---------------------------------------------------------------------

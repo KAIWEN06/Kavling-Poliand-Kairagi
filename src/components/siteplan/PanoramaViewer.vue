@@ -1,228 +1,59 @@
 <template>
   <div class="panorama-viewer">
+    <div ref="viewerContainer" class="viewer-container"></div>
 
-    <!-- =====================================================
-         PHOTO SPHERE VIEWER
-    ====================================================== -->
-
-    <div
-      ref="viewerContainer"
-      class="viewer-container"
-    ></div>
-
-
-    <!-- =====================================================
-         TOP BAR
-    ====================================================== -->
-
-    <div
-      class="top-overlay"
-      :class="deviceOrientation"
-    >
-
-      <!-- LEFT : BACK + LOT INFO -->
-
-      <div class="lot-info-wrapper">
-
-        <!-- BACK BUTTON -->
-
-        <button
-          class="back-button"
-          type="button"
-          aria-label="Kembali"
-          @click="handleBack"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M15 18L9 12L15 6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
+    <!-- HUD: dua sudut atas saja, bagian tengah dibiarkan bebas untuk pemandangan -->
+    <div class="hud">
+      <div class="hud-chip lot-chip">
+        <button class="hud-back" type="button" aria-label="Kembali" @click="handleBack">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
-
-
-        <!-- LOT INFORMATION -->
-
         <div class="lot-info">
-
-          <div class="lot-number">
-            KAVELING {{ lotNumber }}
-          </div>
-
-          <div class="lot-status">
-
-            <span
-              class="status-dot"
-              :style="{
-                backgroundColor: statusColor
-              }"
-            ></span>
-
-            <span>
-              Status:
-            </span>
-
-            <span
-              class="status-value"
-              :style="{
-                color: statusColor
-              }"
-            >
-              {{ status }}
-            </span>
-
-          </div>
-
+          <span class="lot-number">Kavling {{ lotNumber }}</span>
+          <span class="lot-status">
+            <span class="status-dot" :style="{ backgroundColor: statusColor }"></span>
+            {{ status }}
+          </span>
         </div>
-
       </div>
-
-
-      <!-- RIGHT : GYRO -->
 
       <button
-        class="gyro-button"
-        :class="{
-          active: gyroEnabled
-        }"
+        class="hud-chip gyro-button"
+        :class="{ active: gyroEnabled }"
         type="button"
+        :aria-pressed="gyroEnabled"
+        :aria-label="gyroEnabled ? 'Matikan giroskop' : 'Aktifkan giroskop'"
+        :disabled="gyroBusy"
         @click="toggleGyro"
       >
-
-        <!-- GYRO ICON -->
-
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle
-            cx="12"
-            cy="12"
-            r="7"
-            stroke="currentColor"
-            stroke-width="1.8"
-          />
-
-          <path
-            d="M12 5V2"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-
-          <path
-            d="M12 22V19"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-
-          <path
-            d="M5 12H2"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-
-          <path
-            d="M22 12H19"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-
-          <circle
-            cx="12"
-            cy="12"
-            r="2"
-            fill="currentColor"
-          />
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.8" />
+          <path d="M12 5V2M12 22V19M5 12H2M22 12H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <circle cx="12" cy="12" r="2" fill="currentColor" />
         </svg>
-
-        <span>
-          {{
-            gyroEnabled
-              ? 'Giroskop Aktif'
-              : 'Giroskop Nonaktif'
-          }}
-        </span>
-
+        <span class="gyro-label">{{ gyroEnabled ? 'Giroskop aktif' : 'Giroskop' }}</span>
       </button>
-
     </div>
 
+    <!-- Petunjuk singkat di bawah, hilang sendiri -->
+    <Transition name="hint">
+      <p v-if="hint" class="hint" role="status">{{ hint }}</p>
+    </Transition>
 
-    <!-- =====================================================
-         LOADING
-    ====================================================== -->
-
-    <div
-      v-if="isLoading"
-      class="viewer-loading"
-    >
-
-      <div class="viewer-loader"></div>
-
-      <span>
-        Memuat panorama...
-      </span>
-
+    <div v-if="hasError" class="viewer-error" role="alert">
+      <span class="viewer-error-icon" aria-hidden="true">!</span>
+      <span>Gagal memuat panorama</span>
     </div>
-
-
-    <!-- =====================================================
-         ERROR
-    ====================================================== -->
-
-    <div
-      v-if="hasError"
-      class="viewer-error"
-    >
-
-      <div class="viewer-error-icon">
-        !
-      </div>
-
-      <span>
-        Gagal memuat panorama
-      </span>
-
-    </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  computed,
-  onMounted,
-  onBeforeUnmount
-} from 'vue'
-
-import {
-  Viewer
-} from '@photo-sphere-viewer/core'
-
-import {
-  GyroscopePlugin
-} from '@photo-sphere-viewer/gyroscope-plugin'
-
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { Viewer } from '@photo-sphere-viewer/core'
+import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin'
 import '@photo-sphere-viewer/core/index.css'
-
-/*
- * =========================================================
- * PROPS
- * =========================================================
- */
 
 interface Props {
   panoramaUrl: string
@@ -233,917 +64,315 @@ interface Props {
 
 const props = defineProps<Props>()
 
-
-/*
- * =========================================================
- * EVENTS
- * =========================================================
- */
-
 const emit = defineEmits<{
   back: []
+  ready: []
   gyroChange: [enabled: boolean]
 }>()
 
+const viewerContainer = ref<HTMLElement | null>(null)
+let viewer: Viewer | null = null
 
-/*
- * =========================================================
- * REFS
- * =========================================================
- */
+const gyroEnabled = ref(false)
+const gyroBusy = ref(false)
+const hasError = ref(false)
+const hint = ref('')
 
-const viewerContainer =
-  ref<HTMLElement | null>(null)
+let hintTimer: number | undefined
 
-const viewer =
-  ref<Viewer | null>(null)
-
-const gyroEnabled =
-  ref(false)
-
-const isLoading =
-  ref(true)
-
-const hasError =
-  ref(false)
-
-const deviceAngle = ref(0)
-
-const deviceOrientation = computed(() => {
-  return Math.abs(deviceAngle.value) === 90
-    ? 'landscape'
-    : 'portrait'
-})
-
-function updateDeviceOrientation() {
-  const screenAngle =
-    typeof window !== 'undefined' && window.screen?.orientation
-      ? Number(window.screen.orientation.angle || 0)
-      : window.innerWidth > window.innerHeight
-        ? 90
-        : 0
-
-  deviceAngle.value = [0, 90, 180, 270].includes(screenAngle)
-    ? screenAngle
-    : 0
+function showHint(text: string, ms = 4000) {
+  hint.value = text
+  window.clearTimeout(hintTimer)
+  hintTimer = window.setTimeout(() => { hint.value = '' }, ms)
 }
 
-
-/*
- * =========================================================
- * CREATE VIEWER
- * =========================================================
- */
+function getGyro(): GyroscopePlugin | null {
+  return viewer ? viewer.getPlugin<GyroscopePlugin>(GyroscopePlugin) : null
+}
 
 function createViewer() {
-
-  if (!viewerContainer.value) {
-    return
-  }
+  if (!viewerContainer.value) return
 
   if (!props.panoramaUrl) {
     hasError.value = true
-    isLoading.value = false
+    emit('ready')
     return
   }
 
   try {
-
-    isLoading.value = true
-    hasError.value = false
-
-    /*
-     * ================================================
-     * PHOTO SPHERE VIEWER
-     * ================================================
-     */
-
-    const instance = new Viewer({
-
-      container:
-        viewerContainer.value,
-
-      panorama:
-        props.panoramaUrl,
-
-      navbar: [
-        'zoom',
-        'move',
-        'fullscreen'
-      ],
-
-      defaultZoomLvl: 0,
-
+    viewer = new Viewer({
+      container: viewerContainer.value,
+      panorama: props.panoramaUrl,
+      navbar: false,
       loadingImg: undefined,
-
-      plugins: [
-        [
-          GyroscopePlugin,
-          {}
-        ]
-      ]
-
+      loadingTxt: '',
+      defaultZoomLvl: 0,
+      moveInertia: true,
+      plugins: [[GyroscopePlugin, { touchmove: true, moveMode: 'smooth' }]],
     })
 
-    viewer.value = instance
+    viewer.addEventListener('ready', () => {
+      emit('ready')
+      showHint('Geser untuk melihat sekeliling')
+    }, { once: true })
 
+    viewer.addEventListener('panorama-error', () => {
+      hasError.value = true
+      emit('ready')
+    })
 
-    /*
-     * ================================================
-     * READY
-     * ================================================
-     */
-
-    instance.addEventListener(
-      'ready',
-      () => {
-
-        isLoading.value = false
-
-        console.log(
-          '[PanoramaViewer] Ready'
-        )
-
-      }
-    )
-
-
-    /*
-     * ================================================
-     * PANORAMA LOADED
-     * ================================================
-     */
-
-    instance.addEventListener(
-      'panorama-loaded',
-      () => {
-
-        isLoading.value = false
-
-      }
-    )
-
-
-    /*
-     * ================================================
-     * ERROR
-     * ================================================
-     */
-
-    instance.addEventListener(
-      'panorama-error',
-      (event: any) => {
-
-        console.error(
-          '[PanoramaViewer] Panorama error:',
-          event
-        )
-
-        isLoading.value = false
-        hasError.value = true
-
-      }
-    )
-
+    // Sumber kebenaran status giroskop adalah plugin, bukan tombol.
+    getGyro()?.addEventListener('gyroscope-updated', (e) => {
+      gyroEnabled.value = e.gyroscopeEnabled
+      emit('gyroChange', e.gyroscopeEnabled)
+    })
   } catch (error) {
-
-    console.error(
-      '[PanoramaViewer] Failed:',
-      error
-    )
-
-    isLoading.value = false
+    console.error('[PanoramaViewer] Failed:', error)
     hasError.value = true
-
+    emit('ready')
   }
 }
 
+async function toggleGyro() {
+  const gyro = getGyro()
+  if (!gyro || gyroBusy.value) return
 
-/*
- * =========================================================
- * BACK
- * =========================================================
- */
-
-function handleBack() {
-
-  /*
-   * Matikan gyro terlebih dahulu
-   * jika sedang aktif.
-   */
-
-  if (gyroEnabled.value) {
-
-    try {
-
-      const gyro =
-        viewer.value?.getPlugin<GyroscopePlugin>(
-          GyroscopePlugin
-        )
-
-      gyro?.stop()
-
-    } catch (error) {
-
-      console.warn(
-        '[PanoramaViewer] Failed stopping gyro:',
-        error
-      )
-
-    }
-
-    gyroEnabled.value = false
+  if (gyro.isEnabled()) {
+    gyro.stop()
+    showHint('Giroskop dimatikan', 2200)
+    return
   }
 
+  gyroBusy.value = true
+  try {
+    if (!(await gyro.isSupported())) {
+      showHint('Perangkat ini tidak punya sensor giroskop', 4500)
+      return
+    }
+    await gyro.start('smooth')
+    showHint('Gerakkan HP untuk melihat sekeliling', 3500)
+  } catch (error) {
+    console.error('[PanoramaViewer] Gyroscope error:', error)
+    showHint('Izin sensor ditolak. Aktifkan lewat pengaturan perangkat', 5000)
+  } finally {
+    gyroBusy.value = false
+  }
+}
+
+function stopGyro() {
+  try { getGyro()?.stop() } catch { /* sudah berhenti */ }
+}
+
+function handleBack() {
+  stopGyro()
   emit('back')
 }
 
-
-/*
- * =========================================================
- * TOGGLE GYROSCOPE
- * =========================================================
- */
-
-async function toggleGyro() {
-
-  if (!viewer.value) {
-    return
-  }
-
-  try {
-
-    const gyro =
-      viewer.value.getPlugin<GyroscopePlugin>(
-        GyroscopePlugin
-      )
-
-    /*
-     * ================================================
-     * TURN OFF
-     * ================================================
-     */
-
-    if (gyroEnabled.value) {
-
-      gyro.stop()
-
-      gyroEnabled.value = false
-
-      emit(
-        'gyroChange',
-        false
-      )
-
-      return
-    }
-
-
-    /*
-     * ================================================
-     * TURN ON
-     * ================================================
-     */
-
-    if (!gyro.isSupported()) {
-
-      alert(
-        'Giroskop tidak didukung pada perangkat ini.'
-      )
-
-      return
-    }
-
-    await gyro.start()
-
-    gyroEnabled.value = true
-
-    emit(
-      'gyroChange',
-      true
-    )
-
-  } catch (error) {
-
-    console.error(
-      '[PanoramaViewer] Gyroscope error:',
-      error
-    )
-
-    gyroEnabled.value = false
-
-    alert(
-      'Giroskop tidak dapat digunakan. Pastikan izin sensor telah diberikan oleh perangkat.'
-    )
-
-  }
+// Sensor dimatikan saat app ke latar agar tidak menguras baterai dan tidak loncat saat kembali.
+function onVisibility() {
+  if (document.hidden && gyroEnabled.value) stopGyro()
 }
 
-
-/*
- * =========================================================
- * MOUNT
- * =========================================================
- */
-
 onMounted(() => {
-
-  updateDeviceOrientation()
-
-  window.addEventListener(
-    'resize',
-    updateDeviceOrientation
-  )
-
-  window.screen?.orientation?.addEventListener(
-    'change',
-    updateDeviceOrientation
-  )
-
+  document.addEventListener('visibilitychange', onVisibility)
   createViewer()
-
 })
 
-
-/*
- * =========================================================
- * CLEANUP
- * =========================================================
- */
-
 onBeforeUnmount(() => {
-
-  window.removeEventListener(
-    'resize',
-    updateDeviceOrientation
-  )
-
-  window.screen?.orientation?.removeEventListener(
-    'change',
-    updateDeviceOrientation
-  )
-
-  if (gyroEnabled.value) {
-
-    try {
-
-      const gyro =
-        viewer.value?.getPlugin<GyroscopePlugin>(
-          GyroscopePlugin
-        )
-
-      gyro?.stop()
-
-    } catch (error) {
-
-      console.warn(
-        '[PanoramaViewer] Gyro cleanup error:',
-        error
-      )
-
-    }
-
-  }
-
-  if (viewer.value) {
-
-    try {
-
-      viewer.value.destroy()
-
-    } catch (error) {
-
-      console.warn(
-        '[PanoramaViewer] Destroy error:',
-        error
-      )
-
-    }
-
-    viewer.value = null
-  }
-
+  document.removeEventListener('visibilitychange', onVisibility)
+  window.clearTimeout(hintTimer)
+  stopGyro()
+  try { viewer?.destroy() } catch { /* sudah dilepas */ }
+  viewer = null
 })
 </script>
 
-
 <style scoped>
-
-/* =========================================================
-   ROOT
-========================================================= */
-
 .panorama-viewer {
-
   position: relative;
-
   width: 100%;
   height: 100%;
-
   overflow: hidden;
-
-  background: #020617;
+  background: #101510;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
-
-
-/* =========================================================
-   VIEWER
-========================================================= */
 
 .viewer-container {
-
   position: absolute;
-
   inset: 0;
-
-  width: 100%;
-  height: 100%;
 }
 
+/* Satu-satunya loading ada di PanoramaPage. */
+.viewer-container :deep(.psv-loader-container) {
+  display: none;
+}
 
-/* =========================================================
-   TOP OVERLAY
-========================================================= */
-
-.top-overlay {
-
+/* HUD memakai inset aman di semua sisi, jadi tetap terbaca dan tidak tertutup notch saat HP diputar. */
+.hud {
   position: absolute;
-
-  top: max(14px, env(safe-area-inset-top));
-  left: 14px;
-  right: 14px;
-
-  z-index: 100;
-
+  z-index: 10;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
   display: flex;
-
   align-items: flex-start;
-
   justify-content: space-between;
-
+  gap: 10px;
   pointer-events: none;
 }
 
-.top-overlay.landscape {
-  align-items: center;
-  gap: 16px;
-}
-
-.top-overlay.landscape .lot-info-wrapper {
-  max-width: calc(100% - 190px);
-}
-
-.top-overlay.landscape .lot-info {
-  min-width: 0;
-}
-
-
-/* =========================================================
-   LEFT GROUP
-========================================================= */
-
-.lot-info-wrapper {
-
-  display: flex;
-
-  align-items: stretch;
-
-  gap: 0;
-
+.hud-chip {
   pointer-events: auto;
-
-  filter:
-    drop-shadow(
-      0 6px 14px
-      rgba(15, 23, 42, .25)
-    );
-}
-
-
-/* =========================================================
-   BACK BUTTON
-========================================================= */
-
-.back-button {
-
-  width: 44px;
-  min-width: 44px;
-
-  height: 47px;
-
   display: flex;
-
   align-items: center;
-  justify-content: center;
+  min-height: 44px;
+  border: 1px solid rgba(244, 241, 232, 0.14);
+  border-radius: 999px;
+  background: rgba(27, 31, 26, 0.72);
+  color: var(--on-forest, #F4F1E8);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
 
-  border: none;
+.lot-chip {
+  min-width: 0;
+  padding-right: 16px;
+}
 
-  border-radius:
-    14px 0 0 14px;
-
-  background:
-    rgba(30, 41, 59, .94);
-
-  color: #cbd5e1;
-
+.hud-back {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
-
-  -webkit-tap-highlight-color:
-    transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 140ms var(--ease-out, ease-out);
 }
-
-.back-button svg {
-
-  width: 21px;
-  height: 21px;
-}
-
-.back-button:active {
-
-  background:
-    rgba(51, 65, 85, .98);
-
-  transform: scale(.98);
-}
-
-
-/* =========================================================
-   LOT INFO
-========================================================= */
+.hud-back svg { width: 22px; height: 22px; }
+.hud-back:active { transform: scale(0.92); }
 
 .lot-info {
-
-  min-width: 130px;
-
-  height: 47px;
-
-  padding:
-    7px 13px 7px 10px;
-
   display: flex;
-
   flex-direction: column;
-
-  justify-content: center;
-
-  border-radius:
-    0 14px 14px 0;
-
-  background:
-    rgba(30, 41, 59, .94);
-
-  color: white;
+  min-width: 0;
+  line-height: 1.2;
 }
-
-
-/* =========================================================
-   LOT NUMBER
-========================================================= */
-
 .lot-number {
-
-  font-size: 12px;
-
-  font-weight: 800;
-
-  letter-spacing: .2px;
-
-  line-height: 15px;
-
-  white-space: nowrap;
-}
-
-
-/* =========================================================
-   STATUS
-========================================================= */
-
-.lot-status {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 4px;
-
-  margin-top: 1px;
-
-  font-size: 9px;
-
-  line-height: 11px;
-
-  color: #94a3b8;
-
-  white-space: nowrap;
-}
-
-.status-dot {
-
-  width: 5px;
-  height: 5px;
-
-  border-radius: 50%;
-
-  flex-shrink: 0;
-}
-
-.status-value {
-
+  font-size: 14px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-
-/* =========================================================
-   GYRO BUTTON
-========================================================= */
+.lot-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--on-forest-muted, #B9C9B1);
+  white-space: nowrap;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 0 2px rgba(244, 241, 232, 0.25);
+}
 
 .gyro-button {
-
-  min-height: 42px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 7px;
-
-  padding:
-    0 13px;
-
-  border: none;
-
-  border-radius: 11px;
-
-  background:
-    rgba(30, 41, 59, .94);
-
-  color: #e2e8f0;
-
-  box-shadow:
-    0 6px 14px
-    rgba(15, 23, 42, .25);
-
-  font-size: 11px;
-
-  font-weight: 700;
-
-  cursor: pointer;
-
-  pointer-events: auto;
-
-  -webkit-tap-highlight-color:
-    transparent;
-
-  transition:
-    background .2s ease,
-    color .2s ease,
-    transform .15s ease;
-}
-
-.gyro-button svg {
-
-  width: 18px;
-  height: 18px;
-
-  flex-shrink: 0;
-}
-
-.gyro-button:active {
-
-  transform: scale(.96);
-}
-
-
-/* =========================================================
-   GYRO ACTIVE
-========================================================= */
-
-.gyro-button.active {
-
-  background:
-    #16a34a;
-
-  color: white;
-
-  box-shadow:
-    0 6px 18px
-    rgba(22, 163, 74, .35);
-}
-
-
-/* =========================================================
-   LOADING
-========================================================= */
-
-.viewer-loading {
-
-  position: absolute;
-
-  inset: 0;
-
-  z-index: 90;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 12px;
-
-  background:
-    rgba(2, 6, 23, .8);
-
-  color: white;
-
+  flex: none;
+  gap: 8px;
+  padding: 0 14px;
+  font: inherit;
   font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 200ms var(--ease-out, ease-out), color 200ms var(--ease-out, ease-out), transform 140ms var(--ease-out, ease-out);
+}
+.gyro-button svg { width: 20px; height: 20px; flex: none; }
+.gyro-button:active { transform: scale(0.95); }
+.gyro-button:disabled { opacity: 0.7; }
+.gyro-button.active {
+  background: var(--poliland-gold, #CBA044);
+  border-color: transparent;
+  color: var(--ink, #1B1F1A);
+}
 
+.hint {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 10px 16px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(27, 31, 26, 0.72);
+  color: var(--on-forest, #F4F1E8);
+  font-size: 13px;
+  text-align: center;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   pointer-events: none;
 }
-
-.viewer-loader {
-
-  width: 32px;
-  height: 32px;
-
-  border:
-    3px solid
-    rgba(255,255,255,.2);
-
-  border-top-color:
-    white;
-
-  border-radius: 50%;
-
-  animation:
-    spin .8s linear infinite;
+.hint-enter-active, .hint-leave-active {
+  transition: opacity 240ms var(--ease-out, ease-out), translate 240ms var(--ease-out, ease-out);
 }
-
-
-/* =========================================================
-   ERROR
-========================================================= */
+.hint-enter-from, .hint-leave-to { opacity: 0; translate: 0 8px; }
 
 .viewer-error {
-
   position: absolute;
-
   inset: 0;
-
-  z-index: 95;
-
+  z-index: 20;
   display: flex;
-
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-
-  flex-direction: column;
-
   gap: 10px;
-
-  background:
-    rgba(2, 6, 23, .85);
-
-  color: white;
-
-  font-size: 14px;
+  background: rgba(16, 21, 16, 0.9);
+  color: var(--on-forest, #F4F1E8);
+  font-size: 15px;
 }
-
 .viewer-error-icon {
-
   width: 40px;
   height: 40px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-
-  background:
-    rgba(239,68,68,.15);
-
-  color:
-    #ef4444;
-
+  background: rgba(244, 241, 232, 0.12);
   font-weight: 800;
-
   font-size: 20px;
 }
 
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 480px) {
-
-  .top-overlay {
-
-    top: max(12px, env(safe-area-inset-top));
-
-    left: 12px;
-    right: 12px;
-  }
-
-  .lot-info {
-
-    min-width: 125px;
-
-    height: 44px;
-
-    padding:
-      6px 10px;
-  }
-
-  .back-button {
-
-    width: 42px;
-    min-width: 42px;
-
-    height: 44px;
-  }
-
-  .lot-number {
-
-    font-size: 11px;
-  }
-
-  .lot-status {
-
-    font-size: 8px;
-  }
-
-  .gyro-button {
-
-    height: 40px;
-
-    min-height: 40px;
-
-    padding:
-      0 10px;
-
-    font-size: 10px;
-
-    gap: 5px;
-  }
-
-  .gyro-button svg {
-
-    width: 16px;
-    height: 16px;
-  }
-
+/* Layar sempit: giroskop jadi ikon saja agar nama kavling tidak terpotong. */
+@media (max-width: 380px) {
+  .gyro-label { display: none; }
+  .gyro-button { width: 44px; padding: 0; justify-content: center; }
 }
 
-
-/* =========================================================
-   VERY SMALL SCREEN
-========================================================= */
-
-@media (max-width: 360px) {
-
-  .top-overlay {
-
-    left: 8px;
-    right: 8px;
-
-    top: 8px;
-  }
-
-  .lot-info {
-
-    min-width: 112px;
-  }
-
-  .gyro-button span {
-
-    font-size: 9px;
-  }
-
-  .top-overlay.landscape {
-    gap: 8px;
-  }
-
-  .top-overlay.landscape .lot-info-wrapper {
-    max-width: calc(100% - 150px);
-  }
-
-  .top-overlay.landscape .gyro-button {
-    padding: 0 8px;
-  }
-
+/* Landscape: layar pendek, HUD dan petunjuk dipadatkan supaya pemandangan tetap luas. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .hud { top: max(8px, env(safe-area-inset-top, 0px)); }
+  .hud-chip { min-height: 40px; }
+  .hud-back { width: 40px; height: 40px; }
+  .hint { bottom: max(10px, env(safe-area-inset-bottom, 0px)); padding: 8px 14px; }
 }
 
-@keyframes spin {
-
-  to {
-    transform: rotate(360deg);
-  }
-
+@media (prefers-reduced-motion: reduce) {
+  .hint-enter-active, .hint-leave-active { transition: opacity 120ms linear; }
+  .hint-enter-from, .hint-leave-to { translate: 0 0; }
 }
-
 </style>

@@ -361,7 +361,17 @@
           <circle cx="12" cy="12" r="9" />
           <path d="M12 8v4M12 16h.01" />
         </svg>
-        <span>{{ errorMessage }}</span>
+        <div class="error-body">
+          <span>{{ errorMessage }}</span>
+          <button
+            v-if="conflictCustomerId !== null"
+            type="button"
+            class="error-action"
+            @click="openConflictCustomer"
+          >
+            Buka data klien
+          </button>
+        </div>
       </div>
 
       <!-- SAVE -->
@@ -372,7 +382,7 @@
         @click="submit"
       >
         <span v-if="saving" class="spinner"></span>
-        {{ saving ? 'Menyimpan...' : 'Simpan Calon Pembeli' }}
+        {{ saving ? 'Menyimpan...' : 'Simpan' }}
       </button>
 
       <p class="privacy-note">
@@ -397,7 +407,7 @@ import {
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
 import RegionSelect from '@/components/marketing/shared/RegionSelect.vue'
 import {
-  contactAlreadyRegistered,
+  findContactConflict,
   getTeamMembers,
 } from '@/services/marketing/marketingCrmService'
 
@@ -417,6 +427,8 @@ const submitted = ref(false)
 const lotPickerOpen = ref(false)
 const lotSearch = ref('')
 const errorMessage = ref('')
+// Client yang sudah memakai nomor ini dan boleh dibuka pemanggil (null bila bukan miliknya).
+const conflictCustomerId = ref<number | null>(null)
 
 const currentUser = ref(null)
 const currentProfile = ref(null)
@@ -574,12 +586,14 @@ async function submit() {
 
   saving.value = true
   errorMessage.value = ''
+  conflictCustomerId.value = null
 
   try {
     // Validasi awal duplikasi; database tetap memvalidasi ulang saat INSERT.
-    if (await contactAlreadyRegistered(form.phone, form.whatsapp_phone || null)) {
-      errorMessage.value =
-        'Nomor kontak ini sudah terdaftar sebagai klien. Hubungi Kepala Bagian Marketing atau Admin agar tidak terjadi duplikasi.'
+    const conflict = await findContactConflict(form.phone, form.whatsapp_phone || null)
+    if (conflict) {
+      errorMessage.value = conflict.message
+      conflictCustomerId.value = conflict.customerId
       return
     }
 
@@ -614,9 +628,27 @@ async function submit() {
     errorMessage.value =
       error?.message ||
       'Data calon pembeli gagal disimpan. Silakan coba lagi.'
+
+    // Nomor baru terdaftar di antara pengecekan dan penyimpanan: jelaskan siapa pemegangnya.
+    if (error?.hint === 'phone_exists') {
+      try {
+        const conflict = await findContactConflict(form.phone, form.whatsapp_phone || null)
+        if (conflict) {
+          errorMessage.value = conflict.message
+          conflictCustomerId.value = conflict.customerId
+        }
+      } catch {
+        // Pesan dari database tetap ditampilkan.
+      }
+    }
   } finally {
     saving.value = false
   }
+}
+
+function openConflictCustomer() {
+  if (conflictCustomerId.value === null) return
+  void ionRouter.push(`${listPath.value}/${conflictCustomerId.value}`)
 }
 
 async function loadData() {
@@ -1215,6 +1247,37 @@ onMounted(async () => {
   color: var(--danger-text);
   font-size: 13px;
   line-height: 1.4;
+}
+
+.error-body {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  justify-items: start;
+  gap: 4px;
+}
+
+.error-action {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.error-action:active {
+  opacity: 0.7;
+}
+
+.error-action:focus-visible {
+  outline: 3px solid var(--status-danger);
+  outline-offset: 2px;
 }
 
 .error-message svg {

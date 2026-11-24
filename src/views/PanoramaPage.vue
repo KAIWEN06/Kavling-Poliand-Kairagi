@@ -1,47 +1,36 @@
 <template>
   <ion-page class="panorama-page">
 
-    <!-- Loading -->
-    <div
-      v-if="loading"
-      class="panorama-state"
-    >
-      <div class="loader"></div>
-      <p>Memuat panorama...</p>
-    </div>
-
-    <!-- Error -->
-    <div
-      v-else-if="errorMessage"
-      class="panorama-state"
-    >
-      <div class="error-icon">
-        !
-      </div>
-
-      <h2>Gagal Memuat Panorama</h2>
-
-      <p>
-        {{ errorMessage }}
-      </p>
-
-      <button
-        class="retry-button"
-        @click="loadPanorama"
-      >
-        Coba Lagi
-      </button>
-    </div>
-
-    <!-- Panorama -->
+    <!-- Satu layar muat saja: data kavling lalu gambar panorama, tanpa pergantian spinner. -->
     <PanoramaViewer
-      v-else-if="panoramaUrl"
+      v-if="panoramaUrl && !errorMessage"
       :panorama-url="panoramaUrl"
       :lot-number="lotNumber"
       :status="lotStatus"
       :status-color="statusColor"
+      @ready="viewerReady = true"
       @back="goBack"
     />
+
+    <PublicStateScreen
+      v-if="errorMessage"
+      class="panorama-cover"
+      title="Panorama belum bisa dibuka"
+      :description="errorMessage"
+      action-label="Coba lagi"
+      secondary-label="Kembali"
+      @action="loadPanorama"
+      @secondary="goBack"
+    />
+
+    <Transition name="cover">
+      <PublicStateScreen
+        v-if="!errorMessage && (loading || !viewerReady)"
+        class="panorama-cover"
+        busy
+        title="Memuat panorama"
+      />
+    </Transition>
 
   </ion-page>
 </template>
@@ -52,6 +41,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { IonPage } from '@ionic/vue'
 
 import PanoramaViewer from '@/components/siteplan/PanoramaViewer.vue'
+import PublicStateScreen from '@/components/ui/PublicStateScreen.vue'
 import { supabase } from '@/services/config/supabase'
 import { getLotStatusColor, getStatusLabel } from '@/utils/siteplan'
 
@@ -59,6 +49,7 @@ const route = useRoute()
 const router = useRouter()
 
 const loading = ref(true)
+const viewerReady = ref(false)
 const errorMessage = ref('')
 
 const panoramaUrl = ref('')
@@ -68,6 +59,7 @@ const statusColor = ref('#22c55e')
 
 async function loadPanorama() {
   loading.value = true
+  viewerReady.value = false
   errorMessage.value = ''
   panoramaUrl.value = ''
 
@@ -227,106 +219,20 @@ onMounted(() => {
 .panorama-page {
   width: 100%;
   height: 100%;
-  background: #020617;
+  background: #101510;
 }
 
-/* =========================================================
-   LOADING / ERROR
-========================================================= */
-
-.panorama-state {
-  width: 100%;
-  height: 100%;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  background: #020617;
-
-  color: #ffffff;
-
-  text-align: center;
-
-  padding: 24px;
+.panorama-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
 }
 
-.panorama-state h2 {
-  margin: 14px 0 6px;
-
-  font-size: 18px;
-  font-weight: 600;
+.cover-leave-active {
+  transition: opacity 320ms var(--ease-out, ease-out);
+}
+.cover-leave-to {
+  opacity: 0;
 }
 
-.panorama-state p {
-  margin: 0;
-
-  max-width: 300px;
-
-  color: #94a3b8;
-
-  font-size: 14px;
-}
-
-.loader {
-  width: 32px;
-  height: 32px;
-
-  border: 3px solid rgba(255, 255, 255, 0.15);
-
-  border-top-color: #ffffff;
-
-  border-radius: 50%;
-
-  animation: spin 0.8s linear infinite;
-}
-
-.error-icon {
-  width: 40px;
-  height: 40px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: rgba(239, 68, 68, 0.15);
-
-  color: #ef4444;
-
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.retry-button {
-  margin-top: 18px;
-
-  border: none;
-
-  border-radius: 9px;
-
-  padding: 10px 18px;
-
-  background: #2563eb;
-
-  color: white;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-.retry-button:active {
-  transform: scale(0.97);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>

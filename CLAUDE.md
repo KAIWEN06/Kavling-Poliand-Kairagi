@@ -9,3 +9,19 @@ Rules:
 - If `graphify` is not found in the shell, use the full path `C:/Users/Kevin/.local/bin/graphify.exe` instead.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 - A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
+
+## Skills
+
+Proyek ini memakai Vue 3 (bukan React/Next.js). Panggil skill lewat tool Skill sebelum mulai mengerjakan, tanpa menunggu diminta.
+
+Rules:
+- Setiap tugas membuat atau mengubah UI (file `.vue` di `src/views`, `src/components`, layout, styling): muat `poliland-design` PERTAMA, lalu `ui-ux-pro-max` dan `mobile-native`. `poliland-design` adalah standar rasa visual proyek (patokan: `src/views/WelcomePage.vue`) dan berlaku di semua halaman. Layar yang terasa lebih biasa daripada Welcome dan About dianggap belum selesai. Sumber aturan lengkap ada di `DESIGN.md` (Bagian I §12 bahasa visual dan gerak, §13 aturan teks, §14 kontras).
+- Setiap tugas yang menulis atau mengubah teks tampilan (judul, label, deskripsi, pesan): muat `humanizer` dan ikuti `DESIGN.md` §13. Satu gagasan hanya muncul sekali per layar; komponen yang berdampingan tidak boleh mengulang kata yang sama.
+- Setiap warna teks baru: hitung rasio kontras dan pastikan minimal 4,5:1 (§14). Putih di atas emas dilarang.
+- Tugas yang menyentuh layout responsif, tap target, atau interaksi sentuh: tambahkan `antislop-layoutmobile`.
+- Tugas yang menyentuh warna, kontras, fokus, atau aksesibilitas: tambahkan `antislop-human`.
+- Tugas animasi atau transisi: gunakan `find-animation-opportunities` (mencari peluang) atau `improve-animations` (audit dan rencana). `review-animations` hanya jalan bila saya mengetiknya manual.
+- Tugas design token atau komponen sistematis: gunakan `design-system`.
+- Contoh `shadcn-ui` dan `ui-styling` berbasis React/Next.js. Pakai hanya sebagai referensi pola Tailwind dan aksesibilitas, jangan menyalin kode React ke file Vue. Gunakan padanan Vue (misalnya shadcn-vue / Radix Vue) bila relevan.
+- Perubahan kecil non-visual (logika, service, migrasi SQL, typo) tidak perlu memuat skill UI.
+- Bila sebuah skill dipakai, sebutkan namanya singkat di awal jawaban.

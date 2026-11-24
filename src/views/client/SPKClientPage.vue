@@ -502,7 +502,7 @@ onMounted(() => {
           <strong>Formulir belum dapat dibuka</strong>
           <p>{{ lotError }}</p>
           <button type="button" @click="goToLots">
-            Kembali ke daftar kaveling
+            Kembali
           </button>
         </section>
 
@@ -512,7 +512,7 @@ onMounted(() => {
           </span>
           <strong>Pengajuan SPK sudah dikirim ke admin.</strong>
           <p>Admin akan memeriksa data dan dokumen yang Anda kirim.</p>
-          <button type="button" @click="goToLots">Kembali ke daftar kaveling</button>
+          <button type="button" @click="goToLots">Kembali</button>
         </section>
 
         <template v-else-if="lot">
@@ -886,7 +886,7 @@ onMounted(() => {
                 class="spk-reuse-clear"
                 @click="selectedReusePaymentId = null"
               >
-                Batalkan penggunaan Booking Fee sebelumnya
+                Batalkan Booking Fee
               </button>
 
               <p v-if="selectedReusePayment" class="spk-upload-note">
