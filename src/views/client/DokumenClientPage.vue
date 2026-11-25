@@ -2,7 +2,7 @@
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
-import { modalEnterAnimation, modalLeaveAnimation, sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
+import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import {
   IonContent, IonIcon, IonModal, IonPage, onIonViewWillEnter, useIonRouter,
@@ -15,6 +15,7 @@ import {
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
 import { stepIsDone, type SpkProcessStep } from '@/services/spkProcessService'
@@ -1061,7 +1062,13 @@ onIonViewWillEnter(handleRouteIntent)
       </form>
     </AppModal>
 
-    <IonModal :enter-animation="sheetModalEnterAnimation" :leave-animation="sheetModalLeaveAnimation" :is-open="detailOpen" class="client-spk-detail-modal" :breakpoints="[0, 0.75, 0.96]" :initial-breakpoint="0.96" @didDismiss="closeDetail">
+    <AppModal
+      :model-value="detailOpen"
+      title="Detail SPK"
+      variant="bottom-sheet"
+      :show-confirm="false"
+      @update:model-value="(open: boolean) => { if (!open) closeDetail() }"
+    >
       <div v-if="selectedRecord" class="spk-detail">
         <header class="spk-detail-header">
           <div>
@@ -1235,11 +1242,11 @@ onIonViewWillEnter(handleRouteIntent)
             Booking Fee belum tersedia untuk digunakan ulang. Pembayaran harus dikonfirmasi Finance terlebih dahulu.
           </div>
         </section>
-        <div class="spk-detail-footer">
-          <button type="button" class="spk-modal-close" @click="closeDetail">Tutup</button>
-        </div>
       </div>
-    </IonModal>
+      <template #footer>
+        <AppButton type="button" variant="neutral" fill="outline" class="spk-detail-close" @click="closeDetail">Tutup</AppButton>
+      </template>
+    </AppModal>
 
     <IonModal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="documentPreviewOpen" class="client-spk-document-preview-modal" @didDismiss="closeDocumentPreview">
       <section class="spk-document-preview">
@@ -1409,7 +1416,8 @@ onIonViewWillEnter(handleRouteIntent)
 .spk-pager-btn { display:inline-flex; align-items:center; justify-content:center; font-size:18px; }
 .spk-pager-number.active { border-color:var(--poliland-green); background:var(--poliland-green); color:#fff; }
 .spk-pager-btn:disabled,.spk-pager-number:disabled { cursor:default; opacity:.45; }
-.spk-detail { display:grid; gap:16px; height:100%; overflow:auto; padding:22px 16px calc(24px + env(safe-area-inset-bottom)); background:var(--surface-primary,#fff); color:var(--text-primary,#263329); }
+.spk-detail { display:grid; gap:16px; color:var(--text-primary,#263329); }
+.spk-detail-close { grid-column:1 / -1; }
 .spk-detail-header { display:flex; justify-content:space-between; align-items:center; gap:10px; border-radius:13px; background:var(--surface-muted,#f3f6f0); padding:13px; }
 .spk-detail-header>div { display:grid; gap:4px; min-width:0; }
 .spk-detail-header span:not(.spk-status) { color:var(--text-secondary,#788276); font-size:10px; }
@@ -1480,8 +1488,6 @@ onIonViewWillEnter(handleRouteIntent)
 .spk-reupload-alert button { width:100%; }
 .spk-reupload-submit:disabled { cursor:not-allowed; opacity:.55; }
 .spk-reupload-error { color:#8d3d37; }
-.spk-detail-footer { display:flex; justify-content:flex-end; gap:8px; padding-top:5px; }
-.spk-modal-close { border:1px solid var(--border-default); border-radius:9px; background:var(--surface-primary); color:var(--text-primary); padding:10px 15px; font-size:11px; font-weight:800; }
 .spk-reason-modal { --width:min(92vw,390px); --height:auto; --border-radius:18px; --backdrop-opacity:.42; }
 .spk-reason-dialog { display:grid; justify-items:center; gap:12px; padding:25px 22px 20px; text-align:center; background:var(--surface-primary,#fff); color:var(--text-primary,#263329); }
 .spk-reason-icon { display:grid; place-items:center; width:48px; height:48px; border-radius:15px; background:var(--status-danger-bg,#fcebea); color:var(--status-danger-text,#a63e38); font-size:22px; }

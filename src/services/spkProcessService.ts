@@ -21,6 +21,9 @@ export interface SpkProcessStep {
   readyAt: string | null
   completedAt: string | null
   note: string | null
+  proofPath: string | null
+  proofName: string | null
+  proofUploadedAt: string | null
 }
 
 export interface SpkStepInfo {
@@ -81,6 +84,9 @@ interface StepRow {
   ready_at: string | null
   completed_at: string | null
   note: string | null
+  proof_path: string | null
+  proof_name: string | null
+  proof_uploaded_at: string | null
 }
 
 const toStep = (row: StepRow): SpkProcessStep => ({
@@ -94,10 +100,30 @@ const toStep = (row: StepRow): SpkProcessStep => ({
   readyAt: row.ready_at,
   completedAt: row.completed_at,
   note: row.note,
+  proofPath: row.proof_path,
+  proofName: row.proof_name,
+  proofUploadedAt: row.proof_uploaded_at,
 })
 
 const COLUMNS =
-  'id, spk_request_id, step_key, position, status, estimated_date, estimate_note, ready_at, completed_at, note'
+  'id, spk_request_id, step_key, position, status, estimated_date, estimate_note, ready_at, completed_at, note, proof_path, proof_name, proof_uploaded_at'
+
+const PROOF_BUCKET = 'spk-process-proofs'
+export const PROOF_MAX_BYTES = 5 * 1024 * 1024
+export const PROOF_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf'
+const PROOF_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+}
+
+/** Pesan galat bila file bukti tidak memenuhi syarat; null bila lolos. */
+export function validateProofFile(file: File): string | null {
+  if (!PROOF_EXT[file.type]) return 'Format bukti harus JPG, PNG, WEBP, atau PDF.'
+  if (file.size > PROOF_MAX_BYTES) return 'Ukuran bukti maksimal 5 MB.'
+  return null
+}
 
 /** Langkah proses satu SPK, urut sesuai prosedur. Akses diatur RLS. */
 export async function getSpkProcessSteps(spkId: number): Promise<SpkProcessStep[]> {
@@ -137,6 +163,36 @@ export async function adminCompleteStep(stepId: number, note: string): Promise<v
     p_note: note.trim() || null,
   })
   if (error) throw new Error(error.message)
+}
+
+/** Unggah bukti serah terima lalu lampirkan ke langkahnya. File dibersihkan bila lampiran gagal. */
+export async function adminUploadHandoverProof(step: SpkProcessStep, file: File): Promise<void> {
+  const invalid = validateProofFile(file)
+  if (invalid) throw new Error(invalid)
+
+  const random = Math.random().toString(36).slice(2, 10)
+  const path = `${step.spkRequestId}/serah-terima-${Date.now()}-${random}.${PROOF_EXT[file.type]}`
+  const { error: uploadError } = await supabase.storage
+    .from(PROOF_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false })
+  if (uploadError) throw new Error(`Bukti gagal diunggah: ${uploadError.message}`)
+
+  const { error } = await supabase.rpc('admin_attach_spk_step_proof', {
+    p_step_id: step.id,
+    p_path: path,
+    p_name: file.name,
+  })
+  if (error) {
+    await supabase.storage.from(PROOF_BUCKET).remove([path])
+    throw new Error(error.message)
+  }
+}
+
+/** URL bukti yang berlaku 5 menit. Akses diatur storage RLS. */
+export async function getHandoverProofUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from(PROOF_BUCKET).createSignedUrl(path, 300)
+  if (error || !data?.signedUrl) throw new Error(error?.message || 'Bukti tidak bisa dibuka.')
+  return data.signedUrl
 }
 
 /** Langkah aktif = langkah pertama yang belum selesai. */

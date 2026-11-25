@@ -62,6 +62,17 @@
             <p v-if="step.estimateNote && step.status !== 'done'" class="spt-note">{{ step.estimateNote }}</p>
             <p v-if="step.note" class="spt-note">{{ step.note }}</p>
 
+            <div v-if="step.proofPath" class="spt-proof">
+              <div class="spt-proof-info">
+                <strong>Bukti serah terima</strong>
+                <span>{{ step.proofName || 'Berkas bukti' }}</span>
+              </div>
+              <button type="button" class="spt-btn" :disabled="proofOpening === step.id" @click="openProof(step)">
+                {{ proofOpening === step.id ? 'Membuka...' : 'Lihat bukti' }}
+              </button>
+            </div>
+            <p v-if="proofError && proofErrorStep === step.id" class="spt-error" role="alert">{{ proofError }}</p>
+
             <p v-if="SPK_STEP_INFO[step.key].requirement && step.status !== 'done'" class="spt-require">
               {{ SPK_STEP_INFO[step.key].requirement }}
             </p>
@@ -93,14 +104,57 @@
       :title="modalTitle"
       variant="bottom-sheet"
       :loading="saving"
+      :confirm-disabled="needsProof && !proofFile && !target?.proofPath"
       :confirm-text="modalConfirm"
+      :confirm-variant="action === 'complete' ? 'success' : 'primary'"
+      :slide-confirm="action === 'complete'"
+      slide-label="Geser untuk menandai selesai"
       cancel-text="Batal"
       @confirm="submit"
     >
       <p class="spt-modal-intro">{{ modalIntro }}</p>
-      <label v-if="action === 'schedule'" class="spt-field">
-        Tanggal perkiraan
-        <input v-model="dateValue" type="date" :min="today" />
+      <div v-if="action === 'schedule'" class="spt-field">
+        <span id="spt-date-label">Tanggal perkiraan</span>
+        <div class="spt-date-row">
+          <strong class="spt-date-value" :class="{ 'spt-date-value--empty': !dateValue }" aria-labelledby="spt-date-label">
+            {{ dateValue ? formatDay(dateValue) : 'Belum dipilih' }}
+          </strong>
+          <button type="button" class="spt-btn spt-date-toggle" :aria-expanded="calendarOpen" @click="calendarOpen = !calendarOpen">
+            {{ calendarOpen ? 'Tutup kalender' : 'Pilih tanggal' }}
+          </button>
+        </div>
+        <div v-if="calendarOpen" class="spt-calendar">
+          <div class="spt-cal-head">
+            <button type="button" class="spt-cal-nav" aria-label="Bulan sebelumnya" :disabled="!canGoPrev" @click="shiftMonth(-1)">
+              <ion-icon :icon="chevronBack" />
+            </button>
+            <span class="spt-cal-month">{{ monthLabel }}</span>
+            <button type="button" class="spt-cal-nav" aria-label="Bulan berikutnya" @click="shiftMonth(1)">
+              <ion-icon :icon="chevronForward" />
+            </button>
+          </div>
+          <div class="spt-cal-grid spt-cal-weekdays" aria-hidden="true">
+            <span v-for="d in weekDays" :key="d">{{ d }}</span>
+          </div>
+          <div class="spt-cal-grid">
+            <span v-for="b in monthOffset" :key="`b${b}`" />
+            <button
+              v-for="day in monthDays"
+              :key="day"
+              type="button"
+              class="spt-cal-day"
+              :class="{ 'is-selected': isoOf(day) === dateValue, 'is-today': isoOf(day) === today }"
+              :disabled="isoOf(day) < today"
+              :aria-pressed="isoOf(day) === dateValue"
+              @click="pickDay(day)"
+            >{{ day }}</button>
+          </div>
+        </div>
+      </div>
+      <label v-if="needsProof" class="spt-field spt-upload">
+        <span>Bukti serah terima{{ target?.proofPath ? ' (boleh diganti)' : '' }}</span>
+        <input type="file" :accept="PROOF_ACCEPT" :disabled="saving" @change="onProofSelected" />
+        <small>{{ proofFile?.name || (target?.proofName ? `Tersimpan: ${target.proofName}` : 'JPG, PNG, WEBP, atau PDF. Maksimal 5 MB.') }}</small>
       </label>
       <label class="spt-field">
         Catatan untuk client (boleh dikosongkan)
@@ -114,22 +168,28 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
-import { checkmark } from 'ionicons/icons'
+import { checkmark, chevronBack, chevronForward } from 'ionicons/icons'
 import AppModal from '@/components/ui/AppModal.vue'
+import { useCelebration } from '@/composables/useCelebration'
 import {
   SPK_STEP_INFO,
   SPK_STEP_STATUS_LABEL,
   adminCompleteStep,
   adminMarkStepReady,
   adminSetStepSchedule,
+  adminUploadHandoverProof,
   currentStep,
+  getHandoverProofUrl,
   getSpkProcessSteps,
+  PROOF_ACCEPT,
+  validateProofFile,
   type SpkProcessStep,
 } from '@/services/spkProcessService'
 
 const props = withDefaults(defineProps<{ spkId: number; mode?: 'view' | 'admin' }>(), { mode: 'view' })
 const emit = defineEmits<{ loaded: [steps: SpkProcessStep[]]; changed: [] }>()
 
+const { celebrate } = useCelebration()
 const steps = ref<SpkProcessStep[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -185,21 +245,89 @@ const modalTitle = computed(() =>
 )
 const modalConfirm = computed(() =>
   action.value === 'schedule' ? 'Simpan tanggal'
-    : action.value === 'ready' ? 'Kirim pemberitahuan'
-      : 'Ya, sudah selesai',
+    : action.value === 'ready' ? 'Kirim'
+      : 'Sudah selesai',
 )
+const needsProof = computed(() => action.value === 'complete' && target.value?.key === 'serah_terima')
+const proofFile = ref<File | null>(null)
+const proofOpening = ref<number | null>(null)
+const proofError = ref('')
+const proofErrorStep = ref<number | null>(null)
+
+function onProofSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+  actionError.value = ''
+  if (!file) { proofFile.value = null; return }
+  const invalid = validateProofFile(file)
+  if (invalid) {
+    proofFile.value = null
+    input.value = ''
+    actionError.value = invalid
+    return
+  }
+  proofFile.value = file
+}
+
+async function openProof(step: SpkProcessStep) {
+  if (!step.proofPath || proofOpening.value) return
+  proofOpening.value = step.id
+  proofError.value = ''
+  proofErrorStep.value = step.id
+  try {
+    const url = await getHandoverProofUrl(step.proofPath)
+    window.open(url, '_blank', 'noopener')
+  } catch (e) {
+    proofError.value = e instanceof Error ? e.message : 'Bukti tidak bisa dibuka.'
+  } finally {
+    proofOpening.value = null
+  }
+}
+
 const modalIntro = computed(() => {
   const title = target.value ? SPK_STEP_INFO[target.value.key].title : ''
   if (action.value === 'schedule') return `${title}. Client dan marketing akan menerima pemberitahuan tanggal ini.`
   if (action.value === 'ready') return `${title} sudah bisa diproses. Client dan marketing akan menerima pemberitahuan.`
+  if (needsProof.value) return `${title} sudah dilakukan? Lampirkan bukti tanda terima. Client dan marketing bisa melihatnya.`
   return `${title} benar-benar sudah dilakukan? Langkah berikutnya akan menjadi giliran berikutnya.`
 })
+
+// ---- Kalender tanggal perkiraan ----
+const weekDays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+const monthFmt = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+const calendarOpen = ref(false)
+const viewYear = ref(Number(today.slice(0, 4)))
+const viewMonth = ref(Number(today.slice(5, 7)) - 1)
+
+const monthLabel = computed(() => monthFmt.format(new Date(Date.UTC(viewYear.value, viewMonth.value, 1))))
+const monthDays = computed(() => new Date(Date.UTC(viewYear.value, viewMonth.value + 1, 0)).getUTCDate())
+const monthOffset = computed(() => new Date(Date.UTC(viewYear.value, viewMonth.value, 1)).getUTCDay())
+const canGoPrev = computed(() => viewYear.value * 12 + viewMonth.value > Number(today.slice(0, 4)) * 12 + Number(today.slice(5, 7)) - 1)
+
+function isoOf(day: number) {
+  return `${viewYear.value}-${String(viewMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+function shiftMonth(delta: number) {
+  const d = new Date(Date.UTC(viewYear.value, viewMonth.value + delta, 1))
+  viewYear.value = d.getUTCFullYear()
+  viewMonth.value = d.getUTCMonth()
+}
+function pickDay(day: number) {
+  dateValue.value = isoOf(day)
+  calendarOpen.value = false
+  actionError.value = ''
+}
 
 function open(a: Action, step: SpkProcessStep) {
   action.value = a
   target.value = step
   dateValue.value = step.estimatedDate?.slice(0, 10) || ''
+  const base = dateValue.value || today
+  viewYear.value = Number(base.slice(0, 4))
+  viewMonth.value = Number(base.slice(5, 7)) - 1
+  calendarOpen.value = a === 'schedule'
   noteValue.value = a === 'schedule' ? step.estimateNote || '' : ''
+  proofFile.value = null
   actionError.value = ''
   modalOpen.value = true
 }
@@ -215,10 +343,22 @@ async function submit() {
   try {
     if (action.value === 'schedule') await adminSetStepSchedule(target.value.id, dateValue.value, noteValue.value)
     else if (action.value === 'ready') await adminMarkStepReady(target.value.id, noteValue.value)
-    else await adminCompleteStep(target.value.id, noteValue.value)
+    else {
+      if (needsProof.value) {
+        if (!proofFile.value && !target.value.proofPath) throw new Error('Lampirkan bukti serah terima terlebih dahulu.')
+        if (proofFile.value) await adminUploadHandoverProof(target.value, proofFile.value)
+      }
+      await adminCompleteStep(target.value.id, noteValue.value)
+    }
+    const finished = action.value === 'complete' ? target.value : null
     modalOpen.value = false
     await load()
     emit('changed')
+    if (finished) {
+      celebrate(allDone.value
+        ? { title: 'Proses selesai', message: 'Sertifikat sudah diserahkan dan kavling resmi terjual.' }
+        : { title: 'Langkah selesai', message: SPK_STEP_INFO[finished.key].title })
+    }
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : 'Perubahan gagal disimpan.'
   } finally {
@@ -277,8 +417,34 @@ async function submit() {
 .spt-modal-intro { margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: var(--text-secondary); }
 .spt-field { display: grid; gap: 6px; margin-bottom: 14px; font-size: 13px; font-weight: 600; }
 .spt-field input, .spt-field textarea { width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 16px; font-weight: 400; }
+.spt-date-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 6px 6px 6px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
+.spt-date-value { min-width: 0; font-size: 15px; font-weight: 700; line-height: 1.35; color: var(--text-primary); }
+.spt-date-value--empty { font-weight: 400; color: var(--text-secondary); }
+.spt-date-toggle { flex: none; }
+.spt-calendar { padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); animation: spt-in var(--dur-base, 240ms) var(--ease-out, ease-out) both; }
+.spt-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.spt-cal-month { font-size: 15px; font-weight: 700; text-transform: capitalize; color: var(--text-primary); }
+.spt-cal-nav { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--poliland-green); font-size: 18px; touch-action: manipulation; transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease-out); }
+.spt-cal-nav:active:not(:disabled) { transform: scale(.94); }
+.spt-cal-nav:disabled { opacity: .4; }
+.spt-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; }
+.spt-cal-weekdays { margin-bottom: 4px; font-size: 11px; font-weight: 700; color: var(--text-secondary); }
+.spt-cal-day { display: grid; place-items: center; aspect-ratio: 1; min-height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--text-primary); font: inherit; font-size: 14px; touch-action: manipulation; transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease-out); }
+.spt-cal-day:active:not(:disabled) { transform: scale(.92); }
+.spt-cal-day:disabled { color: var(--text-secondary); opacity: .4; }
+.spt-cal-day.is-today { box-shadow: inset 0 0 0 2px var(--poliland-gold); }
+.spt-cal-day.is-selected { background: var(--poliland-green); color: #fff; font-weight: 700; box-shadow: none; }
+.spt-cal-day:focus-visible, .spt-cal-nav:focus-visible { outline: 3px solid color-mix(in srgb, var(--poliland-green) 45%, transparent); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .spt-cal-day:hover:not(:disabled):not(.is-selected) { background: var(--surface-muted); } }
+.spt-proof { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }
+.spt-proof-info { display: grid; gap: 2px; min-width: 0; font-size: 13px; }
+.spt-proof-info span { overflow-wrap: anywhere; font-size: 12px; color: var(--text-secondary); }
+.spt-btn:disabled { opacity: .55; }
+.spt-upload { padding: 10px 12px; border: 1px dashed var(--border-default); border-radius: var(--radius-control); }
+.spt-upload input { padding: 0; min-height: 44px; border: 0; font-size: 12px; }
+.spt-upload small { font-weight: 400; color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
 .spt-error { margin: 0; color: var(--status-danger); font-size: 13px; }
 
 @keyframes spt-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .spt-step { animation: none; } .spt-btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .spt-step { animation: none; } .spt-btn, .spt-cal-nav, .spt-cal-day { transition: none; } .spt-calendar { animation: none; } }
 </style>
