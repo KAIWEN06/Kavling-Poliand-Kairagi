@@ -1,9 +1,9 @@
 <template>
-  <MarketingPageLayout title="Laporan Marketing" tab-variant="head" @refresh="load()">
+  <MarketingPageLayout title="Laporan" tab-variant="head" @refresh="load()">
     <nav class="mk-tabs" role="tablist" aria-label="Jenis laporan">
-      <button type="button" role="tab" :aria-selected="tab === 'sales'" @click="tab = 'sales'">Statistik penjualan</button>
+      <button type="button" role="tab" :aria-selected="tab === 'sales'" @click="tab = 'sales'">Penjualan</button>
       <button type="button" role="tab" :aria-selected="tab === 'regions'" @click="tab = 'regions'">Asal konsumen</button>
-      <button type="button" role="tab" :aria-selected="tab === 'performance'" @click="tab = 'performance'">Performa Marketing</button>
+      <button type="button" role="tab" :aria-selected="tab === 'performance'" @click="tab = 'performance'">Performa</button>
     </nav>
 
     <Reveal :order="1">
@@ -19,7 +19,7 @@
         <section class="mk-section">
           <div class="mk-section-head"><div><h2>Prospek & SPK</h2></div></div>
           <div class="mk-grid">
-            <StatCard label="Total prospek" :value="s.total_clients" hint="seluruh klien tim" />
+            <StatCard label="Total prospek" :value="s.total_clients" hint="semua klien tim" />
             <StatCard label="Prospek baru" :value="s.new_clients" hint="pada periode" />
             <StatCard label="SPK diajukan" :value="s.spk_submitted" />
             <StatCard label="SPK terkonfirmasi" :value="s.spk_approved" accent />
@@ -27,28 +27,28 @@
         </section>
 
         <section class="mk-section">
-          <div class="mk-section-head"><div><h2>1. Nilai kontrak</h2><p>Nilai transaksi kaveling terjual (bukan uang yang sudah diterima)</p></div></div>
+          <div class="mk-section-head"><div><h2>Nilai kontrak</h2><p>Belum tentu sudah dibayar</p></div></div>
           <div class="mk-grid">
             <StatCard label="Kaveling terjual" :value="s.units_sold" :hint="`${s.units_booked} dipesan · ${s.units_paid_off} lunas`" />
             <StatCard label="Total nilai penjualan" :value="formatRupiahShort(s.contract_value)" accent />
-            <StatCard label="Penjualan tunai" :value="formatRupiahShort(s.cash_contract_value)" :hint="`${s.cash_units} kavling`" />
-            <StatCard label="Penjualan cicilan" :value="formatRupiahShort(s.installment_contract_value)" :hint="`${s.installment_units} kavling`" />
+            <StatCard label="Penjualan tunai" :value="formatRupiahShort(s.cash_contract_value)" :hint="`${s.cash_units} kaveling`" />
+            <StatCard label="Penjualan cicilan" :value="formatRupiahShort(s.installment_contract_value)" :hint="`${s.installment_units} kaveling`" />
           </div>
         </section>
 
         <section class="mk-section">
-          <div class="mk-section-head"><div><h2>2. Penerimaan kas</h2><p>Hanya pembayaran yang sudah dikonfirmasi Admin</p></div></div>
+          <div class="mk-section-head"><div><h2>Kas masuk</h2><p>Sudah dikonfirmasi Admin</p></div></div>
           <div class="mk-grid">
             <StatCard label="Pembayaran terkonfirmasi" :value="formatRupiahShort(s.cash_in)" accent />
-            <StatCard label="SPK (Booking Fee)" :value="formatRupiahShort(cat('Booking'))" />
+            <StatCard label="SPK (tanda jadi)" :value="formatRupiahShort(cat('Booking'))" />
             <StatCard label="Uang muka" :value="formatRupiahShort(cat('Down Payment'))" />
             <StatCard label="Cicilan & pelunasan" :value="formatRupiahShort(cat('Installment') + cat('Cash Purchase'))" />
           </div>
-          <p class="mk-muted">Menunggu verifikasi: {{ formatRupiah(s.payments_pending_amount) }} ({{ s.payments_pending_count }} pembayaran) — belum termasuk penerimaan kas.</p>
+          <p class="mk-muted">Belum dihitung: {{ formatRupiah(s.payments_pending_amount) }} dari {{ s.payments_pending_count }} pembayaran yang menunggu verifikasi.</p>
         </section>
 
         <section class="mk-section">
-          <div class="mk-section-head"><div><h2>3. Komisi</h2><p>Dari data komisi Admin, dicatat pada periode</p></div></div>
+          <div class="mk-section-head"><div><h2>Komisi</h2></div></div>
           <div class="mk-grid mk-grid--3">
             <StatCard label="Total komisi" :value="formatRupiahShort(s.commission_total)" />
             <StatCard label="Belum dibayarkan" :value="formatRupiahShort(s.commission_pending)" />
@@ -60,21 +60,18 @@
           <BarChart title="Nilai penjualan per periode" orientation="vertical" :items="trend('contract_value')" :formatter="formatRupiahShort" label-header="Periode" value-header="Nilai kontrak" />
           <BarChart title="Penerimaan kas per periode" orientation="vertical" :items="trend('cash_in')" :formatter="formatRupiahShort" label-header="Periode" value-header="Kas terkonfirmasi" />
           <BarChart title="Kaveling terjual per periode" orientation="vertical" :items="trend('units_sold')" label-header="Periode" value-header="Kaveling" />
-          <BarChart title="Penjualan per Marketing" :items="teamBars('contract_value')" :formatter="formatRupiahShort" label-header="Marketing" value-header="Nilai kontrak" />
+          <BarChart title="Penjualan per pemasar" :items="teamBars('contract_value')" :formatter="formatRupiahShort" label-header="Pemasar" value-header="Nilai kontrak" />
         </section>
       </template>
 
       <!-- ASAL KONSUMEN -->
       <template v-else-if="tab === 'regions'">
         <section class="mk-section">
-          <p class="mk-muted">
-            Berdasarkan wilayah terstruktur (provinsi & kabupaten/kota) pada data klien yang ditambahkan dalam periode.
-            Klien tanpa wilayah dikelompokkan sebagai "Belum diisi" — wilayah tidak ditebak dari teks alamat.
-          </p>
+          <p class="mk-muted">Dari wilayah di data klien. Yang kosong masuk "Belum diisi".</p>
           <div class="mk-grid mk-grid--3">
             <StatCard label="Klien pada periode" :value="regionTotals.clients" />
             <StatCard label="Pembeli" :value="regionTotals.buyers" />
-            <StatCard label="Wilayah belum diisi" :value="regionTotals.unknown" :hint="`${regionTotals.unknownPct}% client`" />
+            <StatCard label="Wilayah belum diisi" :value="regionTotals.unknown" :hint="`${regionTotals.unknownPct}% klien`" />
           </div>
           <BarChart title="Klien per kabupaten/kota" :items="regionBars('clients')" label-header="Wilayah" value-header="Klien" />
           <BarChart title="Pembeli per kabupaten/kota" :items="regionBars('buyers')" label-header="Wilayah" value-header="Pembeli" />
@@ -99,20 +96,19 @@
       <template v-else>
         <section class="mk-section">
           <div class="mk-card mk-criteria">
-            <strong>Kriteria ranking</strong>
+            <strong>Urutan peringkat</strong>
             <ol>
-              <li>SPK terkonfirmasi Admin pada periode (terbanyak).</li>
-              <li>Jika sama: nilai penjualan (kontrak) pada periode.</li>
-              <li>Jika sama: persentase konversi klien menjadi pembeli.</li>
+              <li>SPK terkonfirmasi terbanyak.</li>
+              <li>Nilai kontrak tertinggi.</li>
+              <li>Konversi klien menjadi pembeli.</li>
             </ol>
-            <span class="mk-muted">Jumlah klien yang dimasukkan tidak dipakai sebagai dasar ranking.</span>
           </div>
-          <BarChart title="SPK terkonfirmasi per Marketing" :items="teamBars('spk_approved')" label-header="Marketing" value-header="SPK" />
+          <BarChart title="SPK terkonfirmasi per pemasar" :items="teamBars('spk_approved')" label-header="Pemasar" value-header="SPK" />
           <div class="mk-table-wrap mk-scroll">
             <table class="mk-table">
               <thead>
                 <tr>
-                  <th>#</th><th>Marketing</th><th class="num">Total klien</th><th class="num">Baru</th><th class="num">Dihubungi</th>
+                  <th>#</th><th>Pemasar</th><th class="num">Total klien</th><th class="num">Baru</th><th class="num">Dihubungi</th>
                   <th class="num">Tindak lanjut</th><th class="num">Berminat</th><th class="num">Negosiasi</th><th class="num">SPK ✓</th>
                   <th class="num">Terjual</th><th class="num">Nilai penjualan</th><th class="num">Komisi</th><th class="num">Tidak lanjut</th>
                   <th class="num">Konversi</th><th>Aktivitas terakhir</th>
@@ -139,7 +135,7 @@
               </tbody>
             </table>
           </div>
-          <p class="mk-muted">Kolom status (Dihubungi, Tindak lanjut, dst.) adalah jumlah klien per status saat ini; SPK, terjual, nilai, dan komisi mengikuti periode.</p>
+          <p class="mk-muted">Jumlah per status adalah kondisi saat ini. SPK, penjualan, dan komisi mengikuti periode.</p>
         </section>
       </template>
     </template>
@@ -150,8 +146,8 @@
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import Reveal from '@/components/ui/Reveal.vue'
-import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
 import PeriodFilter from '@/components/marketing/shared/PeriodFilter.vue'
 import StatCard from '@/components/ui/StatCard.vue'
@@ -160,10 +156,11 @@ import { bucketLabel, useMarketingReport } from '@/composables/useMarketingRepor
 import { getTeamMembers, type TeamMember } from '@/services/marketing/marketingCrmService'
 import { formatRupiah, formatRupiahShort, formatRelative } from '@/utils/marketingStatus'
 
-const route = useRoute()
-const tab = ref<'sales' | 'regions' | 'performance'>(
-  route.query.tab === 'performance' ? 'performance' : route.query.tab === 'regions' ? 'regions' : 'sales',
-)
+const query = useOwnRouteQuery()
+const tabFromQuery = () =>
+  query.value.tab === 'performance' ? 'performance' : query.value.tab === 'regions' ? 'regions' : 'sales'
+const tab = ref<'sales' | 'regions' | 'performance'>(tabFromQuery())
+watch(query, () => (tab.value = tabFromQuery()))
 const { report, loading, error, load, s } = useMarketingReport()
 const members = ref<TeamMember[]>([])
 

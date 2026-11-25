@@ -175,7 +175,9 @@ class CustomNotificationPlugin : Plugin() {
     /** Meneruskan tap notifikasi ke JS; ditahan (retain) bila listener belum terpasang. */
     private fun dispatchClick(intent: Intent?) {
         if (intent == null || intent.action != NotificationHelper.ACTION_CLICK ||
-            intent.getBooleanExtra(NotificationHelper.EXTRA_HANDLED, false)
+            intent.getBooleanExtra(NotificationHelper.EXTRA_HANDLED, false) ||
+            // Dibuka lagi dari daftar aplikasi terbaru: Android mengirim ulang intent lama.
+            intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
         ) return
         intent.putExtra(NotificationHelper.EXTRA_HANDLED, true)
         val payload = try {

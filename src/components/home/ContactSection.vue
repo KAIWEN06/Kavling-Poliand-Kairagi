@@ -1,7 +1,7 @@
 <template>
   <section class="section contact-section">
     <SectionHeader title="Hubungi kami">
-      <AdminEditButton v-if="isAdmin" label="Edit kontak" @click="editOpen = true" />
+      <AdminEditButton v-if="isAdmin" label="Ubah kontak" @click="editOpen = true" />
     </SectionHeader>
 
     <div class="contact-grid">
@@ -46,7 +46,7 @@
         rel="noopener noreferrer"
       >
         <ion-icon :icon="logoWhatsapp" aria-hidden="true" />
-        Chat via WhatsApp
+        Hubungi lewat WhatsApp
       </a>
       <a v-if="phoneHref" class="action action--outline" :href="phoneHref">
         <ion-icon :icon="callOutline" aria-hidden="true" />
@@ -63,7 +63,7 @@
       </button>
     </div>
 
-    <CmsPanelModal v-model="editOpen" title="Edit kontak" panel="contact" @saved="loadContacts" />
+    <CmsPanelModal v-model="editOpen" title="Ubah kontak" panel="contact" @saved="loadContacts" />
   </section>
 </template>
 

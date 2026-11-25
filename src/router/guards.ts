@@ -1,5 +1,6 @@
 import type { Router } from 'vue-router'
 import { authService } from '@/services/auth/authService'
+import { consumePostLoginRedirect } from '@/services/auth/postLoginRedirect'
 
 export function setupAuthGuards(router: Router) {
   router.beforeEach(async (to) => {
@@ -37,7 +38,7 @@ export function setupAuthGuards(router: Router) {
       try {
         const role = await authService.getUserRole(session.user.id)
         const home = authService.getRoleHomePath(role)
-        if (home) return home
+        if (home) return consumePostLoginRedirect(role) ?? home
         // An authenticated user without a role must be able to see the login error.
         if (to.name !== 'Login') return { name: 'Login', query: { error: 'role_missing' } }
       } catch {

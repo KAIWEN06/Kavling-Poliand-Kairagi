@@ -24,9 +24,9 @@
           </button>
         </nav>
 
-        <p v-if="loadError" class="state state--error" role="alert">
+        <AppNotice v-if="loadError" tone="error">
           {{ loadError }} <button type="button" class="link" @click="load">Coba lagi</button>
-        </p>
+        </AppNotice>
         <SkeletonCardList v-else-if="loading && !items.length" :count="4" :lines="3" label="Memuat ulasan" />
         <p v-else-if="!items.length" class="state">Tidak ada ulasan pada tab ini.</p>
 
@@ -51,15 +51,14 @@
             <ul v-if="r.photo_urls.length" class="photos" aria-label="Foto pendukung">
               <li v-for="(p, i) in r.photo_urls" :key="p">
                 <a v-if="photoUrls[p]" :href="photoUrls[p]" target="_blank" rel="noopener noreferrer">
-                  <img :src="photoUrls[p]" :alt="`Foto pendukung ${i + 1}`" loading="lazy" />
+                  <img :src="photoUrls[p]" :alt="`Foto pendukung ${i + 1}`" loading="lazy" decoding="async" />
                 </a>
               </li>
             </ul>
 
-            <div v-if="r.needs_attention" class="alert" role="note">
-              <strong>Perlu pemeriksaan:</strong>
+            <AppNotice v-if="r.needs_attention" tone="warning" title="Perlu pemeriksaan">
               {{ r.flag_reasons.map((f) => FLAG_LABEL[f] ?? f).join(', ') }}
-            </div>
+            </AppNotice>
             <p v-if="r.status === 'rejected' && r.rejection_reason" class="reason">
               <strong>Alasan penolakan:</strong> {{ r.rejection_reason }}
             </p>
@@ -79,7 +78,7 @@
 
             <section v-if="expanded.has(r.id)" class="detail">
               <dl class="facts">
-                <div><dt>Helpful</dt><dd>{{ r.helpful_count }}</dd></div>
+                <div><dt>Membantu</dt><dd>{{ r.helpful_count }}</dd></div>
                 <div v-if="r.approved_at"><dt>Disetujui</dt><dd>{{ formatDate(r.approved_at) }}<template v-if="r.approved_by_name"> oleh {{ r.approved_by_name }}</template></dd></div>
               </dl>
 
@@ -106,11 +105,7 @@
           </li>
         </ul>
 
-        <nav v-if="totalPages > 1" class="pager" aria-label="Halaman ulasan">
-          <AppButton size="small" variant="neutral" fill="outline" :disabled="page <= 1 || loading" @click="goTo(page - 1)">Sebelumnya</AppButton>
-          <span class="meta">Halaman {{ page }} dari {{ totalPages }}</span>
-          <AppButton size="small" variant="neutral" fill="outline" :disabled="page >= totalPages || loading" @click="goTo(page + 1)">Berikutnya</AppButton>
-        </nav>
+        <AppPagination :page="pager.page" :total-pages="pager.totalPages" :total="pager.total" :page-size="pager.pageSize" :loading="loading" label="Halaman ulasan" @update:page="goTo" />
       </main>
     </ion-content>
 
@@ -137,7 +132,9 @@
           <AppButton class="terms-submit" type="submit" :loading="termsBusy" :disabled="!newTerm.trim() || termsBusy">Tambah kata</AppButton>
         </form>
 
-        <p v-if="termsError" class="state state--error terms-msg" role="alert">{{ termsError }}</p>
+        <AppNotice v-if="termsError" tone="error">
+          {{ termsError }}
+        </AppNotice>
 
         <div class="terms-head">
           <h3>Daftar kata</h3>
@@ -192,8 +189,11 @@
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { computed, onMounted, ref } from 'vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
+import { usePageState } from '@/composables/usePagination'
 import { IonContent, IonPage } from '@ionic/vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
@@ -286,9 +286,9 @@ const termsError = ref('')
 const newTerm = ref('')
 const newCategory = ref<BlockedTermCategory>('profanity')
 const tab = ref<AdminReviewTab>('pending')
-const page = ref(1)
 const items = ref<AdminReview[]>([])
 const total = ref(0)
+const pager = usePageState(total, { pageSize: PAGE_SIZE })
 const counts = ref<Record<AdminReviewTab, number> | null>(null)
 const loading = ref(false)
 const loadError = ref('')
@@ -302,7 +302,6 @@ const note = ref('')
 const noteSubmitting = ref(false)
 
 const activeTermCount = computed(() => terms.value.filter((t) => t.is_active).length)
-const totalPages = computed(() => Math.ceil(total.value / PAGE_SIZE))
 const noteRequired = computed(() => noteAction.value === 'reject')
 const noteTitle = computed(
   () => ({ reject: 'Tolak ulasan', hide: 'Sembunyikan ulasan', delete: 'Hapus ulasan' } as Record<string, string>)[noteAction.value] ?? 'Konfirmasi',
@@ -318,7 +317,7 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
-    const result = await reviewModerationService.list(tab.value, page.value, PAGE_SIZE)
+    const result = await reviewModerationService.list(tab.value, pager.page, PAGE_SIZE)
     items.value = result.items
     total.value = result.total
     counts.value = result.counts
@@ -328,8 +327,8 @@ async function load() {
         .then((map) => { photoUrls.value = { ...photoUrls.value, ...map } })
         .catch((e) => console.error('Foto ulasan gagal dimuat.', e))
     }
-    if (!result.items.length && result.total > 0 && page.value > 1) {
-      page.value = Math.ceil(result.total / PAGE_SIZE)
+    if (!result.items.length && result.total > 0 && pager.page > 1) {
+      pager.setPage(Math.ceil(result.total / PAGE_SIZE))
       await load()
     }
   } catch (error) {
@@ -342,12 +341,12 @@ async function load() {
 
 function setTab(key: AdminReviewTab) {
   tab.value = key
-  page.value = 1
+  pager.reset()
   load()
 }
 
 function goTo(next: number) {
-  page.value = next
+  pager.setPage(next)
   load()
 }
 
@@ -457,7 +456,7 @@ onMounted(load)
 .tab-count { padding: 0 6px; border-radius: var(--radius-pill); background: var(--surface-sunken); font-size: var(--font-size-xs); font-variant-numeric: tabular-nums; }
 
 .state { margin: 24px 0; color: var(--text-secondary); font-size: var(--font-size-sm); text-align: center; }
-.state--error { color: var(--danger-text); }
+
 .link { padding: 0; border: 0; background: none; color: var(--poliland-green); font: inherit; text-decoration: underline; cursor: pointer; }
 
 .list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
@@ -474,7 +473,6 @@ onMounted(load)
 .photos { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
 .photos img { display: block; width: 80px; height: 80px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); object-fit: cover; }
 
-.alert { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--warning-bg); color: var(--warning-text); font-size: var(--font-size-xs); line-height: 1.5; }
 .reason { margin: 12px 0 0; color: var(--danger-text); font-size: var(--font-size-xs); }
 .reports-chip { display: inline-block; margin: 12px 0 0; padding: 2px 10px; border-radius: var(--radius-pill); background: var(--danger-bg); color: var(--danger-text); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); }
 
@@ -546,8 +544,6 @@ onMounted(load)
 @media (prefers-reduced-motion: reduce) {
   .switch::before, .switch-thumb { transition: none; }
 }
-
-.pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
 
 .note-field { display: grid; gap: 6px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
 .note-field textarea {

@@ -31,7 +31,7 @@
           </div>
         </li>
       </ul>
-      <p class="hint note">Klien hanya melihat slot pada hari yang dibuka. Slot dibuat setiap 1 jam dan tetap perlu dikonfirmasi Admin.</p>
+      <p class="hint note">Klien hanya melihat sesi pada hari yang dibuka. Sesi dibuat setiap 1 jam dan tetap perlu dikonfirmasi Admin.</p>
     </template>
   </section>
 </template>

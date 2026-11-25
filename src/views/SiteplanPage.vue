@@ -45,7 +45,9 @@
           v-if="selectedLot"
           :lot="selectedLot"
           :variant="variant"
+          :client-mode="isClientRoute"
           @close="selectedLot = null"
+          @purchase="startPurchase"
         />
 
         <!-- Layar muat bergaya Welcome: matahari, bukit, judul naik per kata, progres emas -->
@@ -153,7 +155,7 @@ import type {
    ========================================================= */
 
 import backgroundImage
-  from '../assets/siteplan/Siteplan.png'
+  from '../assets/siteplan/Siteplan.webp'
 
 import svgRaw
   from '../assets/siteplan/LOTS_WITH_ID.svg?raw'
@@ -164,8 +166,14 @@ const route = useRoute()
 const variant = props.variant
   ?? (route.meta.role === 'admin' || route.path.startsWith('/admin/') ? 'admin' : 'public')
 
-/* Siteplan penuh tanpa AppHeader dan tab bar (admin, kepala marketing) butuh tombol kembali sendiri. */
+/* Siteplan penuh tanpa AppHeader dan tab bar (admin, marketing) butuh tombol kembali sendiri. */
 const isStandalone = route.path !== '/siteplan'
+const isClientRoute = route.path.startsWith('/client/')
+
+/* Client mengajukan pemesanan lewat formulir SPK, bukan lewat halaman login. */
+function startPurchase(lotId: number): void {
+  ionRouter.push(`/client/dokumen?create=1&lot_id=${lotId}`)
+}
 const ionRouter = useIonRouter()
 
 function goBack(): void {
@@ -175,7 +183,11 @@ function goBack(): void {
   }
   const fallback = route.path.startsWith('/admin')
     ? '/beranda-admin'
-    : '/beranda-kepala-marketing'
+    : route.path.startsWith('/client')
+      ? '/client/kavling'
+      : route.path.startsWith('/marketing')
+        ? '/beranda-marketing'
+        : '/beranda-kepala-marketing'
   ionRouter.navigate(fallback, 'root', 'replace')
 }
 
@@ -453,7 +465,7 @@ async function startSiteplanLoading(): Promise<void> {
   } catch (loadingError) {
 
     console.error(
-      '[Siteplan] Loading gagal:',
+      '[denah] Loading gagal:',
       loadingError
     )
 
@@ -577,7 +589,7 @@ async function handleRetry(): Promise<void> {
   } catch (reloadError) {
 
     console.error(
-      '[Siteplan] Reload gagal:',
+      '[denah] Reload gagal:',
       reloadError
     )
   }

@@ -7,20 +7,20 @@
         <Reveal :order="1">
           <header class="intro">
             <PageBackButton fallback="/admin/lainnya" label="Lainnya" />
-            <h1>Data client ganda</h1>
+            <h1>Data klien ganda</h1>
             <p>Pasangan data yang mungkin milik orang yang sama. Periksa, lalu gabungkan.</p>
           </header>
         </Reveal>
 
-        <p v-if="loadError" class="state state--error" role="alert">
+        <AppNotice v-if="loadError" tone="error">
           {{ loadError }} <button type="button" class="link" @click="load">Coba lagi</button>
-        </p>
+        </AppNotice>
         <SkeletonCardList v-else-if="loading" :count="4" :lines="3" label="Memuat data ganda" />
 
         <section v-else-if="!candidates.length" class="empty" aria-label="Tidak ada data ganda">
           <ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" />
           <strong>Tidak ada data ganda</strong>
-          <p>Daftar ini terisi saat nomor, email, atau nama dua client bertepatan.</p>
+          <p>Daftar ini terisi saat nomor, email, atau nama dua klien bertepatan.</p>
         </section>
 
         <template v-else>
@@ -77,7 +77,9 @@
       @confirm="confirmMerge"
     >
       <p v-if="detailsLoading" class="state" role="status">Memuat rincian...</p>
-      <p v-else-if="detailsError" class="state state--error" role="alert">{{ detailsError }}</p>
+      <AppNotice v-else-if="detailsError" tone="error">
+        {{ detailsError }}
+      </AppNotice>
 
       <div v-else-if="summaries.length === 2" class="merge-body">
         <div class="choices" role="radiogroup" aria-labelledby="keep-label">
@@ -99,7 +101,7 @@
             <span v-if="row.email" class="choice-line">{{ row.email }}</span>
             <span v-if="row.address" class="choice-line choice-line--clamp">{{ row.address }}</span>
             <span class="choice-meta">
-              {{ sourceLabel(row.registration_source) }}<template v-if="row.marketing_name"> · Marketing {{ row.marketing_name }}</template>
+              {{ sourceLabel(row.registration_source) }}<template v-if="row.marketing_name"> · Pemasar {{ row.marketing_name }}</template>
             </span>
             <span class="choice-meta">{{ row.spk_count }} SPK · {{ row.payment_count }} pembayaran</span>
           </button>
@@ -114,7 +116,9 @@
           <textarea v-model="reason" rows="3" maxlength="300" placeholder="Contoh: orang yang sama, memakai nomor lama" />
         </label>
 
-        <p v-if="mergeError" class="state state--error" role="alert">{{ mergeError }}</p>
+        <AppNotice v-if="mergeError" tone="error">
+          {{ mergeError }}
+        </AppNotice>
       </div>
     </AppModal>
 
@@ -123,6 +127,7 @@
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onMounted, ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { checkmarkCircleOutline, swapHorizontalOutline } from 'ionicons/icons'
@@ -163,7 +168,7 @@ const mergeError = ref('')
 
 const canMerge = computed(() => summaries.value.length === 2 && keepId.value !== null && reason.value.trim().length > 0)
 
-const SOURCE_LABEL: Record<string, string> = { Marketing: 'Dari Marketing', Client: 'Daftar sendiri', Admin: 'Dari Admin' }
+const SOURCE_LABEL: Record<string, string> = { Marketing: 'Dari pemasar', Client: 'Daftar sendiri', Admin: 'Dari Admin' }
 const sourceLabel = (source: string) => SOURCE_LABEL[source] ?? source
 const reasonList = (reasons: string) => reasons.split(',').map((item) => item.trim()).filter(Boolean)
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
@@ -251,7 +256,7 @@ onMounted(load)
 .count { margin: 0 0 10px; color: var(--text-secondary); font-size: var(--font-size-xs); font-variant-numeric: tabular-nums; }
 
 .state { margin: 24px 0; color: var(--text-secondary); font-size: var(--font-size-sm); text-align: center; }
-.state--error { color: var(--danger-text); }
+
 .link { min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--poliland-green); font: inherit; text-decoration: underline; cursor: pointer; touch-action: manipulation; }
 
 .empty { display: grid; justify-items: center; gap: 6px; padding: 40px 16px; text-align: center; }

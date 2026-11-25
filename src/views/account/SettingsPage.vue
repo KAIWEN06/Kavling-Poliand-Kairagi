@@ -44,8 +44,9 @@
 </template>
 
 <script setup lang="ts">
+import { useConfirm } from '@/composables/useConfirm'
 import { ref } from 'vue'
-import { IonContent, IonIcon, IonPage, alertController, useIonRouter } from '@ionic/vue'
+import { IonContent, IonIcon, IonPage, useIonRouter } from '@ionic/vue'
 import { chevronForwardOutline, logOutOutline } from 'ionicons/icons'
 
 import AppHeader from '@/components/common/AppHeader.vue'
@@ -54,6 +55,8 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useToast } from '@/composables/useToast'
 import { authService } from '@/services/auth/authService'
+
+const { confirm } = useConfirm()
 
 const ionRouter = useIonRouter()
 const toast = useToast()
@@ -77,17 +80,8 @@ async function sendReset() {
 }
 
 async function confirmLogout() {
-  const alert = await alertController.create({
-    header: 'Keluar dari akun?',
-    message: 'Anda perlu masuk kembali untuk mengakses aplikasi.',
-    buttons: [
-      { text: 'Batal', role: 'cancel' },
-      { text: 'Keluar', role: 'confirm' },
-    ],
-  })
-  await alert.present()
-  const { role } = await alert.onDidDismiss()
-  if (role !== 'confirm') return
+  const ok = await confirm({ title: 'Keluar dari akun?', message: 'Anda perlu masuk kembali untuk mengakses aplikasi.', confirmText: 'Keluar', tone: 'error' })
+  if (!ok) return
   loggingOut.value = true
   try {
     await authService.logout()

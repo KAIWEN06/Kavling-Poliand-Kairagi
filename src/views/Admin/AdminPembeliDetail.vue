@@ -3,10 +3,10 @@
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
       <main class="buyer-detail-content">
-        <PageBackButton fallback="/admin/pembeli" label="Daftar pembeli" />
-        <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail customer" />
+        <PageBackButton fallback="/admin/pembeli" label="Daftar klien" />
+        <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail pembeli" />
         <div v-else-if="errorMessage" class="buyer-detail-state buyer-detail-error" role="alert">
-          <img src="/src/assets/mascot/WorriedMascotwithFailedDetails.png" alt="Mascot PoliLand khawatir detail gagal dimuat" class="buyer-detail-error-mascot" />
+          <img src="/src/assets/mascot/WorriedMascotwithFailedDetails.webp" alt="Mascot PoliLand khawatir detail gagal dimuat" class="buyer-detail-error-mascot" />
           <strong>Detail gagal dimuat</strong>
           <p>{{ errorMessage }}</p>
           <AppButton size="small" @click="loadCustomer">Coba lagi</AppButton>
@@ -21,13 +21,13 @@
           <div class="detail-actions">
             <a :href="customer.phone ? `tel:${customer.phone}` : undefined" class="detail-action"><ion-icon :icon="callOutline" /><span>Telepon</span></a>
             <a :href="whatsappPhone ? `https://wa.me/${whatsappPhone.replace(/\D/g, '')}` : undefined" class="detail-action"><ion-icon :icon="logoWhatsapp" /><span>WhatsApp</span></a>
-            <button type="button" class="detail-action" @click="editCustomer"><ion-icon :icon="createOutline" /><span>Edit</span></button>
+            <button type="button" class="detail-action" @click="editCustomer"><ion-icon :icon="createOutline" /><span>Ubah</span></button>
             <button type="button" class="detail-action detail-action--danger" :aria-label="`Hapus data pembeli ${customer.full_name}`" @click="openDeleteConfirmation">
               <ion-icon :icon="trashOutline" aria-hidden="true" /><span>Hapus</span>
             </button>
           </div>
 
-          <div class="detail-tabs" role="tablist" aria-label="Detail customer">
+          <div class="detail-tabs" role="tablist" aria-label="Detail pembeli">
             <button type="button" :class="{ active: activeTab === 'summary' }" @click="activeTab = 'summary'">Informasi</button>
             <button type="button" :class="{ active: activeTab === 'lots' }" @click="activeTab = 'lots'">Kaveling ({{ customer.interests.length + customer.transactions.length }})</button>
             <button type="button" :class="{ active: activeTab === 'notes' }" @click="activeTab = 'notes'">Catatan</button>
@@ -41,7 +41,7 @@
               <div class="personal-info-item"><dt>Email</dt><dd>{{ customer.email || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Alamat</dt><dd>{{ customer.address || 'Belum tercatat' }}</dd></div>
               <div class="personal-info-item"><dt>Asal data klien</dt><dd>{{ customer.registrationSource || 'Belum tercatat' }}</dd></div>
-              <div v-if="customer.marketingName" class="personal-info-item"><dt>Marketing</dt><dd>{{ customer.marketingName }}</dd></div>
+              <div v-if="customer.marketingName" class="personal-info-item"><dt>Pemasar</dt><dd>{{ customer.marketingName }}</dd></div>
             </dl>
           </section>
 
@@ -51,7 +51,7 @@
               <div class="card-head">
                 <div>
                   <h2 id="interest-title">Kaveling yang Diminati</h2>
-                  <p class="head-sub">Daftar minat awal customer</p>
+                  <p class="head-sub">Daftar minat awal pembeli</p>
                 </div>
                 <AppButton size="small" variant="primary" @click="openInterestForm">
                   + Tambah
@@ -60,7 +60,7 @@
 
               <div v-if="!customer.interests.length" class="empty-box">
                 <img
-                  src="/src/assets/mascot/Worried_BeeHouseMascotwithClipboard-Map.png"
+                  src="/src/assets/mascot/Worried_BeeHouseMascotwithClipboard-Map.webp"
                   alt="Mascot PoliLand sedang memeriksa peta kaveling"
                   class="empty-mascot"
                 />
@@ -189,7 +189,9 @@
                   </select>
                 </label>
 
-                <p v-if="interestError" class="edit-error" role="alert">{{ interestError }}</p>
+                <AppNotice v-if="interestError" tone="error">
+                  {{ interestError }}
+                </AppNotice>
 
                 <div class="interest-form-actions">
                   <button type="button" class="btn-cancel" @click="closeInterestForm">Batal</button>
@@ -209,13 +211,13 @@
               <div class="card-head">
                 <div>
                   <h2 id="transaction-title">Transaksi & Pembayaran</h2>
-                  <p class="head-sub">Kaveling yang sudah di-booking atau dibeli</p>
+                  <p class="head-sub">Kaveling yang sudah dipesan atau dibeli</p>
                 </div>
               </div>
 
               <div v-if="!customer.transactions.length" class="empty-box">
                 <img
-                  src="/src/assets/mascot/SadBeeHouseMascotwithShoppingReceipt.png"
+                  src="/src/assets/mascot/SadBeeHouseMascotwithShoppingReceipt.webp"
                   alt="Mascot PoliLand sedih belum ada transaksi"
                   class="empty-mascot"
                 />
@@ -273,16 +275,17 @@
                     <details class="tx-details">
                       <summary class="tx-details-summary">Rincian Pembayaran Lanjutan</summary>
                       <dl class="tx-dl">
-                        <div><dt>Biaya Booking</dt><dd>{{ formatCurrency(transaction.bookingFee) }}</dd></div>
-                        <div><dt>Booking Terbayar</dt><dd class="paid">{{ formatCurrency(transaction.bookingPaid) }}</dd></div>
-                        <div><dt>Sisa Booking</dt><dd>{{ formatCurrency(transaction.bookingRemaining) }}</dd></div>
-                        <div><dt>DP Disepakati</dt><dd>{{ formatCurrency(transaction.downPayment) }}</dd></div>
+                        <div><dt>Biaya tanda jadi</dt><dd>{{ formatCurrency(transaction.bookingFee) }}</dd></div>
+                        <div><dt>Tanda jadi terbayar</dt><dd class="paid">{{ formatCurrency(transaction.bookingPaid) }}</dd></div>
+                        <div><dt>Sisa tanda jadi</dt><dd>{{ formatCurrency(transaction.bookingRemaining) }}</dd></div>
+                        <div><dt>Uang muka disepakati</dt><dd>{{ formatCurrency(transaction.downPayment) }}</dd></div>
                         <template v-if="transaction.paymentType === 'Cicilan'">
-                          <div><dt>DP Dibayar</dt><dd class="paid">{{ formatCurrency(transaction.paidDownPayment) }}</dd></div>
-                          <div><dt>Sisa DP</dt><dd>{{ formatCurrency(transaction.dpRemaining) }}</dd></div>
-                          <div><dt>Sisa Pokok</dt><dd>{{ formatCurrency(transaction.principalAmount) }}</dd></div>
+                          <div><dt>Uang muka dibayar</dt><dd class="paid">{{ formatCurrency(transaction.paidDownPayment) }}</dd></div>
+                          <div><dt>Sisa uang muka</dt><dd>{{ formatCurrency(transaction.dpRemaining) }}</dd></div>
+                          <div><dt>Sisa Pokok</dt><dd>{{ formatCurrency(transaction.remainingAmount) }}</dd></div>
                           <div><dt>Margin ({{ transaction.marginPercent }}%)</dt><dd>{{ formatCurrency(transaction.marginAmount) }}</dd></div>
                           <div><dt>Total Cicilan</dt><dd>{{ formatCurrency(transaction.installmentTotal) }}</dd></div>
+                          <div v-if="transaction.progressLine"><dt>Progres Cicilan</dt><dd>{{ transaction.progressLine }}</dd></div>
                           <div>
                             <dt>Tenor & Angsuran</dt>
                             <dd>
@@ -300,10 +303,10 @@
           </template>
           <CustomerNotes v-else :customer-id="customer.id" />
         </template>
-        <div v-else class="buyer-detail-state"><ion-icon :icon="peopleOutline" /><strong>Customer tidak ditemukan</strong><p>Data customer mungkin sudah dihapus atau tidak dapat diakses.</p></div>
+        <div v-else class="buyer-detail-state"><ion-icon :icon="peopleOutline" /><strong>Pembeli tidak ditemukan</strong><p>Data pembeli mungkin sudah dihapus atau tidak dapat diakses.</p></div>
         <AppModal
           v-model="editing"
-          title="Edit data customer"
+          title="Ubah data pembeli"
           variant="bottom-sheet"
           :loading="saving"
           confirm-text="Simpan"
@@ -318,7 +321,9 @@
             <label for="edit-whatsapp">Nomor WhatsApp<input id="edit-whatsapp" v-model.trim="editForm.whatsapp_phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
             <label for="edit-email">Email<input id="edit-email" v-model.trim="editForm.email" type="email" inputmode="email" autocomplete="email" /></label>
             <label for="edit-address">Alamat<textarea id="edit-address" v-model.trim="editForm.address" rows="2" autocomplete="street-address" /></label>
-            <p v-if="editError" class="edit-error" role="alert">{{ editError }}</p>
+            <AppNotice v-if="editError" tone="error">
+              {{ editError }}
+            </AppNotice>
           </form>
         </AppModal>
       </main>
@@ -343,10 +348,10 @@
         <p v-if="deleteChecking" role="status" aria-live="polite">
           Memeriksa...
         </p>
-        <div v-else-if="deleteError" class="customer-delete-error" role="alert">
+        <AppNotice v-else-if="deleteError" tone="error">
           <p>Data belum dihapus. Pemeriksaan atau penghapusan gagal: {{ deleteError }}</p>
           <AppButton size="small" @click="checkDeleteEligibility">Periksa lagi</AppButton>
-        </div>
+        </AppNotice>
         <div v-else-if="deleteUsages.length" role="alert">
           <div class="customer-delete-usage-alert">
             <img :src="worriedMascot" alt="Maskot khawatir karena data masih terhubung" />
@@ -371,6 +376,8 @@
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -382,9 +389,13 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import CustomerNotes from '@/components/Admin/CustomerNotes.vue'
+import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import { customerService } from '@/services/marketing/customerService'
-import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.png'
-import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.png'
+import { formatProgressLine, formatRupiah, summarizeInstallmentProgress } from '@/utils/installmentFormat'
+import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.webp'
+import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.webp'
+
+const { confirm } = useConfirm()
 
 const route = useRoute()
 const router = useRouter()
@@ -420,7 +431,7 @@ const interestForm = reactive({ lot_ids: [] as number[], payment_type: 'Cash' as
 
 function initials(name: string) { return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() }
 function formatDate(value: string | null) { return value ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Tanggal belum tercatat' }
-function formatCurrency(value: number) { return `Rp ${value.toLocaleString('id-ID')}` }
+function formatCurrency(value: number) { return formatRupiah(value) }
 function blockLabel(block: any) { return block?.name || block?.code || 'Blok belum tercatat' }
 function formatLotPrice(lot: any) {
   const price = lot.promo_price ?? lot.cash_price
@@ -522,7 +533,7 @@ async function addCustomerInterest() {
 }
 
 async function removeCustomerInterest(id: number) {
-  if (!window.confirm('Hapus kaveling ini dari daftar minat customer?')) return
+  if (!(await confirm({ title: 'Hapus dari daftar minat?', message: 'Kaveling ini tidak lagi tercatat sebagai minat pembeli.', confirmText: 'Hapus', tone: 'error' }))) return
   try {
     await customerService.removeInterest(id)
     await loadCustomer()
@@ -630,11 +641,11 @@ async function loadCustomer() {
         || row.marketing_name
         || null,
       registrationSource: row.registration_source === 'Marketing'
-        ? 'Marketing'
+        ? 'Pemasar'
         : row.registration_source === 'Admin'
           ? 'Admin'
           : row.registration_source === 'Client'
-            ? 'Client'
+            ? 'Klien'
             : 'Belum tercatat',
       statusLabel: row.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')
         ? 'Pembeli'
@@ -649,7 +660,7 @@ async function loadCustomer() {
         return {
           id: interest.id,
           lotId: Number(interest.lot_id ?? 0),
-          lotNumber: lot.lot_number || `Lot #${interest.lot_id}`,
+          lotNumber: lot.lot_number || `Kavling #${interest.lot_id}`,
           block: blockLabel(lot.blocks),
           dimension: lot.dimension || null,
           area: lot.area != null ? Number(lot.area) : null,
@@ -686,16 +697,11 @@ async function loadCustomer() {
         )
         const installmentTotal = Math.max(Number(transaction.installment_total ?? principalAmount), 0)
         const finalPrice = Math.max(Number(transaction.final_price ?? 0), 0)
-        // Booking fee berdiri sendiri dan tidak mengurangi kewajiban pembelian.
-        // Untuk cicilan, kewajiban = DP + total cicilan setelah DP.
-        // Untuk cash, kewajiban = harga final.
-        const totalDue = transaction.payment_type === 'Installment'
-          ? downPayment + installmentTotal
-          : finalPrice
-        const paidAmount = transaction.payment_type === 'Installment'
-          ? paidDownPayment + paidInstallment
-          : paidCash
-        const remainingAmount = Math.max(totalDue - paidAmount, 0)
+        // Sumber hitungan sama dengan halaman Keuangan agar angka tidak berbeda.
+        const balance = calculateFinanceBalance(transaction, transactionPayments)
+        const totalDue = balance.obligation
+        const paidAmount = balance.principalPaid
+        const remainingAmount = balance.remaining
         const bookingFee = 1_000_000
         const bookingRemaining = Math.max(bookingFee - bookingPaid, 0)
         const dpRemaining = Math.max(downPayment - paidDownPayment, 0)
@@ -713,10 +719,10 @@ async function loadCustomer() {
         return {
           id: transaction.id,
           lotId: Number(transaction.lot_id ?? 0),
-          lotNumber: transaction.lots?.lot_number || `Lot #${transaction.lot_id}`,
+          lotNumber: transaction.lots?.lot_number || `Kavling #${transaction.lot_id}`,
           block: blockLabel(transaction.lots?.blocks),
           status: transaction.status,
-          statusLabel: transactionStatusLabel(transaction.status),
+          statusLabel: transaction.status === 'Sold' && remainingAmount > 0 ? 'Terjual · Belum Lunas' : remainingAmount <= 0 && finalPrice > 0 && transaction.status !== 'Cancelled' ? 'Lunas' : transactionStatusLabel(transaction.status),
           paymentType: transaction.payment_type === 'Installment' ? 'Cicilan' : 'Cash',
           finalPrice,
           bookingFee,
@@ -739,6 +745,7 @@ async function loadCustomer() {
           rejectedCount,
           months: transaction.months ?? null,
           monthlyPayment: transaction.monthly_payment ?? null,
+          progressLine: formatProgressLine(summarizeInstallmentProgress(transaction.installment_schedules ?? [])),
         }
       }),
     }
@@ -906,7 +913,7 @@ onMounted(loadCustomer)
 .edit-modal-form label:first-child { margin-top: 0; }
 .edit-modal-form input, .edit-modal-form textarea { width: 100%; min-height: 44px; padding: 11px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px; }
 .edit-modal-form textarea { resize: vertical; }
-.edit-error { margin: 12px 0 0; color: var(--status-danger); font-size: 12px; }
+
 .customer-delete-check { display: grid; gap: 10px; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
 .customer-delete-check p { margin: 0; }
 .customer-delete-check ul { display: grid; gap: 4px; margin: 0; padding-left: 20px; }
@@ -915,7 +922,7 @@ onMounted(loadCustomer)
 .customer-delete-usage-alert > div { display: grid; gap: 8px; min-width: 0; }
 .customer-delete-usage-alert ul { margin: 0; }
 .customer-delete-usage-alert p { margin: 0; }
-.customer-delete-error { display: grid; gap: 10px; color: var(--status-danger); }
+
 .customer-delete-ready { display: grid; justify-items: center; gap: 8px; text-align: center; }
 .customer-delete-ready img { display: block; width: 100px; height: 100px; object-fit: contain; }
 .interest-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.interest-section-head h2 { margin: 0; }.add-interest-button, .remove-interest-button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.interest-empty { display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 8px 10px; border-radius: var(--radius-control); background: var(--app-background); }.interest-list { display: grid; gap: 8px; margin-top: 12px; padding: 0; list-style: none; }.interest-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }.interest-list li span { color: var(--text-secondary); font-size: 11px; }.remove-interest-button { color: var(--status-danger); }.interest-form { display: grid; gap: 10px; margin-top: 12px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); }.interest-form label { display: grid; gap: 6px; color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }.interest-form select { min-height: 44px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 12px; }.interest-form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.interest-form-actions button { min-height: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); }.interest-form-actions button[type='submit'] { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }.add-interest-button:focus-visible, .remove-interest-button:focus-visible, .interest-form button:focus-visible, .interest-form select:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }

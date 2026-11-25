@@ -1,4 +1,5 @@
 import { supabase } from '@/services/config/supabase'
+import { compressImage } from '@/utils/imageCompress'
 
 export interface GalleryPayload {
   title: string
@@ -80,7 +81,8 @@ export const galleryService = {
     return true
   },
 
-  async uploadImage(file: File) {
+  async uploadImage(source: File) {
+    const file = await compressImage(source)
     const fileExt = file.name.split('.').pop()
     const randomString = Math.random()
       .toString(36)
@@ -95,7 +97,7 @@ export const galleryService = {
       await supabase.storage
         .from('galleries')
         .upload(filePath, file, {
-          cacheControl: '3600',
+          cacheControl: '31536000',
           upsert: false
         })
 

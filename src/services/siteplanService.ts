@@ -31,6 +31,7 @@ export type SiteplanLot = {
 
   customers?: {
     id?: string | number
+    user_id?: string | null
     full_name?: string
   } | null
 
@@ -139,23 +140,8 @@ const LOTS_CACHE_DURATION = 5 * 60 * 1000
 */
 
 async function fetchLotsFromSupabase(): Promise<SiteplanLot[]> {
-  const { data, error } = await supabase
-    .from('lots')
-    .select(`
-      *,
-      blocks (
-        id,
-        name,
-        code
-      ),
-      customers (
-        id,
-        full_name
-      )
-    `)
-    .order('lot_number', {
-      ascending: true
-    })
+  // RPC mengosongkan data pembeli kecuali untuk admin dan pemilik kavling.
+  const { data, error } = await supabase.rpc('get_siteplan_lots')
 
   if (error) {
     throw error

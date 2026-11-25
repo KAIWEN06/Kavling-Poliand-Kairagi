@@ -112,7 +112,7 @@ async function save(): Promise<boolean> {
       value: form[key],
       ...(FIELD_LABELS[key].icon ? { icon: FIELD_LABELS[key].icon } : {}),
     })))
-    emit('notify', 'Kontak tersimpan dan langsung tampil di website.', 'success')
+    emit('notify', 'Kontak tersimpan dan langsung tampil di situs web.', 'success')
     emit('saved')
     return true
   } catch (error) {

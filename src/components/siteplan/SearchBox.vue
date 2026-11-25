@@ -149,13 +149,13 @@
                   type="text"
                   inputmode="text"
                   class="filter-input"
-                  placeholder="Contoh: 022 atau LOT_022"
+                  placeholder="Contoh: 022"
                   @keydown.enter.prevent="executeFilterSearch"
                 />
               </div>
 
               <small class="filter-help">
-                Masukkan nomor kaveling, misalnya 022 atau LOT_022.
+                Cukup ketik angkanya.
               </small>
             </div>
           </template>
@@ -249,7 +249,7 @@
 
               <small class="filter-help">
                 Filter hanya disimpan di sini. Hasil tidak akan muncul
-                sebelum kamu melakukan pencarian dari search bar.
+                sebelum kamu melakukan pencarian dari kolom pencarian.
               </small>
             </div>
           </template>
@@ -318,7 +318,7 @@
             class="filter-reset"
             @click="resetFilter"
           >
-            Reset pencarian
+            Hapus pencarian
           </button>
         </section>
       </div>
@@ -342,7 +342,7 @@
         >
           <div class="result-main">
             <strong>
-              {{ lot.lot_number || lot.polygon_id || 'Lot' }}
+              {{ lot.lot_number || lot.polygon_id || '-' }}
             </strong>
 
             <span

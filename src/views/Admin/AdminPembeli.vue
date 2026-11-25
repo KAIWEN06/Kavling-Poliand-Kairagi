@@ -6,7 +6,7 @@
 
     <ion-content :fullscreen="true">
       <main class="buyers-content">
-        <div class="buyers-filters" role="group" aria-label="Filter calon pembeli">
+        <div class="buyers-filters" role="group" aria-label="Filter klien">
           <button
             v-for="filter in filters"
             :key="filter.value"
@@ -26,23 +26,23 @@
           </button>
         </div>
 
-        <SkeletonCardList v-if="loading || refreshing" :count="5" :lines="3" label="Memuat calon pembeli" />
+        <SkeletonCardList v-if="loading || refreshing" :count="5" :lines="3" label="Memuat klien" />
 
         <div v-else-if="errorMessage" class="buyers-state" role="alert">
           <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-          <strong>Data calon pembeli gagal dimuat</strong>
+          <strong>Data klien gagal dimuat</strong>
           <p>{{ errorMessage }}</p>
           <AppButton size="small" @click="loadCustomers()">Coba lagi</AppButton>
         </div>
 
         <template v-else>
           <div class="buyers-list-head">
-            <h2>Daftar Calon Pembeli & Pembeli</h2>
+            <h2>Daftar klien</h2>
             <span>{{ filteredCustomers.length }}</span>
           </div>
 
-          <section v-if="filteredCustomers.length" id="buyers-list-top" class="buyers-list" aria-label="Daftar calon pembeli">
-            <article v-for="customer in pagedCustomers" :key="customer.id" class="buyer-card" tabindex="0" @click="openCustomer(customer.id)" @keydown.enter.self="openCustomer(customer.id)">
+          <section v-if="filteredCustomers.length" id="buyers-list-top" class="buyers-list" aria-label="Daftar klien">
+            <article v-for="customer in pager.items" :key="customer.id" class="buyer-card" tabindex="0" @click="openCustomer(customer.id)" @keydown.enter.self="openCustomer(customer.id)">
               <div :class="['buyer-avatar', customer.tone]">{{ initials(customer.full_name) }}</div>
               <div class="buyer-details">
                 <h3>{{ customer.full_name }}</h3>
@@ -51,7 +51,7 @@
                 <small v-if="customer.registrationSource" class="buyer-source">
                   <ion-icon :icon="personOutline" aria-hidden="true" /> Asal data: {{ customer.registrationSource }}
                 </small>
-                <small v-if="customer.source" class="buyer-source">Marketing: {{ customer.source }}</small>
+                <small v-if="customer.source" class="buyer-source">Pemasar: {{ customer.source }}</small>
               </div>
               <span :class="['buyer-status', customer.tone]">{{ customer.statusLabel }}</span>
               <ion-icon class="buyer-chevron" :icon="chevronForwardOutline" aria-hidden="true" />
@@ -60,38 +60,17 @@
 
           <div v-else-if="!filteredCustomers.length" class="buyers-state">
             <ion-icon :icon="peopleOutline" aria-hidden="true" />
-            <strong>Calon pembeli tidak ditemukan</strong>
+            <strong>Klien tidak ditemukan</strong>
             <p>Coba ubah kata kunci atau filter yang dipilih.</p>
           </div>
 
-          <nav v-if="filteredCustomers.length > 0 && totalPages > 1" class="buyers-pager" aria-label="Halaman daftar pembeli">
-            <div class="buyers-pager-controls">
-              <button type="button" class="buyers-pager-btn" aria-label="Halaman sebelumnya" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
-                <ion-icon :icon="chevronBackOutline" aria-hidden="true" />
-              </button>
-              <button
-                v-for="page in visiblePages"
-                :key="page ?? `ellipsis-${currentPage}`"
-                type="button"
-                class="buyers-pager-number"
-                :class="{ active: page === currentPage }"
-                :disabled="page === null"
-                :aria-current="page === currentPage ? 'page' : undefined"
-                :aria-label="page === null ? undefined : `Halaman ${page}`"
-                @click="page !== null && goToPage(page)"
-              >{{ page ?? '…' }}</button>
-              <button type="button" class="buyers-pager-btn" aria-label="Halaman berikutnya" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
-                <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
-              </button>
-            </div>
-            <span class="buyers-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
-          </nav>
+          <AppPagination v-model:page="pager.page" :total-pages="pager.totalPages" :total="pager.total" :page-size="pager.pageSize" scroll-to="#buyers-list-top" label="Halaman daftar klien" />
 
           <button
             type="button"
             class="buyers-add buyers-add-floating"
-            aria-label="Tambah calon pembeli"
-            title="Tambah calon pembeli"
+            aria-label="Tambah klien"
+            title="Tambah klien"
             @click="openAddCustomer"
           >
             <ion-icon :icon="addOutline" aria-hidden="true" />
@@ -121,10 +100,10 @@
         <p v-if="deleteChecking" role="status" aria-live="polite">
           Memeriksa...
         </p>
-        <div v-else-if="deleteError" class="customer-delete-error" role="alert">
+        <AppNotice v-else-if="deleteError" tone="error">
           <p>Data belum dihapus. Pemeriksaan atau penghapusan gagal: {{ deleteError }}</p>
           <AppButton size="small" @click="checkDeleteEligibility">Periksa lagi</AppButton>
-        </div>
+        </AppNotice>
         <div v-else-if="deleteUsages.length" role="alert">
           <div class="customer-delete-usage-alert">
             <img :src="worriedMascot" alt="Maskot khawatir karena data pembeli masih terhubung" />
@@ -148,11 +127,11 @@
 
     <AppModal
       v-model="addModalOpen"
-      title="Tambah pembeli"
+      title="Tambah klien"
       variant="bottom-sheet"
       :loading="addSaving"
       :confirm-disabled="!addForm.full_name.trim() || (!addForm.phone.trim() && !addForm.whatsapp_phone.trim())"
-      confirm-text="Simpan pembeli"
+      confirm-text="Simpan klien"
       cancel-text="Batal"
       :max-height="'92dvh'"
       @confirm="saveNewCustomer"
@@ -256,23 +235,25 @@
         <section class="add-form-section" aria-labelledby="add-customer-source-title">
           <div class="add-form-section-head">
             <h3 id="add-customer-source-title">Sumber pembeli</h3>
-            <p>Pilih Marketing yang membawa calon pembeli ini. Kosongkan jika pembeli datang langsung.</p>
+            <p>Pilih pemasar yang membawa calon pembeli ini. Kosongkan jika pembeli datang langsung.</p>
           </div>
 
           <label class="add-field">
-            <span>Marketing</span>
+            <span>Pemasar</span>
             <select v-model="addForm.marketing_id" :disabled="marketingLoading">
-              <option value="">Pembeli langsung / tanpa Marketing</option>
+              <option value="">Pembeli langsung / tanpa pemasar</option>
               <option
                 v-for="marketing in marketingOptions"
                 :key="marketing.id"
                 :value="marketing.id"
               >
-                {{ marketing.full_name || 'Marketing tanpa nama' }}
+                {{ marketing.full_name || 'Pemasar tanpa nama' }}
               </option>
             </select>
           </label>
-          <p v-if="marketingError" class="add-form-error" role="alert">{{ marketingError }}</p>
+          <AppNotice v-if="marketingError" tone="error">
+            {{ marketingError }}
+          </AppNotice>
         </section>
 
         <section class="add-form-section" aria-labelledby="add-customer-interest-title">
@@ -338,22 +319,26 @@
           </label>
         </section>
 
-        <p v-if="addError" class="add-form-error" role="alert">{{ addError }}</p>
+        <AppNotice v-if="addError" tone="error">
+          {{ addError }}
+        </AppNotice>
       </form>
     </AppModal>
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { useIonRouter, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import {
   addOutline,
   alertCircleOutline,
   chevronForwardOutline,
-  chevronBackOutline,
   closeOutline,
   peopleOutline,
   personOutline,
@@ -367,8 +352,8 @@ import AppModal from '@/components/ui/AppModal.vue'
 import { customerService } from '@/services/marketing/customerService'
 import { getRegions } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
-import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.png'
-import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.png'
+import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.webp'
+import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.webp'
 
 type FilterValue = 'all' | 'prospect' | 'follow-up' | 'reviewed' | 'buyer'
 type Customer = {
@@ -413,9 +398,6 @@ const filters: { value: FilterValue; label: string }[] = [
   { value: 'buyer', label: 'Pembeli' },
 ]
 
-const PAGE_SIZE = 10
-const currentPage = ref(1)
-
 const filteredCustomers = computed(() => {
   const term = query.value.trim().toLowerCase()
   return customers.value.filter((customer) => {
@@ -429,42 +411,10 @@ const filteredCustomers = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredCustomers.value.length / PAGE_SIZE)))
-const pagedCustomers = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return filteredCustomers.value.slice(start, start + PAGE_SIZE)
+const pager = usePagination(filteredCustomers, {
+  pageSize: 10,
+  resetOn: [query, selectedFilter],
 })
-const visiblePages = computed<(number | null)[]>(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
-
-  const pages: (number | null)[] = [1]
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
-  if (start > 2) pages.push(null)
-  for (let page = start; page <= end; page += 1) pages.push(page)
-  if (end < total - 1) pages.push(null)
-  pages.push(total)
-  return pages
-})
-
-watch([filteredCustomers, totalPages], () => {
-  if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
-  if (currentPage.value < 1) currentPage.value = 1
-})
-
-watch([query, selectedFilter], () => {
-  currentPage.value = 1
-})
-
-async function goToPage(page: number) {
-  const nextPage = Math.min(Math.max(page, 1), totalPages.value)
-  if (nextPage === currentPage.value) return
-  currentPage.value = nextPage
-  await nextTick()
-  document.querySelector('#buyers-list-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
 
 function filterCount(filter: FilterValue) {
   if (filter === 'all') return customers.value.length
@@ -527,11 +477,11 @@ async function loadCustomers(silent = false) {
             : 'Prospek',
       source: row.marketing?.full_name || null,
       registrationSource: row.registration_source === 'Marketing'
-        ? 'Marketing'
+        ? 'Pemasar'
         : row.registration_source === 'Admin'
           ? 'Admin'
           : row.registration_source === 'Client'
-            ? 'Client'
+            ? 'Klien'
             : 'Tidak tercatat',
       tone: row.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')
         ? 'mint'
@@ -540,13 +490,13 @@ async function loadCustomers(silent = false) {
           : 'gold',
       interests: (row.customer_interests ?? []).map((interest: any) => ({
         id: interest.id,
-        lotNumber: interest.lots?.lot_number || `Lot #${interest.lot_id}`,
+        lotNumber: interest.lots?.lot_number || `Kavling #${interest.lot_id}`,
         block: blockLabel(interest.lots?.blocks),
         paymentType: interest.payment_type === 'Installment' ? 'Cicilan' : 'Cash',
       })),
       transactions: (row.lot_transactions ?? []).map((transaction: any) => ({
         id: transaction.id,
-        lotNumber: transaction.lots?.lot_number || `Lot #${transaction.lot_id}`,
+        lotNumber: transaction.lots?.lot_number || `Kavling #${transaction.lot_id}`,
         block: blockLabel(transaction.lots?.blocks),
         status: transaction.status,
         paymentType: transaction.payment_type === 'Installment' ? 'Cicilan' : 'Cash',
@@ -817,8 +767,8 @@ async function loadMarketingOptions() {
   } catch (error) {
     marketingOptions.value = []
     marketingError.value = error instanceof Error
-      ? `Daftar Marketing gagal dimuat: ${error.message}`
-      : 'Daftar Marketing gagal dimuat.'
+      ? `Daftar pemasar gagal dimuat: ${error.message}`
+      : 'Daftar pemasar gagal dimuat.'
   } finally {
     marketingLoading.value = false
   }
@@ -934,7 +884,7 @@ onMounted(() => loadCustomers())
 .buyers-filter.active span { color: var(--poliland-gold-text-soft); }
 .buyers-search { display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 10px 0 13px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
 .buyers-search > ion-icon { color: var(--text-secondary); font-size: 18px; }
-.buyers-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 13px; }
+.buyers-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 16px; }
 .buyers-search button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; background: transparent; color: var(--text-secondary); }
 .buyers-list-head { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 10px; }
 .buyers-list-head h2 { margin: 0; font-size: 16px; font-weight: var(--font-weight-bold); }
@@ -993,62 +943,13 @@ onMounted(() => loadCustomers())
 }
 .buyers-add-floating ion-icon { margin: 0; font-size: 24px; }
 .buyers-add-floating:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 3px; }
-.buyers-pager {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(90px, 1fr);
-  align-items: center;
-  gap: 14px;
-  margin-top: 18px;
-  padding: 16px 0 4px;
-  border-top: 1px solid var(--border-default);
-}
-.buyers-pager-controls {
-  grid-column: 2;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 3px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-panel);
-  background: var(--surface-muted);
-}
-.buyers-pager-controls::-webkit-scrollbar { display: none; }
-.buyers-pager-btn,
-.buyers-pager-number {
-  min-width: 44px;
-  height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font: inherit;
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-.buyers-pager-btn { display: inline-flex; align-items: center; justify-content: center; font-size: 20px; }
-.buyers-pager-number.active { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }
-.buyers-pager-btn:disabled,
-.buyers-pager-number:disabled { cursor: default; border-color: transparent; background: transparent; opacity: 1; }
-.buyers-pager-position { grid-column: 3; color: var(--text-secondary); font-size: 12px; text-align: center; white-space: nowrap; }
-.buyers-pager button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .buyers-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 38px 18px; text-align: center; border: 1px dashed var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .buyers-state ion-icon { font-size: 28px; color: var(--poliland-green); }
 .buyers-state p { margin: 0; color: var(--text-secondary); font-size: 13px; }
-@media (max-width: 520px) {
-  .buyers-pager { grid-template-columns: 1fr; gap: 8px; }
-  .buyers-pager-controls { grid-column: 1; justify-self: center; }
-  .buyers-pager-position { grid-column: 1; }
-}
 @media (max-width: 360px) {
   .buyer-card { grid-template-columns: 40px minmax(0, 1fr) 12px; gap: 8px; }
   .buyer-status { grid-column: 2; justify-self: start; grid-row: 2; }
-  .buyers-add-floating { right: 12px; }
-}
+  .buyers-add-floating { right: 12px; }}
 
 .customer-delete-check { display: grid; gap: 10px; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
 .customer-delete-check p { margin: 0; }
@@ -1057,7 +958,7 @@ onMounted(() => loadCustomers())
 .customer-delete-usage-alert img { display: block; width: 84px; height: 84px; object-fit: contain; }
 .customer-delete-usage-alert > div { display: grid; gap: 8px; min-width: 0; }
 .customer-delete-usage-alert ul { margin: 0; }
-.customer-delete-error { display: grid; gap: 10px; color: var(--status-danger); }
+
 .customer-delete-ready { display: grid; justify-items: center; gap: 8px; text-align: center; }
 .customer-delete-ready img { display: block; width: 100px; height: 100px; object-fit: contain; }
 
@@ -1083,7 +984,7 @@ onMounted(() => loadCustomers())
   outline: 3px solid var(--poliland-green); outline-offset: 2px;
 }
 .add-form-hint { margin: 0; color: var(--text-secondary); font-size: 11px; }
-.add-form-error { margin: 0; padding: 10px 12px; border: 1px solid var(--status-danger); border-radius: var(--radius-control); color: var(--status-danger); background: var(--surface-muted); font-size: 12px; line-height: 1.5; }
+
 .add-customer-form .lot-picker-head { display: grid; gap: 6px; }
 .add-customer-form .lot-picker-head label { color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }
 .add-customer-form .lot-picker-head input {
@@ -1123,7 +1024,4 @@ onMounted(() => loadCustomers())
 @media (max-width: 380px) {
   .add-field-grid { grid-template-columns: 1fr; }
   .add-customer-form .lot-picker-option { grid-template-columns: 20px minmax(0, 1fr); }
-  .add-customer-form .lot-picker-price { grid-column: 2; text-align: left; max-width: none; }
-}
-
-</style>
+  .add-customer-form .lot-picker-price { grid-column: 2; text-align: left; max-width: none; }}</style>

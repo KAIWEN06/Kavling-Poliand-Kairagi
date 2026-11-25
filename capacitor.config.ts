@@ -5,6 +5,11 @@ const config: CapacitorConfig = {
   "appName": "PoliLand",
   "webDir": "dist",
   "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DEFAULT",
+      "initialViewportFitValueHint": "cover"
+    },
     "Keyboard": {
       "resize": "none",
       "style": "DARK"

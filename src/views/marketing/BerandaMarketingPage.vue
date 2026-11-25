@@ -14,7 +14,7 @@
           <!-- KOMISI -->
           <Reveal :order="1" class="area-commission">
             <button type="button" class="commission" @click="goToCommission">
-              <span class="commission__label">Total komisi saya</span>
+              <span class="commission__label">Komisi bulan ini</span>
               <strong class="commission__value t-figure">{{ formattedCommission }}</strong>
               <span class="commission__split">
                 <span>
@@ -34,13 +34,13 @@
           <Reveal v-if="dueNotices.length" :order="2" class="area-due">
             <section class="card" aria-labelledby="due-title">
               <div class="card__head">
-                <h2 id="due-title" class="card__title">Tenggat pembayaran klien</h2>
+                <h2 id="due-title" class="card__title">Tenggat pembayaran</h2>
                 <button type="button" class="link" @click="goTo('/marketing/pembayaran?tab=schedules')">Lihat jadwal</button>
               </div>
               <ul class="rows">
                 <li v-for="(n, index) in dueNotices" :key="index" class="due" :class="`due--${n.severity}`">
                   <div class="due__top">
-                    <strong>{{ n.title }} · {{ n.customer_name || 'Client' }}</strong>
+                    <strong>{{ n.title }} · {{ n.customer_name || 'Klien' }}</strong>
                     <StatusBadge size="sm" :tone="severityTone(n.severity)" :label="severityLabel(n.severity)" />
                   </div>
                   <span class="due__body">{{ n.body }}</span>
@@ -53,11 +53,13 @@
           <Reveal :order="3" class="area-pipeline">
             <section class="card" aria-labelledby="pipeline-title">
               <div class="card__head">
-                <h2 id="pipeline-title" class="card__title">Pipeline klien bulan ini</h2>
+                <h2 id="pipeline-title" class="card__title">Klien</h2>
                 <button type="button" class="link" @click="goTo('/marketing/clients')">Semua klien</button>
               </div>
 
-              <p v-if="reportError" class="alert" role="alert">{{ reportError }}</p>
+              <AppNotice v-if="reportError" tone="error">
+                {{ reportError }}
+              </AppNotice>
 
               <template v-if="reportLoading && !report">
                 <div class="skel-grid" role="status" aria-label="Memuat ringkasan klien">
@@ -78,12 +80,12 @@
                 </div>
 
                 <div class="stat-grid">
-                  <StatCard label="Total klien saya" :value="s.total_clients ?? '–'" clickable @open="goTo('/marketing/clients')" />
-                  <StatCard label="Klien baru (bulan ini)" :value="s.new_clients ?? '–'" clickable @open="goTo('/marketing/clients?crm=Baru')" />
-                  <StatCard label="Belum dihubungi" :value="crm('Baru') + crm('Belum Dihubungi')" clickable @open="goTo('/marketing/clients?crm=Belum%20Dihubungi')" />
-                  <StatCard label="Tindak lanjut" :value="crm('Sudah Dihubungi') + crm('Follow-up')" clickable @open="goTo('/marketing/clients?crm=Follow-up')" />
-                  <StatCard label="Berminat" :value="crm('Berminat') + crm('Survey Lokasi') + crm('Negosiasi')" clickable @open="goTo('/marketing/clients?crm=Berminat')" />
-                  <StatCard label="Dalam pengajuan" :value="crm('Pengajuan')" clickable @open="goTo('/marketing/clients?crm=Pengajuan')" />
+                  <StatCard label="Total" :value="s.total_clients ?? '–'" clickable @open="goTo('/marketing/clients')" />
+                  <StatCard label="Baru bulan ini" :value="s.new_clients ?? '–'" clickable @open="goTo(newClientsPath)" />
+                  <StatCard label="Belum dihubungi" :value="crm('Baru') + crm('Belum Dihubungi')" clickable @open="goTo('/marketing/clients?crm=group:uncontacted')" />
+                  <StatCard label="Ditindaklanjuti" :value="crm('Sudah Dihubungi') + crm('Follow-up')" clickable @open="goTo('/marketing/clients?crm=group:followup')" />
+                  <StatCard label="Berminat" :value="crm('Berminat') + crm('Survey Lokasi') + crm('Negosiasi')" clickable @open="goTo('/marketing/clients?crm=group:interested')" />
+                  <StatCard label="Pengajuan" :value="crm('Pengajuan')" clickable @open="goTo('/marketing/clients?crm=Pengajuan')" />
                   <StatCard label="Berhasil" :value="crm('Berhasil')" clickable @open="goTo('/marketing/clients?crm=Berhasil')" />
                   <StatCard label="Tidak lanjut" :value="crm('Tidak Lanjut')" clickable @open="goTo('/marketing/clients?crm=Tidak%20Lanjut')" />
                 </div>
@@ -135,9 +137,9 @@
                 kind="clients"
                 compact
                 title="Belum ada aktivitas"
-                description="Catat klien baru atau tindak lanjut, dan riwayatnya muncul di sini."
+                description="Klien baru dan tindak lanjut muncul di sini."
               >
-                <AppButton size="small" @click="goTo('/marketing/clients/new')">Tambah calon pembeli</AppButton>
+                <AppButton size="small" @click="goTo('/marketing/clients/new')">Tambah klien</AppButton>
               </EmptyState>
             </section>
           </Reveal>
@@ -151,6 +153,7 @@
 
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import {
   IonPage,
   IonContent,
@@ -158,12 +161,10 @@ import {
   useIonRouter,
 } from '@ionic/vue'
 import {
-  callOutline,
+  documentTextOutline,
   gitNetworkOutline,
-  gridOutline,
-  informationCircleOutline,
   personAddOutline,
-  personOutline,
+  walletOutline,
 } from 'ionicons/icons'
 
 import { computed, onMounted, ref } from 'vue'
@@ -211,7 +212,7 @@ const today = new Intl.DateTimeFormat('id-ID', {
    USER
    ===================================================== */
 
-const marketingName = ref('Marketing')
+const marketingName = ref('Pemasar')
 
 async function loadMarketingName() {
   try {
@@ -225,7 +226,7 @@ async function loadMarketingName() {
     }
 
     if (!user) {
-      throw new Error('Pengguna marketing tidak ditemukan.')
+      throw new Error('Pengguna pemasar tidak ditemukan.')
     }
 
     const {
@@ -247,7 +248,7 @@ async function loadMarketingName() {
     }
   } catch (error) {
     console.error(
-      '[Beranda Marketing] Gagal memuat nama profil:',
+      '[Beranda pemasar] Gagal memuat nama profil:',
       error,
     )
   }
@@ -277,25 +278,26 @@ const formattedCommission = computed(() =>
 
 const pipelineStages = computed(() => [
   { key: 'new', label: 'Belum dihubungi', value: crm('Baru') + crm('Belum Dihubungi') },
-  { key: 'followup', label: 'Follow-up', value: crm('Sudah Dihubungi') + crm('Follow-up') },
+  { key: 'followup', label: 'Ditindaklanjuti', value: crm('Sudah Dihubungi') + crm('Follow-up') },
   { key: 'interest', label: 'Berminat', value: crm('Berminat') + crm('Survey Lokasi') + crm('Negosiasi') },
   { key: 'submit', label: 'Pengajuan', value: crm('Pengajuan') },
   { key: 'won', label: 'Berhasil', value: crm('Berhasil') },
-  { key: 'lost', label: 'Tidak lanjut', value: crm('Tidak Lanjut') },
+  { key: 'lost', label: 'Tidak berlanjut', value: crm('Tidak Lanjut') },
 ])
 
 const funnelDescription = computed(() =>
-  `Pipeline client: ${pipelineStages.value.map((stage) => `${stage.label} ${stage.value}`).join(', ')}.`,
+  `Sebaran klien: ${pipelineStages.value.map((stage) => `${stage.label} ${stage.value}`).join(', ')}.`,
 )
 
 const shortcuts = [
-  { label: 'Kavling', path: '/kavling', icon: gridOutline },
-  { label: 'Siteplan', path: '/siteplan', icon: gitNetworkOutline },
-  { label: 'Calon pembeli', path: '/marketing/clients', icon: personOutline },
-  { label: 'Tindak lanjut', path: '/marketing/tindak-lanjut', icon: personAddOutline },
-  { label: 'Informasi proyek', path: '/progress', icon: informationCircleOutline },
-  { label: 'Kontak', path: '/contact', icon: callOutline },
+  { label: 'Tambah klien', path: '/marketing/clients/new', icon: personAddOutline },
+  { label: 'Denah', path: '/marketing/siteplan', icon: gitNetworkOutline },
+  { label: 'Status SPK', path: '/marketing/pengajuan', icon: documentTextOutline },
+  { label: 'Pembayaran', path: '/marketing/pembayaran', icon: walletOutline },
 ]
+
+const monthRange = periodRange('month')
+const newClientsPath = `/marketing/clients?from=${monthRange.from}&to=${monthRange.to}`
 
 
 /* =====================================================
@@ -314,8 +316,8 @@ const activities = ref<Array<{
 const activitiesLoaded = ref(false)
 
 const KIND_LABEL: Record<string, { status: string; type: string }> = {
-  crm: { status: 'Perkembangan', type: 'prospect' },
-  followup: { status: 'Tindak Lanjut', type: 'followup' },
+  crm: { status: 'Progres', type: 'prospect' },
+  followup: { status: 'Follow-up', type: 'followup' },
   note: { status: 'Catatan', type: 'prospect' },
   spk: { status: 'SPK', type: 'booking' },
 }
@@ -332,7 +334,7 @@ async function loadActivities() {
     activities.value = items.map((item, index) => ({
       id: index + 1,
       initials: initials(item.customer_name),
-      name: item.customer_name || 'Client',
+      name: item.customer_name || 'Klien',
       description: item.title,
       status: KIND_LABEL[item.kind]?.status ?? 'Aktivitas',
       statusType: KIND_LABEL[item.kind]?.type ?? 'prospect',
@@ -374,8 +376,7 @@ async function loadDueNotices() {
 
 onMounted(() => {
   loadMarketingName()
-  const range = periodRange('month')
-  void loadReport({ ...range, marketingId: null })
+  void loadReport({ ...monthRange, marketingId: null })
   void loadActivities()
   void loadDueNotices()
 })
@@ -396,6 +397,19 @@ function goToCommission() {
 
 
 <style scoped>
+.public-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-3);
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+.public-links .link { min-height: 44px; }
+
 .marketing-content { --background: var(--app-background); }
 .marketing-content::part(scroll) { overflow-x: hidden; }
 
@@ -462,14 +476,6 @@ function goToCommission() {
 }
 @media (hover: hover) and (pointer: fine) {
   .link:hover { text-decoration: underline; }
-}
-.alert {
-  margin: 0 0 var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--danger-bg);
-  color: var(--danger-text);
-  font-size: var(--text-sm);
 }
 
 /* ---------- komisi (panel penekanan) ---------- */
@@ -549,7 +555,8 @@ function goToCommission() {
 .skel-list { display: grid; gap: var(--space-3); }
 
 /* ---------- pintasan ---------- */
-.shortcuts { display: grid; gap: var(--space-2); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.shortcuts { display: grid; gap: var(--space-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 560px) { .shortcuts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .shortcuts { grid-template-columns: 1fr; } }
 .shortcut {
   display: grid;

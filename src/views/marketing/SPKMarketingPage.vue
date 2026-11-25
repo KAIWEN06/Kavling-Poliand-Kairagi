@@ -1,823 +1,371 @@
 <template>
-  <ion-page class="spk-page">
-
-    <!-- =====================================================
-         HEADER
-         ===================================================== -->
-    <AppHeader variant="marketing" />
-
-    <ion-content
-      :fullscreen="false"
-      class="spk-content"
-    >
-      <main class="spk-container">
-
-        <!-- =================================================
-             PAGE INTRO
-             ================================================= -->
-        <section class="page-intro">
-          <div class="page-intro-copy">
-            <span class="eyebrow">PENGAJUAN SPK</span>
-
-            <h1>Surat Pembelian Kaveling</h1>
-
-            <p>
-              Lengkapi data calon pembeli dan pilih rencana pembayaran
-              sebelum pengajuan dikirim untuk validasi Admin.
-            </p>
-          </div>
-
-          <div class="progress-chip">
-            <ion-icon :icon="checkmarkCircleOutline" />
-            <span>{{ completionPercent }}% lengkap</span>
-          </div>
-        </section>
-
-
-        <!-- =================================================
-             FORM PROGRESS
-             ================================================= -->
-        <nav class="form-progress" aria-label="Tahapan formulir SPK">
-
-          <div
-            class="progress-step"
-            :class="{ active: currentStep >= 1 }"
-          >
-            <span class="step-number">1</span>
-            <div>
-              <strong>Pembeli</strong>
-              <small>Data pribadi</small>
-            </div>
-          </div>
-
-          <span class="progress-line" />
-
-          <div
-            class="progress-step"
-            :class="{ active: currentStep >= 2 }"
-          >
-            <span class="step-number">2</span>
-            <div>
-              <strong>Kaveling</strong>
-              <small>Pembayaran</small>
-            </div>
-          </div>
-
-          <span class="progress-line" />
-
-          <div
-            class="progress-step"
-            :class="{ active: currentStep >= 3 }"
-          >
-            <span class="step-number">3</span>
-            <div>
-              <strong>Dokumen</strong>
-              <small>Konfirmasi</small>
-            </div>
-          </div>
-
-        </nav>
-
-
-        <!-- =================================================
-             INFORMASI PEMBELI
-             ================================================= -->
-        <section class="form-card">
-
-          <div class="card-heading">
-            <div class="heading-icon">
-              <ion-icon :icon="personOutline" />
-            </div>
-
-            <div class="heading-copy">
-              <span class="section-kicker">01</span>
-              <h2>Informasi Pembeli</h2>
-              <p>Data ini akan digunakan pada dokumen SPK.</p>
-            </div>
-
-            <span class="required-note">
-              * Wajib
+  <MarketingPageLayout
+    title="Ajukan SPK"
+    subtitle="Lengkapi data, lalu kirim ke Admin."
+    show-back
+    back-route="/kavling"
+    :refreshable="false"
+  >
+    <div class="spk">
+      <!-- PROGRES -->
+      <Reveal :order="0">
+        <section class="spk-progress" aria-label="Kelengkapan pengajuan">
+          <ol class="spk-steps">
+            <li
+              v-for="step in steps"
+              :key="step.n"
+              class="spk-step"
+              :class="{ 'is-active': currentStep >= step.n }"
+              :aria-current="currentStep === step.n ? 'step' : undefined"
+            >
+              <span class="spk-step-num t-num">{{ step.n }}</span>
+              <span class="spk-step-label">{{ step.label }}</span>
+            </li>
+          </ol>
+          <div class="spk-meter">
+            <span class="spk-meter-track" aria-hidden="true">
+              <span class="spk-meter-fill" :style="{ transform: `scaleX(${completionPercent / 100})` }" />
             </span>
-          </div>
-
-          <div class="card-body">
-
-            <div class="field-group">
-              <label for="customer-select">
-                Klien <span>*</span>
-              </label>
-              <div class="field-shell" :class="{ filled: form.customerId }">
-                <ion-icon :icon="personOutline" />
-                <select
-                  id="customer-select"
-                  v-model.number="form.customerId"
-                  @change="applySelectedCustomer"
-                >
-                  <option :value="null" disabled>Pilih klien Anda</option>
-                  <option v-for="c in myCustomers" :key="c.id" :value="c.id">
-                    {{ c.full_name }}{{ c.phone ? ' · ' + c.phone : '' }}
-                  </option>
-                </select>
-              </div>
-              <p v-if="!myCustomers.length" class="required-note">
-                Belum ada klien. Daftarkan klien Anda terlebih dahulu di menu Calon Pembeli.
-              </p>
-            </div>
-
-            <div class="form-grid">
-
-              <div class="field-group">
-                <label for="full-name">
-                  Nama Lengkap <span>*</span>
-                </label>
-
-                <div
-                  class="field-shell"
-                  :class="{ filled: form.fullName }"
-                >
-                  <ion-icon :icon="personOutline" />
-
-                  <input
-                    id="full-name"
-                    readonly
-                    v-model.trim="form.fullName" data-input="name"
-                    type="text"
-                    placeholder="Masukkan nama lengkap"
-                    autocomplete="name"
-                  />
-                </div>
-              </div>
-
-
-              <div class="field-group">
-                <label for="phone">
-                  Nomor Kontak <span>*</span>
-                </label>
-
-                <div
-                  class="field-shell"
-                  :class="{ filled: form.phone }"
-                >
-                  <ion-icon :icon="callOutline" />
-
-                  <input
-                    id="phone"
-                    readonly
-                    v-model.trim="form.phone"
-                    type="tel"
-                    inputmode="tel"
-                    placeholder="Contoh: 0823 4735 8236"
-                    autocomplete="tel"
-                  />
-                </div>
-              </div>
-
-
-              <div class="field-group">
-                <label for="email">
-                  Email <small>(Opsional)</small>
-                </label>
-
-                <div
-                  class="field-shell"
-                  :class="{ filled: form.email }"
-                >
-                  <ion-icon :icon="mailOutline" />
-
-                  <input
-                    id="email"
-                    readonly
-                    v-model.trim="form.email"
-                    type="email"
-                    placeholder="contoh@email.com"
-                    autocomplete="email"
-                  />
-                </div>
-              </div>
-
-
-              <div class="field-group field-full">
-                <div class="label-row">
-                  <label for="address">
-                    Alamat Lengkap <span>*</span>
-                  </label>
-
-                  <span class="counter">
-                    {{ form.address.length }}/200
-                  </span>
-                </div>
-
-                <div
-                  class="field-shell textarea-shell"
-                  :class="{ filled: form.address }"
-                >
-                  <ion-icon :icon="locationOutline" />
-
-                  <textarea
-                    id="address"
-                    readonly
-                    v-model.trim="form.address"
-                    maxlength="200"
-                    rows="3"
-                    placeholder="Masukkan alamat lengkap calon pembeli"
-                  ></textarea>
-                </div>
-              </div>
-
-            </div>
-
+            <span class="spk-meter-text t-num">{{ completionPercent }}% lengkap</span>
           </div>
         </section>
+      </Reveal>
 
+      <!-- 1. KLIEN -->
+      <Reveal :order="1">
+        <section class="spk-card" aria-labelledby="spk-client-title">
+          <header class="spk-card-head">
+            <span class="spk-card-num t-num" aria-hidden="true">1</span>
+            <h2 id="spk-client-title">Klien</h2>
+          </header>
 
-        <!-- =================================================
-             INFORMASI KAVLING
-             ================================================= -->
-        <section class="form-card">
+          <label class="spk-field">
+            <span>Pilih klien <b aria-hidden="true">*</b></span>
+            <select
+              v-model.number="form.customerId"
+              class="spk-input"
+              required
+              @change="applySelectedCustomer"
+            >
+              <option :value="null" disabled>Klien milik Anda</option>
+              <option v-for="c in myCustomers" :key="c.id" :value="c.id">
+                {{ c.full_name }}{{ c.phone ? ' · ' + c.phone : '' }}
+              </option>
+            </select>
+          </label>
 
-          <div class="card-heading">
-            <div class="heading-icon">
-              <ion-icon :icon="mapOutline" />
+          <div v-if="!myCustomers.length" class="spk-inline-note">
+            <span>Belum ada klien yang bisa dipilih.</span>
+            <button type="button" class="spk-link" @click="ionRouter.push('/marketing/clients/new')">
+              Tambah klien
+            </button>
+          </div>
+
+          <dl v-if="form.customerId" class="spk-client">
+            <div>
+              <dt>Nama</dt>
+              <dd>{{ form.fullName || 'Belum ada' }}</dd>
             </div>
+            <div>
+              <dt>Kontak</dt>
+              <dd class="t-num">{{ form.phone || 'Belum ada' }}</dd>
+            </div>
+            <div v-if="form.email">
+              <dt>Email</dt>
+              <dd>{{ form.email }}</dd>
+            </div>
+            <div class="spk-client-wide">
+              <dt>Alamat</dt>
+              <dd :class="{ 'is-missing': !form.address }">
+                {{ form.address || 'Alamat belum diisi. Lengkapi di detail klien.' }}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      </Reveal>
 
-            <div class="heading-copy">
-              <span class="section-kicker">02</span>
-              <h2>Informasi Kaveling</h2>
-              <p>Pilih skema pembayaran yang akan diajukan.</p>
+      <!-- 2. KAVELING & PEMBAYARAN -->
+      <Reveal :order="2">
+        <section class="spk-card" aria-labelledby="spk-lot-title">
+          <header class="spk-card-head">
+            <span class="spk-card-num t-num" aria-hidden="true">2</span>
+            <h2 id="spk-lot-title">Kaveling dan pembayaran</h2>
+          </header>
+
+          <div v-if="lotLoading" class="spk-state" role="status">
+            <ion-spinner name="crescent" />
+            <span>Memuat data kaveling…</span>
+          </div>
+
+          <div v-else-if="lotError" class="spk-state spk-state--error" role="alert">
+            <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
+            <div>
+              <strong>Data kaveling tidak tersedia</strong>
+              <span>{{ lotError }}</span>
+              <button type="button" class="spk-link" @click="ionRouter.push('/kavling')">
+                Pilih kaveling
+              </button>
             </div>
           </div>
 
-          <div class="card-body">
-
-            <!-- LOT SUMMARY -->
-            <div
-              v-if="lotLoading"
-              class="lot-state"
-            >
-              <ion-spinner name="crescent" />
-              <span>Memuat data kaveling...</span>
+          <div v-else class="spk-lot">
+            <div class="spk-lot-main">
+              <span class="spk-label">Kaveling</span>
+              <strong class="spk-lot-number t-figure">
+                {{ lot.lot_number ? formatLotNumber(lot.lot_number) : 'Belum dipilih' }}
+              </strong>
+              <span v-if="lot.block_id || lot.area || lot.dimension" class="spk-lot-meta">
+                <span v-if="lot.block_id">Blok {{ lot.block_id }}</span>
+                <span v-if="lot.area" class="t-num">{{ lot.area }} m²</span>
+                <span v-if="lot.dimension" class="t-num">{{ lot.dimension }}</span>
+              </span>
             </div>
-
-            <div
-              v-else-if="lotError"
-              class="lot-state error"
-            >
-              <ion-icon :icon="alertCircleOutline" />
-
-              <div>
-                <strong>Data kaveling tidak tersedia</strong>
-                <span>{{ lotError }}</span>
-              </div>
+            <div class="spk-lot-price">
+              <span class="spk-label">
+                {{ lot.promo_price && lot.cash_price && lot.promo_price < lot.cash_price ? 'Harga promo' : 'Harga' }}
+              </span>
+              <strong class="t-num">{{ formattedLotPrice }}</strong>
+              <small>
+                <ion-icon :icon="lockClosedOutline" aria-hidden="true" />
+                Mengikuti data kaveling
+              </small>
             </div>
+          </div>
 
-            <div
-              v-else
-              class="lot-summary"
-            >
-              <div class="lot-main">
-                <span class="summary-label">KAVELING DIPILIH</span>
-
-                <strong>
-                  {{ lot.lot_number ? formatLotNumber(lot.lot_number) : 'Belum dipilih' }}
-                </strong>
-
-                <div class="lot-tags">
-                  <span v-if="lot.block_id">
-                    Blok {{ lot.block_id }}
-                  </span>
-
-                  <span v-if="lot.area">
-                    {{ lot.area }} m²
-                  </span>
-
-                  <span v-if="lot.dimension">
-                    {{ lot.dimension }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="lot-price">
-                <span>Harga</span>
-
-                <strong>
-                  {{ formattedLotPrice }}
-                </strong>
-
-                <small
-                  v-if="
-                    lot.promo_price &&
-                    lot.cash_price &&
-                    lot.promo_price < lot.cash_price
-                  "
-                >
-                  Harga promo
-                </small>
-              </div>
-            </div>
-
-
-            <div class="form-grid">
-
-              <!-- PRICE -->
-              <div class="field-group">
-                <label>Harga Kaveling</label>
-
-                <div class="price-field">
-                  <div class="price-icon">
-                    <ion-icon :icon="cashOutline" />
-                  </div>
-
-                  <div class="price-copy">
-                    <span>Harga yang digunakan</span>
-                    <strong>{{ formattedLotPrice }}</strong>
-                  </div>
-
-                  <ion-icon
-                    class="readonly-icon"
-                    :icon="lockClosedOutline"
-                  />
-                </div>
-
-                <p class="field-hint">
-                  Harga diambil otomatis dari data kaveling dan tidak
-                  dapat diubah pada pengajuan SPK.
-                </p>
-              </div>
-
-
-              <!-- PAYMENT METHOD -->
-              <div class="field-group field-full">
-                <label>
-                  Metode Pembayaran <span>*</span>
-                </label>
-
-                <div class="payment-method-options">
-                  <button
-                    type="button"
-                    class="payment-method-option"
-                    :class="{ selected: form.paymentMethod === 'Cash' }"
-                    :aria-pressed="form.paymentMethod === 'Cash'"
-                    @click="selectPaymentMethod('Cash')"
-                  >
-                    <span class="payment-method-icon">
-                      <ion-icon :icon="cashOutline" />
-                    </span>
-
-                    <span class="payment-method-copy">
-                      <strong>Cash</strong>
-                      <small>Pembayaran penuh</small>
-                    </span>
-
-                    <ion-icon
-                      v-if="form.paymentMethod === 'Cash'"
-                      :icon="checkmarkCircleOutline"
-                      class="payment-method-check"
-                    />
-                  </button>
-
-                  <button
-                    type="button"
-                    class="payment-method-option"
-                    :class="{ selected: form.paymentMethod === 'Installment' }"
-                    :aria-pressed="form.paymentMethod === 'Installment'"
-                    @click="selectPaymentMethod('Installment')"
-                  >
-                    <span class="payment-method-icon">
-                      <ion-icon :icon="cardOutline" />
-                    </span>
-
-                    <span class="payment-method-copy">
-                      <strong>Cicil</strong>
-                      <small>Bayar sesuai tenor</small>
-                    </span>
-
-                    <ion-icon
-                      v-if="form.paymentMethod === 'Installment'"
-                      :icon="checkmarkCircleOutline"
-                      class="payment-method-check"
-                    />
-                  </button>
-                </div>
-
-                <p class="field-hint">
-                  Pilih metode pembayaran yang disepakati dengan calon pembeli.
-                </p>
-              </div>
-
-              <!-- PAYMENT SCHEME / MONTHLY PAYMENT -->
-              <div
-                v-if="form.paymentMethod === 'Cash'"
-                class="field-group field-full"
+          <fieldset class="spk-fieldset">
+            <legend>Metode pembayaran <b aria-hidden="true">*</b></legend>
+            <div class="spk-choice-row">
+              <button
+                type="button"
+                class="spk-choice"
+                :aria-pressed="form.paymentMethod === 'Cash'"
+                @click="selectPaymentMethod('Cash')"
               >
-                <label>Skema Pembayaran</label>
-
-                <div class="payment-summary cash-summary">
-                  <div class="payment-summary-icon">
-                    <ion-icon :icon="cashOutline" />
-                  </div>
-
-                  <div class="payment-summary-copy">
-                    <span>Total pembayaran</span>
-                    <strong>{{ formattedLotPrice }}</strong>
-                    <small>Dibayar penuh / satu kali pembayaran</small>
-                  </div>
-                </div>
-              </div>
-            <!-- TENOR + MONTHLY PAYMENT -->
-            <div
-              v-if="form.paymentMethod === 'Installment'"
-              class="tenor-section"
-            >
-              <div class="field-group">
-                <label for="down-payment">
-                  Nominal DP (Rp) <span>*</span>
-                </label>
-                <div class="field-shell" :class="{ filled: form.downPayment }">
-                  <input
-                    id="down-payment"
-                    v-model="form.downPayment"
-                    type="number"
-                    inputmode="numeric"
-                    min="1"
-                    placeholder="Contoh: 20000000"
-                  />
-                </div>
-              </div>
-
-              <div class="tenor-heading">
-                <div>
-                  <label>
-                    Rencana Tenor <span>*</span>
-                  </label>
-
-                  <p>
-                    Pilihan tenor mengikuti kolom
-                    <code>payment_plans.months</code>.
-                  </p>
-                </div>
-
-                <span
-                  v-if="paymentPlans.length"
-                  class="option-count"
-                >
-                  {{ paymentPlans.length }} pilihan
+                <ion-icon :icon="cashOutline" aria-hidden="true" />
+                <span class="spk-choice-copy">
+                  <strong>Tunai</strong>
+                  <small>Lunas sekali bayar</small>
                 </span>
-              </div>
-
-              <div
-                v-if="paymentPlansLoading"
-                class="tenor-loading"
+                <span class="spk-radio" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="spk-choice"
+                :aria-pressed="form.paymentMethod === 'Installment'"
+                @click="selectPaymentMethod('Installment')"
               >
+                <ion-icon :icon="cardOutline" aria-hidden="true" />
+                <span class="spk-choice-copy">
+                  <strong>Cicil</strong>
+                  <small>Bayar per bulan</small>
+                </span>
+                <span class="spk-radio" aria-hidden="true" />
+              </button>
+            </div>
+          </fieldset>
+
+          <div v-if="form.paymentMethod === 'Installment'" class="spk-installment">
+            <InstallmentDpChoice
+              v-model="form.useDownPayment"
+              name="marketing-dp-mode"
+              @update:model-value="!$event && (form.downPayment = '')"
+            />
+
+            <label v-if="form.useDownPayment" class="spk-field">
+              <span>Nominal uang muka (Rp) <b aria-hidden="true">*</b></span>
+              <input
+                v-model="form.downPayment"
+                class="spk-input t-num"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                enterkeyhint="done"
+                placeholder="Contoh: 20000000"
+                :aria-invalid="downPaymentInvalid || undefined"
+                @input="form.downPayment = form.downPayment.replace(/\D/g, '')"
+              />
+              <small v-if="downPaymentInvalid" class="spk-error-text" role="alert">
+                {{ Number(form.downPayment) > 0 ? 'Uang muka harus lebih kecil dari harga kaveling.' : 'Isi nominal uang muka, atau pilih Langsung cicil.' }}
+              </small>
+            </label>
+
+            <fieldset class="spk-fieldset">
+              <legend>
+                Tenor <b aria-hidden="true">*</b>
+                <span v-if="paymentPlans.length" class="spk-legend-count t-num">{{ paymentPlans.length }} pilihan</span>
+              </legend>
+
+              <div v-if="paymentPlansLoading" class="spk-state" role="status">
                 <ion-spinner name="crescent" />
-                <span>Memuat rencana tenor...</span>
+                <span>Memuat tenor…</span>
               </div>
 
-              <div
-                v-else-if="paymentPlansError"
-                class="tenor-error"
-              >
-                <ion-icon :icon="alertCircleOutline" />
-
+              <div v-else-if="paymentPlansError" class="spk-state spk-state--error" role="alert">
+                <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
                 <div>
-                  <strong>Tenor belum dapat dimuat</strong>
+                  <strong>Tenor belum bisa dimuat</strong>
                   <span>{{ paymentPlansError }}</span>
+                  <button type="button" class="spk-link" @click="loadPaymentPlans">Coba lagi</button>
                 </div>
-
-                <button
-                  type="button"
-                  @click="loadPaymentPlans"
-                >
-                  Coba lagi
-                </button>
               </div>
 
-              <div
-                v-else-if="paymentPlans.length"
-                class="tenor-options"
-              >
+              <div v-else-if="paymentPlans.length" class="spk-tenors">
                 <button
                   v-for="plan in paymentPlans"
                   :key="plan.id"
                   type="button"
-                  class="tenor-option"
-                  :class="{ selected: form.paymentPlanId === plan.id }"
+                  class="spk-tenor"
                   :aria-pressed="form.paymentPlanId === plan.id"
                   @click="selectPlan(plan)"
                 >
-                  <span class="tenor-radio">
-                    <span></span>
-                  </span>
-
-                  <span class="tenor-copy">
+                  <span class="spk-radio" aria-hidden="true" />
+                  <span class="spk-tenor-copy">
                     <strong>{{ formatMonths(plan.months) }}</strong>
                     <small>{{ formatPaymentPlanName(plan.plan_name, plan.months) }}</small>
                   </span>
-
-                  <span class="tenor-price">
-                    {{
-                      getInstallmentForPlan(plan.id)
-                        ? formatCurrency(
-                            getInstallmentForPlan(plan.id)?.monthly_payment
-                          )
-                        : 'Belum tersedia'
-                    }}
-                    <small>/ bulan</small>
+                  <span class="spk-tenor-price t-num" :class="{ 'is-empty': !getInstallmentForPlan(plan.id) }">
+                    <template v-if="getInstallmentForPlan(plan.id)">
+                      {{ formatCurrency(getInstallmentForPlan(plan.id)?.monthly_payment) }}<small>/bln</small>
+                    </template>
+                    <template v-else>Belum dibuka</template>
                   </span>
-
-                  <ion-icon
-                    v-if="form.paymentPlanId === plan.id"
-                    :icon="checkmarkCircleOutline"
-                    class="tenor-check"
-                  />
                 </button>
               </div>
 
-              <div
-                v-else
-                class="empty-plans"
-              >
-                <ion-icon :icon="informationCircleOutline" />
-
-                <span>
-                  Belum ada rencana tenor pada tabel
-                  <strong>payment_plans</strong>.
-                </span>
+              <div v-else class="spk-state">
+                <ion-icon :icon="informationCircleOutline" aria-hidden="true" />
+                <span>Belum ada tenor yang bisa dipilih.</span>
               </div>
 
-              <div
-                v-if="selectedPlan"
-                class="selected-plan"
-              >
-                <div class="selected-plan-icon">
-                  <ion-icon :icon="checkmarkOutline" />
-                </div>
-
-                <div>
-                  <span>Skema pembayaran</span>
-
-                  <strong>
-                    {{ formatMonths(selectedPlan.months) }}
-                  </strong>
-
-                  <small>
-                    {{ formatPaymentPlanName(selectedPlan.plan_name, selectedPlan.months) }}
-                  </small>
-                </div>
-
-                <div class="selected-plan-monthly">
-                  <span>Bayar per bulan</span>
-
-                  <strong>
-                    {{
-                      selectedInstallment
-                        ? formatCurrency(selectedInstallment.monthly_payment)
-                        : 'Belum tersedia'
-                    }}
-                  </strong>
-                </div>
-              </div>
-
-              <div
-                v-if="selectedPlan && !selectedInstallment"
-                class="installment-warning"
-              >
-                <ion-icon :icon="alertCircleOutline" />
-                <span>
-                  Skema cicilan untuk tenor ini belum tersedia pada
-                  <strong>lot_installments</strong>.
-                </span>
-              </div>
-            </div>
-          </div>
+              <AppNotice v-if="selectedPlan && !selectedInstallment" tone="warning">
+                Tenor ini belum dibuka untuk kaveling ini. Pilih tenor lain.
+              </AppNotice>
+            </fieldset>
           </div>
         </section>
+      </Reveal>
 
-
-        <!-- =================================================
-             DOKUMEN
-             ================================================= -->
-        <section class="form-card">
-
-          <div class="card-heading">
-            <div class="heading-icon">
-              <ion-icon :icon="documentTextOutline" />
+      <!-- 3. DOKUMEN -->
+      <Reveal :order="3">
+        <section class="spk-card" aria-labelledby="spk-doc-title">
+          <header class="spk-card-head">
+            <span class="spk-card-num t-num" aria-hidden="true">3</span>
+            <div>
+              <h2 id="spk-doc-title">Dokumen</h2>
+              <p>JPG, PNG, atau PDF, maksimal 5 MB per file.</p>
             </div>
+          </header>
 
-            <div class="heading-copy">
-              <span class="section-kicker">03</span>
-              <h2>Dokumen Pendukung</h2>
-              <p>
-                Lampirkan dokumen yang diperlukan untuk proses validasi.
-              </p>
-            </div>
+          <div class="spk-docs">
+            <DocumentUpload
+              label="KTP"
+              required
+              accept=".jpg,.jpeg,.png,.pdf"
+              :file="files.ktp"
+              @change="files.ktp = $event"
+            />
+            <DocumentUpload
+              label="KK"
+              required
+              accept=".jpg,.jpeg,.png,.pdf"
+              :file="files.kk"
+              @change="files.kk = $event"
+            />
+            <DocumentUpload
+              label="NPWP"
+              accept=".jpg,.jpeg,.png,.pdf"
+              :file="files.npwp"
+              @change="files.npwp = $event"
+            />
+            <DocumentUpload
+              label="Bukti pembayaran"
+              required
+              accept=".jpg,.jpeg,.png,.pdf"
+              :file="files.paymentProof"
+              @change="files.paymentProof = $event"
+            />
           </div>
 
-          <div class="card-body">
-
-            <div class="upload-note">
-              <ion-icon :icon="informationCircleOutline" />
-
-              <span>
-                Format JPG, PNG atau PDF. Ukuran maksimal 5 MB per file.
-              </span>
-            </div>
-
-
-            <div class="document-body">
-
-              <DocumentUpload
-                label="KTP"
-                required
-                accept=".jpg,.jpeg,.png,.pdf"
-                :file="files.ktp"
-                @change="files.ktp = $event"
-              />
-
-              <DocumentUpload
-                label="KK"
-                required
-                accept=".jpg,.jpeg,.png,.pdf"
-                :file="files.kk"
-                @change="files.kk = $event"
-              />
-
-              <DocumentUpload
-                label="NPWP"
-                accept=".jpg,.jpeg,.png,.pdf"
-                :file="files.npwp"
-                @change="files.npwp = $event"
-              />
-
-              <DocumentUpload
-                label="Bukti Pembayaran"
-                required
-                wide
-                accept=".jpg,.jpeg,.png,.pdf"
-                :file="files.paymentProof"
-                @change="files.paymentProof = $event"
-              />
-
-            </div>
-
-          </div>
-        </section>
-
-
-        <!-- =================================================
-             CATATAN
-             ================================================= -->
-        <section class="form-card">
-
-          <div class="card-heading">
-            <div class="heading-icon">
-              <ion-icon :icon="createOutline" />
-            </div>
-
-            <div class="heading-copy">
-              <span class="section-kicker">04</span>
-              <h2>Catatan</h2>
-              <p>Tambahkan informasi tambahan bila diperlukan.</p>
-            </div>
-          </div>
-
-          <div class="card-body">
-
-            <div class="label-row">
-              <label for="notes">
-                Catatan Tambahan
-              </label>
-
-              <span class="counter">
-                {{ form.notes.length }}/500
-              </span>
-            </div>
-
+          <label class="spk-field">
+            <span class="spk-field-row">
+              <span>Catatan untuk Admin <em>(opsional)</em></span>
+              <small class="t-num">{{ form.notes.length }}/500</small>
+            </span>
             <textarea
-              id="notes"
               v-model.trim="form.notes"
-              class="notes-input"
+              class="spk-input spk-textarea"
               maxlength="500"
-              rows="4"
-              placeholder="Contoh: calon pembeli meminta jadwal tindak lanjut pada..."
+              rows="3"
+              placeholder="Misalnya klien minta jadwal tanda tangan"
             ></textarea>
-
-          </div>
+          </label>
         </section>
+      </Reveal>
 
-
-        <!-- =================================================
-             FINAL SUMMARY
-             ================================================= -->
-        <section class="confirmation-card">
-
-          <div class="confirmation-heading">
+      <!-- RINGKASAN + KIRIM -->
+      <Reveal :order="4">
+        <section class="spk-review" aria-labelledby="spk-review-title">
+          <h2 id="spk-review-title">Ringkasan</h2>
+          <dl class="spk-review-list">
             <div>
-              <span class="eyebrow">SEBELUM DIKIRIM</span>
-              <h2>Periksa kembali pengajuan</h2>
+              <dt>Klien</dt>
+              <dd>{{ form.fullName || 'Belum dipilih' }}</dd>
             </div>
-
-            <ion-icon :icon="shieldCheckmarkOutline" />
-          </div>
-
-          <div class="confirmation-grid">
-
             <div>
-              <span>Calon Pembeli</span>
-              <strong>
-                {{ form.fullName || 'Belum diisi' }}
-              </strong>
+              <dt>Kaveling</dt>
+              <dd>{{ lot.lot_number ? formatLotNumber(lot.lot_number) : 'Belum dipilih' }}</dd>
             </div>
-
             <div>
-              <span>Kaveling</span>
-              <strong>
-                {{ lot.lot_number ? formatLotNumber(lot.lot_number) : 'Belum dipilih' }}
-              </strong>
+              <dt>Pembayaran</dt>
+              <dd>
+                {{ form.paymentMethod === 'Installment'
+                  ? (selectedPlan ? `Cicil ${selectedPlan.months} bulan` : 'Cicil, tenor belum dipilih')
+                  : 'Tunai' }}
+              </dd>
             </div>
-
+            <div v-if="form.paymentMethod === 'Installment' && selectedInstallment && monthlyEstimate !== null">
+              <dt>Per bulan</dt>
+              <dd class="spk-review-figure t-num">{{ formatCurrency(monthlyEstimate) }}</dd>
+            </div>
             <div>
-              <span>Skema</span>
-              <strong>
-                {{
-                  form.paymentMethod === 'Installment'
-                    ? 'Cicilan'
-                    : 'Cash'
-                }}
-              </strong>
+              <dt>Dokumen wajib</dt>
+              <dd class="t-num">{{ [files.ktp, files.kk, files.paymentProof].filter(Boolean).length }} dari 3</dd>
             </div>
-
-            <div>
-              <span>Tenor</span>
-              <strong>
-                {{
-                  selectedPlan
-                    ? `${selectedPlan.months} bulan`
-                    : '—'
-                }}
-              </strong>
-            </div>
-
-          </div>
-
-          <div class="confirmation-notice">
-            <ion-icon :icon="informationCircleOutline" />
-
-            <p>
-              Setelah diajukan, data SPK akan masuk ke proses
-              validasi Admin. Pastikan data pembeli dan dokumen
-              sudah benar sebelum mengirim.
-            </p>
-          </div>
-
+          </dl>
+          <p class="spk-review-note">Admin memeriksa data dan dokumen sebelum SPK diterbitkan.</p>
         </section>
+      </Reveal>
 
+      <SlideToConfirm
+        v-if="!successMessage"
+        class="spk-slide"
+        label="Geser untuk ajukan SPK"
+        :disabled="!canSubmit"
+        :loading="submitting"
+        @confirm="submitSPK"
+      />
 
-        <!-- =================================================
-             SUBMIT
-             ================================================= -->
-        <SlideToConfirm
-          class="submit-slide"
-          label="Geser untuk ajukan SPK"
-          :disabled="!canSubmit"
-          :loading="submitting"
-          @confirm="submitSPK"
-        />
+      <AppNotice v-if="submitError" tone="error">
+        {{ submitError }}
+      </AppNotice>
 
-
-        <p
-          v-if="successMessage"
-          class="feedback-message success-message"
-        >
-          <ion-icon :icon="checkmarkCircleOutline" />
+      <template v-if="successMessage">
+        <p class="spk-success" role="status">
+          <ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" />
           {{ successMessage }}
         </p>
-
-
-        <p
-          v-if="submitError"
-          class="feedback-message submit-error"
-        >
-          <ion-icon :icon="alertCircleOutline" />
-          {{ submitError }}
-        </p>
-
-      </main>
-    </ion-content>
-
-
-    <!-- =====================================================
-         MARKETING BOTTOM NAVIGATION
-         ===================================================== -->
-    <MobileTabBar
-      variant="marketing"
-      active="calon-pembeli"
-    />
-
-  </ion-page>
+        <AppButton expand="block" @click="ionRouter.replace('/marketing/pengajuan')">
+          Lihat status SPK
+        </AppButton>
+      </template>
+    </div>
+  </MarketingPageLayout>
 </template>
 
 
+
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import {
   computed,
   onMounted,
@@ -827,10 +375,9 @@ import {
 } from 'vue'
 
 import {
-  IonPage,
-  IonContent,
   IonIcon,
   IonSpinner,
+  useIonRouter,
 } from '@ionic/vue'
 
 import {
@@ -839,26 +386,18 @@ import {
 
 import {
   alertCircleOutline,
-  arrowForwardOutline,
-  callOutline,
   cardOutline,
   cashOutline,
   checkmarkCircleOutline,
-  checkmarkOutline,
-  createOutline,
-  documentTextOutline,
   informationCircleOutline,
-  locationOutline,
   lockClosedOutline,
-  mailOutline,
-  mapOutline,
-  personOutline,
-  shieldCheckmarkOutline,
 } from 'ionicons/icons'
 
-import AppHeader from '@/components/common/AppHeader.vue'
-import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
+import Reveal from '@/components/ui/Reveal.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
+import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import { useCelebration } from '@/composables/useCelebration'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
@@ -885,6 +424,7 @@ import { getLotsHeldBySpkSafe } from '@/services/lotHoldService'
    ========================================================= */
 
 const route = useRoute()
+const ionRouter = useIonRouter()
 const { celebrate } = useCelebration()
 
 function getRouteValue(key: string): string {
@@ -906,6 +446,8 @@ const myCustomers = ref<MarketingSpkCustomer[]>([])
 
 const form = reactive({
   customerId: (Number(getRouteValue('customer_id')) || null) as number | null,
+  /** false = langsung cicil tanpa DP (bawaan), true = pakai DP. */
+  useDownPayment: false,
   downPayment: '',
   fullName: getRouteValue('name'),
   phone: getRouteValue('phone'),
@@ -995,6 +537,31 @@ const selectedPlan = computed(() => {
   )
 })
 
+// Harga yang dipakai database saat membuat SPK (promo hanya bila lebih murah).
+const effectiveLotPrice = computed(() => {
+  const cash = Number(lot.cash_price ?? 0)
+  const promo = Number(lot.promo_price ?? 0)
+  return promo > 0 && (cash <= 0 || promo < cash) ? promo : cash
+})
+
+const downPaymentAmount = computed(() =>
+  form.useDownPayment ? Number(form.downPayment) || 0 : 0,
+)
+
+const downPaymentInvalid = computed(() =>
+  form.useDownPayment
+  && (downPaymentAmount.value <= 0 || downPaymentAmount.value >= effectiveLotPrice.value),
+)
+
+// Rumus sama dengan create_marketing_spk_request: (harga - DP) + margin, dibagi tenor.
+const monthlyEstimate = computed(() => {
+  const plan = selectedPlan.value
+  if (!plan || plan.months <= 0 || downPaymentInvalid.value || effectiveLotPrice.value <= 0) return null
+  const principal = effectiveLotPrice.value - downPaymentAmount.value
+  const margin = Number(plan.margin_percent ?? 0)
+  return Math.floor((principal + Math.round(principal * margin / 100)) / plan.months)
+})
+
 const selectedInstallment = computed(() => {
   if (!form.paymentPlanId) {
     return null
@@ -1057,6 +624,13 @@ const completionPercent = computed(() => {
 })
 
 
+const steps = [
+  { n: 1, label: 'Klien' },
+  { n: 2, label: 'Pembayaran' },
+  { n: 3, label: 'Dokumen' },
+] as const
+
+
 const currentStep = computed(() => {
   const buyerComplete =
     Boolean(form.fullName) &&
@@ -1088,7 +662,7 @@ const currentStep = computed(() => {
 
 const canSubmit = computed(() => {
   if (!form.customerId) return false
-  if (form.paymentMethod === 'Installment' && !(Number(form.downPayment) > 0)) return false
+  if (form.paymentMethod === 'Installment' && downPaymentInvalid.value) return false
 
   const basicValid =
     Boolean(form.fullName) &&
@@ -1152,6 +726,13 @@ async function loadLot() {
 
   try {
     let data: Lot | null = null
+
+    // SPK Marketing selalu untuk satu kaveling; tanpa kaveling, arahkan ke daftar kaveling.
+    if (!lotId && !lotNumber) {
+      lotError.value =
+        'Pilih kaveling yang tersedia, lalu ketuk Ajukan SPK di kartunya.'
+      return
+    }
 
     if (lotId) {
       data = await getLotById(
@@ -1268,6 +849,8 @@ function selectPaymentMethod(
 
   if (method === 'Cash') {
     form.paymentPlanId = null
+    form.useDownPayment = false
+    form.downPayment = ''
   }
 }
 
@@ -1364,7 +947,7 @@ async function submitSPK() {
         payment_method: form.paymentMethod,
         down_payment_amount:
           form.paymentMethod === 'Installment'
-            ? Number(form.downPayment)
+            ? downPaymentAmount.value
             : 0,
 
         payment_plan_id:
@@ -1552,20 +1135,17 @@ export default defineComponent({
                       h(
                         'strong',
                         null,
-                        [
-                          props.label,
-                          props.required
-                            ? ' *'
-                            : '',
-                        ],
+                        props.label,
                       ),
 
                       h(
                         'small',
                         null,
                         props.file
-                          ? 'Dokumen sudah dipilih'
-                          : 'JPG, PNG atau PDF • Maks. 5 MB',
+                          ? 'Siap dikirim'
+                          : props.required
+                            ? 'Wajib'
+                            : 'Opsional',
                       ),
                     ],
                   ),
@@ -1636,7 +1216,7 @@ export default defineComponent({
                       h('input', {
                         type: 'file',
                         accept: props.accept,
-                        hidden: true,
+                        'aria-label': `Pilih file ${props.label}`,
                         onChange:
                           handleChange,
                       }),
@@ -1646,13 +1226,14 @@ export default defineComponent({
                         {
                           icon:
                             cloudUploadOutline,
+                          'aria-hidden': 'true',
                         },
                       ),
 
                       h(
                         'span',
                         null,
-                        'Pilih File',
+                        'Pilih file',
                       ),
                     ],
                   ),
@@ -1666,3448 +1247,828 @@ export default defineComponent({
 
 
 <style scoped>
-/* =========================================================
-   PAGE
-   ========================================================= */
-
-.spk-page {
-  --background: #f7f7f5;
-
-  background:
-    #f7f7f5;
-
-  color:
-    #1f1f1f;
-}
-
-
-.spk-content {
-  --background:
-    #f7f7f5;
-
-  background:
-    #f7f7f5;
-}
-
-
-/* =========================================================
-   MAIN CONTAINER
-   ========================================================= */
-
-.spk-container {
-  width:
-    100%;
-
-  max-width:
-    820px;
-
-  margin:
-    0 auto;
-
-  padding:
-    16px 16px calc(112px + env(safe-area-inset-bottom));
-
-  box-sizing:
-    border-box;
-}
-
-
-/* =========================================================
-   PAGE INTRO
-   ========================================================= */
-
-.page-intro {
-  display:
-    flex;
-
-  align-items:
-    flex-end;
-
-  justify-content:
-    space-between;
-
-  gap:
-    20px;
-
-  margin-bottom:
-    18px;
-}
-
-
-.page-intro-copy {
-  min-width:
-    0;
-}
-
-
-.eyebrow {
-  display:
-    inline-block;
-
-  margin-bottom:
-    5px;
-
-  color:
-    #b08b43;
-
-  font-size:
-    10px;
-
-  font-weight:
-    800;
-
-  letter-spacing:
-    1.2px;
-}
-
-
-.page-intro h1 {
-  margin:
-    0;
-
-  color:
-    #222222;
-
-  font-size:
-    clamp(25px, 4vw, 34px);
-
-  line-height:
-    1.12;
-
-  font-weight:
-    850;
-
-  letter-spacing:
-    -0.8px;
-}
-
-
-.page-intro p {
-  max-width:
-    610px;
-
-  margin:
-    7px 0 0;
-
-  color:
-    #777777;
-
-  font-size:
-    14px;
-
-  line-height:
-    1.5;
-}
-
-
-.progress-chip {
-  flex:
-    0 0 auto;
-
-  display:
-    inline-flex;
-
-  align-items:
-    center;
-
-  gap:
-    6px;
-
-  padding:
-    8px 11px;
-
-  border:
-    1px solid
-    #e8ddc8;
-
-  border-radius:
-    999px;
-
-  background:
-    #fffaf0;
-
-  color:
-    #9d7d40;
-
-  font-size:
-    12px;
-
-  font-weight:
-    700;
-
-  white-space:
-    nowrap;
-}
-
-
-.progress-chip ion-icon {
-  font-size:
-    16px;
-}
-
-
-/* =========================================================
-   FORM PROGRESS
-   ========================================================= */
-
-.form-progress {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  width:
-    100%;
-
-  margin-bottom:
-    18px;
-
-  padding:
-    12px 14px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px solid
-    #ece7dc;
-
-  border-radius:
-    14px;
-
-  background:
-    rgba(255, 255, 255, 0.82);
-
-  box-shadow:
-    0 2px 7px
-    rgba(0, 0, 0, 0.025);
-}
-
-
-.progress-step {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    8px;
-
-  min-width:
-    0;
-
-  opacity:
-    0.48;
-}
-
-
-.progress-step.active {
-  opacity:
-    1;
-}
-
-
-.step-number {
-  flex:
-    0 0 30px;
-
-  width:
-    30px;
-
-  height:
-    30px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border:
-    1px solid
-    #d9d9d9;
-
-  border-radius:
-    50%;
-
-  background:
-    #ffffff;
-
-  color:
-    #888888;
-
-  font-size:
-    12px;
-
-  font-weight:
-    800;
-}
-
-
-.progress-step.active .step-number {
-  border-color:
-    #c5a55a;
-
-  background:
-    #c5a55a;
-
-  color:
-    #ffffff;
-}
-
-
-.progress-step div {
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  min-width:
-    0;
-}
-
-
-.progress-step strong {
-  color:
-    #333333;
-
-  font-size:
-    12px;
-
-  line-height:
-    1.2;
-}
-
-
-.progress-step small {
-  margin-top:
-    2px;
-
-  color:
-    #999999;
-
-  font-size:
-    10px;
-
-  line-height:
-    1.2;
-}
-
-
-.progress-line {
-  flex:
-    1;
-
-  height:
-    1px;
-
-  min-width:
-    15px;
-
-  margin:
-    0 10px;
-
-  background:
-    #dedbd3;
-}
-
-
-/* =========================================================
-   FORM CARD
-   ========================================================= */
-
-.form-card {
-  overflow:
-    hidden;
-
-  margin-bottom:
-    18px;
-
-  border:
-    1px solid
-    rgba(0, 0, 0, 0.035);
-
-  border-radius:
-    16px;
-
-  background:
-    #ffffff;
-
-  box-shadow:
-    0 3px 12px
-    rgba(0, 0, 0, 0.035);
-}
-
-
-.card-heading {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    13px;
-
-  min-height:
-    78px;
-
-  padding:
-    13px 20px;
-
-  box-sizing:
-    border-box;
-
-  background:
-    #fcf9f2;
-
-  border-bottom:
-    1px solid
-    #f2ecdf;
-}
-
-
-.heading-icon {
-  flex:
-    0 0 48px;
-
-  width:
-    48px;
-
-  height:
-    48px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border-radius:
-    13px;
-
-  background:
-    #f5ead1;
-
-  color:
-    #a1813f;
-
-  font-size:
-    25px;
-}
-
-
-.heading-copy {
-  flex:
-    1;
-
-  min-width:
-    0;
-}
-
-
-.section-kicker {
-  display:
-    block;
-
-  margin-bottom:
-    2px;
-
-  color:
-    #b18d4a;
-
-  font-size:
-    9px;
-
-  font-weight:
-    800;
-
-  letter-spacing:
-    1px;
-}
-
-
-.card-heading h2 {
-  margin:
-    0;
-
-  color:
-    #9c7b3e;
-
-  font-size:
-    20px;
-
-  line-height:
-    1.2;
-
-  font-weight:
-    800;
-
-  letter-spacing:
-    -0.2px;
-}
-
-
-.card-heading p {
-  margin:
-    3px 0 0;
-
-  color:
-    #8d8d8d;
-
-  font-size:
-    12px;
-
-  line-height:
-    1.35;
-}
-
-
-.required-note {
-  align-self:
-    flex-start;
-
-  margin-top:
-    3px;
-
-  color:
-    #9c9c9c;
-
-  font-size:
-    10px;
-
-  white-space:
-    nowrap;
-}
-
-
-.card-body {
-  padding:
-    22px 24px 25px;
-
-  box-sizing:
-    border-box;
-}
-
-
-/* =========================================================
-   FORM GRID
-   ========================================================= */
-
-.form-grid {
-  display:
-    grid;
-
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
-
-  gap:
-    20px 22px;
-}
-
-
-.field-full {
-  grid-column:
-    1 / -1;
-}
-
-
-.field-group {
-  min-width:
-    0;
-}
-
-
-.field-group > label,
-.label-row label {
-  display:
-    block;
-
-  margin:
-    0 0 8px;
-
-  color:
-    #222222;
-
-  font-size:
-    14px;
-
-  line-height:
-    1.25;
-
-  font-weight:
-    750;
-}
-
-
-.field-group label span {
-  color:
-    #d53232;
-}
-
-
-.field-group label small {
-  color:
-    #858585;
-
-  font-size:
-    11px;
-
-  font-weight:
-    500;
-}
-
-
-.label-row {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    space-between;
-
-  gap:
-    10px;
-}
-
-
-.label-row label {
-  margin-bottom:
-    8px;
-}
-
-
-.counter {
-  flex:
-    0 0 auto;
-
-  color:
-    #9b9b9b;
-
-  font-size:
-    10px;
-}
-
-
-/* =========================================================
-   INPUT
-   ========================================================= */
-
-.field-shell {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    11px;
-
-  min-height:
-    52px;
-
-  padding:
-    0 13px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px solid
-    #e0e0e0;
-
-  border-radius:
-    11px;
-
-  background:
-    #ffffff;
-
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-
-.field-shell:focus-within {
-  border-color:
-    #c5a55a;
-
-  box-shadow:
-    0 0 0 3px
-    rgba(197, 165, 90, 0.10);
-}
-
-
-.field-shell.filled {
-  background:
-    #fffefa;
-}
-
-
-.field-shell > ion-icon {
-  flex:
-    0 0 21px;
-
-  color:
-    #c5a55a;
-
-  font-size:
-    21px;
-}
-
-
-.field-shell input,
-.field-shell textarea {
-  flex:
-    1;
-
-  width:
-    100%;
-
-  min-width:
-    0;
-
-  border:
-    0;
-
-  outline:
-    0;
-
-  background:
-    transparent;
-
-  color:
-    #252525;
-
-  font-family:
-    inherit;
-
-  font-size:
-    14px;
-
-  line-height:
-    1.45;
-}
-
-
-.field-shell input::placeholder,
-.field-shell textarea::placeholder {
-  color:
-    #a4a4a4;
-
-  opacity:
-    1;
-}
-
-
-.textarea-shell {
-  align-items:
-    flex-start;
-
-  padding-top:
-    12px;
-
-  padding-bottom:
-    12px;
-}
-
-
-.textarea-shell ion-icon {
-  margin-top:
-    1px;
-}
-
-
-.textarea-shell textarea {
-  min-height:
-    74px;
-
-  resize:
-    vertical;
-}
-
-
-/* =========================================================
-   LOT SUMMARY
-   ========================================================= */
-
-.lot-summary {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    space-between;
-
-  gap:
-    20px;
-
-  margin-bottom:
-    22px;
-
-  padding:
-    17px 18px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px solid
-    #eadfca;
-
-  border-radius:
-    14px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #fffaf0,
-      #fffdf9
-    );
-}
-
-
-.lot-main {
-  min-width:
-    0;
-}
-
-
-.summary-label {
-  display:
-    block;
-
-  margin-bottom:
-    4px;
-
-  color:
-    #ae8b4b;
-
-  font-size:
-    9px;
-
-  font-weight:
-    800;
-
-  letter-spacing:
-    1px;
-}
-
-
-.lot-main > strong {
-  display:
-    block;
-
-  color:
-    #9c7b3e;
-
-  font-size:
-    23px;
-
-  line-height:
-    1.15;
-
-  font-weight:
-    850;
-}
-
-
-.lot-tags {
-  display:
-    flex;
-
-  flex-wrap:
-    wrap;
-
-  gap:
-    5px;
-
-  margin-top:
-    7px;
-}
-
-
-.lot-tags span {
-  padding:
-    4px 7px;
-
-  border-radius:
-    6px;
-
-  background:
-    #f1e9d9;
-
-  color:
-    #756546;
-
-  font-size:
-    10px;
-
-  line-height:
-    1.2;
-}
-
-
-.lot-price {
-  flex:
-    0 0 auto;
-
-  padding-left:
-    15px;
-
-  border-left:
-    1px solid
-    #eadfca;
-
-  text-align:
-    right;
-}
-
-
-.lot-price span {
-  display:
-    block;
-
-  margin-bottom:
-    4px;
-
-  color:
-    #999999;
-
-  font-size:
-    10px;
-}
-
-
-.lot-price strong {
-  display:
-    block;
-
-  color:
-    #222222;
-
-  font-size:
-    18px;
-
-  line-height:
-    1.2;
-
-  font-weight:
-    850;
-}
-
-
-.lot-price small {
-  display:
-    block;
-
-  margin-top:
-    3px;
-
-  color:
-    #b08b43;
-
-  font-size:
-    10px;
-}
-
-
-.lot-state {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    9px;
-
-  margin-bottom:
-    20px;
-
-  padding:
-    13px 14px;
-
-  border-radius:
-    11px;
-
-  background:
-    #f8f8f6;
-
-  color:
-    #777777;
-
-  font-size:
-    12px;
-}
-
-
-.lot-state.error {
-  align-items:
-    flex-start;
-
-  background:
-    #fff5f3;
-
-  color:
-    #9b5b50;
-}
-
-
-.lot-state.error ion-icon {
-  flex:
-    0 0 auto;
-
-  font-size:
-    19px;
-}
-
-
-.lot-state.error div {
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  gap:
-    2px;
-}
-
-
-.lot-state.error strong {
-  color:
-    #8d4d42;
-
-  font-size:
-    12px;
-}
-
-
-/* =========================================================
-   PRICE FIELD
-   ========================================================= */
-
-.price-field {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    11px;
-
-  min-height:
-    66px;
-
-  padding:
-    9px 12px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px solid
-    #ece8df;
-
-  border-radius:
-    11px;
-
-  background:
-    #faf9f6;
-}
-
-
-.price-icon {
-  flex:
-    0 0 38px;
-
-  width:
-    38px;
-
-  height:
-    38px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border-radius:
-    9px;
-
-  background:
-    #f1e5ca;
-
-  color:
-    #ad8841;
-
-  font-size:
-    19px;
-}
-
-
-.price-copy {
-  flex:
-    1;
-
-  min-width:
-    0;
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  gap:
-    2px;
-}
-
-
-.price-copy span {
-  color:
-    #929292;
-
-  font-size:
-    10px;
-}
-
-
-.price-copy strong {
-  overflow:
-    hidden;
-
-  color:
-    #333333;
-
-  font-size:
-    16px;
-
-  line-height:
-    1.2;
-
-  font-weight:
-    800;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
-}
-
-
-.readonly-icon {
-  flex:
-    0 0 auto;
-
-  color:
-    #aaaaaa;
-
-  font-size:
-    17px;
-}
-
-
-.field-hint {
-  margin:
-    6px 1px 0;
-
-  color:
-    #999999;
-
-  font-size:
-    10px;
-
-  line-height:
-    1.4;
-}
-
-
-/* =========================================================
-   SELECT
-   ========================================================= */
-
-.select-shell {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    11px;
-
-  min-height:
-    52px;
-
-  padding:
-    0 10px 0 13px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px solid
-    #e0e0e0;
-
-  border-radius:
-    11px;
-
-  background:
-    #ffffff;
-}
-
-
-.select-shell:focus-within {
-  border-color:
-    #c5a55a;
-}
-
-
-.select-shell > ion-icon {
-  flex:
-    0 0 21px;
-
-  color:
-    #c5a55a;
-
-  font-size:
-    21px;
-}
-
-
-.select-shell ion-select {
-  flex:
-    1;
-
-  min-width:
-    0;
-
-  --padding-start:
-    0;
-
-  --padding-end:
-    0;
-
-  --padding-top:
-    0;
-
-  --padding-bottom:
-    0;
-
-  color:
-    #4c4c4c;
-
-  font-size:
-    14px;
-}
-
-
-/* =========================================================
-   PAYMENT METHOD
-   ========================================================= */
-
-.payment-method-options {
+/* Ajukan SPK. Bentuk mengikuti halaman marketing lain (MarketingPageLayout,
+   kartu putih bergaris, isian 44px+). Satu panel hijau hutan untuk ringkasan
+   sebagai titik fokus sebelum kirim. Hanya token dari theme/variables.css. */
+
+.spk {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.payment-method-option {
+  gap: var(--space-4);
   min-width: 0;
-  min-height: 76px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 12px 14px;
-  border: 1px solid #e1e1e1;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #444444;
-  cursor: pointer;
-  text-align: left;
-  box-sizing: border-box;
-  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+  font-family: var(--font-primary);
+  color: var(--text-primary);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .payment-method-option:hover {
-    border-color: #d4bd86;
-  }
+.spk button,
+.spk input,
+.spk select,
+.spk textarea {
+  font: inherit;
 }
 
-.payment-method-option:active {
-  transform: scale(0.985);
+.spk button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.payment-method-option.selected {
-  border-color: #c5a55a;
-  background: #fffaf0;
-  box-shadow: inset 0 0 0 1px rgba(197, 165, 90, 0.12);
-}
-
-.payment-method-icon {
-  width: 40px;
-  height: 40px;
-  flex: 0 0 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: #f7f1e4;
-  color: #b08b43;
-  font-size: 21px;
-}
-
-.payment-method-copy {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.payment-method-copy strong {
-  color: #333333;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.payment-method-copy small {
-  color: #929292;
-  font-size: 10px;
-  line-height: 1.3;
-}
-
-.payment-method-check {
-  flex: 0 0 auto;
-  color: #c5a55a;
-  font-size: 19px;
-}
-
-.payment-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid #eadfca;
-  border-radius: 12px;
-  background: #fffaf0;
-  box-sizing: border-box;
-}
-
-.payment-summary-icon {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 11px;
-  background: #f1e4c8;
-  color: #b08b43;
-  font-size: 21px;
-}
-
-.payment-summary-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.payment-summary-copy span {
-  color: #8b806f;
-  font-size: 10px;
+.spk b {
+  color: var(--danger-text);
   font-weight: 700;
 }
 
-.payment-summary-copy strong {
-  overflow: hidden;
-  color: #9c7b3e;
-  font-size: clamp(18px, 3vw, 24px);
-  font-weight: 850;
-  line-height: 1.15;
-  text-overflow: ellipsis;
+/* ---------- progres ---------- */
+.spk-progress {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
 }
 
-.payment-summary-copy small {
-  color: #8e8e8e;
-  font-size: 10px;
+.spk-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.tenor-price {
-  flex: 0 0 auto;
-  max-width: 145px;
+.spk-step {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  color: #9c7b3e;
-  font-size: 11px;
-  font-weight: 800;
-  text-align: right;
-  line-height: 1.2;
-}
-
-.tenor-price small {
-  color: #9a9a9a;
-  font-size: 9px;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
-.installment-warning {
+.spk-step-num {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+
+.spk-step-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.spk-step.is-active { color: var(--text-primary); }
+.spk-step.is-active .spk-step-num {
+  background: var(--green-700);
+  color: #fff;
+}
+
+.spk-meter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.spk-meter-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+}
+
+.spk-meter-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--green-700);
+  transform-origin: left center;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.spk-meter-text {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+/* ---------- kartu bagian ---------- */
+.spk-card {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+}
+
+.spk-card-head {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border: 1px solid #ead9b4;
-  border-radius: 10px;
-  background: #fff9eb;
-  color: #806c47;
-  font-size: 11px;
+  gap: var(--space-3);
+}
+
+.spk-card-num {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--status-success-bg);
+  color: var(--green-700);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.spk-card-head h2 {
+  margin: 0;
+  padding-top: 6px;
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.spk-card-head p {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
   line-height: 1.45;
 }
 
-.installment-warning ion-icon {
-  flex: 0 0 auto;
-  margin-top: 1px;
-  color: #b08b43;
-  font-size: 17px;
+/* ---------- isian ---------- */
+.spk-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
-.installment-warning strong {
-  font-weight: 800;
+.spk-field > span,
+.spk-field-row > span {
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
-/* =========================================================
-   TENOR
-   ========================================================= */
-
-.tenor-section {
-  margin-top:
-    23px;
-
-  padding-top:
-    20px;
-
-  border-top:
-    1px solid
-    #efede8;
+.spk-field em {
+  color: var(--text-secondary);
+  font-style: normal;
+  font-weight: 500;
 }
 
-
-.tenor-heading {
-  display:
-    flex;
-
-  align-items:
-    flex-start;
-
-  justify-content:
-    space-between;
-
-  gap:
-    15px;
-
-  margin-bottom:
-    12px;
+.spk-field-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 
-
-.tenor-heading label {
-  display:
-    block;
-
-  margin-bottom:
-    3px;
-
-  color:
-    #222222;
-
-  font-size:
-    14px;
-
-  font-weight:
-    750;
+.spk-field-row small {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 
-
-.tenor-heading label span {
-  color:
-    #d53232;
+.spk-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 10px var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 16px; /* di bawah 16px, iOS memperbesar halaman */
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
 
+.spk-input::placeholder { color: var(--text-secondary); }
+.spk-input:focus { border-color: var(--green-700); }
+.spk-input:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+.spk-input[aria-invalid='true'] { border-color: var(--danger-text); }
 
-.tenor-heading p {
-  margin:
-    0;
-
-  color:
-    #999999;
-
-  font-size:
-    10px;
-
-  line-height:
-    1.4;
+select.spk-input {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235F5F66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+  cursor: pointer;
 }
 
-
-.tenor-heading code {
-  padding:
-    2px 4px;
-
-  border-radius:
-    4px;
-
-  background:
-    #f2efe8;
-
-  color:
-    #816c45;
-
-  font-size:
-    9px;
+.spk-textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.45;
 }
-
-
-.option-count {
-  flex:
-    0 0 auto;
-
-  padding:
-    5px 8px;
-
-  border-radius:
-    7px;
-
-  background:
-    #f7f1e4;
-
-  color:
-    #9c7b3e;
-
-  font-size:
-    10px;
-
-  font-weight:
-    700;
-
-  white-space:
-    nowrap;
-}
-
-
-.tenor-options {
-  display:
-    grid;
-
-  grid-template-columns:
-    repeat(
-      auto-fit,
-      minmax(145px, 1fr)
-    );
-
-  gap:
-    10px;
-}
-
-
-.tenor-option {
-  position:
-    relative;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    9px;
-
-  min-width:
-    0;
-
-  min-height:
-    68px;
-
-  padding:
-    10px 11px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px solid
-    #e1e1e1;
-
-  border-radius:
-    11px;
-
-  background:
-    #ffffff;
-
-  color:
-    #444444;
-
-  cursor:
-    pointer;
-
-  text-align:
-    left;
-
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    transform 0.12s ease;
-}
-
 
 @media (hover: hover) and (pointer: fine) {
-  .tenor-option:hover {
-    border-color:
-      #d4bd86;
-  }
+  .spk-input:hover:not(:focus) { border-color: var(--border-strong); }
 }
 
-
-.tenor-option:active {
-  transform:
-    scale(0.985);
+.spk-error-text {
+  color: var(--danger-text);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
-
-.tenor-option.selected {
-  border-color:
-    #c5a55a;
-
-  background:
-    #fffaf0;
-
-  box-shadow:
-    inset 0 0 0 1px
-    rgba(197, 165, 90, 0.12);
+.spk-inline-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
-
-.tenor-radio {
-  flex:
-    0 0 19px;
-
-  width:
-    19px;
-
-  height:
-    19px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border:
-    2px solid
-    #bcbcbc;
-
-  border-radius:
-    50%;
-
-  box-sizing:
-    border-box;
+.spk-link {
+  min-height: 44px;
+  padding: 0 var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--green-700);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  justify-self: start;
+}
+.spk-link:active { opacity: 0.7; }
+.spk-link:focus-visible {
+  outline: 2px solid var(--green-700);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+@media (hover: hover) and (pointer: fine) {
+  .spk-link:hover { text-decoration: underline; }
 }
 
-
-.tenor-option.selected .tenor-radio {
-  border-color:
-    #c5a55a;
+/* ---------- data klien (hanya baca, diambil dari data klien) ---------- */
+.spk-client {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
 }
 
+.spk-client > div { min-width: 0; }
+.spk-client-wide { grid-column: 1 / -1; }
 
-.tenor-radio span {
-  width:
-    9px;
-
-  height:
-    9px;
-
-  border-radius:
-    50%;
-
-  background:
-    transparent;
+.spk-client dt,
+.spk-label {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
-
-.tenor-option.selected .tenor-radio span {
-  background:
-    #c5a55a;
+.spk-client dd {
+  margin: 2px 0 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
+.spk-client dd.is-missing { color: var(--danger-text); }
 
-.tenor-copy {
-  flex:
-    1;
-
-  min-width:
-    0;
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  gap:
-    2px;
+/* ---------- kaveling ---------- */
+.spk-lot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--gold-50);
 }
 
-
-.tenor-copy strong {
-  color:
-    #333333;
-
-  font-size:
-    14px;
-
-  line-height:
-    1.2;
-
-  font-weight:
-    800;
+.spk-lot-main,
+.spk-lot-price {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
-
-.tenor-copy small {
-  overflow:
-    hidden;
-
-  color:
-    #969696;
-
-  font-size:
-    10px;
-
-  line-height:
-    1.25;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
+.spk-lot-number {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
-
-.tenor-option.selected .tenor-copy strong {
-  color:
-    #9c7b3e;
+.spk-lot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
+.spk-lot-price { text-align: right; }
 
-.tenor-check {
-  flex:
-    0 0 auto;
-
-  color:
-    #c5a55a;
-
-  font-size:
-    18px;
+.spk-lot-price strong {
+  color: var(--gold-800);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-
-.tenor-loading,
-.empty-plans,
-.tenor-error {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    9px;
-
-  min-height:
-    48px;
-
-  padding:
-    10px 12px;
-
-  box-sizing:
-    border-box;
-
-  border-radius:
-    10px;
-
-  background:
-    #f8f8f6;
-
-  color:
-    #777777;
-
-  font-size:
-    11px;
-
-  line-height:
-    1.4;
+.spk-lot-price small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: var(--text-2xs);
 }
 
-
-.tenor-error {
-  align-items:
-    flex-start;
-
-  background:
-    #fff5f3;
-
-  color:
-    #9b5b50;
+/* ---------- pilihan (metode, tenor) ---------- */
+.spk-fieldset {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
-
-.tenor-error ion-icon {
-  flex:
-    0 0 auto;
-
-  margin-top:
-    1px;
-
-  font-size:
-    18px;
+.spk-fieldset legend {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
-
-.tenor-error div {
-  flex:
-    1;
-
-  min-width:
-    0;
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
+.spk-legend-count {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 
-
-.tenor-error strong {
-  color:
-    #8d4d42;
-
-  font-size:
-    11px;
+.spk-choice-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
 }
 
-
-.tenor-error button {
-  flex:
-    0 0 auto;
-
-  padding:
-    6px 9px;
-
-  border:
-    1px solid
-    #dfb6ae;
-
-  border-radius:
-    7px;
-
-  background:
-    #ffffff;
-
-  color:
-    #9b5b50;
-
-  font-family:
-    inherit;
-
-  font-size:
-    10px;
-
-  font-weight:
-    700;
-
-  cursor:
-    pointer;
-}
-
-
-.empty-plans ion-icon {
-  flex:
-    0 0 auto;
-
-  color:
-    #b08b43;
-
-  font-size:
-    18px;
-}
-
-
-.selected-plan {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    10px;
-
-  margin-top:
-    10px;
-
-  padding:
-    10px 11px;
-
-  border:
-    1px solid
-    #e7d9b9;
-
-  border-radius:
-    10px;
-
-  background:
-    #fffaf0;
-}
-
-
-.selected-plan-icon {
-  flex:
-    0 0 28px;
-
-  width:
-    28px;
-
-  height:
-    28px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border-radius:
-    8px;
-
-  background:
-    #c5a55a;
-
-  color:
-    #ffffff;
-
-  font-size:
-    15px;
-}
-
-
-.selected-plan > div:nth-child(2) {
-  flex:
-    1;
-
-  min-width:
-    0;
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  gap:
-    1px;
-}
-
-
-.selected-plan > div:nth-child(2) span {
-  color:
-    #9c9c9c;
-
-  font-size:
-    9px;
-}
-
-
-.selected-plan > div:nth-child(2) strong {
-  overflow:
-    hidden;
-
-  color:
-    #9c7b3e;
-
-  font-size:
-    12px;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
-}
-
-
-.selected-plan-monthly {
-  flex:
-    0 0 auto;
-
-  color:
-    #80683f;
-
-  font-size:
-    11px;
-
-  font-weight:
-    800;
-}
-
-
-/* =========================================================
-   DOCUMENTS
-   ========================================================= */
-
-.upload-note {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    7px;
-
-  margin-bottom:
-    15px;
-
-  padding:
-    9px 11px;
-
-  border-radius:
-    9px;
-
-  background:
-    #f8f7f3;
-
-  color:
-    #858585;
-
-  font-size:
-    10px;
-
-  line-height:
-    1.35;
-}
-
-
-.upload-note ion-icon {
-  flex:
-    0 0 auto;
-
-  color:
-    #b08b43;
-
-  font-size:
-    17px;
-}
-
-
-.document-body {
-  display:
-    grid;
-
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
-
-  gap:
-    12px;
-}
-
-
-.document-upload {
-  min-width:
-    0;
-
-  padding:
-    13px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px dashed
-    #d8d3c7;
-
-  border-radius:
-    12px;
-
-  background:
-    #fcfcfa;
-
+.spk-choice,
+.spk-tenor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+    transform var(--dur-instant) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
 }
 
+.spk-choice:active,
+.spk-tenor:active { transform: scale(0.98); }
 
-.document-upload.has-file {
-  border-style:
-    solid;
-
-  border-color:
-    #d7bd82;
-
-  background:
-    #fffaf0;
+.spk-choice:focus-visible,
+.spk-tenor:focus-visible {
+  outline: 2px solid var(--green-700);
+  outline-offset: 2px;
 }
 
-
-.document-upload-wide {
-  grid-column:
-    1 / -1;
+.spk-choice[aria-pressed='true'],
+.spk-tenor[aria-pressed='true'] {
+  border-color: var(--green-700);
+  background: var(--green-50);
 }
 
-
-.document-upload-header {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    9px;
-
-  min-width:
-    0;
+@media (hover: hover) and (pointer: fine) {
+  .spk-choice:hover,
+  .spk-tenor:hover { border-color: var(--green-500); }
 }
 
-
-.document-upload-icon {
-  flex:
-    0 0 34px;
-
-  width:
-    34px;
-
-  height:
-    34px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border-radius:
-    9px;
-
-  background:
-    #f4ead5;
-
-  color:
-    #b08b43;
-
-  font-size:
-    18px;
+.spk-choice > ion-icon {
+  flex: 0 0 22px;
+  font-size: 22px;
+  color: var(--green-700);
 }
 
-
-.document-upload-title {
-  flex:
-    1;
-
-  min-width:
-    0;
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  gap:
-    2px;
+.spk-choice-copy,
+.spk-tenor-copy {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
 }
 
-
-.document-upload-title strong {
-  overflow:
-    hidden;
-
-  color:
-    #333333;
-
-  font-size:
-    12px;
-
-  line-height:
-    1.2;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
+.spk-choice-copy strong,
+.spk-tenor-copy strong {
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
-
-.document-upload-title small {
-  overflow:
-    hidden;
-
-  color:
-    #999999;
-
-  font-size:
-    9px;
-
-  line-height:
-    1.25;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
+.spk-choice-copy small,
+.spk-tenor-copy small {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
 }
 
-
-.document-upload-button {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  gap:
-    5px;
-
-  min-height:
-    34px;
-
-  margin-top:
-    10px;
-
-  border:
-    1px solid
-    #e2d5b9;
-
-  border-radius:
-    8px;
-
-  background:
-    #ffffff;
-
-  color:
-    #ad8841;
-
-  font-size:
-    10px;
-
-  font-weight:
-    700;
-
-  cursor:
-    pointer;
+.spk-radio {
+  position: relative;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 2px solid var(--text-secondary);
+  border-radius: 50%;
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
 
-
-.document-upload-button ion-icon {
-  font-size:
-    17px;
+.spk-radio::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--green-700);
+  transform: scale(0.4);
+  opacity: 0;
+  transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast) var(--ease-out);
 }
 
+[aria-pressed='true'] > .spk-radio { border-color: var(--green-700); }
+[aria-pressed='true'] > .spk-radio::after { transform: scale(1); opacity: 1; }
 
-.selected-file {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    8px;
-
-  margin-top:
-    10px;
+.spk-installment {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-default);
 }
 
-
-.file-name {
-  flex:
-    1;
-
-  min-width:
-    0;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    5px;
-
-  color:
-    #80683f;
-
-  font-size:
-    10px;
+.spk-tenors {
+  display: grid;
+  gap: var(--space-2);
 }
 
-
-.file-name ion-icon {
-  flex:
-    0 0 auto;
-
-  font-size:
-    16px;
+.spk-tenor-price {
+  flex: 0 0 auto;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
 }
 
-
-.file-name span {
-  overflow:
-    hidden;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
+.spk-tenor-price small {
+  margin-left: 2px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 500;
 }
 
-
-.remove-file {
-  flex:
-    0 0 29px;
-
-  width:
-    29px;
-
-  height:
-    29px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border:
-    1px solid
-    #e2caca;
-
-  border-radius:
-    7px;
-
-  background:
-    #fff7f7;
-
-  color:
-    #b26a6a;
-
-  cursor:
-    pointer;
+.spk-tenor-price.is-empty {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
-
-.remove-file ion-icon {
-  font-size:
-    15px;
+/* ---------- status muat / galat ---------- */
+.spk-state {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
-
-/* =========================================================
-   NOTES
-   ========================================================= */
-
-.notes-input {
-  display:
-    block;
-
-  width:
-    100%;
-
-  min-height:
-    100px;
-
-  padding:
-    12px 13px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px solid
-    #e0e0e0;
-
-  border-radius:
-    11px;
-
-  outline:
-    none;
-
-  resize:
-    vertical;
-
-  background:
-    #ffffff;
-
-  color:
-    #252525;
-
-  font-family:
-    inherit;
-
-  font-size:
-    14px;
-
-  line-height:
-    1.5;
+.spk-state ion-spinner {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--green-700);
 }
 
-
-.notes-input:focus {
-  border-color:
-    #c5a55a;
-
-  box-shadow:
-    0 0 0 3px
-    rgba(197, 165, 90, 0.10);
+.spk-state > ion-icon {
+  flex: 0 0 20px;
+  font-size: 20px;
 }
 
-
-.notes-input::placeholder {
-  color:
-    #a4a4a4;
+.spk-state > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
+.spk-state strong { color: var(--text-primary); }
 
-/* =========================================================
-   CONFIRMATION
-   ========================================================= */
+.spk-state--error {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+.spk-state--error strong { color: var(--danger-text); }
 
-.confirmation-card {
-  margin:
-    4px 0 14px;
-
-  padding:
-    18px;
-
-  box-sizing:
-    border-box;
-
-  border:
-    1px solid
-    #e8ddc8;
-
-  border-radius:
-    16px;
-
-  background:
-    #fffaf0;
+/* ---------- dokumen (komponen render function: perlu :deep) ---------- */
+.spk-docs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
 }
 
-
-.confirmation-heading {
-  display:
-    flex;
-
-  align-items:
-    flex-start;
-
-  justify-content:
-    space-between;
-
-  gap:
-    15px;
-
-  margin-bottom:
-    15px;
+.spk-docs :deep(.document-upload) {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 
-
-.confirmation-heading .eyebrow {
-  margin-bottom:
-    3px;
+.spk-docs :deep(.document-upload.has-file) {
+  border-style: solid;
+  border-color: var(--green-200);
+  background: var(--green-50);
 }
 
-
-.confirmation-heading h2 {
-  margin:
-    0;
-
-  color:
-    #8e703a;
-
-  font-size:
-    18px;
-
-  line-height:
-    1.2;
-
-  font-weight:
-    800;
+.spk-docs :deep(.document-upload-header) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
-
-.confirmation-heading > ion-icon {
-  flex:
-    0 0 auto;
-
-  color:
-    #c5a55a;
-
-  font-size:
-    27px;
+.spk-docs :deep(.document-upload-icon) {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 18px;
 }
 
-
-.confirmation-grid {
-  display:
-    grid;
-
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
-
-  gap:
-    8px;
+.spk-docs :deep(.has-file .document-upload-icon) {
+  background: var(--green-700);
+  color: #fff;
 }
 
-
-.confirmation-grid > div {
-  min-width:
-    0;
-
-  padding:
-    10px;
-
-  border:
-    1px solid
-    #eee2cb;
-
-  border-radius:
-    9px;
-
-  background:
-    rgba(255,255,255,0.58);
+.spk-docs :deep(.document-upload-title) {
+  display: grid;
+  min-width: 0;
 }
 
-
-.confirmation-grid span {
-  display:
-    block;
-
-  margin-bottom:
-    4px;
-
-  color:
-    #9d957f;
-
-  font-size:
-    9px;
+.spk-docs :deep(.document-upload-title strong) {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
-
-.confirmation-grid strong {
-  display:
-    block;
-
-  overflow:
-    hidden;
-
-  color:
-    #4d4433;
-
-  font-size:
-    11px;
-
-  line-height:
-    1.25;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
+.spk-docs :deep(.document-upload-title small) {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 
-
-.confirmation-notice {
-  display:
-    flex;
-
-  align-items:
-    flex-start;
-
-  gap:
-    7px;
-
-  margin-top:
-    12px;
-
-  padding-top:
-    11px;
-
-  border-top:
-    1px solid
-    #eadfca;
+.spk-docs :deep(.document-upload-button) {
+  position: relative;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  color: var(--green-700);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: transform var(--dur-instant) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 
-
-.confirmation-notice ion-icon {
-  flex:
-    0 0 auto;
-
-  color:
-    #b08b43;
-
-  font-size:
-    17px;
+.spk-docs :deep(.document-upload-button:active) { transform: scale(0.97); }
+.spk-docs :deep(.document-upload-button:focus-within) {
+  outline: 2px solid var(--green-700);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spk-docs :deep(.document-upload-button:hover) { background: var(--surface-sunken); }
 }
 
-
-.confirmation-notice p {
-  margin:
-    0;
-
-  color:
-    #7e7768;
-
-  font-size:
-    10px;
-
-  line-height:
-    1.5;
+/* input file tetap bisa difokus keyboard, tapi tidak terlihat */
+.spk-docs :deep(.document-upload-button input) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
-
-/* =========================================================
-   SUBMIT
-   ========================================================= */
-
-.submit-button {
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  gap:
-    8px;
-
-  width:
-    100%;
-
-  min-height:
-    54px;
-
-  margin-top:
-    4px;
-
-  padding:
-    10px 18px;
-
-  border:
-    0;
-
-  border-radius:
-    12px;
-
-  background:
-    #c5a55a;
-
-  color:
-    #ffffff;
-
-  font-family:
-    inherit;
-
-  font-size:
-    15px;
-
-  font-weight:
-    800;
-
-  cursor:
-    pointer;
-
-  box-shadow:
-    0 5px 13px
-    rgba(197, 165, 90, 0.20);
-
-  transition:
-    transform 0.12s ease,
-    opacity 0.15s ease;
+.spk-docs :deep(.selected-file) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
 }
 
-
-.submit-button ion-icon {
-  font-size:
-    19px;
+.spk-docs :deep(.file-name) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
-
-.submit-button:not(:disabled):active {
-  transform:
-    scale(0.985);
+.spk-docs :deep(.file-name ion-icon) {
+  flex: 0 0 16px;
+  font-size: 16px;
+  color: var(--green-700);
 }
 
-
-.submit-button:disabled {
-  opacity:
-    0.48;
-
-  cursor:
-    not-allowed;
-
-  box-shadow:
-    none;
+.spk-docs :deep(.file-name span) {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-
-.feedback-message {
-  display:
-    flex;
-
-  align-items:
-    flex-start;
-
-  justify-content:
-    center;
-
-  gap:
-    6px;
-
-  margin:
-    10px 4px 0;
-
-  text-align:
-    center;
-
-  font-size:
-    11px;
-
-  line-height:
-    1.4;
+.spk-docs :deep(.remove-file) {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--danger-text);
+  font-size: 18px;
+  cursor: pointer;
+}
+.spk-docs :deep(.remove-file:active) { background: var(--danger-bg); }
+.spk-docs :deep(.remove-file:focus-visible) {
+  outline: 2px solid var(--danger-text);
+  outline-offset: -2px;
 }
 
-
-.feedback-message ion-icon {
-  flex:
-    0 0 auto;
-
-  margin-top:
-    1px;
-
-  font-size:
-    16px;
+/* ---------- ringkasan (panel hijau hutan) ---------- */
+.spk-review {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  overflow: hidden;
+  padding: var(--space-5);
+  border-radius: var(--radius-panel);
+  background: var(--surface-forest);
+  color: var(--on-forest);
 }
 
-
-.success-message {
-  color:
-    #657858;
+/* cahaya emas di pojok kanan atas, seperti panel di Welcome */
+.spk-review::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(244 214 154 / 22%), transparent 70%);
+  pointer-events: none;
 }
 
-
-.submit-error {
-  color:
-    #b14d4d;
+.spk-review h2 {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
 }
 
-
-/* =========================================================
-   TABLET / MOBILE
-   ========================================================= */
-
-@media (max-width: 650px) {
-  .payment-method-options {
-    grid-template-columns: 1fr;
-  }
-
-  .payment-method-option {
-    min-height: 68px;
-  }
-
-  .payment-summary {
-    align-items: flex-start;
-  }
-
-  .tenor-price {
-    max-width: 105px;
-    font-size: 10px;
-  }
-
-  .selected-plan-monthly {
-    min-width: 0;
-  }
+.spk-review-list {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
 }
 
-@media (max-width: 650px) {
-
-  .spk-container {
-    max-width:
-      500px;
-
-    padding:
-      16px 14px 112px;
-  }
-
-
-  .page-intro {
-    align-items:
-      flex-start;
-
-    flex-direction:
-      column;
-
-    gap:
-      10px;
-
-    margin-bottom:
-      14px;
-  }
-
-
-  .progress-chip {
-    align-self:
-      flex-start;
-  }
-
-
-  .form-progress {
-    padding:
-      10px;
-  }
-
-
-  .progress-step {
-    gap:
-      6px;
-  }
-
-
-  .progress-step div {
-    display:
-      none;
-  }
-
-
-  .step-number {
-    flex-basis:
-      28px;
-
-    width:
-      28px;
-
-    height:
-      28px;
-  }
-
-
-  .progress-line {
-    margin:
-      0 7px;
-  }
-
-
-  .card-heading {
-    min-height:
-      72px;
-
-    padding:
-      11px 14px;
-
-    gap:
-      10px;
-  }
-
-
-  .heading-icon {
-    flex-basis:
-      43px;
-
-    width:
-      43px;
-
-    height:
-      43px;
-
-    border-radius:
-      11px;
-
-    font-size:
-      22px;
-  }
-
-
-  .card-heading h2 {
-    font-size:
-      18px;
-  }
-
-
-  .card-heading p {
-    font-size:
-      10px;
-  }
-
-
-  .required-note {
-    display:
-      none;
-  }
-
-
-  .card-body {
-    padding:
-      17px 14px 20px;
-  }
-
-
-  .form-grid {
-    grid-template-columns:
-      1fr;
-
-    gap:
-      17px;
-  }
-
-
-  .field-full {
-    grid-column:
-      auto;
-  }
-
-
-  .lot-summary {
-    align-items:
-      flex-start;
-
-    flex-direction:
-      column;
-
-    gap:
-      13px;
-
-    padding:
-      14px;
-  }
-
-
-  .lot-price {
-    width:
-      100%;
-
-    padding:
-      10px 0 0;
-
-    border-top:
-      1px solid
-      #eadfca;
-
-    border-left:
-      0;
-
-    text-align:
-      left;
-  }
-
-
-  .lot-price strong {
-    font-size:
-      17px;
-  }
-
-
-  .tenor-options {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-
-    gap:
-      8px;
-  }
-
-
-  .tenor-option {
-    min-height:
-      64px;
-
-    padding:
-      9px;
-  }
-
-
-  .document-body {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-
-    gap:
-      10px;
-  }
-
-
-  .document-upload-wide {
-    grid-column:
-      1 / -1;
-  }
-
-
-  .confirmation-grid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
+.spk-review-list > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid rgb(244 241 232 / 14%);
 }
 
-
-/* =========================================================
-   SMALL MOBILE
-   ========================================================= */
-
-@media (max-width: 390px) {
-  .tenor-option {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .tenor-price {
-    flex: 1 1 100%;
-    max-width: none;
-    padding-left: 28px;
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .tenor-check {
-    margin-left: auto;
-  }
-
-  .selected-plan {
-    flex-wrap: wrap;
-  }
-
-  .selected-plan-monthly {
-    flex: 1 1 100%;
-    padding-top: 8px;
-    border-top: 1px solid #eee7da;
-  }
+.spk-review-list dt {
+  flex: 0 0 auto;
+  color: rgb(244 241 232 / 88%); /* --on-forest 88%, DESIGN.md §14 */
+  font-size: var(--text-sm);
 }
 
-@media (max-width: 390px) {
-
-  .spk-container {
-    padding:
-      12px 10px 108px;
-  }
-
-
-  .page-intro h1 {
-    font-size:
-      25px;
-  }
-
-
-  .page-intro p {
-    font-size:
-      12px;
-  }
-
-
-  .form-progress {
-    margin-bottom:
-      13px;
-
-    border-radius:
-      11px;
-  }
-
-
-  .progress-line {
-    margin:
-      0 5px;
-  }
-
-
-  .form-card {
-    margin-bottom:
-      13px;
-
-    border-radius:
-      13px;
-  }
-
-
-  .card-heading {
-    min-height:
-      65px;
-
-    padding:
-      9px 11px;
-  }
-
-
-  .heading-icon {
-    flex-basis:
-      39px;
-
-    width:
-      39px;
-
-    height:
-      39px;
-
-    font-size:
-      20px;
-  }
-
-
-  .card-heading h2 {
-    font-size:
-      17px;
-  }
-
-
-  .card-heading p {
-    display:
-      none;
-  }
-
-
-  .card-body {
-    padding:
-      14px 11px 17px;
-  }
-
-
-  .field-group > label,
-  .label-row label,
-  .tenor-heading label {
-    font-size:
-      13px;
-  }
-
-
-  .field-shell,
-  .select-shell {
-    min-height:
-      49px;
-  }
-
-
-  .field-shell input,
-  .field-shell textarea,
-  .select-shell ion-select {
-    font-size:
-      13px;
-  }
-
-
-  .lot-main > strong {
-    font-size:
-      21px;
-  }
-
-
-  .tenor-options {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-
-
-  .tenor-option {
-    gap:
-      7px;
-
-    min-height:
-      59px;
-
-    padding:
-      7px;
-  }
-
-
-  .tenor-radio {
-    flex-basis:
-      17px;
-
-    width:
-      17px;
-
-    height:
-      17px;
-  }
-
-
-  .tenor-radio span {
-    width:
-      7px;
-
-    height:
-      7px;
-  }
-
-
-  .tenor-copy strong {
-    font-size:
-      12px;
-  }
-
-
-  .tenor-copy small {
-    font-size:
-      9px;
-  }
-
-
-  .tenor-check {
-    font-size:
-      16px;
-  }
-
-
-  .selected-plan {
-    padding:
-      9px;
-  }
-
-
-  .document-body {
-    grid-template-columns:
-      1fr;
-  }
-
-
-  .document-upload-wide {
-    grid-column:
-      auto;
-  }
-
-
-  .confirmation-card {
-    padding:
-      14px;
-  }
-
-
-  .confirmation-heading h2 {
-    font-size:
-      16px;
-  }
-
-
-  .confirmation-grid {
-    grid-template-columns:
-      1fr 1fr;
-
-    gap:
-      6px;
-  }
-
-
-  .confirmation-grid > div {
-    padding:
-      8px;
-  }
-
-
-  .confirmation-notice p {
-    font-size:
-      9px;
-  }
-
-
-  .submit-button {
-    min-height:
-      51px;
-
-    font-size:
-      14px;
-  }
+.spk-review-list dd {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
+.spk-review-list dd.spk-review-figure {
+  color: var(--gold-100);
+  font-size: var(--text-md);
+}
 
-/* =========================================================
-   VERY SMALL MOBILE
-   ========================================================= */
+.spk-review-note {
+  position: relative;
+  margin: 0;
+  color: rgb(244 241 232 / 88%); /* --on-forest 88%, DESIGN.md §14 */
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
 
-@media (max-width: 320px) {
+.spk-slide { margin-top: var(--space-1); }
 
-  .spk-container {
-    padding-left:
-      8px;
+.spk-success {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--status-success-bg);
+  color: var(--green-700);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
 
-    padding-right:
-      8px;
-  }
+.spk-success ion-icon {
+  flex: 0 0 18px;
+  margin-top: 1px;
+  font-size: 18px;
+}
 
+/* ---------- layar sempit ---------- */
+@media (max-width: 380px) {
+  .spk-step-label { font-size: var(--text-xs); }
+  .spk-client { grid-template-columns: minmax(0, 1fr); }
+  .spk-lot { grid-template-columns: minmax(0, 1fr); }
+  .spk-lot-price { text-align: left; }
+  .spk-lot-price small { justify-content: flex-start; }
+  .spk-docs { grid-template-columns: minmax(0, 1fr); }
+}
 
-  .page-intro h1 {
-    font-size:
-      22px;
-  }
+@media (max-width: 340px) {
+  .spk-choice-row { grid-template-columns: minmax(0, 1fr); }
+}
 
-
-  .progress-chip {
-    font-size:
-      10px;
-
-    padding:
-      7px 9px;
-  }
-
-
-  .progress-step {
-    flex:
-      1;
-  }
-
-
-  .progress-line {
-    min-width:
-      9px;
-
-    margin:
-      0 3px;
-  }
-
-
-  .step-number {
-    flex-basis:
-      26px;
-
-    width:
-      26px;
-
-    height:
-      26px;
-  }
-
-
-  .card-heading {
-    padding:
-      8px 9px;
-  }
-
-
-  .heading-icon {
-    flex-basis:
-      36px;
-
-    width:
-      36px;
-
-    height:
-      36px;
-
-    font-size:
-      18px;
-  }
-
-
-  .card-heading h2 {
-    font-size:
-      16px;
-  }
-
-
-  .card-body {
-    padding:
-      12px 9px 15px;
-  }
-
-
-  .tenor-options {
-    gap:
-      6px;
-  }
-
-
-  .tenor-option {
-    min-height:
-      56px;
-
-    padding:
-      6px;
-  }
-
-
-  .tenor-copy strong {
-    font-size:
-      11px;
-  }
-
-
-  .tenor-copy small {
-    font-size:
-      8px;
-  }
-
-
-  .option-count {
-    font-size:
-      9px;
-  }
-
-
-  .upload-note {
-    font-size:
-      9px;
-  }
-
-
-  .confirmation-grid strong {
-    font-size:
-      10px;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .spk-meter-fill,
+  .spk-radio::after,
+  .spk-step-num { transition: none; }
 }
 </style>

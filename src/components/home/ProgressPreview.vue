@@ -2,7 +2,7 @@
   <section v-if="loading || items.length || isAdmin" class="progress-section">
     <SectionHeader title="Kemajuan pembangunan">
       <div class="heading-actions">
-        <AdminEditButton v-if="isAdmin" label="Tambah update" :icon="addOutline" @click="openAdd" />
+        <AdminEditButton v-if="isAdmin" label="Tambah kabar" :icon="addOutline" @click="openAdd" />
         <button v-if="items.length" class="see-all" type="button" @click="router.push('/progress')">
           Lihat semua <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
         </button>
@@ -11,13 +11,13 @@
 
     <div v-if="loading" class="loading-box"><ion-spinner name="crescent" color="primary" /></div>
 
-    <p v-else-if="!items.length" class="empty-hint">Belum ada update kemajuan. Tekan “Tambah update” untuk menampilkan perkembangan pertama.</p>
+    <p v-else-if="!items.length" class="empty-hint">Belum ada kabar kemajuan. Tekan “Tambah kabar” untuk menampilkan perkembangan pertama.</p>
 
     <ul v-else class="progress-list">
       <li v-for="item in items" :key="item.id" class="progress-card">
         <button type="button" class="card-open" :aria-label="`Lihat detail ${item.title}`" @click="router.push(`/progress/${item.id}`)">
           <span class="thumb">
-            <img v-if="item.image_url" :src="item.image_url" :alt="item.title" loading="lazy" />
+            <img v-if="item.image_url" :src="item.image_url" :alt="item.title" loading="lazy" decoding="async" />
             <ion-icon v-else :icon="constructOutline" aria-hidden="true" />
           </span>
           <span class="body">
@@ -34,8 +34,8 @@
           </span>
         </button>
         <div v-if="isAdmin" class="card-admin">
-          <button type="button" class="mini" aria-label="Edit update" @click="openEdit(item)"><ion-icon :icon="createOutline" /></button>
-          <button type="button" class="mini danger" aria-label="Hapus update" @click="askDelete(item)"><ion-icon :icon="trashOutline" /></button>
+          <button type="button" class="mini" aria-label="Ubah kabar" @click="openEdit(item)"><ion-icon :icon="createOutline" /></button>
+          <button type="button" class="mini danger" aria-label="Hapus kabar" @click="askDelete(item)"><ion-icon :icon="trashOutline" /></button>
         </div>
       </li>
     </ul>
@@ -45,13 +45,13 @@
     <AppModal
       v-model="deleteOpen"
       variant="dialog"
-      title="Hapus update ini?"
+      title="Hapus kabar ini?"
       confirm-text="Hapus"
       confirm-variant="danger"
       :loading="deleting"
       @confirm="confirmDelete"
     >
-      <p class="confirm-text">“{{ deleteTarget?.title }}” akan dihapus dari website dan tidak bisa dikembalikan.</p>
+      <p class="confirm-text">“{{ deleteTarget?.title }}” akan dihapus dari situs web dan tidak bisa dikembalikan.</p>
     </AppModal>
   </section>
 </template>
@@ -117,11 +117,11 @@ async function confirmDelete() {
   try {
     await progressService.deleteProgress(item.id, item.image_url)
     deleteOpen.value = false
-    toast.success('Update dihapus.')
+    toast.success('Kabar dihapus.')
     await load()
   } catch (error) {
     deleteOpen.value = false
-    toast.error(error instanceof Error ? error.message : 'Update gagal dihapus.')
+    toast.error(error instanceof Error ? error.message : 'Kabar gagal dihapus.')
   } finally {
     deleting.value = false
   }

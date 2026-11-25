@@ -15,6 +15,9 @@ export interface FinancePaymentRecord {
   status: FinancePaymentStatus
   note: string | null
   proof_path?: string | null
+  /** Nomor cicilan yang dilunasi pembayaran ini. */
+  installment_numbers?: number[]
+  installment_total?: number | null
   created_at: string
 }
 

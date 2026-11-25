@@ -35,8 +35,8 @@
           :class="['nav-item', { active: isActive('/admin/pembeli') }]"
           @click="goTo('/admin/pembeli')"
         >
-          <span class="icon-wrap"><ion-icon :icon="personOutline" /></span>
-          <span class="nav-label">Pembeli</span>
+          <span class="icon-wrap"><ion-icon :icon="peopleOutline" /></span>
+          <span class="nav-label">Klien</span>
         </button>
 
         <button
@@ -118,109 +118,26 @@
           :key="item.path"
           type="button"
           :class="['nav-item', { active: isActive(item.path) }]"
+          :aria-current="isActive(item.path) ? 'page' : undefined"
           @click="goTo(item.path)"
         >
-          <span class="icon-wrap"><ion-icon :icon="item.icon" /></span>
+          <span class="icon-wrap"><ion-icon :icon="item.icon" aria-hidden="true" /></span>
           <span class="nav-label">{{ item.label }}</span>
         </button>
       </template>
 
       <template v-else-if="variant === 'marketing'">
-
-        <!-- BERANDA -->
         <button
+          v-for="item in marketingTabs"
+          :key="item.path"
           type="button"
-          :class="[
-            'nav-item',
-            { active: isActive('/beranda-marketing') }
-          ]"
-          @click="goTo('/beranda-marketing')"
+          :class="['nav-item', { active: isActive(item.path) }]"
+          :aria-current="isActive(item.path) ? 'page' : undefined"
+          @click="goTo(item.path)"
         >
-          <span class="icon-wrap">
-            <ion-icon :icon="homeOutline" />
-          </span>
-
-          <span class="nav-label">
-            Beranda
-          </span>
+          <span class="icon-wrap"><ion-icon :icon="item.icon" aria-hidden="true" /></span>
+          <span class="nav-label">{{ item.label }}</span>
         </button>
-
-
-        <!-- KAVLING -->
-        <button
-          type="button"
-          :class="[
-            'nav-item',
-            { active: isActive('/kavling') }
-          ]"
-          @click="goTo('/kavling')"
-        >
-          <span class="icon-wrap">
-            <ion-icon :icon="gridOutline" />
-          </span>
-
-          <span class="nav-label">
-            Kavling
-          </span>
-        </button>
-
-
-        <!-- CALON PEMBELI -->
-        <button
-          type="button"
-          :class="[
-            'nav-item',
-            { active: isActive('/marketing/clients') }
-          ]"
-          @click="goTo('/marketing/clients')"
-        >
-          <span class="icon-wrap">
-            <ion-icon :icon="personOutline" />
-          </span>
-
-          <span class="nav-label">
-            Pembeli
-          </span>
-        </button>
-
-
-        <!-- TINDAK LANJUT -->
-        <button
-          type="button"
-          :class="[
-            'nav-item',
-            { active: isActive('/marketing/tindak-lanjut') }
-          ]"
-          @click="goTo('/marketing/tindak-lanjut')"
-        >
-          <span class="icon-wrap">
-            <ion-icon :icon="checkmarkDoneOutline" />
-          </span>
-
-          <span class="nav-label">
-            Follow Up
-          </span>
-        </button>
-
-
-        <!-- LAINNYA -->
-        <button
-          type="button"
-          :class="[
-            'nav-item',
-            { active: isActive('/marketing/more') }
-          ]"
-          @click="goTo('/marketing/more')"
-        >
-          <span class="icon-wrap">
-            <ion-icon :icon="menuOutline" />
-          </span>
-
-          <span class="nav-label">
-            Lainnya
-          </span>
-        </button>
-
       </template>
 
 
@@ -244,7 +161,7 @@
           </span>
 
           <span class="nav-label">
-            Home
+            Beranda
           </span>
         </button>
 
@@ -263,7 +180,7 @@
           </span>
 
           <span class="nav-label">
-            Siteplan
+            Denah
           </span>
         </button>
 
@@ -282,7 +199,7 @@
           </span>
 
           <span class="nav-label">
-            Progress
+            Progres
           </span>
         </button>
 
@@ -301,7 +218,7 @@
           </span>
 
           <span class="nav-label">
-            Gallery
+            Galeri
           </span>
         </button>
 
@@ -365,6 +282,34 @@ const headTabs = [
   { path: '/kepala-marketing/laporan', label: 'Laporan', icon: barChartOutline },
   { path: '/kepala-marketing/lainnya', label: 'Lainnya', icon: menuOutline },
 ]
+
+const marketingTabs = [
+  { path: '/beranda-marketing', label: 'Beranda', icon: homeOutline },
+  { path: '/kavling', label: 'Kaveling', icon: gridOutline },
+  { path: '/marketing/clients', label: 'Klien', icon: peopleOutline },
+  { path: '/marketing/tindak-lanjut', label: 'Tindak lanjut', icon: checkmarkDoneOutline },
+  { path: '/marketing/more', label: 'Lainnya', icon: menuOutline },
+]
+
+/* Tab Marketing menyala untuk rutenya sendiri, anak rutenya, dan halaman turunan di bawah. */
+const TAB_CHILDREN: Record<string, string[]> = {
+  '/beranda-marketing': [],
+  '/kavling': ['/marketing/siteplan', '/marketing/spk'],
+  '/marketing/clients': [],
+  '/marketing/tindak-lanjut': [],
+  '/marketing/more': [
+    '/marketing/lainnya', '/marketing/pengajuan', '/marketing/pembayaran',
+    '/marketing/komisi', '/akun', '/pengaturan',
+  ],
+  '/beranda-kepala-marketing': [],
+  '/kepala-marketing/clients': [],
+  '/kepala-marketing/perkembangan': [],
+  '/kepala-marketing/laporan': [],
+  '/kepala-marketing/lainnya': [
+    '/kepala-marketing/spk', '/kepala-marketing/pembayaran', '/kepala-marketing/komisi',
+    '/kepala-marketing/siteplan', '/akun', '/pengaturan',
+  ],
+}
 
 import { useRoute } from 'vue-router'
 import {
@@ -474,14 +419,11 @@ function goTo(path: string) {
 
 function isActive(path: string) {
 
-  if (path === '/beranda-marketing') {
-    return route.path === '/beranda-marketing' ||
-      route.path === '/marketing'
-  }
-
-  if (path === '/marketing/more') {
-    return route.path === '/marketing/more' ||
-      route.path === '/marketing/lainnya'
+  const children = TAB_CHILDREN[path]
+  if (children) {
+    return [path, ...children].some(
+      (base) => route.path === base || route.path.startsWith(`${base}/`),
+    )
   }
 
   if (path === '/home') {
@@ -529,8 +471,10 @@ function isActive(path: string) {
 
   display: grid;
 
+  /* min-content: label terpanjang (mis. "Tindak lanjut") mendapat ruang penuh
+     tanpa terpotong elipsis; sisa ruang tetap dibagi rata. */
   grid-template-columns:
-    repeat(5, 1fr);
+    repeat(5, minmax(min-content, 1fr));
 
   align-items: stretch;
 

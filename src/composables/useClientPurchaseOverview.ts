@@ -1,3 +1,4 @@
+import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import { computed, ref } from 'vue'
 import { supabase } from '@/services/config/supabase'
 
@@ -42,8 +43,8 @@ export interface PurchaseOverview {
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
-  Booking: 'Booking Fee',
-  'Down Payment': 'Uang Muka (DP)',
+  Booking: 'Tanda Jadi',
+  'Down Payment': 'Uang Muka',
   Installment: 'Cicilan',
   'Cash Purchase': 'Pembelian Tunai',
   Other: 'Lainnya',
@@ -80,7 +81,7 @@ export function useClientPurchaseOverview() {
       const { data: authData, error: authError } = await supabase.auth.getUser()
       if (authError) throw authError
       const user = authData.user
-      if (!user) throw new Error('Sesi login tidak ditemukan. Silakan login kembali.')
+      if (!user) throw new Error('Sesi masuk tidak ditemukan. Silakan masuk kembali.')
 
       const { data: customer, error: customerError } = await supabase
         .from('customers')
@@ -169,7 +170,13 @@ export function useClientPurchaseOverview() {
         paymentType: tx.payment_type,
         months: tx.months == null ? null : Number(tx.months),
         finalPrice: Number(tx.final_price ?? 0),
-        paidTotal: payments.filter((p) => p.status === 'Confirmed').reduce((sum, p) => sum + p.amount, 0),
+        // Sama dengan Keuangan dan Pembeli: booking fee dilaporkan terpisah dan tidak mengurangi harga.
+        paidTotal: calculateFinanceBalance(
+          tx,
+          (paymentResult.data ?? [])
+            .filter((row: any) => Number(row.transaction_id) === Number(tx.id))
+            .map((row: any) => ({ amount: Number(row.amount ?? 0), status: row.status, payment_category: row.payment_category })),
+        ).principalPaid,
         pendingCount: payments.filter((p) => p.status === 'Pending' || p.status === 'Needs Reupload').length,
         schedules,
         payments,

@@ -6,7 +6,7 @@
     </nav>
 
     <label v-if="isHead" class="mk-field mk-narrow">
-      <span>Marketing</span>
+      <span>Pemasar</span>
       <select v-model="marketingId" class="mk-input">
         <option value="">Semua</option>
         <option v-for="m in members" :key="m.id" :value="m.id">{{ m.full_name }}</option>
@@ -19,20 +19,20 @@
     <!-- Pembayaran -->
     <template v-else-if="tab === 'payments'">
       <div class="mk-grid">
-        <StatCard label="Menunggu verifikasi" :value="sumLabel(paymentsBy('Pending'))" :hint="`${paymentsBy('Pending').length} pembayaran · belum penerimaan kas`" clickable @open="payStatus = 'Pending'" />
-        <StatCard label="Terkonfirmasi" :value="sumLabel(paymentsBy('Confirmed'))" :hint="`${paymentsBy('Confirmed').length} pembayaran · penerimaan kas`" accent clickable @open="payStatus = 'Confirmed'" />
-        <StatCard label="Ditolak / unggah ulang" :value="String(paymentsBy('Rejected').length)" hint="pembayaran" clickable @open="payStatus = 'Rejected'" />
-        <StatCard label="Semua pembayaran" :value="String(scopedPayments.length)" hint="tampilkan semua" clickable @open="payStatus = ''" />
+        <StatCard label="Menunggu verifikasi" :value="sumLabel(paymentsBy('Pending'))" :hint="`${paymentsBy('Pending').length} pembayaran`" clickable @open="payStatus = 'Pending'" />
+        <StatCard label="Terkonfirmasi" :value="sumLabel(paymentsBy('Confirmed'))" :hint="`${paymentsBy('Confirmed').length} pembayaran`" accent clickable @open="payStatus = 'Confirmed'" />
+        <StatCard label="Ditolak atau unggah ulang" :value="String(paymentsBy('Rejected').length)" clickable @open="payStatus = 'Rejected'" />
+        <StatCard label="Semua" :value="String(scopedPayments.length)" clickable @open="payStatus = ''" />
       </div>
-      <StatusIllustration v-if="!visiblePayments.length" variant="no-result" size="sm" title="Pembayaran tidak ditemukan" description="Belum ada pembayaran pada filter ini." />
+      <StatusIllustration v-if="!visiblePayments.length" variant="no-result" size="sm" title="Tidak ada pembayaran" description="Pilih kartu lain untuk melihat data." />
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
-          <thead><tr><th>Klien</th><th v-if="isHead">Marketing</th><th>Jenis</th><th>Kaveling</th><th>Tanggal transfer</th><th class="num">Nominal</th><th>Status verifikasi</th></tr></thead>
+          <thead><tr><th>Klien</th><th v-if="isHead">Pemasar</th><th>Jenis</th><th>Kaveling</th><th>Tanggal transfer</th><th class="num">Nominal</th><th>Status</th></tr></thead>
           <tbody>
-            <tr v-for="p in visiblePayments" :key="p.id" :class="{ 'mk-row-link': p.customer_id }" @click="p.customer_id && emit('open-client', p.customer_id)">
-              <td class="mk-cell-main">{{ p.customer_name }}<span v-if="p.review_note" class="mk-muted mk-block">{{ p.review_note }}</span></td>
-              <td v-if="isHead" data-label="Marketing">{{ memberName(p.owner_id) }}</td>
-              <td data-label="Jenis">{{ paymentCategoryLabel(p.payment_category) }}</td>
+            <tr v-for="p in visiblePayments" :id="`notif-payment-${p.id}`" :key="p.id" :class="{ 'mk-row-link': p.customer_id, 'notif-target': focusedId === p.id }" @click="p.customer_id && emit('open-client', p.customer_id)">
+              <td class="mk-cell-main"><button v-if="p.customer_id" type="button" class="mk-cell-link" @click.stop="emit('open-client', p.customer_id)">{{ p.customer_name }}</button><template v-else>{{ p.customer_name }}</template><span v-if="p.review_note" class="mk-muted mk-block">{{ p.review_note }}</span></td>
+              <td v-if="isHead" data-label="Pemasar">{{ memberName(p.owner_id) }}</td>
+              <td data-label="Jenis">{{ p.installment_label || paymentCategoryLabel(p.payment_category) }}</td>
               <td data-label="Kaveling">{{ p.lot?.lot_number || '-' }}</td>
               <td data-label="Tanggal transfer">{{ formatDate(p.transfer_date || p.submitted_at) }}</td>
               <td data-label="Nominal" class="num">{{ formatRupiah(p.amount) }}</td>
@@ -41,7 +41,7 @@
           </tbody>
         </table>
       </div>
-      <p class="mk-muted">Verifikasi pembayaran hanya dilakukan Admin. Pembayaran menunggu verifikasi bukan penerimaan kas.</p>
+      <p class="mk-muted">Admin yang memverifikasi. Hanya yang terkonfirmasi dihitung sebagai kas.</p>
     </template>
 
     <!-- Jadwal -->
@@ -55,16 +55,16 @@
       <div class="mk-chips" role="group" aria-label="Filter jadwal">
         <button v-for="opt in schedOptions" :key="opt.value" type="button" class="mk-chip" :aria-pressed="schedFilter === opt.value" @click="schedFilter = opt.value">{{ opt.label }}</button>
       </div>
-      <StatusIllustration v-if="!visibleSchedules.length" variant="no-result" size="sm" title="Jadwal tidak ditemukan" description="Tidak ada jadwal cicilan pada filter ini." />
+      <StatusIllustration v-if="!visibleSchedules.length" variant="no-result" size="sm" title="Tidak ada jadwal" description="Pilih filter lain." />
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
-          <thead><tr><th>Klien</th><th v-if="isHead">Marketing</th><th>Kaveling</th><th>Cicilan</th><th>Jatuh tempo</th><th class="num">Nominal</th><th>Status</th><th class="num">Denda</th></tr></thead>
+          <thead><tr><th>Klien</th><th v-if="isHead">Pemasar</th><th>Kaveling</th><th>Cicilan</th><th>Jatuh tempo</th><th class="num">Nominal</th><th>Status</th><th class="num">Denda</th></tr></thead>
           <tbody>
             <tr v-for="s in visibleSchedules" :key="s.id" :class="{ 'mk-row-link': s.customer_id }" @click="s.customer_id && emit('open-client', s.customer_id)">
-              <td class="mk-cell-main">{{ s.customer_name }}</td>
-              <td v-if="isHead" data-label="Marketing">{{ memberName(s.owner_id) }}</td>
+              <td class="mk-cell-main"><button v-if="s.customer_id" type="button" class="mk-cell-link" @click.stop="emit('open-client', s.customer_id)">{{ s.customer_name }}</button><template v-else>{{ s.customer_name }}</template></td>
+              <td v-if="isHead" data-label="Pemasar">{{ memberName(s.owner_id) }}</td>
               <td data-label="Kaveling">{{ s.lot?.lot_number || '-' }}</td>
-              <td data-label="Cicilan">{{ s.installment_number }} / {{ s.transaction?.months || '-' }}</td>
+              <td data-label="Cicilan">Ke-{{ s.installment_number }}{{ s.transaction?.months ? ` dari ${s.transaction.months}` : '' }}</td>
               <td data-label="Jatuh tempo">{{ formatDate(s.due_date) }}<span v-if="isLate(s)" class="mk-danger-text mk-block">{{ daysLate(s) }} hari terlambat</span></td>
               <td data-label="Nominal" class="num">{{ formatRupiah(s.amount) }}</td>
               <td data-label="Status"><StatusBadge :label="scheduleStatusLabel(s.status, s.due_date)" :tone="scheduleStatusTone(s.status, s.due_date)" /></td>
@@ -73,7 +73,7 @@
           </tbody>
         </table>
       </div>
-      <p class="mk-muted">Jadwal berasal dari data resmi yang dibuat saat Admin mengonfirmasi SPK — sama dengan halaman Klien dan Admin.</p>
+      <p class="mk-muted">Jadwal dibuat saat Admin mengonfirmasi SPK.</p>
     </template>
   </section>
 </template>
@@ -82,9 +82,10 @@
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import StatCard from '@/components/ui/StatCard.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { useRowFocus } from '@/composables/useRowFocus'
 import { getTeamMembers, listInstallmentSchedules, listPayments, type TeamMember } from '@/services/marketing/marketingCrmService'
 import {
   formatDate,
@@ -98,11 +99,13 @@ import {
   todayIso,
 } from '@/utils/marketingStatus'
 
-const props = withDefaults(defineProps<{ role: 'marketing' | 'head'; initialTab?: 'payments' | 'schedules' }>(), { initialTab: 'payments' })
+const props = withDefaults(defineProps<{ role: 'marketing' | 'head'; initialTab?: 'payments' | 'schedules'; focusId?: number; focusStamp?: string }>(), { initialTab: 'payments' })
+const { focusedId, focusRow } = useRowFocus()
 const emit = defineEmits<{ 'open-client': [id: number] }>()
 const isHead = computed(() => props.role === 'head')
 
 const tab = ref(props.initialTab)
+watch(() => props.initialTab, (value) => (tab.value = value))
 const payments = ref<any[]>([])
 const schedules = ref<any[]>([])
 const members = ref<TeamMember[]>([])
@@ -116,7 +119,7 @@ const today = todayIso()
 
 const schedOptions = [
   { value: 'all' as const, label: 'Semua' },
-  { value: 'soon' as const, label: 'Mendekati jatuh tempo' },
+  { value: 'soon' as const, label: 'Segera jatuh tempo' },
   { value: 'overdue' as const, label: 'Terlambat' },
   { value: 'open' as const, label: 'Belum jatuh tempo' },
   { value: 'paid' as const, label: 'Lunas' },
@@ -176,7 +179,16 @@ async function load() {
     loading.value = false
   }
 }
-onMounted(load)
+async function applyFocus() {
+  const id = props.focusId
+  if (!id || !payments.value.some((p) => p.id === id)) return
+  tab.value = 'payments'
+  payStatus.value = ''
+  marketingId.value = ''
+  await focusRow(id, `notif-payment-${id}`)
+}
+onMounted(() => load().then(applyFocus))
+watch(() => props.focusStamp, () => void load().then(applyFocus))
 defineExpose({ reload: load })
 </script>
 

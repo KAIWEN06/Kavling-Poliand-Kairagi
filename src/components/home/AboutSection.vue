@@ -5,7 +5,7 @@
       <Skeleton width="34px" height="3px" border-radius="999px" />
     </div>
     <SectionHeader v-else title="Tentang kami">
-      <AdminEditButton v-if="isAdmin" label="Edit teks" @click="editTextOpen = true" />
+      <AdminEditButton v-if="isAdmin" label="Ubah teks" @click="editTextOpen = true" />
     </SectionHeader>
 
     <div class="about-content">
@@ -96,7 +96,7 @@
         <!-- DATA ASLI -->
         <template v-else>
           <p v-if="aboutText" class="about-lead">{{ aboutText }}</p>
-          <p v-else-if="isAdmin" class="empty-hint">Deskripsi belum diisi. Tekan “Edit teks”.</p>
+          <p v-else-if="isAdmin" class="empty-hint">Deskripsi belum diisi. Tekan “Ubah teks”.</p>
 
           <div v-if="aboutPoints.length" class="check-list">
             <div v-for="(point, index) in aboutPoints" :key="index">
@@ -158,7 +158,7 @@
           <template v-else-if="thumbnail">
             <img
               :src="thumbnail"
-              alt="Thumbnail Video Profil"
+              alt="Gambar mini video profil"
             />
 
             <button
@@ -222,13 +222,7 @@
       confirm-text="Simpan"
       @confirm="handleSubmit"
     >
-        <div
-          v-if="message.text"
-          :class="['alert-box', message.type]"
-          :role="message.type === 'error' ? 'alert' : 'status'"
-        >
-          {{ message.text }}
-        </div>
+        <AppNotice v-if="message.text" tone="error" :message="message.text" style="margin-bottom: 14px" />
 
         <form class="admin-form" @submit.prevent="handleSubmit">
 
@@ -286,7 +280,7 @@
                 ]"
               >
                 <ion-icon :icon="cloudUploadOutline" />
-                Upload
+                Unggah
               </button>
 
             </div>
@@ -297,7 +291,7 @@
             v-if="videoSource === 'youtube'"
             class="form-group"
           >
-            <label>Link YouTube</label>
+            <label>Tautan YouTube</label>
 
             <input
               type="url"
@@ -357,7 +351,7 @@
 
           <!-- THUMBNAIL -->
           <div class="form-group">
-            <label>Thumbnail</label>
+            <label>Gambar mini</label>
 
             <label
               for="mobile-about-thumbnail"
@@ -372,7 +366,7 @@
                 {{
                   selectedThumbnailFile
                     ? selectedThumbnailFile.name
-                    : 'Upload thumbnail opsional'
+                    : 'Unggah gambar mini (opsional)'
                 }}
               </span>
 
@@ -395,7 +389,7 @@
             >
               <img
                 :src="thumbnailPreviewUrl"
-                alt="Preview Thumbnail"
+                alt="Pratinjau Gambar Mini"
               />
             </div>
           </div>
@@ -403,12 +397,14 @@
         </form>
     </AppModal>
 
-    <CmsPanelModal v-model="editTextOpen" title="Edit Tentang Kami" panel="home" section="about" @saved="loadAboutText" />
+    <CmsPanelModal v-model="editTextOpen" title="Ubah Tentang Kami" panel="home" section="about" @saved="loadAboutText" />
   </section>
 </template>
 
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { useToast } from '@/composables/useToast'
 
 import {
   ref,
@@ -876,7 +872,7 @@ const handleThumbnailFileChange = (
 
     message.value = {
       text:
-        'Thumbnail harus JPG, JPEG, PNG, atau WEBP.',
+        'Gambar mini harus JPG, JPEG, PNG, atau WEBP.',
       type: 'error'
     }
 
@@ -894,7 +890,7 @@ const handleThumbnailFileChange = (
 
     message.value = {
       text:
-        'Ukuran thumbnail maksimal 5 MB.',
+        'Ukuran gambar mini maksimal 5 MB.',
       type: 'error'
     }
 
@@ -1166,11 +1162,7 @@ const handleSubmit = async () => {
     // SUCCESS
     // ========================================
 
-    message.value = {
-      text:
-        'Video berhasil disimpan!',
-      type: 'success'
-    }
+    useToast().success('Video tersimpan.')
 
 
     setTimeout(
@@ -1495,25 +1487,6 @@ const handlePlayVideo = () => {
 /* ==========================================
    FORM ADMIN (dalam AppModal)
 ========================================== */
-
-.alert-box {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.alert-box.success {
-  background: #e8eee4;
-  color: #355a2c;
-}
-
-.alert-box.error {
-  background: #fbe7e6;
-  color: #a8322d;
-}
 
 .admin-form {
   display: grid;

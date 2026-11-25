@@ -1,4 +1,5 @@
 import { supabase } from '@/services/config/supabase'
+import { compressImage } from '@/utils/imageCompress'
 
 export type CmsHero = { id?: string; title: string; subtitle: string; description: string; image_url?: string | null; cta_text: string; cta_url: string; is_active: boolean }
 export type CmsFeature = { id?: string; icon: string; title: string; description: string; sort_order: number; is_active: boolean }
@@ -58,8 +59,9 @@ export const cmsService = {
   async uploadImage(file: File) {
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) throw new Error('Format gambar harus JPG, PNG, atau WEBP.')
     if (file.size > MAX_IMAGE_BYTES) throw new Error('Ukuran gambar maksimal 5 MB.')
-    const path = `hero/${crypto.randomUUID()}.${file.name.split('.').pop()}`
-    const { error } = await supabase.storage.from('galleries').upload(path, file, { upsert: false, contentType: file.type })
+    const photo = await compressImage(file)
+    const path = `hero/${crypto.randomUUID()}.${photo.name.split('.').pop()}`
+    const { error } = await supabase.storage.from('galleries').upload(path, photo, { upsert: false, contentType: photo.type, cacheControl: '31536000' })
     if (error) throw error
     return supabase.storage.from('galleries').getPublicUrl(path).data.publicUrl
   },

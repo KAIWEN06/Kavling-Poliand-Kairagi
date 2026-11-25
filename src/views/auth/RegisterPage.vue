@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -141,8 +142,12 @@ async function registerWithGoogle() {
           </ion-card-header>
 
           <ion-card-content>
-            <ion-text v-if="errorMessage" color="danger"><p class="message" role="alert">{{ errorMessage }}</p></ion-text>
-            <ion-text v-if="successMessage" color="success"><p class="message success-message" role="status">{{ successMessage }}</p></ion-text>
+            <AppNotice v-if="errorMessage" tone="error">
+              {{ errorMessage }}
+            </AppNotice>
+            <AppNotice v-if="successMessage" tone="success">
+              {{ successMessage }}
+            </AppNotice>
 
             <form class="register-form" @submit.prevent="submitRegistration">
               <div class="input-wrap reveal" style="--i: 3">
@@ -469,16 +474,6 @@ ion-card-title {
 
 ion-card-content {
   padding: 4px 16px 14px;
-}
-
-.message {
-  margin: 0 0 6px;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.success-message {
-  color: #3d775c;
 }
 
 /* ---------- Form ---------- */

@@ -6,9 +6,9 @@
       </button>
     </div>
     <div class="mk-filters">
-      <label class="mk-field"><span>Cari</span><input v-model.trim="search" class="mk-input" type="search" placeholder="Nama klien, nomor SPK, kaveling" /></label>
+      <label class="mk-field"><span>Cari</span><input v-model.trim="search" class="mk-input" type="search" placeholder="Klien, nomor SPK, kaveling" /></label>
       <label v-if="isHead" class="mk-field">
-        <span>Marketing</span>
+        <span>Pemasar</span>
         <select v-model="marketingId" class="mk-input">
           <option value="">Semua</option>
           <option v-for="m in members" :key="m.id" :value="m.id">{{ m.full_name }}</option>
@@ -26,25 +26,26 @@
     <StatusIllustration
       v-else-if="!filtered.length"
       variant="empty-data"
-      title="Belum ada pengajuan"
-      description="Pengajuan SPK klien akan tampil di sini setelah diajukan."
+      :title="rows.length ? 'Tidak ada yang cocok' : 'Belum ada pengajuan'"
+      :description="rows.length ? 'Ubah pencarian atau filter status.' : isHead ? 'Pengajuan SPK klien muncul di sini.' : 'Mulai dari kaveling yang tersedia untuk klien Anda.'"
     />
 
     <div v-else class="mk-table-wrap">
       <table class="mk-table mk-table--stack">
         <thead>
           <tr>
-            <th>Klien</th><th v-if="isHead">Marketing</th><th>Kaveling</th><th>Tanggal pengajuan</th>
+            <th>Klien</th><th v-if="isHead">Pemasar</th><th>Kaveling</th><th>Diajukan</th>
             <th class="num">Nominal SPK</th><th>Status SPK</th><th>Pembayaran SPK</th><th>Catatan Admin</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in filtered" :key="row.id" :class="{ 'mk-row-link': row.customer_id }" @click="row.customer_id && emit('open-client', row.customer_id)">
+          <tr v-for="row in filtered" :id="`notif-spk-${row.id}`" :key="row.id" :class="{ 'mk-row-link': row.customer_id, 'notif-target': focusedId === row.id }" @click="row.customer_id && emit('open-client', row.customer_id)">
             <td class="mk-cell-main">
-              {{ row.customer_name }}
+              <button v-if="row.customer_id" type="button" class="mk-cell-link" @click.stop="emit('open-client', row.customer_id)">{{ row.customer_name }}</button>
+              <template v-else>{{ row.customer_name }}</template>
               <span class="mk-muted mk-block">{{ row.spk_number }} · {{ row.submission_source }}</span>
             </td>
-            <td v-if="isHead" data-label="Marketing">{{ memberName(row.owner_id) }}</td>
+            <td v-if="isHead" data-label="Pemasar">{{ memberName(row.owner_id) }}</td>
             <td data-label="Kaveling">{{ row.lot?.lot_number || '-' }}</td>
             <td data-label="Diajukan">{{ formatDate(row.submitted_at) }}</td>
             <td data-label="Nominal SPK" class="num">{{ formatRupiah(row.booking_fee_snapshot) }}</td>
@@ -61,7 +62,7 @@
         </tbody>
       </table>
     </div>
-    <p class="mk-muted">Konfirmasi dan penolakan SPK dilakukan oleh Admin. Halaman ini hanya untuk pemantauan.</p>
+    <p class="mk-muted">SPK dikonfirmasi atau ditolak oleh Admin.</p>
   </section>
 </template>
 
@@ -69,12 +70,14 @@
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { useRowFocus } from '@/composables/useRowFocus'
 import { getTeamMembers, listSpkRequests, type TeamMember } from '@/services/marketing/marketingCrmService'
 import { formatDate, formatRupiah, paymentStatusLabel, paymentStatusTone, spkLabel, spkTone } from '@/utils/marketingStatus'
 
-const props = defineProps<{ role: 'marketing' | 'head' }>()
+const props = defineProps<{ role: 'marketing' | 'head'; focusId?: number; focusStamp?: string }>()
+const { focusedId, focusRow } = useRowFocus()
 const emit = defineEmits<{ 'open-client': [id: number] }>()
 const isHead = computed(() => props.role === 'head')
 
@@ -129,7 +132,16 @@ async function load() {
     loading.value = false
   }
 }
-onMounted(load)
+async function applyFocus() {
+  const id = props.focusId
+  if (!id || !rows.value.some((row) => row.id === id)) return
+  status.value = 'all'
+  search.value = ''
+  marketingId.value = ''
+  await focusRow(id, `notif-spk-${id}`)
+}
+onMounted(() => load().then(applyFocus))
+watch(() => props.focusStamp, () => void load().then(applyFocus))
 defineExpose({ reload: load })
 </script>
 

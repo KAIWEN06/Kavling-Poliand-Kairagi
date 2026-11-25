@@ -1,4 +1,5 @@
 import { assertCustomerFields } from '@/utils/inputValidation'
+import type { addressColumns } from '@/utils/address'
 /**
  * Service data bersama Marketing & Kepala Bagian Marketing.
  *
@@ -9,9 +10,16 @@ import { assertCustomerFields } from '@/utils/inputValidation'
  * memiliki fungsi tulis untuk SPK, pembayaran, jadwal cicilan, atau komisi.
  */
 import { supabase } from '@/services/config/supabase'
+import {
+  DUPLICATE_FOLLOWUP_MESSAGE,
+  assertFollowupNotDuplicate,
+  isDuplicateFollowupError,
+} from '@/services/marketing/customerFollowupService'
+import { loadPaymentInstallmentInfo } from '@/services/Finance/paymentInstallmentInfo'
+import { formatInstallmentRange } from '@/utils/installmentFormat'
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import type { FinanceTransactionRecord } from '@/types/finance'
-import type { CrmStatus } from '@/utils/marketingStatus'
+import { matchesCrmFilter, type CrmStatus } from '@/utils/marketingStatus'
 
 export type StaffRole = 'marketing' | 'marketing_head' | 'admin' | 'owner'
 
@@ -25,6 +33,15 @@ export interface TeamMember {
   id: string
   full_name: string
   role: 'marketing' | 'marketing_head'
+}
+
+/** Tambahkan penanda cicilan (mis. "Cicilan ke-2 dari 12") ke baris pembayaran. */
+async function withInstallmentLabels<T extends { id: number | string }>(rows: T[]): Promise<Array<T & { installment_label: string }>> {
+  const info = await loadPaymentInstallmentInfo(rows.map((row) => Number(row.id)))
+  return rows.map((row) => {
+    const found = info.get(Number(row.id))
+    return { ...row, installment_label: found ? formatInstallmentRange(found.numbers, found.total) : '' }
+  })
 }
 
 function one<T>(value: T | T[] | null | undefined): T | null {
@@ -43,7 +60,7 @@ function fail(error: unknown): never {
 export async function getStaffProfile(): Promise<StaffProfile> {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError) fail(authError)
-  if (!auth.user) throw new Error('Sesi login tidak ditemukan. Silakan login kembali.')
+  if (!auth.user) throw new Error('Sesi masuk tidak ditemukan. Silakan masuk kembali.')
 
   const { data, error } = await supabase
     .from('profiles')
@@ -52,7 +69,7 @@ export async function getStaffProfile(): Promise<StaffProfile> {
     .maybeSingle()
   if (error) fail(error)
   if (!data || !['marketing', 'marketing_head', 'admin', 'owner'].includes(data.role)) {
-    throw new Error('Akun ini tidak memiliki akses ke modul Marketing.')
+    throw new Error('Akun ini tidak memiliki akses ke modul pemasar.')
   }
   return { id: data.id, full_name: data.full_name || 'Pengguna', role: data.role as StaffRole }
 }
@@ -174,7 +191,7 @@ export function filterClients(rows: ClientListItem[], f: ClientListFilters): Cli
       if (!haystack.includes(keyword) && !phoneHit) return false
     }
     if (f.marketingId && row.marketing_id !== f.marketingId) return false
-    if (f.crmStatus && row.crm_status !== f.crmStatus) return false
+    if (f.crmStatus && !matchesCrmFilter(row.crm_status, f.crmStatus)) return false
     if (f.spkStatus) {
       const s = row.latest_spk_status
       if (f.spkStatus === 'none' && s) return false
@@ -256,7 +273,7 @@ export async function getClientDetail(customerId: number): Promise<ClientDetail>
   ])
   for (const res of [crmRes, followRes, notesRes, spkRes, txRes, payRes, cancelRes]) if (res.error) fail(res.error)
 
-  const payments = payRes.data ?? []
+  const payments = await withInstallmentLabels((payRes.data ?? []) as any[])
   const transactions = (txRes.data ?? []).map((tx: any) => {
     const txPayments = payments.filter((p: any) => Number(p.transaction_id) === Number(tx.id))
     const schedules = [...(tx.installment_schedules ?? [])].sort((a, b) => a.installment_number - b.installment_number)
@@ -343,16 +360,18 @@ export async function addFollowup(input: {
   next_followup_date: string | null
 }) {
   const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) throw new Error('Sesi login tidak ditemukan.')
-  const { error } = await supabase.from('customer_followups').insert({ ...input, user_id: auth.user.id })
-  if (error) fail(error)
+  if (!auth.user) throw new Error('Sesi masuk tidak ditemukan.')
+  const row = { ...input, user_id: auth.user.id }
+  await assertFollowupNotDuplicate(row)
+  const { error } = await supabase.from('customer_followups').insert(row)
+  if (error) fail(isDuplicateFollowupError(error) ? new Error(DUPLICATE_FOLLOWUP_MESSAGE) : error)
 }
 
 export const NOTE_CATEGORIES = ['Follow Up', 'Preferensi Kavling', 'Hasil Pertemuan', 'Informasi Customer', 'Arahan Kepala Bagian', 'Lainnya'] as const
 
 export async function addNote(customerId: number, payload: { title: string; content: string; category: string }) {
   const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) throw new Error('Sesi login tidak ditemukan.')
+  if (!auth.user) throw new Error('Sesi masuk tidak ditemukan.')
   const { error } = await supabase.from('customer_notes').insert({
     customer_id: customerId,
     title: payload.title.trim(),
@@ -364,16 +383,11 @@ export async function addNote(customerId: number, payload: { title: string; cont
   if (error) fail(error)
 }
 
-export interface EditableClientFields {
+export interface EditableClientFields extends Partial<ReturnType<typeof addressColumns>> {
   full_name: string
   phone: string | null
   whatsapp_phone: string | null
   email: string | null
-  address: string | null
-  province_code: string | null
-  province_name: string | null
-  city_code: string | null
-  city_name: string | null
   notes: string | null
 }
 
@@ -403,7 +417,7 @@ export interface ContactConflict {
 }
 
 const GENERIC_CONFLICT =
-  'Nomor kontak ini sudah terdaftar sebagai client lain. Hubungi Kepala Marketing atau Admin untuk penanganannya.'
+  'Nomor kontak ini sudah terdaftar sebagai klien lain. Hubungi Kepala Pemasaran atau Admin untuk penanganannya.'
 
 /** Mengembalikan null bila nomor belum dipakai, selain itu penjelasan siapa yang memegangnya. */
 export async function findContactConflict(
@@ -435,15 +449,15 @@ export async function findContactConflict(
     case 'other_marketing':
       return {
         message: name
-          ? `Nomor ini sudah ditangani Marketing lain, atas nama ${name}. Pindahkan lewat Admin bila perlu.`
-          : 'Nomor ini sudah ditangani Marketing lain. Minta Kepala Marketing atau Admin memindahkannya.',
+          ? `Nomor ini sudah ditangani pemasar lain, atas nama ${name}. Pindahkan lewat Admin bila perlu.`
+          : 'Nomor ini sudah ditangani pemasar lain. Minta Kepala Pemasaran atau Admin memindahkannya.',
         customerId,
       }
     case 'unassigned':
       return {
         message: name
-          ? `Nomor ini sudah terdaftar atas nama ${name} tanpa Marketing penanggung jawab. Tetapkan penanggung jawabnya lewat Admin.`
-          : 'Nomor ini sudah terdaftar dan belum punya Marketing penanggung jawab. Minta Admin menetapkan Anda.',
+          ? `Nomor ini sudah terdaftar atas nama ${name} tanpa pemasar penanggung jawab. Tetapkan penanggung jawabnya lewat Admin.`
+          : 'Nomor ini sudah terdaftar dan belum punya pemasar penanggung jawab. Minta Admin menetapkan Anda.',
         customerId,
       }
     default:
@@ -494,7 +508,8 @@ export async function listPayments() {
       spk_requests (spk_number, submission_source, marketing_id)`)
     .order('submitted_at', { ascending: false })
   if (error) fail(error)
-  return (data ?? []).map((row: any) => {
+  const labelled = await withInstallmentLabels((data ?? []) as any[])
+  return labelled.map((row: any) => {
     const spk = one(row.spk_requests) as any
     return {
       ...row,

@@ -398,6 +398,22 @@ Target sentuh minimal 44x44px. `touch-action: manipulation` dan `-webkit-tap-hig
 
 ---
 
+### 12.6 Notifikasi: satu pintu, satu gaya
+
+| Kebutuhan | Pakai |
+| --- | --- |
+| Hasil aksi yang lewat sebentar (tersimpan, gagal kirim) | `useToast().success / error / warning / info(pesan, { title, duration })` |
+| Pertanyaan ya/tidak sebelum aksi | `await useConfirm().confirm({ title, message, confirmText, tone })` |
+| Pemberitahuan yang harus dibaca | `useConfirm().alert({ title, message })` |
+| Pesan yang menetap di halaman atau formulir | `<AppNotice tone title message>`; tombol "Coba lagi" masuk ke slot |
+| Aksi penting selesai (kirim SPK, kirim bukti bayar) | `useCelebration().celebrate({ title, message })` |
+
+- Warna, radius, ukuran ikon, bayangan, jarak, dan urutan lapisan hanya diubah di `src/theme/notify.css`. Bentuk kartu ada di `AppNotice.vue`, ikon dan geraknya di `NotifyIcon.vue`.
+- `tone="error"` pada dialog dipakai untuk aksi yang menghapus atau tidak bisa dibatalkan.
+- Satu kejadian memakai satu saluran. Jangan menampilkan toast untuk pesan yang sudah tampil di formulir atau di layar selebrasi.
+- Dilarang: `window.alert`, `window.confirm`, `alertController`, `<ion-toast>`, dan kotak pesan ber-CSS sendiri.
+- Teks validasi kecil di bawah kolom input dan layar gagal muat satu halaman (`StatusIllustration`) berada di luar aturan ini.
+
 ## 13. Aturan Teks: Singkat, Tidak Redundan
 
 Halaman dibangun dari banyak komponen, dan tiap komponen sering punya judul, label, dan deskripsi sendiri. Akibatnya kata yang sama bisa muncul dua kali di satu layar. Aturan ini mencegahnya.
@@ -437,6 +453,18 @@ Rasio dihitung dengan rumus WCAG 2.x. Teks normal minimal 4,5:1, teks besar (24p
 | Putih `#FFFFFF` | emas `#CBA044` | 2,4 | **Gagal. Dilarang.** |
 | `#A7A7A7` / `--pl-warm-gray` | krem | sekitar 2,2 | **Gagal.** Hanya dekoratif. |
 | `--text-tertiary` `#8A8A90` | putih | 3,4 | **Gagal untuk teks.** Hanya disabled. |
+| Merah `#A8322D` (chip "Terjual") | `#FDF0EF` | 6,0 | Lolos (`--status-danger` `#D94B45` di latar ini hanya 4,0) |
+| `--poliland-gold-text` `#805708` (chip "Dipesan") | `#FBF4E5` | 5,9 | Lolos |
+| `--poliland-green` `#355A2C` (pilihan DP aktif) | `--status-success-bg` `#E8EEE4` | 6,7 | Lolos |
+| `--text-secondary` `#5F5F66` | `--status-success-bg` `#E8EEE4` | 5,4 | Lolos |
+| Merah `#A12C22` (peringatan DP) | putih | 7,2 | Lolos |
+| `--on-forest` `#F4F1E8` (ringkasan Ajukan SPK) | `--surface-forest` `#243D1E` | 10,6 | Lolos |
+| `--poliland-gold-soft` `#F4D69A` (cicilan per bulan) | `--surface-forest` `#243D1E` | 8,5 | Lolos |
+| `--poliland-gold-text` `#805708` (harga kaveling) | `--gold-50` `#FBF4E4` | 5,8 | Lolos |
+| `--text-secondary` `#5F5F66` | `--gold-50` `#FBF4E4` | 5,8 | Lolos |
+| `--danger-text` `#A8322D` (galat, alamat kosong) | `--danger-bg` `#FBE7E6` | 5,6 | Lolos |
+| `--danger-text` `#A8322D` | `--surface-muted` `#F5F3EE` | 6,0 | Lolos |
+| `--poliland-green` `#355A2C` (pilihan aktif) | `--green-50` `#EEF3EA` | 7,0 | Lolos |
 
 Aturan tambahan:
 

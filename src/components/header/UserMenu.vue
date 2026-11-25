@@ -38,14 +38,17 @@
 </template>
 
 <script setup lang="ts">
+import { useConfirm } from '@/composables/useConfirm'
 import { sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
 import { ref } from 'vue'
-import { IonIcon, IonModal, alertController, useIonRouter } from '@ionic/vue'
+import { IonIcon, IonModal, useIonRouter } from '@ionic/vue'
 import { chevronForwardOutline, logOutOutline, personOutline, settingsOutline } from 'ionicons/icons'
 
 import UserAvatar from '@/components/header/UserAvatar.vue'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { authService } from '@/services/auth/authService'
+
+const { confirm } = useConfirm()
 
 defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -60,17 +63,8 @@ function go(path: string) {
 }
 
 async function confirmLogout() {
-  const alert = await alertController.create({
-    header: 'Keluar dari akun?',
-    message: 'Anda perlu masuk kembali untuk mengakses aplikasi.',
-    buttons: [
-      { text: 'Batal', role: 'cancel' },
-      { text: 'Keluar', role: 'confirm', cssClass: 'alert-danger-button' },
-    ],
-  })
-  await alert.present()
-  const { role } = await alert.onDidDismiss()
-  if (role !== 'confirm') return
+  const ok = await confirm({ title: 'Keluar dari akun?', message: 'Anda perlu masuk kembali untuk mengakses aplikasi.', confirmText: 'Keluar', tone: 'error' })
+  if (!ok) return
   await logout()
 }
 

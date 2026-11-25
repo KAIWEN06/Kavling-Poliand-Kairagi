@@ -12,7 +12,7 @@ defineProps<{
 
 <template>
   <div class="finance-amount-breakdown" aria-label="Rincian biaya transaksi">
-    <div><span>Booking Fee</span><strong>{{ formatCurrency(bookingFee) }}</strong><small>Terpisah dari pokok · dibayar {{ formatCurrency(bookingFeePaid) }}</small></div>
+    <div><span>Tanda jadi</span><strong>{{ formatCurrency(bookingFee) }}</strong><small>Terpisah dari pokok · dibayar {{ formatCurrency(bookingFeePaid) }}</small></div>
     <div><span>Biaya Pokok</span><strong>{{ formatCurrency(principalAmount) }}</strong><small>Uang muka {{ formatCurrency(downPayment) }}</small></div>
     <div v-if="marginAmount > 0"><span>Margin Cicilan</span><strong>{{ formatCurrency(marginAmount) }}</strong></div>
     <div v-if="installmentTotal > 0"><span>Total Kewajiban Cicilan</span><strong>{{ formatCurrency(installmentTotal) }}</strong></div>

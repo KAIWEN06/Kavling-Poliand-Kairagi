@@ -18,6 +18,44 @@ export const CRM_STATUSES = [
 
 export type CrmStatus = (typeof CRM_STATUSES)[number]
 
+/** Gabungan status untuk kartu ringkasan. Nilai filter = kunci objek ini. */
+export const CRM_GROUPS: Record<string, { label: string; statuses: CrmStatus[] }> = {
+  'group:uncontacted': { label: 'Belum dihubungi (semua)', statuses: ['Baru', 'Belum Dihubungi'] },
+  'group:followup': { label: 'Ditindaklanjuti', statuses: ['Sudah Dihubungi', 'Follow-up'] },
+  'group:interested': { label: 'Berminat s.d. negosiasi', statuses: ['Berminat', 'Survey Lokasi', 'Negosiasi'] },
+}
+
+/*
+ * Beberapa nilai database masih berbahasa Inggris atau mirip satu sama lain
+ * ('Tindak'/'Tidak Lanjut'). Nilainya tetap; layar memakai label di bawah ini.
+ */
+const CRM_STATUS_LABEL: Partial<Record<string, string>> = {
+  'Follow-up': 'Tindak Lanjut',
+  'Survey Lokasi': 'Survei Lokasi',
+  'Tidak Lanjut': 'Tidak Berlanjut',
+}
+
+export function crmStatusLabel(status?: string | null): string {
+  if (!status) return '-'
+  return CRM_STATUS_LABEL[status] ?? status
+}
+
+const FOLLOWUP_VALUE_LABEL: Partial<Record<string, string>> = {
+  'Follow Up': 'Tindak Lanjut',
+  'Informasi Customer': 'Informasi Klien',
+}
+
+/** Label hasil, metode, dan kategori catatan tindak lanjut. */
+export function followupLabel(value?: string | null): string {
+  if (!value) return '-'
+  return FOLLOWUP_VALUE_LABEL[value] ?? value
+}
+
+export function matchesCrmFilter(status: string, filter: string): boolean {
+  const group = CRM_GROUPS[filter]
+  return group ? (group.statuses as string[]).includes(status) : status === filter
+}
+
 export type BadgeTone = 'neutral' | 'info' | 'warning' | 'success' | 'danger' | 'gold'
 
 export const CRM_TONE: Record<CrmStatus, BadgeTone> = {

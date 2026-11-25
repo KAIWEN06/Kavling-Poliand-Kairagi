@@ -2,35 +2,84 @@ import { readonly, ref } from 'vue'
 
 export type ToastTone = 'success' | 'error' | 'info' | 'warning'
 
+export interface ToastOptions {
+  title?: string
+  /** Lama tampil dalam ms. 0 = menetap sampai ditutup. */
+  duration?: number
+}
+
 export interface ToastItem {
   id: number
   tone: ToastTone
   message: string
+  title: string
+  duration: number
+}
+
+const DEFAULT_DURATION: Record<ToastTone, number> = {
+  success: 3800,
+  info: 4200,
+  warning: 5000,
+  error: 6000,
 }
 
 const items = ref<ToastItem[]>([])
 let nextId = 1
 
+// Timer disimpan per toast supaya bisa dijeda saat toast ditahan jari.
+const timers = new Map<number, { handle?: number; remaining: number; startedAt: number }>()
+
 function dismiss(id: number) {
+  window.clearTimeout(timers.get(id)?.handle)
+  timers.delete(id)
   items.value = items.value.filter((t) => t.id !== id)
 }
 
-function push(tone: ToastTone, message: string, duration = 3800) {
-  const id = nextId++
+function resume(id: number) {
+  const timer = timers.get(id)
+  if (!timer || timer.handle !== undefined) return
+  timer.startedAt = Date.now()
+  timer.handle = window.setTimeout(() => dismiss(id), timer.remaining)
+}
+
+function pause(id: number) {
+  const timer = timers.get(id)
+  if (!timer || timer.handle === undefined) return
+  window.clearTimeout(timer.handle)
+  timer.handle = undefined
+  timer.remaining = Math.max(0, timer.remaining - (Date.now() - timer.startedAt))
+}
+
+function push(tone: ToastTone, message: string, options: ToastOptions = {}) {
+  const title = options.title ?? ''
+  const duration = options.duration ?? DEFAULT_DURATION[tone]
+  // Pesan yang sama tidak ditumpuk: yang lama diganti dan hitungannya mulai lagi.
+  for (const t of items.value) {
+    if (t.tone === tone && t.message === message && t.title === title) dismiss(t.id)
+  }
   // Maksimal 3 toast; yang terlama dibuang
-  items.value = [...items.value.slice(-2), { id, tone, message }]
-  if (duration > 0) window.setTimeout(() => dismiss(id), duration)
+  for (const t of items.value.slice(0, -2)) dismiss(t.id)
+
+  const id = nextId++
+  items.value = [...items.value, { id, tone, message, title, duration }]
+  if (duration > 0) {
+    timers.set(id, { remaining: duration, startedAt: 0 })
+    resume(id)
+  }
   return id
 }
 
-/** Satu-satunya pintu feedback sementara. Pesan: apa yang terjadi + langkah berikutnya bila gagal. */
+/** Satu-satunya pintu pesan sementara. Pesan: apa yang terjadi + langkah berikutnya bila gagal. */
 export function useToast() {
   return {
     items: readonly(items),
     dismiss,
-    success: (m: string) => push('success', m),
-    error: (m: string) => push('error', m, 6000),
-    info: (m: string) => push('info', m),
-    warning: (m: string) => push('warning', m, 5000),
+    pause,
+    resume,
+    show: push,
+    success: (m: string, o?: ToastOptions) => push('success', m, o),
+    error: (m: string, o?: ToastOptions) => push('error', m, o),
+    info: (m: string, o?: ToastOptions) => push('info', m, o),
+    warning: (m: string, o?: ToastOptions) => push('warning', m, o),
   }
 }

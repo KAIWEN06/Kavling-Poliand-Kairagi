@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -30,6 +31,7 @@ import Reveal from '@/components/ui/Reveal.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import StatusBadge, { type BadgeTone } from '@/components/ui/StatusBadge.vue'
 import { useClientPurchaseOverview } from '@/composables/useClientPurchaseOverview'
+import { formatInstallmentRange, formatRupiah as formatRupiahId } from '@/utils/installmentFormat'
 
 const router = useRouter()
 const clientName = ref('Pembeli')
@@ -99,10 +101,8 @@ const {
   load: loadPurchase,
 } = useClientPurchaseOverview()
 
-const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })
-
 function formatRupiah(value: number) {
-  return rupiah.format(value)
+  return formatRupiahId(value)
 }
 
 function formatDay(value: string | null) {
@@ -122,7 +122,7 @@ function isOverdue(schedule: { dueDate: string | null; status: string } | null) 
 const transactionBadge = computed<{ tone: BadgeTone; label: string }>(() => {
   const status = overview.value?.transactionStatus
   if (status === 'Sold') return { tone: 'success', label: 'Terjual' }
-  if (status === 'Booking') return { tone: 'gold', label: 'Booking' }
+  if (status === 'Booking') return { tone: 'gold', label: 'Dipesan' }
   return { tone: 'neutral', label: status || 'Dalam proses' }
 })
 
@@ -207,13 +207,10 @@ function goTo(path: string) {
                 </div>
               </div>
 
-              <div v-else-if="purchaseError" class="alert" role="alert">
-                <div>
-                  <strong>Data pembelian belum dapat dimuat</strong>
-                  <p>{{ purchaseError }}</p>
-                </div>
-                <AppButton size="small" @click="loadPurchase">Coba lagi</AppButton>
-              </div>
+              <AppNotice v-else-if="purchaseError" tone="error" title="Data pembelian belum dapat dimuat">
+                <p>{{ purchaseError }}</p>
+<AppButton size="small" @click="loadPurchase">Coba lagi</AppButton>
+              </AppNotice>
 
               <div v-else-if="!overview" class="card">
                 <h2 id="purchase-title" class="sr-only">Status pembelian</h2>
@@ -233,7 +230,7 @@ function goTo(path: string) {
                     <span class="hero__meta">
                       <span v-if="overview.area">{{ overview.area }} m²</span>
                       <span>{{ schemeLabel }}</span>
-                      <span>Booking {{ formatDay(overview.bookingDate) }}</span>
+                      <span>Dipesan {{ formatDay(overview.bookingDate) }}</span>
                     </span>
                   </div>
                   <StatusBadge :tone="transactionBadge.tone" :label="transactionBadge.label" />
@@ -263,7 +260,7 @@ function goTo(path: string) {
 
                 <div class="hero__foot">
                   <span class="t-num">{{ progressPercent }}% dari {{ formatRupiah(overview.finalPrice) }}</span>
-                  <span v-if="overview.schedules.length" class="t-num">{{ paidInstallments }} / {{ overview.schedules.length }} cicilan</span>
+                  <span v-if="overview.schedules.length" class="t-num">{{ paidInstallments }} dari {{ overview.schedules.length }} lunas</span>
                 </div>
 
                 <div class="hero__actions">
@@ -294,7 +291,7 @@ function goTo(path: string) {
                 <span class="next__label">Pembayaran berikutnya</span>
                 <strong class="next__date t-figure">{{ formatDay(nextSchedule.dueDate) }}</strong>
                 <span class="next__row">
-                  <span class="t-num">Cicilan ke-{{ nextSchedule.installmentNumber }} · {{ formatRupiah(nextSchedule.amount) }}</span>
+                  <span class="t-num">{{ formatInstallmentRange([nextSchedule.installmentNumber], overview?.schedules.length) }} · {{ formatRupiah(nextSchedule.amount) }}</span>
                   <StatusBadge size="sm" :tone="isOverdue(nextSchedule) ? 'danger' : 'warning'" :label="isOverdue(nextSchedule) ? 'Terlambat' : 'Belum dibayar'" />
                 </span>
               </button>
@@ -341,7 +338,7 @@ function goTo(path: string) {
               <ul v-else-if="recentPayments.length" class="list">
                 <li v-for="payment in recentPayments" :key="payment.id" class="pay">
                   <span class="pay__copy">
-                    <strong>{{ payment.category }}<template v-if="payment.installmentNumbers.length"> · ke-{{ payment.installmentNumbers.join(', ') }}</template></strong>
+                    <strong>{{ payment.installmentNumbers.length ? formatInstallmentRange(payment.installmentNumbers, overview?.schedules.length) : payment.category }}</strong>
                     <small class="t-num">{{ formatDay(payment.date) }} · {{ payment.method }}</small>
                   </span>
                   <span class="pay__side">
@@ -442,10 +439,6 @@ function goTo(path: string) {
 }
 .skel { display: grid; gap: var(--space-3); }
 .skel__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
-
-.alert { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--danger-bg); color: var(--danger-text); }
-.alert strong { display: block; font-size: var(--text-md); }
-.alert p { margin: var(--space-1) 0 0; font-size: var(--text-sm); }
 
 /* ---------- hero (panel penekanan) ---------- */
 .hero {

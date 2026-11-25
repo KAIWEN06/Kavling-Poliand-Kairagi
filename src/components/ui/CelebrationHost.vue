@@ -71,7 +71,7 @@ const particles = Array.from({ length: 16 }, (_, i) => {
   --cel-bg: var(--surface-forest);
   position: fixed;
   inset: 0;
-  z-index: calc(var(--z-toast) + 10);
+  z-index: var(--nt-z-celebration);
   display: grid;
   place-items: center;
   min-height: 100dvh;

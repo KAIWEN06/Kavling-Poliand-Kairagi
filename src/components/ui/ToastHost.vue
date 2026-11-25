@@ -5,83 +5,114 @@
         v-for="t in items"
         :key="t.id"
         class="ui-toast"
-        :class="`ui-toast--${t.tone}`"
-        :role="t.tone === 'error' ? 'alert' : 'status'"
+        :class="{ 'ui-toast--held': held === t.id, 'ui-toast--dragging': held === t.id && drag.x !== 0 }"
+        :style="held === t.id ? dragStyle : undefined"
+        @pointerdown="startDrag($event, t.id)"
+        @pointermove="moveDrag($event, t.id)"
+        @pointerup="endDrag(t.id)"
+        @pointercancel="endDrag(t.id)"
+        @mouseenter="pause(t.id)"
+        @mouseleave="resume(t.id)"
+        @focusin="pause(t.id)"
+        @focusout="resume(t.id)"
       >
-        <svg class="ui-toast__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.6" />
-          <path v-if="t.tone === 'success'" d="M6 10.5l2.8 2.8L14 7.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-          <path v-else-if="t.tone === 'error'" d="M7 7l6 6M13 7l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-          <path v-else d="M10 6v5M10 13.6v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </svg>
-        <span class="ui-toast__msg">{{ t.message }}</span>
-        <button class="ui-toast__close" type="button" aria-label="Tutup pesan" @click="dismiss(t.id)">
-          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
-        </button>
+        <AppNotice floating dismissible :tone="t.tone" :title="t.title" :message="t.message" @dismiss="dismiss(t.id)">
+          <template #extra>
+            <span v-if="t.duration > 0" class="ui-toast__timer" :style="{ animationDuration: `${t.duration}ms` }" aria-hidden="true" />
+          </template>
+        </AppNotice>
       </div>
     </TransitionGroup>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, reactive, ref } from 'vue'
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { useToast } from '@/composables/useToast'
 
-const { items, dismiss } = useToast()
+const { items, dismiss, pause, resume } = useToast()
+
+/* Geser ke samping untuk membuang; tahan untuk menjeda hitungan. */
+const SWIPE_DISTANCE = 80
+const held = ref<number | null>(null)
+const drag = reactive({ start: 0, x: 0 })
+
+const dragStyle = computed(() =>
+  drag.x === 0 ? undefined : { transform: `translateX(${drag.x}px)`, opacity: String(Math.max(0.25, 1 - Math.abs(drag.x) / 260)) },
+)
+
+function startDrag(event: PointerEvent, id: number) {
+  if ((event.target as HTMLElement).closest('button')) return
+  held.value = id
+  drag.start = event.clientX
+  drag.x = 0
+  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+  pause(id)
+}
+
+function moveDrag(event: PointerEvent, id: number) {
+  if (held.value === id) drag.x = event.clientX - drag.start
+}
+
+function endDrag(id: number) {
+  if (held.value !== id) return
+  const swiped = Math.abs(drag.x) > SWIPE_DISTANCE
+  held.value = null
+  drag.x = 0
+  if (swiped) dismiss(id)
+  else resume(id)
+}
 </script>
 
 <style scoped>
+/* Muncul dari atas: tidak menutupi navigasi bawah atau tombol di kaki modal. */
 .ui-toasts {
   position: fixed;
-  inset: auto 0 0 0;
-  z-index: var(--z-toast);
+  inset: 0 0 auto 0;
+  z-index: var(--nt-z-toast);
   display: flex;
   justify-content: center;
-  padding: var(--space-4);
-  padding-bottom: calc(var(--space-4) + var(--bottom-nav-h) + var(--safe-bottom));
+  padding: calc(env(safe-area-inset-top, 0px) + var(--space-3)) var(--space-3) 0;
   pointer-events: none;
 }
 .ui-toasts__stack {
+  position: relative;
   display: grid;
   gap: var(--space-2);
-  width: min(420px, 100%);
+  width: min(440px, 100%);
 }
 .ui-toast {
-  --t-accent: var(--green-500);
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  border-left: 4px solid var(--t-accent);
-  background: var(--surface-forest);
-  color: var(--on-forest);
-  box-shadow: var(--shadow-md);
-  font-size: var(--text-md);
-  line-height: 1.4;
   pointer-events: auto;
+  touch-action: pan-y;
+  transition: transform var(--dur-base) var(--ease-spring), opacity var(--dur-base) var(--ease-out);
 }
-.ui-toast--error { --t-accent: var(--status-danger); }
-.ui-toast--warning { --t-accent: var(--gold-500); }
-.ui-toast--info { --t-accent: #7FA6F0; }
-.ui-toast__icon { width: 20px; height: 20px; flex: none; margin-top: 1px; color: var(--t-accent); }
-.ui-toast__msg { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.ui-toast__close {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  margin: -6px -4px -6px 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--on-forest-muted);
-  cursor: pointer;
-}
-.ui-toast__close svg { width: 16px; height: 16px; }
+.ui-toast--dragging { transition: none; }
 
-.ui-toast-enter-active { transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-spring); }
-.ui-toast-leave-active { transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); position: absolute; width: 100%; }
-.ui-toast-enter-from { opacity: 0; transform: translateY(16px) scale(0.97); }
-.ui-toast-leave-to { opacity: 0; transform: translateY(6px); }
+.ui-toast__timer {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--nt-solid);
+  transform-origin: left;
+  animation: ui-toast-countdown linear both;
+}
+.ui-toast--held .ui-toast__timer { animation-play-state: paused; }
+@media (hover: hover) and (pointer: fine) {
+  .ui-toast:hover .ui-toast__timer { animation-play-state: paused; }
+}
+.ui-toast:focus-within .ui-toast__timer { animation-play-state: paused; }
+@keyframes ui-toast-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+.ui-toast-enter-active { transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-slow) var(--ease-spring); }
+.ui-toast-leave-active { transition: opacity var(--dur-fast) var(--ease-in), transform var(--dur-fast) var(--ease-in); position: absolute; width: 100%; pointer-events: none; }
+.ui-toast-enter-from { opacity: 0; transform: translateY(-28px) scale(0.92); }
+.ui-toast-leave-to { opacity: 0; transform: translateY(-14px) scale(0.96); }
 .ui-toast-move { transition: transform var(--dur-base) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-toast, .ui-toast-enter-active, .ui-toast-leave-active, .ui-toast-move { transition: opacity var(--dur-fast) linear; }
+  .ui-toast-enter-from, .ui-toast-leave-to { transform: none; }
+  .ui-toast__timer { display: none; }
+}
 </style>

@@ -30,7 +30,7 @@
               :animate="{ opacity: 1, y: 0 }"
               :transition="{ duration: 0.5, delay: 0.7, ease: MOTION_EASE_OUT }"
             >
-              <AdminEditButton label="Tambah update" :icon="addOutline" @click="openAdd" />
+              <AdminEditButton label="Tambah kabar" :icon="addOutline" @click="openAdd" />
             </motion.div>
           </div>
         </header>
@@ -141,7 +141,7 @@
                 @keydown.enter="openProject(project)"
               >
                 <div class="project-thumbnail">
-                  <img v-if="project.cover" :src="project.cover" :alt="project.name" loading="lazy" />
+                  <img v-if="project.cover" :src="project.cover" :alt="project.name" loading="lazy" decoding="async" />
                   <div v-else class="cover-empty" aria-hidden="true"><ion-icon :icon="constructOutline" /></div>
                   <div class="thumbnail-overlay"></div>
                   <span class="thumbnail-status">{{ project.statusLabel }}</span>
@@ -170,8 +170,8 @@
           <StatusIllustration
             v-else
             :variant="projects.length ? 'no-result' : 'empty-data'"
-            :title="projects.length ? 'Proyek tidak ditemukan' : 'Belum ada update'"
-            :description="projects.length ? 'Belum ada pembangunan untuk kategori yang dipilih.' : (isAdmin ? 'Tekan “Tambah update” untuk menampilkan perkembangan pertama.' : 'Update pembangunan akan segera ditambahkan.')"
+            :title="projects.length ? 'Proyek tidak ditemukan' : 'Belum ada kabar'"
+            :description="projects.length ? 'Belum ada pembangunan untuk kategori yang dipilih.' : (isAdmin ? 'Tekan “Tambah kabar” untuk menampilkan perkembangan pertama.' : 'Kabar pembangunan akan segera ditambahkan.')"
           />
         </section>
 

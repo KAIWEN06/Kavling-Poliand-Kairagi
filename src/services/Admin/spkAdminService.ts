@@ -318,7 +318,7 @@ export async function getAdminSPKRequests(): Promise<AdminSPKRequest[]> {
       down_payment_snapshot: Number(row.down_payment_snapshot || 0),
       total_payment_snapshot: toNullableNumber(row.total_payment_snapshot),
       submission_source: source,
-      marketing_name: row.marketing_id ? profileMap.get(row.marketing_id) || 'Marketing tidak tersedia' : null,
+      marketing_name: row.marketing_id ? profileMap.get(row.marketing_id) || 'Pemasar tidak tersedia' : null,
       lot_number: lot?.lot_number || `ID ${row.lot_id}`,
       block_name: lot?.block_name || 'Blok tidak tersedia',
       lot_status: lot?.status ?? null,
@@ -373,7 +373,7 @@ export async function getCustomersForAdminSPK(source: CustomerSource): Promise<A
       const block = relationOne(lot?.blocks)
       return {
         lot_id: Number(interest.lot_id),
-        lot_number: lot?.lot_number || `Lot #${interest.lot_id}`,
+        lot_number: lot?.lot_number || `Kavling #${interest.lot_id}`,
         block_name: block?.name || block?.code || null,
       }
     }),
@@ -505,7 +505,7 @@ function validateAdminSPKInput(input: CreateAdminSPKInput, documents: SPKDocumen
     throw new Error('Harga kaveling tidak valid.')
   }
   if (!input.customer_full_name.trim()) {
-    throw new Error('Nama customer wajib tersedia.')
+    throw new Error('Nama pembeli wajib tersedia.')
   }
 
   if (input.payment_method === 'Cash') {
@@ -513,11 +513,12 @@ function validateAdminSPKInput(input: CreateAdminSPKInput, documents: SPKDocumen
       throw new Error('Data tenor dan cicilan harus kosong untuk pembayaran tunai.')
     }
     if (input.down_payment_snapshot !== 0) {
-      throw new Error('DP snapshot untuk pembayaran tunai harus 0.')
+      throw new Error('Uang muka tercatat untuk pembayaran tunai harus 0.')
     }
   } else {
-    if (!(input.down_payment_snapshot > 0 && input.down_payment_snapshot < input.lot_price_snapshot)) {
-      throw new Error('DP harus lebih besar dari 0 dan lebih kecil dari harga kaveling.')
+    // DP 0 berarti langsung cicil tanpa DP.
+    if (!(input.down_payment_snapshot >= 0 && input.down_payment_snapshot < input.lot_price_snapshot)) {
+      throw new Error('Uang muka harus Rp 0 (langsung cicil) atau lebih kecil dari harga kaveling.')
     }
     if (!input.payment_plan_id || !input.months || input.months <= 0 || !input.monthly_payment || input.monthly_payment <= 0) {
       throw new Error('Rincian cicilan belum lengkap.')
@@ -552,7 +553,7 @@ export async function createAdminSPKRequest(
   const { data: authData, error: authError } = await supabase.auth.getUser()
   throwIfError(authError)
   const user = authData.user
-  if (!user) throw new Error('Sesi login tidak ditemukan.')
+  if (!user) throw new Error('Sesi masuk tidak ditemukan.')
 
   const uploadedSPKPaths: string[] = []
   const uploadedPaymentPaths: string[] = []
@@ -608,10 +609,10 @@ export async function createAdminSPKRequest(
             lot_id: input.lot_id,
             amount: Number(request.booking_fee_snapshot ?? DEFAULT_SPK_BOOKING_FEE),
             proof_path: proofPath,
-            note: `Booking Fee untuk ${request.spk_number}`,
+            note: `Tanda jadi untuk ${request.spk_number}`,
           })
         } catch (error) {
-          throw new Error(`Booking Fee gagal disimpan: ${error instanceof Error ? error.message : 'Kesalahan database'}`)
+          throw new Error(`Tanda jadi gagal disimpan: ${error instanceof Error ? error.message : 'Kesalahan database'}`)
         }
         continue
       }

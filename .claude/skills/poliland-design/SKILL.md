@@ -66,6 +66,7 @@ Target 44x44px, `touch-action: manipulation`, tap highlight transparan, hover ha
 | Angka naik dari 0 | `CountUp` (teks CMS bebas) |
 | Masuk berurutan saat halaman dibuka | `Reveal` (`order`) |
 | Rasa global | Kelas `pl-surface` pada pembungkus halaman (`src/theme/poliland-look.css`) |
+| Notifikasi (DESIGN.md §12.6) | `useToast`, `useConfirm`, `AppNotice`, `useCelebration`; gaya di `src/theme/notify.css` |
 
 ## Daftar periksa
 

@@ -3,7 +3,9 @@ import { CustomNotification, type NotificationClickEvent } from '@/plugins/custo
 import { authService, type UserRole } from '@/services/auth/authService'
 import { ROLE_LABEL } from '@/services/profile/profileService'
 import {
+  notificationService,
   resolveNotificationRoute,
+  withTapStamp,
   type AppNotification,
   type NotificationCategory,
 } from '@/services/notification/notificationService'
@@ -36,7 +38,7 @@ const CATCH_UP_MAX = 5
 const CATEGORY_LABEL: Record<NotificationCategory, string> = {
   spk: 'SPK',
   payment: 'Pembayaran',
-  client: 'Client',
+  client: 'Klien',
   transaction: 'Transaksi',
   commission: 'Komisi',
   reminder: 'Pengingat',
@@ -103,11 +105,18 @@ async function safeRouteFor(role: UserRole, requested: string | undefined | null
   return allowed ? requested : home
 }
 
-async function goTo(path: string | null) {
+/** Layar pembuka tidak boleh tertinggal di bawah tujuan: tombol Back harus kembali ke beranda. */
+const ENTRY_ROUTES = new Set(['Splash', 'Welcome', 'Login'])
+
+async function goTo(path: string | null, home?: string | null) {
   if (!path) return
   const { default: router } = await import('@/router')
   await router.isReady()
-  await router.push(path)
+  if (home && ENTRY_ROUTES.has(String(router.currentRoute.value.name))) {
+    await router.replace(home)
+    if (path === home) return
+  }
+  await router.push(withTapStamp(path))
 }
 
 // -------------------------------------------------------------------- klik
@@ -122,7 +131,11 @@ async function consumeClick(event: NotificationClickEvent) {
     useToast().info(`Notifikasi tersebut ditujukan untuk ${label}. Masuk dengan akun yang sesuai untuk membukanya.`)
     return
   }
-  await goTo(await safeRouteFor(current.role, event.route || routeFromPayload(current.role, event)))
+  // Tap dari luar aplikasi sama dengan membuka notifikasi di dalam aplikasi: tandai dibaca.
+  const notificationId = String(event.payload?.notificationId ?? event.id)
+  void notificationService.markRead(notificationId).catch(() => undefined)
+  const target = await safeRouteFor(current.role, event.route || routeFromPayload(current.role, event))
+  await goTo(target, authService.getRoleHomePath(current.role))
 }
 
 /** Push dari server tidak membawa rute; hitung dari kategori & data sesuai role aktif. */

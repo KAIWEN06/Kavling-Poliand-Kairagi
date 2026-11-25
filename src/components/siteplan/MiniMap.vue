@@ -13,7 +13,7 @@
         <!-- Background -->
         <img
           :src="background || fallbackBackground"
-          alt="Minimap"
+          alt="Peta mini"
           class="minimap-background"
           draggable="false"
         />
@@ -42,7 +42,7 @@ import {
   watch,
 } from 'vue'
 
-import fallbackBackground from '../../assets/siteplan/background.webp'
+import fallbackBackground from '../../assets/siteplan/background_minimap.webp'
 import svgRaw from '../../assets/siteplan/LOTS_WITH_ID.svg?raw'
 
 import {

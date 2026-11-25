@@ -1,18 +1,10 @@
 <template>
-  <MarketingPageLayout title="Perkembangan Klien" tab-variant="head" @refresh="load">
-    <Reveal :order="1">
-      <section class="mk-intro">
-        <p>Monitoring CRM</p>
-        <h1>Perkembangan klien tim</h1>
-        <span>Status perkembangan terpisah dari status SPK dan pembayaran. Setiap perubahan mencatat pengguna dan waktunya.</span>
-      </section>
-    </Reveal>
-
+  <MarketingPageLayout title="Progres klien" subtitle="Status, tindak lanjut, dan aktivitas tim." tab-variant="head" @refresh="load">
     <Reveal :order="2">
       <label class="mk-field mk-narrow">
-        <span>Marketing</span>
+        <span>Pemasar</span>
         <select v-model="marketingId" class="mk-input" @change="loadActivity">
-          <option value="">Semua Marketing</option>
+          <option value="">Semua pemasar</option>
           <option v-for="m in members" :key="m.id" :value="m.id">{{ m.full_name }}</option>
         </select>
       </label>
@@ -26,18 +18,18 @@
         <div class="mk-chips" role="group" aria-label="Filter status perkembangan">
           <button type="button" class="mk-chip" :aria-pressed="status === ''" @click="status = ''">Semua ({{ scoped.length }})</button>
           <button v-for="st in CRM_STATUSES" :key="st" type="button" class="mk-chip" :aria-pressed="status === st" @click="status = st">
-            {{ st }} ({{ scoped.filter((c) => c.crm_status === st).length }})
+            {{ crmStatusLabel(st) }} ({{ scoped.filter((c) => c.crm_status === st).length }})
           </button>
         </div>
         <StatusIllustration v-if="!byStatus.length" variant="empty-data" size="sm" title="Belum ada klien" description="Tidak ada klien pada status ini." />
         <div v-else class="mk-table-wrap">
           <table class="mk-table mk-table--stack">
-            <thead><tr><th>Klien</th><th>Marketing</th><th>Status</th><th>Terakhir dihubungi</th><th>SPK</th></tr></thead>
+            <thead><tr><th>Klien</th><th>Pemasar</th><th>Status</th><th>Terakhir dihubungi</th><th>SPK</th></tr></thead>
             <tbody>
               <tr v-for="c in byStatus.slice(0, limit)" :key="c.id" class="mk-row-link" @click="openClient(c.id)">
-                <td class="mk-cell-main">{{ c.full_name }}</td>
-                <td data-label="Marketing">{{ c.marketing_name || '-' }}</td>
-                <td data-label="Status"><StatusBadge :label="c.crm_status" :tone="CRM_TONE[c.crm_status]" /></td>
+                <td class="mk-cell-main"><button type="button" class="mk-cell-link" @click.stop="openClient(c.id)">{{ c.full_name }}</button></td>
+                <td data-label="Pemasar">{{ c.marketing_name || '-' }}</td>
+                <td data-label="Status"><StatusBadge :label="crmStatusLabel(c.crm_status)" :tone="CRM_TONE[c.crm_status]" /></td>
                 <td data-label="Terakhir dihubungi">{{ c.last_contacted_at ? formatRelative(c.last_contacted_at) : 'Belum pernah' }}</td>
                 <td data-label="SPK"><StatusBadge :label="spkLabel(c.latest_spk_status)" :tone="spkTone(c.latest_spk_status)" /></td>
               </tr>
@@ -49,30 +41,29 @@
 
       <section class="mk-section">
         <div class="mk-section-head">
-          <div><h2>Belum ditindaklanjuti &gt; {{ staleDays }} hari</h2><p>Klien aktif (bukan Berhasil/Tidak Lanjut) tanpa kontak tercatat</p></div>
-          <select v-model.number="staleDays" class="mk-input mk-small" aria-label="Batas hari tanpa tindak lanjut">
+          <div><h2>Perlu tindak lanjut</h2><p>Klien aktif yang belum dihubungi</p></div>
+          <select v-model.number="staleDays" class="mk-input mk-small" aria-label="Lama tanpa kontak">
             <option :value="3">3 hari</option><option :value="7">7 hari</option><option :value="14">14 hari</option><option :value="30">30 hari</option>
           </select>
         </div>
-        <StatusIllustration v-if="!stale.length" variant="success" size="sm" title="Semua klien sudah dihubungi" :description="`Semua klien aktif sudah dihubungi dalam ${staleDays} hari terakhir.`" />
+        <StatusIllustration v-if="!stale.length" variant="success" size="sm" title="Tidak ada yang tertinggal" :description="`Semua klien aktif dihubungi dalam ${staleDays} hari terakhir.`" />
         <div v-else class="mk-table-wrap">
           <table class="mk-table mk-table--stack">
-            <thead><tr><th>Klien</th><th>Marketing</th><th>Status</th><th>Terakhir dihubungi</th></tr></thead>
+            <thead><tr><th>Klien</th><th>Pemasar</th><th>Status</th><th>Terakhir dihubungi</th></tr></thead>
             <tbody>
               <tr v-for="c in stale" :key="c.id" class="mk-row-link" @click="openClient(c.id)">
-                <td class="mk-cell-main">{{ c.full_name }}</td>
-                <td data-label="Marketing">{{ c.marketing_name || '-' }}</td>
-                <td data-label="Status"><StatusBadge :label="c.crm_status" :tone="CRM_TONE[c.crm_status]" /></td>
+                <td class="mk-cell-main"><button type="button" class="mk-cell-link" @click.stop="openClient(c.id)">{{ c.full_name }}</button></td>
+                <td data-label="Pemasar">{{ c.marketing_name || '-' }}</td>
+                <td data-label="Status"><StatusBadge :label="crmStatusLabel(c.crm_status)" :tone="CRM_TONE[c.crm_status]" /></td>
                 <td data-label="Terakhir dihubungi" class="mk-danger-text">{{ c.last_contacted_at ? formatDate(c.last_contacted_at) : `Belum pernah (sejak ${formatDate(c.created_at)})` }}</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p class="mk-muted">Buka klien untuk mengubah status atau memberi arahan ke Marketing penanggung jawab.</p>
       </section>
 
       <section class="mk-section">
-        <div class="mk-section-head"><div><h2>Aktivitas Marketing</h2><p>Perubahan status, tindak lanjut, catatan, dan SPK terbaru</p></div></div>
+        <div class="mk-section-head"><div><h2>Aktivitas tim</h2></div></div>
         <ActivityFeed :items="activity" :loading="activityLoading" :error="activityError" @open-client="openClient" />
       </section>
     </template>
@@ -97,7 +88,7 @@ import {
   type ClientListItem,
   type TeamMember,
 } from '@/services/marketing/marketingCrmService'
-import { CRM_STATUSES, CRM_TONE, formatDate, formatRelative, spkLabel, spkTone } from '@/utils/marketingStatus'
+import { CRM_STATUSES, CRM_TONE, crmStatusLabel, formatDate, formatRelative, spkLabel, spkTone } from '@/utils/marketingStatus'
 
 const router = useIonRouter()
 const clients = ref<ClientListItem[]>([])

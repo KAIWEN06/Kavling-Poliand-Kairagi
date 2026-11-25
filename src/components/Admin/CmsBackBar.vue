@@ -15,7 +15,7 @@ import { IonIcon } from '@ionic/vue'
 import { arrowBackOutline } from 'ionicons/icons'
 import { useCmsAdmin } from '@/composables/useCmsAdmin'
 
-/** Muncul di halaman publik hanya saat Admin membukanya lewat "Lihat di website". */
+/** Muncul di halaman publik hanya saat Admin membukanya lewat "Lihat di situs web". */
 const { isAdmin, fromCms, backToCms } = useCmsAdmin()
 const visible = computed(() => fromCms.value && isAdmin.value)
 </script>

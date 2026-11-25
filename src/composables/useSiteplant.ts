@@ -52,7 +52,7 @@ export function useSiteplan() {
       lots.value = result || []
     } catch (err) {
       console.error(
-        'Gagal memuat siteplan:',
+        'Gagal memuat denah:',
         err
       )
 

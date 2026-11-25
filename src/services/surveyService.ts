@@ -14,8 +14,15 @@ export interface ClientSurveyRequest {
   updated_at: string;
 }
 
+export interface SurveyRequester {
+  name: string;
+  phone: string | null;
+  customerId: number | null;
+}
+
 export interface AdminSurveyRequest extends ClientSurveyRequest {
   lots: { lot_number: string } | { lot_number: string }[] | null;
+  requester: SurveyRequester | null;
 }
 
 export interface SurveyRequestInput {
@@ -97,6 +104,27 @@ export interface SurveyAgendaItem {
   customer_name: string | null;
 }
 
+/** Nama dan kontak pengaju: data pembeli dulu, profil akun sebagai cadangan. */
+async function loadRequesters(userIds: string[]): Promise<Map<string, SurveyRequester>> {
+  const map = new Map<string, SurveyRequester>();
+  if (!userIds.length) return map;
+  const [customers, profiles] = await Promise.all([
+    supabase.from("customers").select("id, user_id, full_name, phone").in("user_id", userIds),
+    supabase.from("profiles").select("id, full_name").in("id", userIds),
+  ]);
+  for (const profile of (profiles.data ?? []) as { id: string; full_name: string | null }[]) {
+    if (profile.full_name) map.set(profile.id, { name: profile.full_name, phone: null, customerId: null });
+  }
+  for (const customer of (customers.data ?? []) as { id: number; user_id: string; full_name: string | null; phone: string | null }[]) {
+    map.set(customer.user_id, {
+      name: customer.full_name || map.get(customer.user_id)?.name || "",
+      phone: customer.phone,
+      customerId: customer.id,
+    });
+  }
+  return map;
+}
+
 export const surveyService = {
   /** Agenda survei aktif (terdekat dulu) sesuai cakupan role pemanggil. */
   async getMyAgenda(): Promise<SurveyAgendaItem[]> {
@@ -142,7 +170,7 @@ export const surveyService = {
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError) throw normalizeError(authError);
     const userId = authData.user?.id;
-    if (!userId) throw new Error("Sesi login berakhir. Silakan login kembali.");
+    if (!userId) throw new Error("Sesi masuk berakhir. Silakan masuk kembali.");
 
     let query = supabase
       .from("survey_requests")
@@ -167,7 +195,9 @@ export const surveyService = {
       .order("scheduled_at", { ascending: true });
 
     if (error) throw normalizeError(error);
-    return (data ?? []) as unknown as AdminSurveyRequest[];
+    const rows = (data ?? []) as unknown as Omit<AdminSurveyRequest, "requester">[];
+    const requesters = await loadRequesters([...new Set(rows.map((row) => row.client_id))]);
+    return rows.map((row) => ({ ...row, requester: requesters.get(row.client_id) ?? null }));
   },
 
   /**

@@ -21,7 +21,7 @@
               <span v-else>{{ initials(selectedMarketing) }}</span>
             </div>
             <div class="detail-heading__copy">
-              <h1>{{ selectedMarketing.full_name || 'Tanpa nama' }}</h1>Performa Marketing
+              <h1>{{ selectedMarketing.full_name || 'Tanpa nama' }}</h1>Kinerja pemasar
               <p>{{ selectedMarketing.email || 'Email tidak tersedia' }}</p>
               <span :class="['status-pill', selectedMarketing.is_active ? 'is-active' : 'is-inactive']">
                 {{ selectedMarketing.is_active ? 'Aktif' : 'Nonaktif' }}
@@ -39,7 +39,7 @@
           <section class="section-block">
             <div class="section-heading section-heading--filter">
               <div>
-                <h2>Performa Marketing</h2>
+                <h2>Kinerja pemasar</h2>
               </div>
               <select v-model="detailPeriod" aria-label="Periode performa" @change="loadMarketingDetail">
                 <option value="30d">30 hari</option>
@@ -55,24 +55,24 @@
               <div class="metric-grid">
                 <article class="metric-card"><span>Total klien</span><strong>{{ number(marketingDetail.metrics.total_clients) }}</strong><small>Seluruh klien terdaftar</small></article>
                 <article class="metric-card"><span>Klien baru</span><strong>{{ number(marketingDetail.metrics.new_clients) }}</strong><small>Sesuai periode</small></article>
-                <article class="metric-card"><span>Klien terjual</span><strong>{{ number(marketingDetail.metrics.sold_clients) }}</strong><small>Klien unik dengan transaksi Sold</small></article>
-                <article class="metric-card"><span>Kaveling terjual</span><strong>{{ number(marketingDetail.metrics.sold_lots) }}</strong><small>Lot unik berstatus Sold</small></article>
-                <article class="metric-card metric-card--wide"><span>Nilai penjualan</span><strong>{{ currency(marketingDetail.metrics.sales_value) }}</strong><small>Akumulasi final_price transaksi Sold</small></article>
+                <article class="metric-card"><span>Klien terjual</span><strong>{{ number(marketingDetail.metrics.sold_clients) }}</strong><small>Klien unik dengan transaksi terjual</small></article>
+                <article class="metric-card"><span>Kaveling terjual</span><strong>{{ number(marketingDetail.metrics.sold_lots) }}</strong><small>Tiap nomor dihitung sekali</small></article>
+                <article class="metric-card metric-card--wide"><span>Nilai penjualan</span><strong>{{ currency(marketingDetail.metrics.sales_value) }}</strong><small>Akumulasi harga akhir transaksi terjual</small></article>
               </div>
 
               <div class="conversion-card">
                 <div class="conversion-card__heading"><span>Konversi klien</span><strong>{{ marketingDetail.metrics.conversion_rate }}%</strong></div>
                 <div class="progress-track"><span :style="{ width: `${Math.min(100, marketingDetail.metrics.conversion_rate)}%` }"></span></div>
-                <small>Klien unik bertransaksi Sold dibandingkan seluruh klien yang dibawa Marketing ini.</small>
+                <small>Klien unik bertransaksi terjual dibandingkan seluruh klien yang dibawa pemasar ini.</small>
               </div>
 
               <div class="transaction-summary">
-                <div><span>Transaksi Booking</span><strong>{{ number(marketingDetail.metrics.booking_transactions) }}</strong></div>
+                <div><span>Transaksi pemesanan</span><strong>{{ number(marketingDetail.metrics.booking_transactions) }}</strong></div>
                 <div><span>Transaksi Batal</span><strong>{{ number(marketingDetail.metrics.cancelled_transactions) }}</strong></div>
               </div>
 
               <div class="commission-section">
-                <div class="section-heading"><div><h2>Komisi Marketing</h2></div></div>
+                <div class="section-heading"><div><h2>Komisi pemasar</h2></div></div>
                 <div class="commission-total"><span>Total komisi periode ini</span><strong>{{ currency(marketingDetail.metrics.total_commission) }}</strong></div>
                 <div class="commission-breakdown">
                   <div><span>Belum dibayarkan</span><strong>{{ currency(marketingDetail.metrics.pending_commission) }}</strong></div>
@@ -86,7 +86,7 @@
           <section class="section-block">
             <div class="section-heading"><div><h2>Klien yang ditangani</h2></div><span class="count-pill">{{ marketingDetail?.clients.length || 0 }} klien</span></div>
             <SkeletonCardList v-if="detailLoading" :count="3" :lines="3" label="Memuat daftar klien" />
-            <StatusIllustration v-else-if="!marketingDetail?.clients.length" variant="empty-data" size="sm" title="Belum ada klien" description="Belum ada klien yang terhubung dengan Marketing ini." />
+            <StatusIllustration v-else-if="!marketingDetail?.clients.length" variant="empty-data" size="sm" title="Belum ada klien" description="Belum ada klien yang terhubung dengan pemasar ini." />
             <div v-else class="client-list">
               <article v-for="client in marketingDetail.clients" :key="client.id" class="client-card">
                 <div class="client-card__top">
@@ -95,7 +95,7 @@
                 </div>
                 <div v-if="client.transactions.length" class="client-transactions">
                   <div v-for="transaction in client.transactions" :key="transaction.id" class="transaction-row">
-                    <div><strong>{{ transaction.lot_number || `Kavling #${transaction.lot_id}` }}</strong><small>{{ transaction.payment_type === 'Installment' ? 'Cicilan' : 'Cash' }} · {{ currency(transaction.final_price) }}</small></div>
+                    <div><strong>{{ transaction.lot_number || `Kavling #${transaction.lot_id}` }}</strong><small>{{ transaction.payment_type === 'Installment' ? 'Cicilan' : 'Tunai' }} · {{ currency(transaction.final_price) }}</small></div>
                     <span :class="['transaction-status', transaction.status.toLowerCase()]">{{ transactionStatus(transaction.status) }}</span>
                   </div>
                 </div>
@@ -109,7 +109,7 @@
             <StatusIllustration v-if="!marketingDetail?.commissions.length" variant="empty-data" size="sm" title="Belum ada komisi" description="Catatan komisi akan tampil di sini setelah dicatat Admin." />
             <div v-else class="commission-list">
               <article v-for="commission in marketingDetail.commissions" :key="commission.id" class="commission-row">
-                <div><strong>{{ commission.commission_type === 'Sales' ? 'Komisi Penjualan' : 'Komisi Booking Fee' }}</strong><small>{{ commission.customer_name || 'Client tidak tersedia' }} · {{ commission.lot_number || 'Kavling tidak tersedia' }}</small><small>{{ formatDate(commission.created_at) }}</small></div>
+                <div><strong>{{ commission.commission_type === 'Sales' ? 'Komisi Penjualan' : 'Komisi tanda jadi' }}</strong><small>{{ commission.customer_name || 'Klien tidak tersedia' }} · {{ commission.lot_number || 'Kavling tidak tersedia' }}</small><small>{{ formatDate(commission.created_at) }}</small></div>
                 <div class="commission-row__amount"><strong>{{ currency(commission.commission_amount) }}</strong><span :class="['commission-status', commission.status.toLowerCase()]">{{ commissionStatus(commission.status) }}</span></div>
               </article>
             </div>
@@ -134,10 +134,10 @@
 
           <div class="team-tabs" role="tablist" aria-label="Jenis anggota">
             <button type="button" role="tab" :aria-selected="activeTab === 'owner'" :class="{ selected: activeTab === 'owner' }" @click="activeTab = 'owner'">
-              Owner <span>{{ ownerMembers.length }}</span>
+              Pemilik <span>{{ ownerMembers.length }}</span>
             </button>
             <button type="button" role="tab" :aria-selected="activeTab === 'marketing'" :class="{ selected: activeTab === 'marketing' }" @click="activeTab = 'marketing'">
-              Marketing <span>{{ marketingMembers.length }}</span>
+              Pemasar <span>{{ marketingMembers.length }}</span>
             </button>
           </div>
 
@@ -151,13 +151,13 @@
           <StatusIllustration v-else-if="pageError" :variant="resolveErrorVariant(pageError)" title="Data tim gagal dimuat" fill :on-action="load" />
           <template v-else>
             <section v-if="activeTab === 'owner'" class="member-section">
-              <div class="section-heading"><div><p class="eyebrow">Akses tingkat tertinggi</p><h2>Daftar Owner</h2></div></div>
-              <StatusIllustration v-if="visibleOwners.length === 0" variant="no-result" size="sm" title="Owner tidak ditemukan" description="Belum ada akun Owner yang sesuai dengan filter." />
+              <div class="section-heading"><div><p class="eyebrow">Akses tingkat tertinggi</p><h2>Daftar pemilik</h2></div></div>
+              <StatusIllustration v-if="visibleOwners.length === 0" variant="no-result" size="sm" title="Pemilik tidak ditemukan" description="Belum ada akun pemilik yang sesuai dengan filter." />
               <div v-else class="member-list">
                 <article v-for="member in visibleOwners" :key="member.id" class="member-card">
                   <div class="avatar"><img v-if="member.photo_url" :src="member.photo_url" alt="" /><span v-else>{{ initials(member) }}</span></div>
                   <div class="member-main"><strong>{{ member.full_name || 'Tanpa nama' }}</strong><span>{{ member.email || 'Email tidak tersedia' }}</span><small>{{ member.phone || 'Nomor telepon belum diisi' }}</small></div>
-                  <div class="member-meta"><span class="role-pill role-pill--owner">Owner</span><span :class="['status-pill', member.is_active ? 'is-active' : 'is-inactive']">{{ member.is_active ? 'Aktif' : 'Nonaktif' }}</span></div>
+                  <div class="member-meta"><span class="role-pill role-pill--owner">Pemilik</span><span :class="['status-pill', member.is_active ? 'is-active' : 'is-inactive']">{{ member.is_active ? 'Aktif' : 'Nonaktif' }}</span></div>
                 </article>
               </div>
 
@@ -175,9 +175,9 @@
             </section>
 
             <section v-else class="member-section">
-              <div class="section-heading"><div><p class="eyebrow">Tim pemasaran</p><h2>Performa Marketing</h2><p class="section-description">Pilih anggota untuk melihat klien, transaksi, dan komisinya.</p></div></div>
-              <StatusIllustration v-if="overviewLoading" variant="processing" size="sm" title="Menghitung performa" description="Performa Marketing sedang dihitung." />
-              <StatusIllustration v-else-if="visibleMarketing.length === 0" variant="no-result" size="sm" title="Marketing tidak ditemukan" description="Belum ada Marketing yang sesuai dengan filter." />
+              <div class="section-heading"><div><p class="eyebrow">Tim pemasaran</p><h2>Kinerja pemasar</h2><p class="section-description">Pilih anggota untuk melihat klien, transaksi, dan komisinya.</p></div></div>
+              <StatusIllustration v-if="overviewLoading" variant="processing" size="sm" title="Menghitung performa" description="Kinerja pemasar sedang dihitung." />
+              <StatusIllustration v-else-if="visibleMarketing.length === 0" variant="no-result" size="sm" title="Pemasar tidak ditemukan" description="Belum ada pemasar yang sesuai dengan filter." />
               <div v-else class="member-list">
                 <article v-for="member in visibleMarketing" :key="member.id" class="marketing-card">
                   <div class="marketing-card__identity">
@@ -193,7 +193,7 @@
                   <div class="marketing-card__footer">
                     <span>Konversi {{ conversionRate(summaryFor(member.id)) }}%</span>
                     <div class="marketing-card__actions">
-                      <button v-if="canManage(member)" class="text-action" type="button" @click="openEditMarketing(member)">Edit</button>
+                      <button v-if="canManage(member)" class="text-action" type="button" @click="openEditMarketing(member)">Ubah</button>
                       <button v-if="canManage(member)" class="text-action" type="button" :disabled="processingId === member.id" @click="toggleActive(member)">{{ member.is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
                       <button class="detail-action" type="button" @click="openMarketingDetail(member)">Lihat Detail <ion-icon :icon="chevronForwardOutline" /></button>
                     </div>
@@ -203,7 +203,6 @@
             </section>
           </template>
 
-          <p v-if="notice" class="notice" role="status">{{ notice }}</p>
         </template>
       </main>
     </ion-content>
@@ -221,8 +220,8 @@
         <label class="form-label">Jenis akun
           <select v-model="form.role" :disabled="saving"><option v-for="role in availableCreateRoles" :key="role" :value="role">{{ roleLabel(role) }}</option></select>
         </label>
-        <div v-if="form.role === 'owner'" class="security-note"><strong>Perhatian: akun Owner</strong><p>Owner memiliki hak akses tertinggi. Akun Owner yang sudah ada tidak dapat diubah atau dinonaktifkan melalui halaman ini.</p></div>
-        <div v-if="form.role === 'admin'" class="security-note"><strong>Perhatian: akun Admin</strong><p>Admin dapat membuat Owner dan mengelola Marketing, tetapi tidak dapat mengelola akun Admin atau Owner yang sudah ada.</p></div>
+        <div v-if="form.role === 'owner'" class="security-note"><strong>Perhatian: akun pemilik</strong><p>Pemilik memiliki hak akses tertinggi. Akun pemilik yang sudah ada tidak dapat diubah atau dinonaktifkan melalui halaman ini.</p></div>
+        <div v-if="form.role === 'admin'" class="security-note"><strong>Perhatian: akun Admin</strong><p>Admin dapat membuat pemilik dan mengelola pemasar, tetapi tidak dapat mengelola akun Admin atau pemilik yang sudah ada.</p></div>
         <AppInput v-model="form.fullName" data-input="name" label="Nama lengkap" required />
         <AppInput v-model="form.email" label="Email" type="email" required />
         <template v-if="form.role === 'marketing'">
@@ -236,19 +235,21 @@
         </template>
         <AppInput v-model="form.password" label="Kata sandi awal" type="password" required />
         <AppInput v-model="form.confirmPassword" label="Konfirmasi kata sandi" type="password" required />
-        <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+        <AppNotice v-if="formError" tone="error">
+          {{ formError }}
+        </AppNotice>
       </form>
     </AppModal>
 
     <AppModal
       v-model="editOpen"
-      title="Edit Data Marketing"
+      title="Ubah data pemasar"
       confirm-text="Simpan Perubahan"
       :loading="editSaving"
       @confirm="saveMarketing"
     >
       <form class="create-form" @submit.prevent>
-        <p class="edit-description">Perbarui informasi anggota Marketing. Perubahan akan disimpan ke profil dan data Marketing.</p>
+        <p class="edit-description">Perbarui informasi anggota pemasaran. Perubahan akan disimpan ke profil dan data pemasar.</p>
         <AppInput v-model="editForm.fullName" data-input="name" label="Nama lengkap" required />
         <AppInput v-model="editForm.phone" label="Nomor telepon" type="tel" />
         <AppInput v-model="editForm.whatsappPhone" label="Nomor WhatsApp" type="tel" />
@@ -257,13 +258,18 @@
           Tanggal bergabung
           <input v-model="editForm.joinDate" type="date" :disabled="editSaving" />
         </label>
-        <p v-if="editError" class="form-error" role="alert">{{ editError }}</p>
+        <AppNotice v-if="editError" tone="error">
+          {{ editError }}
+        </AppNotice>
       </form>
     </AppModal>
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
@@ -311,7 +317,8 @@ const editingMarketing = ref<TeamMember | null>(null)
 const pageError = ref('')
 const detailError = ref('')
 const formError = ref('')
-const notice = ref('')
+const toast = useToast()
+const { confirm } = useConfirm()
 const processingId = ref<string | null>(null)
 
 const form = reactive({
@@ -352,7 +359,7 @@ const visibleOwners = computed(() => ownerMembers.value.filter(matches))
 const visibleAdmins = computed(() => adminMembers.value.filter(matches))
 const visibleMarketing = computed(() => marketingMembers.value.filter(matches))
 
-function roleLabel(role: TeamRole) { return ({ owner: 'Owner', admin: 'Admin', marketing: 'Marketing' })[role] }
+function roleLabel(role: TeamRole) { return ({ owner: 'Pemilik', admin: 'Admin', marketing: 'Pemasar' })[role] }
 function initials(member: { full_name?: string | null; email?: string | null }) {
   return (member.full_name || member.email || '?').trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase()
 }
@@ -371,7 +378,7 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
 }
 function transactionStatus(status: string) {
-  return ({ Booking: 'Booking', Sold: 'Terjual', Cancelled: 'Dibatalkan' } as Record<string, string>)[status] || status
+  return ({ Booking: 'Dipesan', Sold: 'Terjual', Cancelled: 'Dibatalkan' } as Record<string, string>)[status] || status
 }
 function commissionStatus(status: string) {
   return ({ Pending: 'Menunggu', Eligible: 'Memenuhi syarat', Processing: 'Diproses', Paid: 'Dibayarkan', Cancelled: 'Dibatalkan' } as Record<string, string>)[status] || status
@@ -397,7 +404,7 @@ async function loadOverview() {
   try {
     summaries.value = await teamManagementService.getMarketingOverview(overviewPeriod.value)
   } catch (cause) {
-    pageError.value = cause instanceof Error ? cause.message : 'Ringkasan Marketing gagal dimuat.'
+    pageError.value = cause instanceof Error ? cause.message : 'Ringkasan pemasar gagal dimuat.'
   } finally {
     overviewLoading.value = false
   }
@@ -406,10 +413,9 @@ async function loadOverview() {
 async function load() {
   loading.value = true
   pageError.value = ''
-  notice.value = ''
   try {
     const user = await authService.getCurrentUser()
-    if (!user) throw new Error('Sesi login tidak ditemukan. Silakan login kembali.')
+    if (!user) throw new Error('Sesi masuk tidak ditemukan. Silakan masuk kembali.')
     currentRole.value = await authService.getUserRole(user.id)
     if (currentRole.value !== 'owner' && currentRole.value !== 'admin') throw new Error('Anda tidak memiliki akses ke halaman ini.')
     members.value = await teamManagementService.list()
@@ -441,7 +447,7 @@ async function loadMarketingDetail() {
     marketingDetail.value = await teamManagementService.getMarketingDetail(selectedMarketing.value.id, detailPeriod.value)
     selectedMarketing.value = marketingDetail.value.member
   } catch (cause) {
-    detailError.value = cause instanceof Error ? cause.message : 'Detail Marketing gagal dimuat.'
+    detailError.value = cause instanceof Error ? cause.message : 'Detail pemasar gagal dimuat.'
   } finally {
     detailLoading.value = false
   }
@@ -502,7 +508,7 @@ async function saveMarketing() {
     })
 
     editOpen.value = false
-    notice.value = `Data Marketing ${editForm.fullName.trim()} berhasil diperbarui.`
+    toast.success(`Data pemasar ${editForm.fullName.trim()} berhasil diperbarui.`)
     await load()
 
     if (selectedMarketing.value?.id === member.id) {
@@ -511,7 +517,7 @@ async function saveMarketing() {
       await loadMarketingDetail()
     }
   } catch (cause) {
-    editError.value = cause instanceof Error ? cause.message : 'Data Marketing gagal diperbarui.'
+    editError.value = cause instanceof Error ? cause.message : 'Data pemasar gagal diperbarui.'
   } finally {
     editSaving.value = false
   }
@@ -541,8 +547,9 @@ async function createMember() {
   if (saving.value) return
   formError.value = validateForm()
   if (formError.value) return
-  if (form.role === 'owner' && !window.confirm('Anda akan membuat akun Owner dengan hak akses tertinggi. Pastikan identitas dan email benar. Lanjutkan?')) return
-  if (form.role === 'admin' && !window.confirm('Anda akan membuat akun Admin baru. Lanjutkan?')) return
+  if (form.role === 'owner' && !(await confirm({ title: 'Buat akun pemilik?', message: 'Akun ini punya hak akses tertinggi. Pastikan identitas dan email benar.', confirmText: 'Buat akun' }))) return
+  if (form.role === 'admin' && !(await confirm({ title: 'Buat akun Admin?', message: 'Pastikan identitas dan email benar.', confirmText: 'Buat akun' }))) return
+  if (saving.value) return
   saving.value = true
   try {
     const payload: CreateTeamMemberInput = {
@@ -560,7 +567,7 @@ async function createMember() {
     }
     await teamManagementService.create(payload)
     createOpen.value = false
-    notice.value = `Akun ${roleLabel(form.role)} berhasil dibuat.`
+    toast.success(`Akun ${roleLabel(form.role)} berhasil dibuat.`)
     await load()
   } catch (cause) {
     formError.value = cause instanceof Error ? cause.message : 'Akun gagal dibuat.'
@@ -570,14 +577,19 @@ async function createMember() {
 }
 async function toggleActive(member: TeamMember) {
   if (processingId.value || !canManage(member)) return
-  const action = member.is_active ? 'menonaktifkan' : 'mengaktifkan'
-  if (!window.confirm(`Yakin ingin ${action} akun ${member.full_name || member.email}?`)) return
+  const deactivating = member.is_active
+  const ok = await confirm({
+    title: deactivating ? 'Nonaktifkan akun?' : 'Aktifkan akun?',
+    message: member.full_name || member.email || '',
+    confirmText: deactivating ? 'Nonaktifkan' : 'Aktifkan',
+    tone: deactivating ? 'error' : 'info',
+  })
+  if (!ok || processingId.value) return
   processingId.value = member.id
   pageError.value = ''
-  notice.value = ''
   try {
     await teamManagementService.setActive(member.id, !member.is_active)
-    notice.value = `Akun ${member.full_name || 'anggota'} berhasil ${member.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`
+    toast.success(`Akun ${member.full_name || 'anggota'} berhasil ${member.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`)
     await load()
   } catch (cause) {
     pageError.value = cause instanceof Error ? cause.message : 'Status akun gagal diperbarui.'
@@ -643,10 +655,9 @@ onMounted(load)
 .marketing-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 10px; }
 .marketing-card__actions { display: flex; align-items: center; gap: 8px; }
 .detail-action, .back-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size: 10px; font-weight: 700; }
-.state-card, .notice { padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
+.state-card { padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 .state-card--error { color: var(--status-danger); }
 .state-card button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 9px; background: var(--surface-primary); }
-.notice { margin-top: 14px; color: var(--poliland-green); }
 .detail-topbar { margin-bottom: 15px; }
 .back-button { min-height: 38px; padding-left: 0; border: 0; background: transparent; text-decoration: none; }
 .page-back-button { margin: 0 0 12px; justify-content: flex-start; }
@@ -721,7 +732,7 @@ onMounted(load)
 .security-note { padding: 11px; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-muted); }
 .security-note strong { display: block; margin-bottom: 4px; font-size: 11px; }
 .security-note p { margin: 0; color: var(--text-secondary); font-size: 10px; line-height: 1.5; }
-.form-error { margin: 0; color: var(--status-danger); font-size: 11px; }
+
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 @media (min-width: 700px) {
   .team-shell { max-width: 900px; margin: 0 auto; padding: 28px 26px 120px; }

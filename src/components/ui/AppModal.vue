@@ -3,9 +3,10 @@
     <div
       v-if="modelValue"
       class="app-modal"
-      :class="[`app-modal--${variant}`, { 'app-modal--no-footer': !showFooter, 'app-modal--slide': slideConfirm && showConfirm }]"
+      :class="[`app-modal--${variant}`, { 'app-modal--no-footer': !showFooter, 'app-modal--slide': slideConfirm && showConfirm, 'app-modal--keyboard': keyboardHeight > 0 }]"
       :style="{ '--app-modal-keyboard-height': `${keyboardHeight}px` }"
       @click.self="handleBackdrop"
+      @touchmove.self.prevent
     >
       <section
         ref="dialogRef"
@@ -155,6 +156,7 @@ const emit = defineEmits<{
 
 const dialogRef = ref<HTMLElement | null>(null)
 const keyboardHeight = ref(0)
+let pluginKeyboardHeight = 0
 let keyboardListeners: PluginListenerHandle[] = []
 let modalActivation = 0
 const titleId = `app-modal-title-${Math.random().toString(36).slice(2, 10)}`
@@ -196,13 +198,44 @@ function lockPage() {
   previousBodyOverscroll.value = document.body.style.overscrollBehavior
   document.body.style.overflow = 'hidden'
   document.body.style.overscrollBehavior = 'none'
+  document.documentElement.style.overflow = 'hidden'
   window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: true } }))
 }
 
 function unlockPage() {
   document.body.style.overflow = previousBodyOverflow.value
   document.body.style.overscrollBehavior = previousBodyOverscroll.value
+  document.documentElement.style.overflow = ''
   window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
+}
+
+/**
+ * Android WebView (resize: none) menggulung dokumen saat input fokus sehingga overlay fixed
+ * ikut terlempar. Kita kembalikan scroll ke 0, ikuti visualViewport, lalu tampilkan field di
+ * dalam body modal (bukan menggeser seluruh modal).
+ */
+function syncViewport() {
+  const vv = window.visualViewport
+  if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0)
+
+  if (!vv) {
+    keyboardHeight.value = pluginKeyboardHeight
+    return
+  }
+
+  const covered = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
+  keyboardHeight.value = Math.max(pluginKeyboardHeight, covered > 80 ? covered : 0)
+}
+
+function revealFocusedField(event: FocusEvent) {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) return
+  if (!target.matches('input, textarea, select, [contenteditable="true"]')) return
+  window.setTimeout(() => {
+    if (document.activeElement !== target) return
+    syncViewport()
+    target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+  }, 280)
 }
 
 async function activateModal() {
@@ -219,14 +252,20 @@ async function activateModal() {
   const focusable = getFocusableElements()
   ;(focusable[0] || dialogRef.value)?.focus()
   document.addEventListener('keydown', handleDocumentKeydown)
+  window.visualViewport?.addEventListener('resize', syncViewport)
+  window.visualViewport?.addEventListener('scroll', syncViewport)
+  window.addEventListener('scroll', syncViewport, { passive: true })
+  dialogRef.value?.addEventListener('focusin', revealFocusedField)
 
   try {
     const listeners = await Promise.all([
       Keyboard.addListener('keyboardWillShow', ({ keyboardHeight: height }) => {
-        keyboardHeight.value = height
+        pluginKeyboardHeight = height
+        syncViewport()
       }),
       Keyboard.addListener('keyboardWillHide', () => {
-        keyboardHeight.value = 0
+        pluginKeyboardHeight = 0
+        syncViewport()
       }),
     ])
 
@@ -237,7 +276,7 @@ async function activateModal() {
 
     keyboardListeners = listeners
   } catch {
-    keyboardHeight.value = 0
+    pluginKeyboardHeight = 0
   }
 }
 
@@ -246,8 +285,13 @@ function deactivateModal() {
 
   modalActivation += 1
   document.removeEventListener('keydown', handleDocumentKeydown)
+  window.visualViewport?.removeEventListener('resize', syncViewport)
+  window.visualViewport?.removeEventListener('scroll', syncViewport)
+  window.removeEventListener('scroll', syncViewport)
+  dialogRef.value?.removeEventListener('focusin', revealFocusedField)
   keyboardListeners.forEach((listener) => { void listener.remove() })
   keyboardListeners = []
+  pluginKeyboardHeight = 0
   keyboardHeight.value = 0
   unlockPage()
   previousActiveElement.value?.focus()
@@ -322,12 +366,11 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0;
+  /* Overlay selalu menutup seluruh layar (tidak ikut menyusut), jadi halaman di belakang
+     tidak pernah tersentuh. Ruang keyboard dan status bar diatur lewat padding. */
+  box-sizing: border-box;
+  padding: max(env(safe-area-inset-top, 0px), 12px) 0 var(--app-modal-keyboard-height, 0px);
   overscroll-behavior: contain;
-}
-
-.app-modal:not(.app-modal--fullscreen) {
-  bottom: var(--app-modal-keyboard-height, 0px);
 }
 
 .app-modal__panel {
@@ -335,7 +378,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   width: 100%;
   max-width: var(--app-modal-max-width, 560px);
-  max-height: min(var(--app-modal-max-height, 90dvh), calc(100dvh - var(--app-modal-keyboard-height, 0px) - 16px), 760px);
+  max-height: min(var(--app-modal-max-height, 90dvh), 100%, 760px);
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--border-default);
@@ -438,19 +481,37 @@ onBeforeUnmount(() => {
 
 .app-modal--dialog {
   align-items: center;
-  padding: 16px;
+  padding: max(env(safe-area-inset-top, 0px), 16px) 16px max(16px, var(--app-modal-keyboard-height, 0px));
 }
 
 .app-modal--dialog .app-modal__panel {
   width: min(100%, var(--app-modal-max-width, 560px));
-  max-height: min(var(--app-modal-max-height, 90dvh), 760px);
+  max-height: min(var(--app-modal-max-height, 90dvh), 100%, 760px);
+  padding-bottom: 0;
   border-bottom: 1px solid var(--border-default);
   border-radius: var(--radius-panel);
 }
 
 .app-modal--fullscreen {
   align-items: stretch;
-  padding: 0;
+  padding: 0 0 var(--app-modal-keyboard-height, 0px);
+}
+
+/* Keyboard terbuka: area bawah sudah dilewati keyboard, jangan tambah safe-area lagi. */
+.app-modal--keyboard .app-modal__panel,
+.app-modal--keyboard .app-modal__footer {
+  padding-bottom: 0;
+}
+
+.app-modal--keyboard .app-modal__footer {
+  padding-bottom: 12px;
+}
+
+.app-modal__body :deep(input),
+.app-modal__body :deep(textarea),
+.app-modal__body :deep(select) {
+  font-size: max(16px, 1em);
+  scroll-margin: 24px;
 }
 
 .app-modal--fullscreen .app-modal__panel {

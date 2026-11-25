@@ -25,8 +25,8 @@
         <StatusIllustration
           v-else-if="!item"
           variant="not-found-404"
-          title="Update tidak ditemukan"
-          description="Update ini mungkin sudah dihapus atau tidak lagi ditampilkan."
+          title="Kabar tidak ditemukan"
+          description="Kabar ini mungkin sudah dihapus atau tidak lagi ditampilkan."
           fill
           action-label="Kembali ke Kemajuan"
           :on-action="goBack"
@@ -79,13 +79,13 @@
 
             <Reveal :order="7" :step="0.09">
               <p v-if="item.description" class="description">{{ item.description }}</p>
-              <p v-else class="description muted">Belum ada keterangan untuk update ini.</p>
+              <p v-else class="description muted">Belum ada keterangan untuk kabar ini.</p>
             </Reveal>
           </section>
 
           <Reveal v-if="isAdmin" :order="8" :step="0.09">
             <section class="admin-bar" aria-label="Pengelolaan konten">
-              <AppButton type="button" variant="neutral" fill="outline" @click="formOpen = true">Edit update</AppButton>
+              <AppButton type="button" variant="neutral" fill="outline" @click="formOpen = true">Ubah kabar</AppButton>
               <AppButton type="button" variant="danger" fill="outline" @click="deleteOpen = true">Hapus</AppButton>
             </section>
           </Reveal>
@@ -97,13 +97,13 @@
       <AppModal
         v-model="deleteOpen"
         variant="dialog"
-        title="Hapus update ini?"
+        title="Hapus kabar ini?"
         confirm-text="Hapus"
         confirm-variant="danger"
         :loading="deleting"
         @confirm="confirmDelete"
       >
-        <p class="confirm-text">“{{ item?.title }}” akan dihapus dari website dan tidak bisa dikembalikan.</p>
+        <p class="confirm-text">“{{ item?.title }}” akan dihapus dari situs web dan tidak bisa dikembalikan.</p>
       </AppModal>
 
       <CmsBackBar />
@@ -209,11 +209,11 @@ async function confirmDelete() {
   try {
     await progressService.deleteProgress(item.value.id, item.value.image_url)
     deleteOpen.value = false
-    toast.success('Update dihapus.')
+    toast.success('Kabar dihapus.')
     goBack()
   } catch (error) {
     deleteOpen.value = false
-    toast.error(error instanceof Error ? error.message : 'Update gagal dihapus.')
+    toast.error(error instanceof Error ? error.message : 'Kabar gagal dihapus.')
   } finally {
     deleting.value = false
   }

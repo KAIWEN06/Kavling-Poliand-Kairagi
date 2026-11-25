@@ -100,7 +100,9 @@
       <p v-if="errors.agreed" class="error" role="alert">{{ errors.agreed }}</p>
     </div>
 
-    <p v-if="submitError" class="error error--box" role="alert">{{ submitError }}</p>
+    <AppNotice v-if="submitError" tone="error">
+      {{ submitError }}
+    </AppNotice>
 
     <div class="actions">
       <button type="submit" class="btn btn--primary" :disabled="submitting">
@@ -112,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { closeOutline, cloudUploadOutline } from 'ionicons/icons'
@@ -263,7 +266,6 @@ input[type='text']:focus, textarea:focus {
 
 .hint { margin: 0; color: var(--text-secondary); font-size: var(--font-size-xs); }
 .error { margin: 0; color: var(--danger-text); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); }
-.error--box { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--danger-bg); }
 
 .dropzone {
   display: flex;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
@@ -33,6 +34,7 @@ import {
 } from '@ionic/vue'
 
 import { authService } from '@/services/auth/authService'
+import { consumePostLoginRedirect } from '@/services/auth/postLoginRedirect'
 import { supabase } from '@/services/config/supabase'
 
 import AppInput from '@/components/ui/AppInput.vue'
@@ -144,19 +146,19 @@ const queryError = computed(() => {
 
   if (route.query.error === 'role_lookup_failed') {
 
-    return 'Role akun tidak dapat diperiksa. Coba lagi atau hubungi administrator.'
+    return 'Peran akun tidak dapat diperiksa. Coba lagi atau hubungi administrator.'
 
   }
 
   if (route.query.error === 'oauth_state_used') {
 
-    return 'Sesi login Google sudah kedaluwarsa atau terpakai. Silakan coba login lagi.'
+    return 'Sesi masuk Google sudah kedaluwarsa atau terpakai. Silakan coba masuk lagi.'
 
   }
 
   if (route.query.error === 'oauth_failed') {
 
-    return 'Login Google gagal. Silakan coba lagi.'
+    return 'Masuk Google gagal. Silakan coba lagi.'
 
   }
 
@@ -211,7 +213,7 @@ async function submitLogin() {
 
           ? error.message
 
-          : 'Login gagal. Periksa email dan kata sandi.'
+          : 'Masuk gagal. Periksa email dan kata sandi.'
 
       void mascotRef.value?.playError()
 
@@ -243,7 +245,7 @@ async function submitLogin() {
 
       errorMessage.value =
 
-        'Login berhasil, tetapi role akun gagal diperiksa. Hubungi administrator PoliLand.'
+        'Masuk berhasil, tetapi peran akun gagal diperiksa. Hubungi administrator PoliLand.'
 
       return
 
@@ -251,13 +253,13 @@ async function submitLogin() {
 
 
 
-    const destination = authService.getRoleHomePath(role)
+    const homePath = authService.getRoleHomePath(role)
 
-    if (!destination) {
+    if (!homePath) {
 
       errorMessage.value =
 
-        'Login berhasil, tetapi role akun belum terdaftar. Hubungi administrator.'
+        'Masuk berhasil, tetapi peran akun belum terdaftar. Hubungi administrator.'
 
       return
 
@@ -265,7 +267,7 @@ async function submitLogin() {
 
 
 
-    await router.replace(destination)
+    await router.replace(consumePostLoginRedirect(role) ?? homePath)
 
   } finally {
 
@@ -329,7 +331,7 @@ async function loginWithGoogle() {
 
         ? error.message
 
-        : 'Login Google gagal dimulai.'
+        : 'Masuk Google gagal dimulai.'
 
     googleLoading.value = false
 
@@ -369,12 +371,12 @@ async function loginWithGoogle() {
           </ion-card-header>
 
           <ion-card-content>
-            <ion-text v-if="queryError" color="danger">
-              <p class="message">{{ queryError }}</p>
-            </ion-text>
-            <ion-text v-if="errorMessage" color="danger">
-              <p class="message" role="alert">{{ errorMessage }}</p>
-            </ion-text>
+            <AppNotice v-if="queryError" tone="error">
+              {{ queryError }}
+            </AppNotice>
+            <AppNotice v-if="errorMessage" tone="error">
+              {{ errorMessage }}
+            </AppNotice>
             <div v-if="isEmailUnconfirmed" class="confirmation-resend">
               <button
                 type="button"
@@ -383,9 +385,9 @@ async function loginWithGoogle() {
               >
                 {{ resendLoading ? 'Mengirim...' : 'Kirim ulang email' }}
               </button>
-              <ion-text v-if="resendMessage" :color="resendMessage.startsWith('Permintaan') ? 'success' : 'danger'">
-                <p class="message" role="status">{{ resendMessage }}</p>
-              </ion-text>
+              <AppNotice v-if="resendMessage" :tone="resendMessage.startsWith('Permintaan') ? 'success' : 'error'">
+                {{ resendMessage }}
+              </AppNotice>
             </div>
 
             <form class="auth-form" @submit.prevent="submitLogin">
@@ -767,12 +769,6 @@ ion-card-content {
   padding: 8px 18px 16px;
 }
 
-.message {
-  margin: 0 0 8px;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
 .confirmation-resend {
   display: grid;
   justify-items: start;
@@ -798,10 +794,6 @@ ion-card-content {
 .confirmation-resend button:disabled {
   opacity: .55;
   cursor: default;
-}
-
-.confirmation-resend .message {
-  margin: 0;
 }
 
 /* ---------- Form ---------- */

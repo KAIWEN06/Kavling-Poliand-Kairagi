@@ -37,10 +37,10 @@
           <div v-for="n in 3" :key="n" class="skeleton-card" aria-hidden="true" />
         </template>
 
-        <p v-else-if="loadError" class="state state--error" role="alert">
+        <AppNotice v-else-if="loadError" tone="error">
           {{ loadError }}
           <button type="button" class="link" @click="loadReviews">Coba lagi</button>
-        </p>
+        </AppNotice>
 
         <div v-else-if="!reviews.length" class="state">
           <template v-if="ratingFilter !== null">
@@ -65,20 +65,7 @@
       </div>
 
       <!-- Pager -->
-      <nav v-if="totalPages > 0" class="pager" aria-label="Halaman ulasan">
-        <p class="pager-info">
-          Halaman <span class="strong">{{ page }}</span> dari <span class="strong">{{ totalPages }}</span>
-        </p>
-        <div class="pager-controls">
-          <button type="button" class="pg pg--start" aria-label="Halaman sebelumnya" :disabled="page <= 1 || loading" @click="goTo(page - 1)">
-            <ion-icon :icon="chevronBackOutline" aria-hidden="true" />
-          </button>
-          <span class="pg pg--label">{{ page }} dari {{ totalPages }}</span>
-          <button type="button" class="pg pg--end" aria-label="Halaman berikutnya" :disabled="page >= totalPages || loading" @click="goTo(page + 1)">
-            <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
-          </button>
-        </div>
-      </nav>
+      <AppPagination v-model:page="pager.page" :total-pages="pager.totalPages" :total="pager.total" :page-size="pager.pageSize" :loading="loading" label="Halaman ulasan" />
 
       <!-- Form -->
       <div v-if="formOpen" id="review-form-anchor" ref="formRef" class="add">
@@ -118,7 +105,7 @@
 
           <template v-else>
             <!-- Ulasan sebelumnya ditolak: tampilkan alasan -->
-            <div v-if="myReview?.status === 'rejected' && !editing" class="gate gate--notice" role="status">
+            <AppNotice v-if="myReview?.status === 'rejected' && !editing" tone="warning">
               <p>
                 Ulasan Anda “{{ myReview.title }}” belum dapat ditampilkan.
                 <template v-if="myReview.rejection_reason">Alasan: {{ myReview.rejection_reason }}</template>
@@ -127,7 +114,7 @@
               <div class="gate-actions">
                 <button type="button" class="btn btn--neutral" @click="deleteOpen = true">Hapus ulasan lama</button>
               </div>
-            </div>
+            </AppNotice>
 
             <ReviewForm
               :key="formKey"
@@ -158,11 +145,12 @@
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { nextTick, onMounted, reactive, ref, watch } from 'vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
+import { usePageState } from '@/composables/usePagination'
 import { useRouter } from 'vue-router'
-import { IonIcon } from '@ionic/vue'
-import { chevronBackOutline, chevronForwardOutline } from 'ionicons/icons'
 import ReviewSummaryCard from '@/components/reviews/ReviewSummaryCard.vue'
 import ReviewCard from '@/components/reviews/ReviewCard.vue'
 import ReviewForm from '@/components/reviews/ReviewForm.vue'
@@ -183,7 +171,6 @@ const reviews = ref<PublicReview[]>([])
 const total = ref(0)
 const loading = ref(true)
 const loadError = ref('')
-const page = ref(1)
 const ratingFilter = ref<number | null>(null)
 const sort = ref<ReviewSort>('newest')
 const votingId = ref<string | null>(null)
@@ -201,7 +188,7 @@ const deleting = ref(false)
 const reportOpen = ref(false)
 const reportId = ref<string | null>(null)
 
-const totalPages = computed(() => Math.ceil(total.value / PAGE_SIZE))
+const pager = usePageState(total, { pageSize: PAGE_SIZE })
 const formatNumber = (n: number) => new Intl.NumberFormat('id-ID').format(n)
 
 let loadToken = 0
@@ -226,15 +213,15 @@ async function loadReviews() {
     const result = await reviewService.getReviews({
       rating: ratingFilter.value,
       sort: sort.value,
-      page: page.value,
+      page: pager.page,
       pageSize: PAGE_SIZE,
     })
     if (token !== loadToken) return
     reviews.value = result.items
     total.value = result.total
     // Halaman melebihi data (mis. ulasan disembunyikan): kembali ke halaman terakhir.
-    if (!result.items.length && result.total > 0 && page.value > 1) {
-      page.value = Math.ceil(result.total / PAGE_SIZE)
+    if (!result.items.length && result.total > 0 && pager.page > 1) {
+      pager.setPage(Math.ceil(result.total / PAGE_SIZE))
     }
   } catch (error) {
     if (token !== loadToken) return
@@ -246,15 +233,11 @@ async function loadReviews() {
   }
 }
 
-function goTo(next: number) {
-  page.value = Math.min(Math.max(1, next), Math.max(1, totalPages.value))
-}
-
 watch([ratingFilter, sort], () => {
-  if (page.value !== 1) page.value = 1
+  if (pager.page !== 1) pager.reset()
   else loadReviews()
 })
-watch(page, loadReviews)
+watch(() => pager.page, loadReviews)
 
 async function toggleHelpful(review: PublicReview) {
   if (votingId.value) return
@@ -375,7 +358,6 @@ select:focus { outline: 3px solid var(--poliland-gold, #cba044); outline-offset:
 
 .state { display: grid; gap: var(--space-2); justify-items: start; margin: 0; padding: 22px 18px; border: 1px dashed var(--border-strong, #d5d0c4); border-radius: var(--radius-card, 16px); background: var(--surface-primary, #fff); color: var(--text-secondary, #5f5f66); font-size: 15px; line-height: var(--leading-body); }
 .state strong { color: var(--text-primary); }
-.state--error { color: var(--danger-text); }
 
 .skeleton-card {
   height: 168px;
@@ -385,26 +367,6 @@ select:focus { outline: 3px solid var(--poliland-gold, #cba044); outline-offset:
 }
 
 .link { min-height: 44px; padding: 0; border: 0; background: none; color: var(--poliland-green); font: inherit; font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; touch-action: manipulation; }
-
-.pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 10px 10px 10px 18px; border: 1px solid var(--border-default, #eae7e0); border-radius: 16px; background: var(--surface-primary, #fff); box-shadow: var(--shadow-sm); }
-
-.pager-info { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; }
-.pager .strong { color: var(--text-primary); }
-
-.pager-controls { display: inline-flex; }
-
-.pg { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; padding: 0 14px; border: 1px solid var(--border-strong, #d5d0c4); background: var(--surface-primary, #fff); color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 700; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-
-button.pg { cursor: pointer; transition: background var(--dur-fast) var(--ease-out); }
-@media (hover: hover) and (pointer: fine) {
-  button.pg:hover:not(:disabled) { background: var(--surface-muted); }
-}
-button.pg:disabled { color: var(--text-secondary, #5f5f66); opacity: 0.6; cursor: default; }
-button.pg:active:not(:disabled) { background: var(--surface-sunken, #f0ede5); }
-button.pg:focus-visible { outline: none; box-shadow: var(--ring-focus); position: relative; z-index: 1; }
-.pg--start { border-radius: 12px 0 0 12px; }
-.pg--end { border-radius: 0 12px 12px 0; }
-.pg--label { margin: 0 -1px; }
 
 .add { margin-top: var(--space-8); scroll-margin-top: var(--space-6); }
 .add-title {
@@ -425,7 +387,7 @@ button.pg:focus-visible { outline: none; box-shadow: var(--ring-focus); position
   background: var(--surface-muted);
 }
 .gate p { margin: 0; color: var(--text-primary); font-size: var(--font-size-sm); line-height: var(--leading-body); }
-.gate--notice { margin-bottom: var(--space-4); border-color: var(--gold-500); background: var(--gold-50); }
+
 .delete-copy { margin: 0; color: var(--text-secondary); font-size: var(--font-size-sm); line-height: var(--leading-body); }
 .gate-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 

@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { IonIcon } from '@ionic/vue'
 import { mapOutline, arrowForwardOutline } from 'ionicons/icons'
-import siteplanImage from '@/assets/siteplan/Siteplan.png'
+import siteplanImage from '@/assets/siteplan/Siteplan.webp'
 import { nextTick, ref, watch } from 'vue'
 import svgRaw from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
 import { getLotId, getLotStatusColor } from '@/utils/siteplan'

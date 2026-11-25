@@ -14,15 +14,15 @@
 
     <ul v-else class="item-list">
       <li v-for="item in items" :key="item.id" class="item" :class="{ off: item.is_active === false }">
-        <img v-if="item.image_url" :src="item.image_url" :alt="`Foto ${itemTitle(item)}`" class="thumb" width="72" height="72" loading="lazy">
+        <img v-if="item.image_url" :src="item.image_url" :alt="`Foto ${itemTitle(item)}`" class="thumb" width="72" height="72" loading="lazy" decoding="async">
         <div v-else-if="type !== 'faq'" class="thumb thumb-empty" aria-hidden="true">Tanpa foto</div>
         <div class="item-body">
           <strong>{{ itemTitle(item) }}</strong>
           <p>{{ itemSummary(item) }}</p>
-          <span class="badge" :class="item.is_active === false ? 'badge-off' : 'badge-on'">{{ item.is_active === false ? 'Disembunyikan' : 'Tampil di website' }}</span>
+          <span class="badge" :class="item.is_active === false ? 'badge-off' : 'badge-on'">{{ item.is_active === false ? 'Disembunyikan' : 'Tampil di situs web' }}</span>
         </div>
         <div class="item-actions">
-          <button class="btn btn-secondary" type="button" @click="edit(item)">Edit</button>
+          <button class="btn btn-secondary" type="button" @click="edit(item)">Ubah</button>
           <button class="btn btn-danger" type="button" @click="askRemove(item)">Hapus</button>
         </div>
       </li>
@@ -39,7 +39,7 @@
       :loading="removing"
       @confirm="remove"
     >
-      <p class="confirm-text">“{{ target ? itemTitle(target) : '' }}” akan dihapus dari website dan tidak bisa dikembalikan.</p>
+      <p class="confirm-text">“{{ target ? itemTitle(target) : '' }}” akan dihapus dari situs web dan tidak bisa dikembalikan.</p>
     </AppModal>
   </section>
 </template>
@@ -59,7 +59,7 @@ const emit = defineEmits<{ notify: [message: string, type?: 'success' | 'error']
 
 const META: Record<CmsItemType, { title: string; description: string; addLabel: string; empty: string }> = {
   gallery: { title: 'Galeri', description: 'Foto yang tampil di Galeri dan pratinjau galeri Beranda.', addLabel: 'Tambah foto', empty: 'Belum ada foto. Tambahkan foto pertama agar Galeri tidak kosong.' },
-  progress: { title: 'Kemajuan pembangunan', description: 'Catatan perkembangan yang tampil di halaman Kemajuan dan Beranda.', addLabel: 'Tambah update', empty: 'Belum ada update. Tambahkan update pertama untuk menunjukkan perkembangan kawasan.' },
+  progress: { title: 'Kemajuan pembangunan', description: 'Catatan perkembangan yang tampil di halaman Kemajuan dan Beranda.', addLabel: 'Tambah kabar', empty: 'Belum ada kabar. Tambahkan kabar pertama untuk menunjukkan perkembangan kawasan.' },
   faq: { title: 'FAQ', description: 'Pertanyaan umum di bagian FAQ pada Beranda.', addLabel: 'Tambah pertanyaan', empty: 'Belum ada FAQ. Tambahkan pertanyaan yang sering diajukan calon pembeli.' },
 }
 const meta = computed(() => META[props.type])

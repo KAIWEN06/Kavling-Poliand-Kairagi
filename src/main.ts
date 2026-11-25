@@ -6,7 +6,11 @@ import router from './router'
 import { IonicVue } from '@ionic/vue'
 import { initializeAuthDeepLinks } from '@/services/authDeepLink'
 import { authService } from '@/services/auth/authService'
+import { consumePostLoginRedirect } from '@/services/auth/postLoginRedirect'
 import { consumeOAuthUrlError } from '@/services/auth/authUrlError'
+import { roleNotificationService } from '@/services/notification/roleNotificationService'
+import { useNotifications } from '@/composables/useNotifications'
+import { useCurrentUser } from '@/composables/useCurrentUser'
 import { poliPageTransition } from '@/utils/pageTransition'
 import { installInputGuard } from '@/utils/inputGuard'
 import { alertEnterAnimation, alertLeaveAnimation } from '@/utils/modalAnimation'
@@ -43,6 +47,7 @@ import './styles/marketing-module.css'
 // Global Theme
 import './theme/variables.css'
 import './theme/poliland-look.css'
+import './theme/notify.css'
 
 // Filter input global (angka/huruf/email sesuai jenis field)
 installInputGuard()
@@ -77,7 +82,7 @@ async function bootstrap() {
         const session = await authService.getSession()
         if (session) {
           const role = await authService.getUserRole(session.user.id)
-          destination = authService.getRoleHomePath(role) ?? null
+          destination = consumePostLoginRedirect(role) ?? authService.getRoleHomePath(role) ?? null
         }
       } catch {
         // Lanjut ke halaman login.
@@ -116,6 +121,12 @@ async function bootstrap() {
 
     // Mount application
     app.mount('#app')
+
+    // Siapkan jalur notifikasi sejak awal: tap yang membuka aplikasi dari keadaan tertutup
+    // tidak boleh menunggu halaman ber-header tampil. Urutan penting: pendengar profil dulu.
+    void roleNotificationService.init()
+    useNotifications()
+    useCurrentUser()
   } catch (error) {
     console.error('Application initialization error:', error)
 

@@ -33,7 +33,31 @@
       <!-- BODY -->
       <div class="detail-body">
         <!-- PANORAMA -->
-        <div v-if="lot.panorama_url" class="media-preview">
+        <div v-if="!showLotInfo" class="sold-scene">
+          <div class="sold-stage">
+            <img
+              :src="soldMascot"
+              class="sold-mascot"
+              alt="Maskot PoliLand cemas di samping kalender bertanda terjual"
+            />
+            <svg
+              class="sold-sparkles"
+              viewBox="0 0 320 215"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path class="sold-star sold-star--a" d="M40 40 L45 55 L60 60 L45 65 L40 80 L35 65 L20 60 L35 55 Z" />
+              <path class="sold-star sold-star--b" d="M278 150 L282 161 L293 165 L282 169 L278 180 L274 169 L263 165 L274 161 Z" />
+              <path class="sold-star sold-star--c" d="M286 34 L289 42 L297 45 L289 48 L286 56 L283 48 L275 45 L283 42 Z" />
+              <circle class="sold-dot sold-dot--a" cx="22" cy="150" r="3" />
+              <circle class="sold-dot sold-dot--b" cx="300" cy="96" r="2.5" />
+            </svg>
+          </div>
+          <h3 class="sold-title">Sudah ada pemiliknya</h3>
+          <p class="sold-text">Lihat kavling lain yang masih tersedia di denah.</p>
+        </div>
+
+        <div v-else-if="lot.panorama_url" class="media-preview">
           <img
             :src="lot.panorama_thumb || lot.panorama_url || defaultThumb"
             class="panorama-preview-image"
@@ -78,7 +102,7 @@
         </div>
 
         <!-- SPESIFIKASI -->
-        <section class="detail-section">
+        <section v-if="showLotInfo" class="detail-section">
           <h3>Spesifikasi</h3>
 
           <div class="spec-grid">
@@ -95,7 +119,7 @@
             </div>
 
             <div class="spec-card" :class="{ 'spec-card--wide': !hasPromo }">
-              <small>Harga Cash</small>
+              <small>Harga tunai</small>
               <strong>
                 {{ formatCurrency(lot.cash_price) }}
               </strong>
@@ -111,7 +135,34 @@
         </section>
 
         <!-- PEMBAYARAN -->
-        <section class="detail-section">
+        <section v-if="showLotInfo && deal" class="detail-section">
+          <h3>Pembayaran</h3>
+
+          <div class="deal-box">
+            <div class="price-row">
+              <span>Metode</span>
+              <strong>{{ dealMethodLabel }}</strong>
+            </div>
+            <div class="price-row">
+              <span>Harga disepakati</span>
+              <strong class="deal-price">{{ formatCurrency(deal.final_price) }}</strong>
+            </div>
+            <div v-if="dealHasInstallment" class="price-row">
+              <span>Uang muka</span>
+              <strong>{{ formatCurrency(deal.down_payment) }}</strong>
+            </div>
+            <div v-if="dealHasInstallment" class="price-row">
+              <span>Cicilan per bulan</span>
+              <strong>{{ formatCurrency(deal.monthly_payment) }}</strong>
+            </div>
+            <div v-if="Number(deal.booking_fee) > 0" class="price-row">
+              <span>Biaya tanda jadi</span>
+              <strong>{{ formatCurrency(deal.booking_fee) }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section v-else-if="showLotInfo" class="detail-section">
           <h3>Pembayaran</h3>
 
           <div class="payment-tabs">
@@ -120,7 +171,7 @@
               type="button"
               @click="activeTab = 'cash'"
             >
-              Cash
+              Tunai
             </button>
 
             <button
@@ -138,7 +189,7 @@
             class="cash-box"
           >
             <div v-if="hasPromo" class="price-row">
-              <span>Harga Cash</span>
+              <span>Harga tunai</span>
 
               <strong>
                 {{ formatCurrency(lot.cash_price) }}
@@ -158,7 +209,7 @@
             </div>
 
             <div v-else class="price-row price-row--single">
-              <span>Harga Cash</span>
+              <span>Harga tunai</span>
 
               <strong>
                 {{ formatCurrency(lot.cash_price) }}
@@ -238,31 +289,27 @@
 
         <!-- INFORMASI -->
         <section
-          v-if="
-            lot.customer_id ||
-            lot.transaction_date ||
-            lot.description
-          "
+          v-if="showBuyerInfo || (showLotInfo && lotDescription)"
           class="detail-section"
         >
-          <h3>Informasi</h3>
+          <h3>{{ showBuyerInfo ? 'Pembeli' : 'Informasi' }}</h3>
 
-          <div class="spec-grid">
+          <div v-if="showBuyerInfo" class="spec-grid">
             <div
-              v-if="lot.customer_id"
+              v-if="lot.customers?.full_name || lot.customer_id"
               class="spec-card"
             >
-              <small>Customer</small>
-              <strong>{{ lot.customer_id }}</strong>
+              <small>Pembeli</small>
+              <strong>{{ lot.customers?.full_name || lot.customer_id }}</strong>
             </div>
 
             <div
-              v-if="lot.transaction_date"
+              v-if="transactionDate"
               class="spec-card"
             >
-              <small>Tanggal</small>
+              <small>{{ isSold ? 'Tanggal terjual' : 'Tanggal pesan' }}</small>
               <strong>
-                {{ formatDate(lot.transaction_date) }}
+                {{ formatDate(transactionDate) }}
               </strong>
             </div>
 
@@ -270,31 +317,31 @@
               v-if="lot.payment_type"
               class="spec-card"
             >
-              <small>Tipe Pembayaran</small>
+              <small>Metode Pembayaran</small>
               <strong>
-                {{ lot.payment_type }}
+                {{ paymentTypeLabel }}
               </strong>
             </div>
           </div>
 
           <div
-            v-if="lot.description"
+            v-if="showLotInfo && lotDescription"
             class="detail-description"
           >
-            {{ lot.description }}
+            {{ lotDescription }}
           </div>
         </section>
       </div>
 
       <!-- FOOTER ACTION -->
-      <footer v-if="props.variant !== 'admin'" class="detail-footer">
+      <footer v-if="props.variant !== 'admin' && !isSold && !isMarketingStaff" class="detail-footer">
         <div class="action-grid">
           <!-- SURVEI -->
           <AppButton
             class="survey-button"
             type="button"
             expand="block"
-            @click="openSurveyModal"
+            @click="goToSurveyRequest"
           >
             Survei Lokasi
           </AppButton>
@@ -304,10 +351,10 @@
             class="buy-button"
             type="button"
             expand="block"
-            :disabled="props.clientMode && !clientLotAvailable"
+            :disabled="!clientLotAvailable"
             @click="openPurchaseModal"
           >
-            {{ props.clientMode && !clientLotAvailable ? 'Tidak Tersedia' : props.clientMode ? 'Beli Kavling' : 'Beli' }}
+            {{ buyLabel }}
           </AppButton>
         </div>
 
@@ -321,7 +368,7 @@
         </AppButton>
       </footer>
 
-      <footer v-else class="detail-footer detail-footer--admin">
+      <footer v-else-if="props.variant === 'admin'" class="detail-footer detail-footer--admin">
         <AppButton
           type="button"
           variant="primary"
@@ -332,82 +379,6 @@
         </AppButton>
       </footer>
     </aside>
-
-    <!-- ================================================= -->
-    <!-- MODAL SURVEI LOKASI -->
-    <!-- ================================================= -->
-
-    <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation"
-      v-if="props.variant !== 'admin'"
-      :is-open="showSurveyModal"
-      class="survey-modal"
-      @didDismiss="closeSurveyModal"
-    >
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Jadwalkan Survei</ion-title>
-
-          <ion-buttons slot="end">
-            <ion-button
-              type="button"
-              @click="closeSurveyModal"
-            >
-              Tutup
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-
-      <ion-content class="ion-padding">
-        <div class="survey-content">
-          <!-- KAVLING -->
-          <div class="survey-lot-info">
-            <span>Kaveling yang dipilih</span>
-
-            <strong>
-              {{
-                lot?.lot_number ||
-                lot?.polygon_id ||
-                lot?.id ||
-                '-'
-              }}
-            </strong>
-          </div>
-
-          <!-- TANGGAL -->
-          <div class="survey-field">
-            <label>Pilih Tanggal Survei</label>
-
-            <ion-datetime
-              v-model="surveyDate"
-              presentation="date"
-              :min="minimumSurveyDate"
-            ></ion-datetime>
-          </div>
-
-          <!-- JAM -->
-          <div class="survey-field">
-            <label>Pilih Jam Survei</label>
-
-            <ion-datetime
-              v-model="surveyTime"
-              presentation="time"
-              hour-cycle="h23"
-            ></ion-datetime>
-          </div>
-
-          <!-- CONFIRM -->
-          <ion-button
-            expand="block"
-            class="confirm-survey-button"
-            :disabled="!surveyDate || !surveyTime"
-            @click="confirmSurvey"
-          >
-            Konfirmasi Survei
-          </ion-button>
-        </div>
-      </ion-content>
-    </ion-modal>
 
     <ion-modal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation"
   v-if="props.variant !== 'admin'"
@@ -456,7 +427,7 @@
           class="continue-purchase-button"
           @click="continuePurchase"
         >
-          {{ props.clientMode ? 'Lanjut ke SPK' : 'Lanjut ke Login' }}
+          {{ props.clientMode ? 'Lanjut ke SPK' : 'Masuk untuk lanjut' }}
         </AppButton>
 
         <AppButton
@@ -484,7 +455,9 @@ import {
   watch,
 } from 'vue'
 import { useRouter } from 'vue-router'
+import { setPostLoginRedirect } from '@/services/auth/postLoginRedirect'
 import AppButton from '../ui/AppButton.vue'
+import { useCurrentUser } from '@/composables/useCurrentUser'
 
 import {
   IonButton,
@@ -495,13 +468,13 @@ import {
   IonTitle,
   IonButtons,
   IonContent,
-  IonDatetime,
 } from '@ionic/vue'
 
 import { closeOutline, compassOutline } from 'ionicons/icons'
 
-import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
-import verifiedMascot from '@/assets/mascot/Verified_Mascot.png'
+import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
+import verifiedMascot from '@/assets/mascot/Verified_Mascot.webp'
+import soldMascot from '@/assets/mascot/Sold_Lot_Mascot.webp'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
 import { getLotInstallments } from '../../services/siteplanService'
@@ -644,9 +617,117 @@ const installmentBasePrice = computed(() => {
   )
 })
 
+const { profile } = useCurrentUser()
+
+const isAdminView = computed(() => props.variant === 'admin')
+
+/* Survei dan pembelian adalah alur pengunjung/Client. Bagi staf Marketing tombolnya
+   berakhir di /login lalu dipantulkan ke beranda, jadi tidak ditampilkan. */
+const isMarketingStaff = computed(() =>
+  profile.value?.role === 'marketing' || profile.value?.role === 'marketing_head',
+)
+
+const isSold = computed(() =>
+  normalizeLotStatus(props.lot?.status) === 'sold',
+)
+
+/* Client hanya dianggap pemilik bila akunnya terhubung ke customer pada kavling ini. */
+const isOwnLot = computed(() => {
+  const ownerUserId = props.lot?.customers?.user_id
+  return Boolean(
+    ownerUserId &&
+    profile.value?.id &&
+    profile.value.role === 'client' &&
+    ownerUserId === profile.value.id,
+  )
+})
+
+/* Kavling terjual disembunyikan dari denah publik; admin dan pemilik tetap melihat. */
+const showLotInfo = computed(() =>
+  !isSold.value || isAdminView.value || isOwnLot.value || hasPrivateData.value,
+)
+
+/*
+ * Status pada kolom lots adalah sumber kebenaran. Deskripsi bebas yang menyebut status
+ * lain (misalnya "Sudah terjual" pada kavling berstatus Dipesan) disembunyikan agar
+ * informasi di panel tidak saling bertentangan.
+ */
+const STATUS_WORDS: Record<string, RegExp> = {
+  available: /(tersedia|available|ready)/i,
+  booking: /(dipesan|dibooking|booking|booked|reserved)/i,
+  sold: /(terjual|sold)/i,
+}
+
+const lotDescription = computed(() => {
+  const text = String(props.lot?.description || '').trim()
+  if (!text) return ''
+  const current = normalizeLotStatus(props.lot?.status)
+  const conflicts = Object.entries(STATUS_WORDS).some(
+    ([status, pattern]) => status !== current && pattern.test(text),
+  )
+  return conflicts ? '' : text
+})
+
+const transactionDate = computed(() =>
+  (isSold.value ? props.lot?.sold_date : props.lot?.booking_date) ||
+  props.lot?.sold_date ||
+  props.lot?.booking_date ||
+  '',
+)
+
+/*
+ * Server hanya mengirim data pembeli dan kesepakatan kepada admin, pemilik kavling,
+ * dan marketing yang terhubung dengan pembelinya. Adanya data ini menandai pihak berhak.
+ */
+const hasPrivateData = computed(() =>
+  Boolean(props.lot?.deal || props.lot?.customer_id || props.lot?.customers),
+)
+
+/* Kesepakatan pembayaran dari SPK/transaksi menggantikan simulasi Cash/Cicilan. */
+const deal = computed(() => (isSold.value || isBooked.value ? props.lot?.deal ?? null : null))
+
+const isBooked = computed(() => normalizeLotStatus(props.lot?.status) === 'booking')
+
+const dealHasInstallment = computed(() =>
+  String(deal.value?.payment_type || '').toLowerCase() !== 'cash' &&
+  Number(deal.value?.months) > 0,
+)
+
+const dealMethodLabel = computed(() => {
+  if (!deal.value) return ''
+  return dealHasInstallment.value
+    ? `Cicilan ${deal.value.months} bulan`
+    : 'Tunai'
+})
+
+/* Data pembeli dan metode pembayaran hanya untuk pihak berhak. */
+const showBuyerInfo = computed(() =>
+  (isAdminView.value || hasPrivateData.value) &&
+  Boolean(
+    props.lot?.customers?.full_name ||
+    props.lot?.customer_id ||
+    props.lot?.payment_type,
+  ),
+)
+
+const paymentTypeLabel = computed(() => {
+  const value = String(props.lot?.payment_type || '').trim().toLowerCase()
+  if (value === 'cash') return 'Cash'
+  if (['installment', 'cicilan', 'kredit'].includes(value)) return 'Cicilan'
+  return props.lot?.payment_type || '-'
+})
+
 const clientLotAvailable = computed(() =>
   normalizeLotStatus(props.lot?.status) === 'available',
 )
+
+/* Hanya kavling berstatus tersedia yang bisa dibeli; yang sudah dipesan tertutup untuk semua. */
+const buyLabel = computed(() => {
+  if (!clientLotAvailable.value) {
+    return normalizeLotStatus(props.lot?.status) === 'booking' ? 'Sudah Dipesan' : 'Tidak Tersedia'
+  }
+  return props.clientMode ? 'Beli Kavling' : 'Beli'
+})
 
 const remainingAfterDp = computed(() => {
   return Math.max(
@@ -670,24 +751,6 @@ const remainingAfterDp = computed(() => {
  */
 
 const WHATSAPP_NUMBER = '6281356960253'
-
-/* ===================================================== */
-/* SURVEY STATE */
-/* ===================================================== */
-
-const showSurveyModal = ref(false)
-
-const surveyDate = ref<string | undefined>(undefined)
-
-const surveyTime = ref<string | undefined>(undefined)
-
-/*
- * User hanya dapat memilih tanggal hari ini
- * atau tanggal setelah hari ini.
- */
-
-const minimumSurveyDate =
-  new Date().toISOString().split('T')[0]
 
 /* ===================================================== */
 /* WATCH LOT */
@@ -863,10 +926,10 @@ function openAdminDetail() {
 /* ===================================================== */
 
 function open360() {
+  // ID didahulukan: nomor kavling berupa angka ("002") bisa terbaca sebagai ID lain.
   const identifier =
-    props.lot?.lot_number ||
-    props.lot?.polygon_id ||
-    props.lot?.id
+    props.lot?.id ||
+    props.lot?.polygon_id
 
   router.push(
     `/panorama/${identifier}`
@@ -877,20 +940,21 @@ function open360() {
 /* SURVEY */
 /* ===================================================== */
 
-function openSurveyModal() {
-  /*
-   * Reset pilihan setiap kali modal dibuka.
-   */
+function goToSurveyRequest() {
+  const lotId = Number(props.lot?.id)
+  if (!Number.isSafeInteger(lotId) || lotId <= 0) return
 
-  surveyDate.value = undefined
+  const target = `/client/kavling/${lotId}?survei=1`
 
-  surveyTime.value = undefined
+  if (props.clientMode) {
+    router.push(target)
+    return
+  }
 
-  showSurveyModal.value = true
-}
-
-function closeSurveyModal() {
-  showSurveyModal.value = false
+  // Belum login: simpan tujuan, lalu login. Akun baru melengkapi data diri
+  // dulu, kemudian otomatis sampai ke halaman request survei.
+  setPostLoginRedirect(target)
+  router.push('/login')
 }
 
 /* ===================================================== */
@@ -900,6 +964,7 @@ function closeSurveyModal() {
 const showPurchaseModal = ref(false)
 
 function openPurchaseModal() {
+  if (!clientLotAvailable.value) return
   showPurchaseModal.value = true
 }
 
@@ -913,6 +978,8 @@ function goToLogin() {
 }
 
 function continuePurchase() {
+  if (!clientLotAvailable.value) return
+
   if (!props.clientMode) {
     goToLogin()
     return
@@ -953,90 +1020,6 @@ function openWhatsApp(
     url,
     '_blank'
   )
-}
-
-/* ===================================================== */
-/* FORMAT SURVEY DATE */
-/* ===================================================== */
-
-function formatSurveyDate(
-  date: string
-) {
-  const parsedDate =
-    new Date(date)
-
-  return new Intl.DateTimeFormat(
-    'id-ID',
-    {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    }
-  ).format(parsedDate)
-}
-
-/* ===================================================== */
-/* FORMAT SURVEY TIME */
-/* ===================================================== */
-
-function formatSurveyTime(
-  time: string
-) {
-  const parsedDate =
-    new Date(time)
-
-  return new Intl.DateTimeFormat(
-    'id-ID',
-    {
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    }
-  ).format(parsedDate)
-}
-
-/* ===================================================== */
-/* CONFIRM SURVEY */
-/* ===================================================== */
-
-function confirmSurvey() {
-  if (
-    !surveyDate.value ||
-    !surveyTime.value
-  ) {
-    return
-  }
-
-  const lotName =
-    getLotName()
-
-  const blockName =
-    getBlockCode(props.lot)
-
-  const blockText =
-    blockName !== '-' ? ` blok ${blockName}` : ''
-
-  const date =
-    formatSurveyDate(
-      surveyDate.value
-    )
-
-  const time =
-    formatSurveyTime(
-      surveyTime.value
-    )
-
-  const message =
-    `Halo, saya tertarik untuk melakukan survei lokasi ` +
-    `kaveling ${lotName}${blockText}. ` +
-    `Saya ingin melakukan survei pada tanggal ` +
-    `${date} pukul ${time}. ` +
-    `Mohon konfirmasi ketersediaan jadwal survei. ` +
-    `Terima kasih.`
-
-  openWhatsApp(message)
-
-  closeSurveyModal()
 }
 
 /* ===================================================== */
@@ -1346,6 +1329,127 @@ function getBlockCode(
   background: #fafaf7;
 
   color: var(--text-secondary, #5f5f66);
+}
+
+/* Kavling terjual: kartu putih seperti kartu maskot lain, maskot melayang */
+.sold-scene {
+  position: relative;
+  overflow: hidden;
+  padding: 20px 16px 22px;
+  border-radius: 20px;
+  background: #ffffff;
+  text-align: center;
+  box-shadow: 0 14px 28px -16px rgba(53, 90, 44, 0.45);
+  animation: sold-enter 560ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+.sold-stage {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.sold-mascot {
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: sold-float 4.2s ease-in-out 600ms infinite;
+  will-change: transform;
+}
+
+.sold-sparkles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.sold-star,
+.sold-dot {
+  fill: var(--poliland-gold, #cba044);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sold-twinkle 2.6s ease-in-out infinite;
+}
+
+.sold-star--b { animation-delay: 0.7s; }
+.sold-star--c { animation-delay: 1.4s; }
+.sold-dot--a { animation-delay: 0.4s; }
+.sold-dot--b { animation-delay: 1.1s; }
+
+.deal-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.deal-box .price-row + .price-row {
+  border-top: 1px solid rgba(53, 90, 44, 0.14);
+}
+
+.deal-box .price-row strong {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.deal-box .deal-price {
+  font-size: 22px;
+  color: var(--poliland-green, #355a2c);
+}
+
+.sold-title {
+  margin: 4px 0 0;
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text-primary, #252525);
+  animation: sold-rise 520ms var(--ease-out, ease-out) 180ms both;
+}
+
+.sold-text {
+  margin: 8px auto 0;
+  max-width: 28ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4a4a50;
+  animation: sold-rise 520ms var(--ease-out, ease-out) 280ms both;
+}
+
+@keyframes sold-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes sold-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sold-float {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50% { transform: translateY(-6px) rotate(0.6deg); }
+}
+
+@keyframes sold-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sold-scene,
+  .sold-title,
+  .sold-text { animation: none; }
+
+  .sold-mascot { animation: none; }
+
+  .sold-star,
+  .sold-dot {
+    animation: none;
+    opacity: 0.8;
+  }
 }
 
 .no-panorama-mascot {

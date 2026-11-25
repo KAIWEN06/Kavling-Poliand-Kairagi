@@ -1,10 +1,10 @@
 <template>
   <section v-if="features.length || isAdmin" class="section">
     <SectionHeader title="Kenapa memilih PoliLand?">
-      <AdminEditButton v-if="isAdmin" label="Edit keunggulan" @click="editOpen = true" />
+      <AdminEditButton v-if="isAdmin" label="Ubah keunggulan" @click="editOpen = true" />
     </SectionHeader>
 
-    <p v-if="!features.length" class="empty-hint">Belum ada keunggulan. Tekan “Edit keunggulan” untuk menambahkan.</p>
+    <p v-if="!features.length" class="empty-hint">Belum ada keunggulan. Tekan “Ubah keunggulan” untuk menambahkan.</p>
     <ul v-else class="feature-scroll">
       <li v-for="(feature, i) in features" :key="feature.id || feature.title" class="feature-item">
         <article class="feature-card" :style="{ '--i': Math.min(i, 8) }">
@@ -17,7 +17,7 @@
       </li>
     </ul>
 
-    <CmsPanelModal v-model="editOpen" title="Edit keunggulan" panel="home" section="features" @saved="load" />
+    <CmsPanelModal v-model="editOpen" title="Ubah keunggulan" panel="home" section="features" @saved="load" />
   </section>
 </template>
 

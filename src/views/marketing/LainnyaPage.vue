@@ -4,8 +4,9 @@
 
     <ion-content :fullscreen="true">
       <main class="more-shell">
+        <PageHeader title="Lainnya" />
         <Reveal :order="1">
-          <section class="quick-grid" aria-label="Menu Marketing">
+          <section class="quick-grid" aria-label="Menu pemasaran">
             <button v-for="action in actions" :key="action.label" type="button" class="quick-card" :class="`quick-card--${action.tone}`" @click="router.push(action.route)">
               <span class="quick-icon"><ion-icon :icon="action.icon" aria-hidden="true" /></span>
               <strong>{{ action.label }}</strong>
@@ -20,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/ui/PageHeader.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { documentTextOutline, personOutline, walletOutline, cashOutline } from 'ionicons/icons'
@@ -30,9 +32,9 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 type QuickAction = { label: string; icon: string; tone: 'green' | 'gold' | 'neutral'; route: string }
 const router = useRouter()
 const actions: QuickAction[] = [
-  { label: 'Status SPK klien', icon: documentTextOutline, tone: 'gold', route: '/marketing/pengajuan' },
-  { label: 'Pembayaran & cicilan', icon: walletOutline, tone: 'green', route: '/marketing/pembayaran' },
-  { label: 'Komisi saya', icon: cashOutline, tone: 'gold', route: '/marketing/komisi' },
+  { label: 'Status SPK', icon: documentTextOutline, tone: 'gold', route: '/marketing/pengajuan' },
+  { label: 'Pembayaran', icon: walletOutline, tone: 'green', route: '/marketing/pembayaran' },
+  { label: 'Komisi', icon: cashOutline, tone: 'gold', route: '/marketing/komisi' },
   { label: 'Profil saya', icon: personOutline, tone: 'neutral', route: '/akun' },
 ]
 </script>
@@ -45,7 +47,9 @@ const actions: QuickAction[] = [
 @media (hover: hover) and (pointer: fine) {
   .quick-card:hover { border-color: var(--poliland-green); }
 
-}.quick-card:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+}.quick-card:active { transform: scale(0.97); }
+.quick-card { touch-action: manipulation; transition: transform var(--dur-fast) var(--ease-out); }
+.quick-card:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .quick-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-secondary); font-size: 20px; }
 .quick-card strong { font-size: 13px; line-height: 1.3; }
 .quick-card--green .quick-icon { background: var(--status-success-bg); color: var(--poliland-green); }

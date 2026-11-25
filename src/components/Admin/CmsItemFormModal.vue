@@ -1,7 +1,7 @@
 <template>
   <AppModal
     :model-value="modelValue"
-    :title="(item ? 'Edit ' : 'Tambah ') + noun"
+    :title="(item ? 'Ubah ' : 'Tambah ') + noun"
     :loading="saving"
     :confirm-disabled="saving"
     @update:model-value="$emit('update:modelValue', $event)"
@@ -15,7 +15,7 @@
         <input v-model="form.category" maxlength="40" placeholder="Umum">
       </label>
       <template v-if="type === 'progress'">
-        <label class="field">Tanggal update *
+        <label class="field">Tanggal kabar *
           <input v-model="form.progress_date" type="date">
         </label>
         <label class="field">Persentase selesai (0–100)
@@ -36,14 +36,17 @@
       </label>
       <label class="switch">
         <input v-model="form.is_active" type="checkbox">
-        <span>Tampilkan di website</span>
+        <span>Tampilkan di situs web</span>
       </label>
     </div>
-    <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+    <AppNotice v-if="formError" tone="error">
+      {{ formError }}
+    </AppNotice>
   </AppModal>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { galleryService } from '@/services/galleryService'
@@ -62,7 +65,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; saved: [message: string] }>()
 
-const NOUN: Record<CmsItemType, string> = { gallery: 'foto galeri', progress: 'update kemajuan', faq: 'pertanyaan' }
+const NOUN: Record<CmsItemType, string> = { gallery: 'foto galeri', progress: 'kabar kemajuan', faq: 'pertanyaan' }
 const noun = computed(() => NOUN[props.type])
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -121,7 +124,7 @@ function validate(): string {
   if (!form.title.trim()) return props.type === 'faq' ? 'Pertanyaan wajib diisi.' : 'Judul wajib diisi.'
   if (props.type === 'faq' && !form.description.trim()) return 'Jawaban wajib diisi.'
   if (props.type === 'gallery' && !file.value && !form.image_url) return 'Pilih foto untuk galeri.'
-  if (props.type === 'progress' && !form.progress_date) return 'Tanggal update wajib diisi.'
+  if (props.type === 'progress' && !form.progress_date) return 'Tanggal kabar wajib diisi.'
   if (props.type === 'progress' && (form.percentage < 0 || form.percentage > 100)) return 'Persentase harus antara 0 dan 100.'
   return ''
 }
@@ -152,7 +155,7 @@ async function save() {
     else id ? await faqService.updateFaq(id, payload as any) : await faqService.createFaq(payload as any)
     resetPreview()
     emit('update:modelValue', false)
-    emit('saved', 'Tersimpan dan langsung tampil di website.')
+    emit('saved', 'Tersimpan dan langsung tampil di situs web.')
   } catch (error) {
     formError.value = error instanceof Error ? error.message : 'Data gagal disimpan.'
   } finally {
@@ -166,5 +169,5 @@ onBeforeUnmount(resetPreview)
 <style scoped src="./cmsPanel.css"></style>
 <style scoped>
 .preview { inline-size: 100%; max-block-size: 200px; object-fit: cover; border-radius: var(--radius-control); }
-.form-error { margin: 14px 0 0; padding: 10px 12px; border-radius: var(--radius-control); background: var(--danger-bg, #fbe7e6); color: var(--danger-text, #a8322d); font-size: 13px; }
+
 </style>

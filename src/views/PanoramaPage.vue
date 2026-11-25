@@ -91,7 +91,8 @@ async function loadPanorama() {
     /* Prioritaskan ID internal karena detail admin/client mengirim ID ini. */
     let data: any = null
     let error: any = null
-    if (Number.isInteger(Number(lotId))) {
+    // Angka berawalan nol ("002") adalah nomor kavling, bukan ID.
+    if (/^[1-9]\d*$/.test(lotId)) {
       const result = await supabase
         .from('lots')
         .select(selectFields)

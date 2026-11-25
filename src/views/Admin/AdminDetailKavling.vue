@@ -83,7 +83,7 @@
               </AppButton>
               <AppButton variant="neutral" fill="outline" expand="block" @click="editModalOpen = true">
                 <ion-icon :icon="createOutline" slot="start" />
-                Edit Informasi
+                Ubah Informasi
               </AppButton>
             </div>
           </section>
@@ -233,7 +233,7 @@
                     </div>
 
                     <div v-else-if="log.action === 'DELETE'" class="audit-detail">
-                      Data kavling dihapus. Snapshot data sebelum penghapusan tersimpan pada log audit.
+                      Data kavling dihapus. Salinan data sebelum penghapusan tersimpan pada log audit.
                     </div>
 
                     <span class="audit-date">{{ formatAuditDateTime(log.created_at) }}</span>
@@ -268,7 +268,7 @@
 
     <AppModal
       v-model="editModalOpen"
-      title="Edit Informasi Kavling"
+      title="Ubah Informasi Kavling"
       variant="bottom-sheet"
       :loading="saving"
       confirm-text="Simpan"
@@ -283,6 +283,13 @@
         inputmode="text"
         @focus="showAndroidKeyboard"
       />
+      <label class="field-label" for="edit-lot-block">Blok</label>
+      <select id="edit-lot-block" v-model="editDraft.block_id" class="form-control" :disabled="blocksLoading">
+        <option value="">{{ blocksLoading ? 'Memuat blok...' : 'Tanpa blok' }}</option>
+        <option v-for="block in blockOptions" :key="block.id" :value="String(block.id)">
+          {{ formatBlockOption(block) }}
+        </option>
+      </select>
       <label class="field-label" for="edit-lot-dimension">Dimensi</label>
       <input
         id="edit-lot-dimension"
@@ -352,17 +359,18 @@
       </p>
     </AppModal>
 
-    <ion-toast :is-open="toast.open" :message="toast.message" :color="toast.color" :duration="3000" @didDismiss="toast.open = false" />
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard } from '@capacitor/keyboard'
 import { computed, reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
-  IonPage, IonContent, IonIcon, IonSpinner, IonToast, onIonViewWillEnter,
+  IonPage, IonContent, IonIcon, IonSpinner, onIonViewWillEnter,
 } from '@ionic/vue'
 import {
   alertCircleOutline, arrowBackOutline, expandOutline, imageOutline, syncOutline, createOutline,
@@ -370,14 +378,16 @@ import {
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
-import loadingMascot from '@/assets/mascot/Mascot Examining Transaction History.png'
-import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
-import emptyReceiptMascot from '@/assets/mascot/MascotwithEmptyReceiptandCoins.png'
+import loadingMascot from '@/assets/mascot/Mascot Examining Transaction History.webp'
+import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
+import emptyReceiptMascot from '@/assets/mascot/MascotwithEmptyReceiptandCoins.webp'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { supabase } from '@/services/config/supabase'
 import { lotService, BOOKING_FEE_FIXED, type LotRecord } from '@/services/lotService'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
+
+const { confirm } = useConfirm()
 
 type TabKey = 'info' | 'price' | 'panorama' | 'history'
 interface InstallmentRow {
@@ -446,7 +456,10 @@ const editModalOpen = ref(false)
 const priceModalOpen = ref(false)
 const panoramaModalOpen = ref(false)
 const statusDraft = ref('Available')
-const editDraft = reactive({ lot_number: '', dimension: '', area: '', description: '' })
+const editDraft = reactive({ lot_number: '', block_id: '', dimension: '', area: '', description: '' })
+interface BlockOption { id: number; code: string | null; name: string | null }
+const blockOptions = ref<BlockOption[]>([])
+const blocksLoading = ref(false)
 const priceDraft = reactive<{ type: 'cash' | 'promo'; value: string }>({ type: 'cash', value: '' })
 const panoramaFileInput = ref<HTMLInputElement | null>(null)
 const panoramaSelectedFile = ref<File | null>(null)
@@ -457,9 +470,7 @@ const activityLogs = ref<ActivityLogRow[]>([])
 const historyError = ref('')
 const installmentsLoading = ref(false)
 const historyLoading = ref(false)
-const toast = reactive<{ open: boolean; message: string; color: 'success' | 'danger' | 'warning' }>({
-  open: false, message: '', color: 'success',
-})
+const toast = useToast()
 const effectiveStatus = computed(() => {
   return lot.value?.status || 'Available'
 })
@@ -476,7 +487,11 @@ const statusClass = computed(() => {
 const blockLabel = computed(() => {
   const block = lot.value?.block as Record<string, unknown> | null
   if (!block) return lot.value?.block_id ? `Blok ${lot.value.block_id}` : '-'
-  return String(block.name || block.code || block.title || block.label || lot.value?.block_id || '-')
+  return formatBlockOption({
+    id: Number(lot.value?.block_id ?? 0),
+    code: typeof block.code === 'string' ? block.code : null,
+    name: typeof block.name === 'string' ? block.name : null,
+  })
 })
 const hasPromo = computed(() => Number(lot.value?.promo_price || 0) > 0 && Number(lot.value?.promo_price) < Number(lot.value?.cash_price || 0))
 const paymentTypeLabel = computed(() => {
@@ -525,7 +540,7 @@ const buyerCustomer = computed(() => {
 })
 
 function notify(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
-  toast.message = message; toast.color = color; toast.open = true
+  toast.show(color === 'danger' ? 'error' : color, message)
 }
 function showAndroidKeyboard() {
   if (Capacitor.getPlatform() !== 'android') return
@@ -560,16 +575,39 @@ async function loadDetail() {
     lot.value = await lotService.getLotById(lotId.value)
     statusDraft.value = effectiveStatus.value || 'Available'
     editDraft.lot_number = lot.value.lot_number || ''
+    editDraft.block_id = lot.value.block_id == null ? '' : String(lot.value.block_id)
     editDraft.dimension = lot.value.dimension || ''
     editDraft.area = lot.value.area == null ? '' : String(lot.value.area)
     editDraft.description = lot.value.description || ''
     panoramaSelectedFile.value = null
     if (panoramaFileInput.value) panoramaFileInput.value.value = ''
-    await Promise.all([loadInstallments(), loadHistory()])
+    await Promise.all([loadInstallments(), loadHistory(), loadBlocks()])
   } catch (error) {
     console.error('[AdminKavlingDetail] Gagal memuat:', error)
     errorMessage.value = errorText(error); loadError.value = true
   } finally { loading.value = false }
+}
+async function loadBlocks() {
+  if (blockOptions.value.length) return
+  blocksLoading.value = true
+  try {
+    const { data, error } = await supabase
+      .from('blocks')
+      .select('id, code, name')
+      .order('code', { ascending: true })
+    if (error) throw error
+    blockOptions.value = (data ?? []) as BlockOption[]
+  } catch (error) {
+    console.error('[AdminKavlingDetail] Gagal memuat daftar blok:', error)
+  } finally {
+    blocksLoading.value = false
+  }
+}
+function formatBlockOption(block: BlockOption) {
+  // Nama di database tidak seragam ("Block A", "Blok D"), jadi label disusun dari kode.
+  const code = block.code?.trim()
+  if (code) return `Blok ${code}`
+  return block.name?.trim().replace(/^block\b/i, 'Blok') || `Blok ${block.id}`
 }
 async function loadInstallments() {
   if (!lot.value) return
@@ -717,8 +755,8 @@ function auditFieldLabel(field: string | null) {
     promo_price: 'Harga promo',
     status: 'Status',
     payment_type: 'Jenis pembayaran',
-    customer_id: 'Customer',
-    booking_date: 'Tanggal booking',
+    customer_id: 'Pembeli',
+    booking_date: 'Tanggal pemesanan',
     sold_date: 'Tanggal terjual',
     color: 'Warna kavling',
     description: 'Keterangan',
@@ -785,7 +823,7 @@ function formatAuditValue(field: string | null, value: unknown) {
     return 'Batas panorama diperbarui'
   }
 
-  if (field === 'customer_id') return `ID Customer: ${String(normalized)}`
+  if (field === 'customer_id') return `ID pembeli: ${String(normalized)}`
   if (field === 'block_id') return `Blok ${String(normalized)}`
   if (typeof normalized === 'object') return 'Data diperbarui'
 
@@ -816,7 +854,7 @@ async function saveStatus() {
   if (!lot.value) return
   await runSave(async () => {
     throw new Error(
-      'Status kavling tidak dapat diubah manual. Status Available, Booking, dan Sold harus mengikuti konfirmasi pembayaran melalui alur transaksi.'
+      'Status kavling tidak dapat diubah manual. Status Tersedia, Dipesan, dan Terjual harus mengikuti konfirmasi pembayaran melalui alur transaksi.'
     )
   }, 'Status kavling berhasil diperbarui.')
 }
@@ -826,6 +864,7 @@ async function saveInfo() {
   await runSave(async () => {
     const { error } = await supabase.from('lots').update({
       lot_number: editDraft.lot_number.trim(),
+      block_id: editDraft.block_id === '' ? null : Number(editDraft.block_id),
       dimension: editDraft.dimension.trim() || null,
       area: editDraft.area === '' ? null : Number(editDraft.area),
       description: editDraft.description.trim() || null,
@@ -890,7 +929,7 @@ async function savePrice() {
 }
 
 async function clearPromoPrice() {
-  if (!lot.value || !window.confirm('Hapus harga promo kavling ini?')) return
+  if (!lot.value || !(await confirm({ title: 'Hapus harga promo?', message: 'Kavling kembali memakai harga normal.', confirmText: 'Hapus', tone: 'error' }))) return
   await runSave(async () => {
     const { data, error } = await supabase
       .from('lots')
@@ -957,7 +996,7 @@ async function savePanorama() {
     const { error: uploadError } = await supabase.storage
       .from('lot-media')
       .upload(storagePath, file, {
-        cacheControl: '3600',
+        cacheControl: '31536000',
         contentType: file.type,
         upsert: false,
       })
@@ -990,7 +1029,7 @@ async function savePanorama() {
 }
 
 async function removePanorama() {
-  if (!lot.value || !window.confirm('Hapus panorama dari kavling ini?')) return
+  if (!lot.value || !(await confirm({ title: 'Hapus panorama?', message: 'Foto 360 dilepas dari kavling ini.', confirmText: 'Hapus', tone: 'error' }))) return
   await runSave(async () => {
     const { data, error } = await supabase
       .from('lots')

@@ -97,11 +97,11 @@ export const faqsData = [
   },
   {
     question: 'Berapa harga kaveling di PoliLand Kairagi?',
-    answer: 'Harga mengikuti tipe dan lokasi kaveling. Silakan hubungi marketing untuk informasi terbaru.',
+    answer: 'Harga mengikuti tipe dan lokasi kaveling. Silakan hubungi pemasar untuk informasi terbaru.',
   },
   {
     question: 'Apakah bisa KPR?',
-    answer: 'Informasi metode pembayaran dapat dikonfirmasi kepada tim marketing.',
+    answer: 'Informasi metode pembayaran dapat dikonfirmasi kepada tim pemasaran.',
   },
   {
     question: 'Kapan serah terima kaveling?',

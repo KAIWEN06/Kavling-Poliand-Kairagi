@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
   IonContent,
@@ -37,6 +38,7 @@ import {
 import { lotService, type LotRecord } from '@/services/lotService'
 import { supabase } from '@/services/config/supabase'
 import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
+import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 
 type DocumentKey = 'ktp' | 'kk' | 'npwp' | 'paymentProof'
 
@@ -52,6 +54,8 @@ const paymentScheme = ref<'Cash' | 'Installment' | ''>('')
 const paymentMethod = ref<'Transfer Bank'>('Transfer Bank')
 const selectedPlanId = ref<number | null>(null)
 const downPaymentInput = ref('')
+/** false = langsung cicil tanpa DP (bawaan), true = pakai DP. */
+const useDownPayment = ref(false)
 const downPaymentManual = ref(false)
 const downPaymentPreset = ref<number | null>(null)
 const customDpPercent = ref(30)
@@ -115,15 +119,22 @@ const selectedPlan = computed(() =>
 )
 
 const downPaymentAmount = computed(() => {
+  if (!useDownPayment.value) return 0
   const value = Number(downPaymentInput.value.replace(/\D/g, ''))
   return Number.isSafeInteger(value) ? value : 0
 })
+
+// Hanya berlaku saat memilih Pakai DP; langsung cicil selalu valid.
+const downPaymentInvalid = computed(() =>
+  useDownPayment.value
+  && (downPaymentAmount.value <= 0 || (lotPrice.value !== null && downPaymentAmount.value >= lotPrice.value)),
+)
 
 const installmentEstimate = computed(() => {
   const price = lotPrice.value
   const plan = selectedPlan.value
   const downPayment = downPaymentAmount.value
-  if (!price || !plan || downPayment <= 0 || downPayment >= price) return null
+  if (!price || !plan || downPaymentInvalid.value || downPayment >= price) return null
 
   const principal = price - downPayment
   const marginPercent = Math.max(0, Number(plan.margin_percent) || 0)
@@ -287,7 +298,19 @@ async function loadBuyerProfile() {
 
 function selectPaymentScheme(value: 'Cash' | 'Installment') {
   paymentScheme.value = value
-  if (value === 'Cash') selectedPlanId.value = null
+  if (value === 'Cash') {
+    selectedPlanId.value = null
+    setUseDownPayment(false)
+  }
+}
+
+function setUseDownPayment(value: boolean) {
+  useDownPayment.value = value
+  if (!value) {
+    downPaymentInput.value = ''
+    downPaymentManual.value = false
+    downPaymentPreset.value = null
+  }
 }
 
 function setDownPaymentPreset(percent: 10 | 20 | 30) {
@@ -364,7 +387,7 @@ async function loadAvailableBookingFees() {
     console.error('[SPK Klien] Gagal memuat Booking Fee reusable:', error)
     bookingFeesError.value = getClientSpkErrorMessage(
       error,
-      'Booking Fee sebelumnya gagal dimuat.',
+      'Tanda jadi sebelumnya gagal dimuat.',
     )
   } finally {
     bookingFeesLoading.value = false
@@ -406,12 +429,12 @@ async function saveSpk() {
     || !documents.ktp || !documents.kk
     || (!selectedReusePaymentId.value && !documents.paymentProof)) {
     saveError.value =
-      'Lengkapi nama, nomor kontak, alamat, pembayaran, KTP, KK, serta bukti pembayaran jika tidak menggunakan Booking Fee sebelumnya.'
+      'Lengkapi nama, nomor kontak, alamat, pembayaran, KTP, KK, serta bukti pembayaran jika tidak menggunakan tanda jadi sebelumnya.'
     return
   }
 
   if (method !== 'Transfer Bank') {
-    saveError.value = 'Booking Fee saat ini hanya dapat dibayar melalui Transfer Bank.'
+    saveError.value = 'Tanda jadi saat ini hanya dapat dibayar melalui Transfer Bank.'
     return
   }
 
@@ -421,8 +444,8 @@ async function saveSpk() {
   }
 
   if (scheme === 'Installment') {
-    if (downPaymentAmount.value <= 0 || downPaymentAmount.value >= lotPrice.value) {
-      saveError.value = 'DP harus lebih dari Rp 0 dan lebih kecil dari harga kaveling.'
+    if (downPaymentInvalid.value) {
+      saveError.value = 'Isi nominal uang muka yang lebih kecil dari harga kaveling, atau pilih Langsung cicil.'
       return
     }
     if (!selectedPlan.value || !installmentEstimate.value) {
@@ -649,7 +672,7 @@ onMounted(() => {
               </span>
               <div>
                 <h2 id="payment-confirmation-title">Konfirmasi Pembayaran</h2>
-                <p>Pilih skema pembelian. Pembayaran saat pengajuan adalah Booking Fee.</p>
+                <p>Pilih skema pembelian. Pembayaran saat pengajuan adalah tanda jadi.</p>
               </div>
             </div>
 
@@ -704,7 +727,14 @@ onMounted(() => {
                   <span>Cicilan</span>
                 </div>
 
-                <label class="spk-dp-label" for="spk-down-payment">DP kaveling ini</label>
+                <InstallmentDpChoice
+                  :model-value="useDownPayment"
+                  name="client-dp-mode"
+                  @update:model-value="setUseDownPayment"
+                />
+
+                <template v-if="useDownPayment">
+                <label class="spk-dp-label" for="spk-down-payment">Nominal uang muka</label>
                 <div class="spk-dp-input-wrap">
                   <span>Rp</span>
                   <input
@@ -713,7 +743,7 @@ onMounted(() => {
                     type="text"
                     inputmode="numeric"
                     autocomplete="off"
-                    placeholder="Masukkan nominal DP"
+                    placeholder="Masukkan nominal uang muka"
                     aria-describedby="spk-dp-help"
                     @input="handleDownPaymentInput"
                   />
@@ -722,7 +752,7 @@ onMounted(() => {
                   Anda dapat memilih persentase atau memasukkan nominal sendiri.
                 </small>
 
-                <div class="spk-dp-presets" role="group" aria-label="Persentase DP">
+                <div class="spk-dp-presets" role="group" aria-label="Persentase uang muka">
                   <button
                     type="button"
                     :class="{ selected: downPaymentPreset === 10 && !downPaymentManual }"
@@ -748,23 +778,27 @@ onMounted(() => {
                   class="spk-inline-error spk-dp-error"
                   role="alert"
                 >
-                  DP harus lebih kecil dari harga kaveling agar masih ada sisa cicilan.
+                  Uang muka harus lebih kecil dari harga kaveling agar masih ada sisa cicilan.
                 </p>
+                <p v-else-if="downPaymentAmount <= 0" class="spk-dp-help">
+                  Isi nominal uang muka untuk melihat tenor, atau pilih Langsung cicil.
+                </p>
+                </template>
 
                 <div
-                  v-if="lotPrice !== null && downPaymentAmount > 0 && downPaymentAmount < lotPrice"
+                  v-if="lotPrice !== null && !downPaymentInvalid"
                   class="spk-tenor-field"
                 >
                   <label>Tenor cicilan <span>*</span></label>
                   <div v-if="paymentPlansLoading" class="spk-plan-message" role="status">
                     Memuat pilihan tenor...
                   </div>
-                  <div v-else-if="paymentPlansError" class="spk-plan-message spk-error-text" role="alert">
+                  <AppNotice v-else-if="paymentPlansError" tone="error">
                     {{ paymentPlansError }}
                     <button type="button" @click="lot && loadPaymentPlans(lot.id)">
                       Coba lagi
                     </button>
-                  </div>
+                  </AppNotice>
                   <div v-else-if="availablePaymentPlans.length" class="spk-tenor-options">
                     <button
                       v-for="plan in availablePaymentPlans"
@@ -787,9 +821,9 @@ onMounted(() => {
                 </div>
 
                 <div v-if="installmentEstimate && selectedPlan" class="spk-installment-estimate">
-                  <span>Total DP</span>
-                  <strong>{{ formatCurrency(downPaymentAmount) }}</strong>
-                  <span>Sisa harga setelah DP</span>
+                  <span>Uang muka</span>
+                  <strong>{{ downPaymentAmount > 0 ? formatCurrency(downPaymentAmount) : 'Tanpa uang muka' }}</strong>
+                  <span>{{ downPaymentAmount > 0 ? 'Sisa harga setelah uang muka' : 'Harga yang dicicil' }}</span>
                   <strong>{{ formatCurrency(installmentEstimate.principal) }}</strong>
                   <span>Estimasi cicilan {{ selectedPlan.months }} bulan</span>
                   <strong>{{ formatCurrency(installmentEstimate.monthlyPayment) }} / bulan</strong>
@@ -822,14 +856,14 @@ onMounted(() => {
 
                 <div class="spk-transfer-breakdown">
                   <div>
-                    <span>Booking Fee (wajib saat pengajuan SPK)</span>
+                    <span>Tanda jadi (wajib saat pengajuan SPK)</span>
                     <strong>{{ formatCurrency(transferAmount) }}</strong>
                   </div>
                   <div class="spk-transfer-total">
                     <span>Total Wajib Ditransfer Sekarang</span>
                     <strong>{{ formatCurrency(transferAmount) }}</strong>
                   </div>
-                  <small>Booking Fee terpisah dari DP. DP atau pelunasan dilakukan setelah SPK disetujui.</small>
+                  <small>Tanda jadi terpisah dari uang muka. Uang muka atau pelunasan dilakukan setelah SPK disetujui.</small>
                 </div>
               </section>
             </div>
@@ -845,8 +879,8 @@ onMounted(() => {
                 <ion-icon :icon="walletOutline" aria-hidden="true" />
               </span>
               <div>
-                <h2 id="reuse-title">Booking Fee Sebelumnya</h2>
-                <p>Gunakan pembayaran yang sudah dikonfirmasi Finance tanpa transfer atau verifikasi ulang.</p>
+                <h2 id="reuse-title">Tanda jadi sebelumnya</h2>
+                <p>Gunakan pembayaran yang sudah dikonfirmasi bagian Keuangan tanpa transfer atau verifikasi ulang.</p>
               </div>
             </div>
 
@@ -854,9 +888,9 @@ onMounted(() => {
               <p v-if="bookingFeesLoading" class="spk-upload-note" role="status">
                 Memeriksa pembayaran yang tersedia...
               </p>
-              <p v-if="bookingFeesError" class="spk-inline-error" role="alert">
+              <AppNotice v-if="bookingFeesError" tone="error">
                 {{ bookingFeesError }}
-              </p>
+              </AppNotice>
 
               <div
                 v-for="fee in availableBookingFees"
@@ -886,7 +920,7 @@ onMounted(() => {
                 class="spk-reuse-clear"
                 @click="selectedReusePaymentId = null"
               >
-                Batalkan Booking Fee
+                Batalkan tanda jadi
               </button>
 
               <p v-if="selectedReusePayment" class="spk-upload-note">
@@ -902,7 +936,7 @@ onMounted(() => {
               </span>
               <div>
                 <h2 id="documents-title">Dokumen Pendukung</h2>
-                <p>KTP dan KK wajib. NPWP opsional. Bukti transfer Booking Fee wajib kecuali menggunakan Booking Fee sebelumnya.</p>
+                <p>KTP dan KK wajib. NPWP opsional. Bukti transfer tanda jadi wajib kecuali menggunakan tanda jadi sebelumnya.</p>
               </div>
             </div>
 
@@ -943,16 +977,15 @@ onMounted(() => {
                   </span>
                 </article>
               </div>
-              <p v-if="documentError" class="spk-inline-error" role="alert">
+              <AppNotice v-if="documentError" tone="error">
                 {{ documentError }}
-              </p>
+              </AppNotice>
             </div>
           </section>
 
-          <p v-if="saveError" class="spk-inline-error" role="alert">
-            <ion-icon :icon="informationCircleOutline" aria-hidden="true" />
+          <AppNotice v-if="saveError" tone="error">
             {{ saveError }}
-          </p>
+          </AppNotice>
 
           <div
             v-if="lot && lotAvailable && !lotLoading && !lotError && !submissionComplete"

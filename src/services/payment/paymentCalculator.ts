@@ -110,7 +110,7 @@ export function calculateInstallment(input: {
   months: number;
 }): InstallmentCalculation {
   const finalPrice = toNonNegativeInteger(input.finalPrice, "Harga final");
-  const bookingFee = toNonNegativeInteger(input.bookingFee ?? 0, "Biaya booking");
+  const bookingFee = toNonNegativeInteger(input.bookingFee ?? 0, "Biaya tanda jadi");
   const downPayment = toNonNegativeInteger(input.downPayment ?? 0, "DP");
   const months = Number(input.months);
 
@@ -123,7 +123,7 @@ export function calculateInstallment(input: {
   }
 
   if (downPayment > finalPrice) {
-    throw new Error("DP tidak boleh lebih besar dari harga final kaveling.");
+    throw new Error("Uang muka tidak boleh lebih besar dari harga final kaveling.");
   }
 
   const principalAmount = finalPrice - downPayment;

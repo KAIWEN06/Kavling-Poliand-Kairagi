@@ -1,4 +1,5 @@
 import { supabase } from '@/services/config/supabase'
+import { compressImage } from '@/utils/imageCompress'
 import { authService } from '@/services/auth/authService'
 import type {
   OwnReview,
@@ -47,7 +48,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   REVIEW_RATE_LIMIT: 'Terlalu banyak permintaan dalam waktu singkat. Silakan coba lagi nanti.',
   REVIEW_DUPLICATE: 'Isi ulasan ini sudah pernah Anda kirim.',
   REVIEW_INVALID_PHOTO: 'Foto tidak valid. Silakan unggah ulang.',
-  REVIEW_LOGIN_REQUIRED: 'Silakan masuk terlebih dahulu untuk memberi penilaian Helpful.',
+  REVIEW_LOGIN_REQUIRED: 'Silakan masuk terlebih dahulu untuk memberi penilaian Membantu.',
   REVIEW_NOT_EDITABLE: 'Ulasan ini sudah diperiksa Admin sehingga tidak dapat diubah lagi.',
   REVIEW_NOT_FOUND: 'Ulasan tidak ditemukan atau sudah tidak ditampilkan.',
   ADMIN_ROLE_REQUIRED: 'Anda tidak memiliki akses untuk tindakan ini.',
@@ -60,7 +61,7 @@ export function reviewErrorMessage(error: unknown, fallback: string): string {
     if (raw.includes(code)) return message
   }
   if (/row-level security|permission denied/i.test(raw)) {
-    return 'Hanya akun Klien yang sedang login yang dapat mengirim ulasan.'
+    return 'Hanya akun Klien yang sedang masuk yang dapat mengirim ulasan.'
   }
   return fallback
 }
@@ -227,10 +228,11 @@ export const reviewService = {
       for (const file of input.photos) {
         const invalid = validateReviewPhoto(file)
         if (invalid) throw new Error(invalid)
-        const path = `${userId}/${crypto.randomUUID()}.${PHOTO_EXT[file.type]}`
+        const photo = await compressImage(file)
+        const path = `${userId}/${crypto.randomUUID()}.${PHOTO_EXT[photo.type]}`
         const { error } = await supabase.storage
           .from(REVIEW_BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false })
+          .upload(path, photo, { contentType: photo.type, upsert: false })
         if (error) throw error
         uploaded.push(path)
       }

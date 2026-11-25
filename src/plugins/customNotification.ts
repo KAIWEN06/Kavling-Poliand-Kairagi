@@ -70,7 +70,7 @@ class CustomNotificationWeb extends WebPlugin implements Omit<CustomNotification
   async showCustomNotification(options: CustomNotificationOptions) {
     const id = String(options.id)
     if (!this.role || !this.userId) throw this.unavailable('Tidak ada user aktif.')
-    if (options.targetRole && options.targetRole !== this.role) throw this.unavailable('Role tidak sesuai.')
+    if (options.targetRole && options.targetRole !== this.role) throw this.unavailable('Peran tidak sesuai.')
     if (options.recipientId && options.recipientId !== this.userId) throw this.unavailable('Penerima tidak sesuai.')
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification(options.title, { body: options.message, tag: id })

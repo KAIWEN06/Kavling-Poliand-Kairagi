@@ -165,7 +165,7 @@ export interface MarketingSpkCustomer {
 // Klien milik Marketing yang login (RLS + filter marketing_id; klien mandiri tidak muncul).
 export async function getMyCustomersForSpk(): Promise<MarketingSpkCustomer[]> {
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Sesi login tidak ditemukan.')
+  if (!user) throw new Error('Sesi masuk tidak ditemukan.')
 
   const { data, error } = await supabase
     .from('customers')
@@ -189,7 +189,7 @@ export async function submitSPKRequest(
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    throw new Error('Sesi login tidak ditemukan.')
+    throw new Error('Sesi masuk tidak ditemukan.')
   }
 
   if (!input.customer_id) {

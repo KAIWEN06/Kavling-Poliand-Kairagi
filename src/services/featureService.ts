@@ -1,4 +1,5 @@
 import { supabase } from './config/supabase'
+import { compressImage } from '@/utils/imageCompress'
 
 const BUCKET_NAME = 'videos'
 
@@ -157,7 +158,7 @@ export const featureService = {
   // =====================================================
   async uploadThumbnail(file: File): Promise<{ url: string; path: string }> {
     if (!file) {
-      throw new Error('File thumbnail belum dipilih.')
+      throw new Error('File gambar mini belum dipilih.')
     }
 
     const allowedTypes = [
@@ -168,26 +169,27 @@ export const featureService = {
     ]
 
     if (!allowedTypes.includes(file.type)) {
-      throw new Error('Thumbnail harus JPG, JPEG, PNG, atau WEBP.')
+      throw new Error('Gambar mini harus JPG, JPEG, PNG, atau WEBP.')
     }
 
     // Maksimal 5 MB
     const maxSize = 5 * 1024 * 1024
 
     if (file.size > maxSize) {
-      throw new Error('Ukuran thumbnail maksimal 5 MB.')
+      throw new Error('Ukuran gambar mini maksimal 5 MB.')
     }
 
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const photo = await compressImage(file)
+    const fileExt = photo.name.split('.').pop()?.toLowerCase() || 'jpg'
     const fileName = `${crypto.randomUUID()}.${fileExt}`
     const filePath = `thumbnails/${fileName}`
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(filePath, file, {
-        cacheControl: '3600',
+      .upload(filePath, photo, {
+        cacheControl: '31536000',
         upsert: false,
-        contentType: file.type,
+        contentType: photo.type,
       })
 
     if (uploadError) {
@@ -199,7 +201,7 @@ export const featureService = {
       .getPublicUrl(filePath)
 
     if (!data?.publicUrl) {
-      throw new Error('Gagal mendapatkan URL thumbnail.')
+      throw new Error('Gagal mendapatkan URL gambar mini.')
     }
 
     return {

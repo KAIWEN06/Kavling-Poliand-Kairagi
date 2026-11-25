@@ -14,13 +14,13 @@
             <div class="kv-map-head">
               <h2 id="siteplan-heading">
                 <ion-icon :icon="mapOutline" aria-hidden="true" />
-                Siteplan PoliLand
+                Denah PoliLand
               </h2>
             </div>
   
             <div class="kv-siteplan-card">
               <div class="kv-mini-siteplan">
-                <img :src="siteplanImage" alt="Siteplan PoliLand Kairagi" class="kv-siteplan-image" />
+                <img :src="siteplanImage" alt="Denah PoliLand Kairagi" class="kv-siteplan-image" />
                 <div ref="siteplanLayer" class="kv-siteplan-layer" v-html="siteplanSvg" />
               </div>
   
@@ -31,7 +31,7 @@
               </div>
   
               <AppButton variant="primary" expand="block" class="kv-siteplan-button" @click="openFullMap">
-                Lihat Siteplan
+                Lihat denah
                 <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
               </AppButton>
             </div>
@@ -213,7 +213,7 @@
 
           <!-- LIST -->
           <ul v-if="filtered.length" class="kv-list">
-            <li v-for="lot in pagedLots" :key="lot.id">
+            <li v-for="lot in pager.items" :key="lot.id">
               <article :id="`lot-${lot.id}`" :class="['kv-card', 'kv-lot', { 'kv-lot--survey': surveyByLot.has(lot.id) }]">
                 <div class="kv-lot-top">
 
@@ -248,6 +248,17 @@
                   <!-- AKSI: baris sendiri di bawah harga -->
                   <div class="kv-actions">
                     <button
+                      v-if="lot.status === 'available' && !heldLots.has(lot.id)"
+                      type="button"
+                      class="kv-apply"
+                      :aria-label="`Ajukan SPK untuk ${lot.code}`"
+                      @click="openSpkForm(lot)"
+                    >
+                      <ion-icon :icon="documentTextOutline" aria-hidden="true" />
+                      Ajukan SPK
+                    </button>
+
+                    <button
                       v-if="lot.status === 'available'"
                       type="button"
                       class="kv-icon-btn"
@@ -267,51 +278,13 @@
             </li>
           </ul>
 
-          <!-- PAGINATION -->
-          <nav v-if="filtered.length > 0 && totalPages > 1" class="kv-pager" aria-label="Halaman daftar kaveling">
-            <div class="kv-pager-controls">
-              <button
-                type="button"
-                class="kv-pager-btn"
-                aria-label="Halaman sebelumnya"
-                :disabled="currentPage === 1"
-                @click="goToPage(currentPage - 1)"
-              >
-                <ion-icon :icon="chevronBackOutline" />
-              </button>
-
-              <button
-                v-for="page in visiblePages"
-                :key="page ?? `ellipsis-${currentPage}`"
-                type="button"
-                class="kv-pager-number"
-                :class="{ active: page === currentPage }"
-                :disabled="page === null"
-                :aria-current="page === currentPage ? 'page' : undefined"
-                :aria-label="page === null ? undefined : `Halaman ${page}`"
-                @click="page !== null && goToPage(page)"
-              >
-                {{ page ?? '…' }}
-              </button>
-
-              <button
-                type="button"
-                class="kv-pager-btn"
-                aria-label="Halaman berikutnya"
-                :disabled="currentPage === totalPages"
-                @click="goToPage(currentPage + 1)"
-              >
-                <ion-icon :icon="chevronForwardOutline" />
-              </button>
-            </div>
-            <span class="kv-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
-          </nav>
+          <AppPagination v-model:page="pager.page" :total-pages="pager.totalPages" :total="pager.total" :page-size="pager.pageSize" scroll-to="#kv-list-top" label="Halaman daftar kaveling" />
 
           <StatusIllustration
             v-if="filtered.length === 0"
             :variant="lots.length ? 'no-result' : 'empty-data'"
-            :title="lots.length ? 'Kavling tidak ditemukan' : 'Belum ada data kavling'"
-            :description="lots.length ? 'Coba ubah kata kunci, jenis pencarian, atau filter status.' : 'Data kavling akan tampil di sini setelah tersedia.'"
+            :title="lots.length ? 'Kaveling tidak ditemukan' : 'Belum ada data kaveling'"
+            :description="lots.length ? 'Ubah pencarian atau filter status.' : 'Data kaveling akan muncul di sini.'"
             :on-action="lots.length ? resetFilters : undefined"
           />
         </template>
@@ -327,6 +300,8 @@ import SkeletonLotList from '@/components/ui/skeletons/SkeletonLotList.vue'
 import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
 import Reveal from '@/components/ui/Reveal.vue'
 import { computed, nextTick, ref, watch } from 'vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { useRoute } from 'vue-router'
 import {
   IonPage,
@@ -340,9 +315,9 @@ import {
   closeOutline,
   optionsOutline,
   mapOutline,
+  documentTextOutline,
   swapVerticalOutline,
   chevronDownOutline,
-  chevronBackOutline,
   shareSocialOutline,
   callOutline,
   personOutline,
@@ -357,7 +332,7 @@ import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import siteplanImage from '@/assets/siteplan/Siteplan.png'
+import siteplanImage from '@/assets/siteplan/Siteplan.webp'
 import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
@@ -872,42 +847,10 @@ const sortModel = computed<string>({
 
 /* ---------- pagination ---------- */
 
-const PAGE_SIZE = 10
-const currentPage = ref(1)
-const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
-const pagedLots = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return filtered.value.slice(start, start + PAGE_SIZE)
+const pager = usePagination(filtered, {
+  pageSize: 10,
+  resetOn: [statusFilter, sortMode, searchType, priceMode, query, minPriceText, maxPriceText],
 })
-const visiblePages = computed<(number | null)[]>(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
-
-  const pages: (number | null)[] = [1]
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
-
-  if (start > 2) pages.push(null)
-  for (let page = start; page <= end; page += 1) pages.push(page)
-  if (end < total - 1) pages.push(null)
-  pages.push(total)
-
-  return pages
-})
-
-watch([filtered, () => filtered.value.length], () => {
-  if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
-}, { flush: 'post' })
-
-async function goToPage(page: number) {
-  const nextPage = Math.min(Math.max(page, 1), totalPages.value)
-  if (nextPage === currentPage.value) return
-
-  currentPage.value = nextPage
-  await nextTick()
-  document.querySelector('#kv-list-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
 
 /* ---------- helpers ---------- */
 
@@ -932,13 +875,20 @@ async function shareLot(lot: Lot) {
   }
 }
 
+function openSpkForm(lot: Lot) {
+  // Datang dari detail klien: bawa klien agar langsung terpilih di form SPK.
+  const customer = Array.isArray(route.query.customer_id) ? route.query.customer_id[0] : route.query.customer_id
+  const customerParam = customer && /^\d+$/.test(customer) ? `&customer_id=${customer}` : ''
+  ionRouter.push(`/marketing/spk?lot_id=${lot.id}${customerParam}`)
+}
+
 function openFullMap() {
-  ionRouter.push('/siteplan')
+  ionRouter.push('/marketing/siteplan')
 }
 
 function openPanorama(lot: Lot) {
   if (!lot.hasPanorama) return
-  ionRouter.push(`/panorama/${encodeURIComponent(lot.lotNumber)}`)
+  ionRouter.push(`/panorama/${lot.id}`)
 }
 </script>
 
@@ -1643,6 +1593,7 @@ h2 {
 
 .kv-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -1662,6 +1613,40 @@ h2 {
   font-size: 20px;
   text-decoration: none;
   cursor: pointer;
+}
+
+/* Aksi utama: satu baris penuh di atas Bagikan dan 360°. */
+.kv-apply {
+  display: inline-flex;
+  flex: 1 0 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--poliland-green);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.kv-apply:active {
+  transform: scale(0.97);
+}
+
+.kv-apply:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 2px;
+}
+
+.kv-apply ion-icon {
+  font-size: 18px;
 }
 
 .kv-icon-btn:active,
@@ -1693,136 +1678,6 @@ h2 {
 
 .kv-detail ion-icon {
   font-size: 16px;
-}
-
-/* ---------- pagination ---------- */
-.kv-pager {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(90px, 1fr);
-  align-items: center;
-  gap: 14px;
-  margin-top: 18px;
-  padding: 16px 0 4px;
-  border-top: 1px solid var(--border-default);
-}
-
-.kv-pager-summary { min-width: 0; }
-
-.kv-pager-kicker {
-  display: block;
-  margin-bottom: 3px;
-  color: var(--poliland-gold-text);
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.45px;
-  text-transform: uppercase;
-}
-
-.kv-pager-info {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.kv-pager-info strong {
-  color: var(--text-primary);
-  font-weight: var(--font-weight-bold);
-}
-
-.kv-pager-controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 3px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-panel);
-  background: var(--surface-muted);
-}
-
-.kv-pager-controls::-webkit-scrollbar { display: none; }
-
-.kv-pager-position {
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.kv-pager-btn,
-.kv-pager-number {
-  min-width: 44px;
-  height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font: inherit;
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-
-.kv-pager-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-.kv-pager-number.active {
-  border-color: var(--poliland-green);
-  background: var(--poliland-green);
-  color: #fff;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .kv-pager-btn:not(:disabled):hover,
-  .kv-pager-number:not(:disabled):not(.active):hover {
-    border-color: var(--poliland-green);
-    background: var(--status-success-bg);
-  }
-}
-
-.kv-pager-btn:disabled,
-.kv-pager-number:disabled {
-  cursor: default;
-  opacity: 1;
-  border-color: transparent;
-  background: transparent;
-}
-
-.kv-pager-btn:focus-visible,
-.kv-pager-number:focus-visible {
-  outline: 3px solid var(--poliland-green);
-  outline-offset: 2px;
-}
-
-@media (max-width: 560px) {
-  .kv-pager {
-    grid-template-columns: 1fr auto;
-    gap: 10px;
-  }
-
-  .kv-pager-controls {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: stretch;
-    justify-content: flex-start;
-  }
-
-  .kv-pager-position {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    align-self: center;
-    justify-self: center;
-  }
 }
 
 /* ---------- loading / empty / error ---------- */

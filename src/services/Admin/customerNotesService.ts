@@ -41,7 +41,7 @@ export const customerNotesService = {
     if (error) throw error
 
     if (!data.user) {
-      throw new Error('Sesi login Supabase tidak ditemukan. Silakan login kembali.')
+      throw new Error('Sesi masuk Supabase tidak ditemukan. Silakan masuk kembali.')
     }
 
     return data.user

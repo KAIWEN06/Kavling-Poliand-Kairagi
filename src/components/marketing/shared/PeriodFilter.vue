@@ -25,9 +25,9 @@
         </label>
       </template>
       <label v-if="members.length" class="mk-field">
-        <span>Marketing</span>
+        <span>Pemasar</span>
         <select v-model="marketing" class="mk-input" @change="emitRange">
-          <option value="">Semua Marketing</option>
+          <option value="">Semua pemasar</option>
           <option v-for="member in members" :key="member.id" :value="member.id">{{ member.full_name }}</option>
         </select>
       </label>

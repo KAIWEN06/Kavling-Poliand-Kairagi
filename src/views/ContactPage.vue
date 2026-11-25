@@ -7,7 +7,7 @@
           <SceneBackdrop class="hero-scene" height="54%" breathe sparkle solid-front="#F9F5EC" />
 
           <div class="hero-copy">
-            <h1 aria-label="Hubungi marketing kami.">
+            <h1 aria-label="Hubungi tim pemasaran kami.">
               <span v-for="(line, i) in heroLines" :key="line" class="hero-line" aria-hidden="true">
                 <motion.span
                   class="hero-line-inner"
@@ -30,7 +30,7 @@
               :animate="{ opacity: 1, y: 0 }"
               :transition="{ duration: 0.5, delay: 0.7, ease: MOTION_EASE_OUT }"
             >
-              <AdminEditButton label="Edit kontak" @click="editOpen = true" />
+              <AdminEditButton label="Ubah kontak" @click="editOpen = true" />
             </motion.div>
           </div>
         </section>
@@ -120,7 +120,7 @@
 
         <div class="page-bottom-space" aria-hidden="true"></div>
       </div>
-      <CmsPanelModal v-model="editOpen" title="Edit kontak" panel="contact" @saved="loadContacts(true)" />
+      <CmsPanelModal v-model="editOpen" title="Ubah kontak" panel="contact" @saved="loadContacts(true)" />
       <CmsBackBar />
     </ion-content>
   </ion-page>
@@ -158,7 +158,7 @@ import {
 } from 'ionicons/icons'
 
 const reduced = useReducedMotion()
-const heroLines = ['Hubungi', 'marketing kami.']
+const heroLines = ['Hubungi tim', 'pemasaran kami.']
 const isLoading = ref(true)
 const editOpen = ref(false)
 const { isAdmin } = useCmsAdmin()
@@ -242,7 +242,7 @@ const contactItems = computed<ContactItem[]>(() => {
     items.push({
       label: 'TELEPON',
       title: phone.value,
-      description: 'Berbicara langsung dengan tim marketing.',
+      description: 'Berbicara langsung dengan tim pemasaran.',
       href: `tel:${phoneDigits}`,
       icon: callOutline,
       variant: 'phone',
@@ -264,7 +264,7 @@ const contactItems = computed<ContactItem[]>(() => {
 const socialItems = computed<SocialItem[]>(() => {
   const items: SocialItem[] = []
   const socialDefinitions = [
-    { key: ['instagram', 'instagram_url'], platform: 'INSTAGRAM', icon: logoInstagram, variant: 'instagram', description: 'Foto, informasi, dan update terbaru.' },
+    { key: ['instagram', 'instagram_url'], platform: 'INSTAGRAM', icon: logoInstagram, variant: 'instagram', description: 'Foto, informasi, dan kabar terbaru.' },
     { key: ['facebook', 'facebook_url'], platform: 'FACEBOOK', icon: logoFacebook, variant: 'facebook', description: 'Informasi kawasan dan aktivitas PoliLand.' },
     { key: ['tiktok', 'tiktok_url'], platform: 'TIKTOK', icon: logoTiktok, variant: 'tiktok', description: 'Video singkat dan cerita dari kawasan.' },
   ]

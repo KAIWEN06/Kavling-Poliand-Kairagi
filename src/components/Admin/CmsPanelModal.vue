@@ -8,7 +8,9 @@
     @update:model-value="$emit('update:modelValue', $event)"
     @confirm="submit"
   >
-    <p v-if="error" class="panel-modal__error" role="alert">{{ error }}</p>
+    <AppNotice v-if="error" tone="error">
+      {{ error }}
+    </AppNotice>
     <CmsHomePanel v-if="panel === 'home' && modelValue" ref="editor" embedded :only="section" @notify="onNotify" @saved="onSaved" />
     <CmsLocationPanel v-else-if="panel === 'location' && modelValue" ref="editor" embedded @notify="onNotify" @saved="onSaved" />
     <CmsContactPanel v-else-if="panel === 'contact' && modelValue" ref="editor" embedded @notify="onNotify" @saved="onSaved" />
@@ -16,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, ref, watch } from 'vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import CmsHomePanel from '@/components/Admin/CmsHomePanel.vue'
@@ -62,20 +65,12 @@ async function submit() {
 }
 
 function onSaved() {
-  toast.success('Tersimpan dan langsung tampil di website.')
+  toast.success('Tersimpan dan langsung tampil di situs web.')
   emit('update:modelValue', false)
   emit('saved')
 }
 </script>
 
 <style scoped>
-.panel-modal__error {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-control);
-  background: var(--danger-bg, #fbe7e6);
-  color: var(--danger-text, #a8322d);
-  font-size: 13px;
-  line-height: 1.5;
-}
+
 </style>

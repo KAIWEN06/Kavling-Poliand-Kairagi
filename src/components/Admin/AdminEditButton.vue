@@ -9,7 +9,7 @@
 import { IonIcon } from '@ionic/vue'
 import { createOutline } from 'ionicons/icons'
 
-withDefaults(defineProps<{ label?: string; icon?: string }>(), { label: 'Edit', icon: createOutline })
+withDefaults(defineProps<{ label?: string; icon?: string }>(), { label: 'Ubah', icon: createOutline })
 defineEmits<{ click: [] }>()
 </script>
 

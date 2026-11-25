@@ -1,4 +1,5 @@
 import { supabase } from "@/services/config/supabase";
+import { compressImage } from "@/utils/imageCompress";
 
 export interface ProgressItem {
   id?: string;
@@ -36,13 +37,14 @@ export const progressService = {
   },
 
   async uploadImage(file: File): Promise<string> {
-    const fileExt = file.name.split(".").pop();
+    const photo = await compressImage(file);
+    const fileExt = photo.name.split(".").pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
     const filePath = `${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from("progress")
-      .upload(filePath, file);
+      .upload(filePath, photo, { cacheControl: "31536000" });
     
     if (uploadError) throw uploadError;
 

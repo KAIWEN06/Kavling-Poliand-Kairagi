@@ -25,11 +25,11 @@ export interface MyProfile {
 const ROLES: UserRole[] = ['owner', 'admin', 'marketing_head', 'marketing', 'client']
 
 export const ROLE_LABEL: Record<UserRole, string> = {
-  owner: 'Owner',
+  owner: 'Pemilik',
   admin: 'Admin',
-  marketing_head: 'Kepala Marketing',
-  marketing: 'Marketing',
-  client: 'Client',
+  marketing_head: 'Kepala Pemasaran',
+  marketing: 'Pemasar',
+  client: 'Klien',
 }
 
 function toRole(value: unknown): UserRole | null {

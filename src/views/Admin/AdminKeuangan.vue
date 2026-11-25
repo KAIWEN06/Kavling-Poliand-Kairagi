@@ -6,70 +6,36 @@
 
     <ion-content :fullscreen="true">
       <main class="finance-shell">
-        <nav v-if="paymentPage === 'none'" class="finance-shortcuts" aria-label="Menu keuangan">
-          <button
-            type="button"
-            class="shortcut-card"
-            :class="{ 'shortcut-card--active': activeView === 'verification' }"
-            :aria-current="activeView === 'verification' ? 'page' : undefined"
-            @click="activeView = 'verification'"
-          >
-            <span class="shortcut-icon"><ion-icon :icon="documentTextOutline" aria-hidden="true" /></span>
-            <strong>Verifikasi<br />Pembayaran</strong>
-            <span v-if="statusCounts.pending" class="shortcut-count">{{ statusCounts.pending }}</span>
-          </button>
-          <button
-            type="button"
-            class="shortcut-card"
-            :class="{ 'shortcut-card--active': activeView === 'instructions' }"
-            :aria-current="activeView === 'instructions' ? 'page' : undefined"
-            @click="activeView = 'instructions'"
-          >
-            <span class="shortcut-icon"><ion-icon :icon="businessOutline" aria-hidden="true" /></span>
-            <strong>Instruksi<br />Pembayaran</strong>
-          </button>
-          <button
-            type="button"
-            class="shortcut-card"
-            :class="{ 'shortcut-card--active': activeView === 'reports' }"
-            :aria-current="activeView === 'reports' ? 'page' : undefined"
-            @click="activeView = 'reports'"
-          >
-            <span class="shortcut-icon"><ion-icon :icon="pieChartOutline" aria-hidden="true" /></span>
-            <strong>Laporan<br />Keuangan</strong>
-          </button>
-          <button
-            type="button"
-            class="shortcut-card"
-            :class="{ 'shortcut-card--active': activeView === 'cancellations' }"
-            :aria-current="activeView === 'cancellations' ? 'page' : undefined"
-            @click="openCancellationReview"
-          >
-            <span class="shortcut-icon"><ion-icon :icon="closeCircleOutline" aria-hidden="true" /></span>
-            <strong>Pembatalan<br />Pembelian</strong>
-            <span v-if="pendingCancellationCount" class="shortcut-count">{{ pendingCancellationCount }}</span>
-          </button>
-          <button
-            type="button"
-            class="shortcut-card"
-            :class="{ 'shortcut-card--active': activeView === 'ledger' }"
-            :aria-current="activeView === 'ledger' ? 'page' : undefined"
-            @click="openFinancialLedger"
-          >
-            <span class="shortcut-icon"><ion-icon :icon="walletOutline" aria-hidden="true" /></span>
-            <strong>Buku Kas<br />& Jurnal</strong>
-          </button>
-          <button
-            type="button"
-            class="shortcut-card"
-            :class="{ 'shortcut-card--active': activeView === 'plans' }"
-            :aria-current="activeView === 'plans' ? 'page' : undefined"
-            @click="activeView = 'plans'"
-          >
-            <span class="shortcut-icon"><ion-icon :icon="calendarOutline" aria-hidden="true" /></span>
-            <strong>Skema<br />Cicilan</strong>
-          </button>
-        </nav>
+        <div v-if="paymentPage === 'none'" class="finance-nav">
+          <nav class="finance-areas" role="tablist" aria-label="Area keuangan">
+            <button
+              v-for="area in areaTabs"
+              :key="area.value"
+              type="button"
+              role="tab"
+              class="finance-area"
+              :class="{ 'finance-area--active': activeArea === area.value }"
+              :aria-selected="activeArea === area.value"
+              @click="openArea(area.value)"
+            >
+              <ion-icon :icon="area.icon" aria-hidden="true" />
+              <span>{{ area.label }}</span>
+              <b v-if="area.badge" class="finance-area__badge" :aria-label="`${area.badge} menunggu`">{{ area.badge }}</b>
+            </button>
+          </nav>
+          <nav v-if="!selectedReportLot" class="finance-subnav" role="tablist" :aria-label="`Bagian ${activeAreaLabel}`">
+            <button
+              v-for="item in subTabs"
+              :key="item.key"
+              type="button"
+              role="tab"
+              :class="{ 'is-active': item.active }"
+              :aria-selected="item.active"
+              @click="item.run()"
+            >{{ item.label }}</button>
+          </nav>
+          <p v-if="activeArea === 'action'" class="finance-attention" :class="{ 'finance-attention--clear': !attentionTotal }" role="status">{{ attentionSummary }}</p>
+        </div>
 
         <template v-if="paymentPage === 'proof'">
           <section class="payment-flow-page">
@@ -106,23 +72,23 @@
               <section class="proof-total-card">
                 <span class="proof-eyebrow">TOTAL DITERIMA</span>
                 <strong>{{ formatCurrency(Number(selectedProofPayment.payment.amount || 0)) }}</strong>
-                <p>{{ selectedProofPayment.allocations.length ? `Dialokasikan untuk ${selectedProofPayment.allocations.length} bulan cicilan` : selectedProofPayment.payment.payment_category }}</p>
-                <div v-if="selectedProofPayment.allocations.length" class="proof-allocation-list">
+                <p>{{ selectedProofPayment.allocations.length ? proofInstallmentLabel : paymentCategoryLabel(selectedProofPayment.payment.payment_category) }}</p>
+                <div v-if="selectedProofPayment.allocations.length > 1" class="proof-allocation-list">
                   <div v-for="allocation in selectedProofPayment.allocations" :key="allocation.schedule?.id">
-                    <span>Cicilan ke-{{ allocation.schedule?.installment_number }} ({{ allocation.schedule ? formatMonthYear(allocation.schedule.due_date) : '-' }})</span>
+                    <span>Ke-{{ allocation.schedule?.installment_number }} · {{ allocation.schedule ? formatMonthYear(allocation.schedule.due_date) : '-' }}</span>
                     <strong>{{ formatCurrency(allocation.allocated_amount) }}</strong>
                   </div>
                 </div>
               </section>
               <section class="proof-file-card">
                 <h2><ion-icon :icon="imageOutline" /> Bukti Transfer Fisik</h2>
-                <button v-if="proofSignedUrl" type="button" class="proof-preview" @click="proofZoomOpen = true">
+                <button v-if="proofSignedUrl" type="button" class="proof-preview" @click="openProofViewer('proof')">
                   <img v-if="isImageProof(proofFilePath)" :src="proofSignedUrl" alt="Bukti transfer pembayaran" />
                   <span v-else class="proof-pdf-preview"><ion-icon :icon="documentTextOutline" /> Dokumen PDF</span>
                   <small><ion-icon :icon="searchOutline" /> Ketuk untuk memperbesar tampilan</small>
                 </button>
                 <div v-else class="proof-no-file">Bukti transfer tidak dilampirkan pada transaksi ini.</div>
-                <a v-if="proofSignedUrl" class="proof-download" :href="proofSignedUrl" target="_blank" rel="noopener noreferrer" :download="`bukti-${paymentReference(selectedProofPayment.payment)}`"><ion-icon :icon="downloadOutline" /> Unduh File</a>
+                <button v-if="proofSignedUrl" type="button" class="proof-download" @click="openProofViewer('proof')"><ion-icon :icon="downloadOutline" /> Lihat &amp; Unduh</button>
               </section>
               <section
                 v-if="selectedProofPayment.payment.status === 'Rejected'
@@ -132,7 +98,7 @@
               >
                 <div class="proof-refund-heading">
                   <div>
-                    <span>Pengembalian Booking Fee</span>
+                    <span>Pengembalian tanda jadi</span>
                     <strong>{{ refundStatus === 'Refunded' ? 'Sudah dikembalikan' : 'Menunggu pengembalian' }}</strong>
                   </div>
                   <span :class="['refund-status-badge', refundStatus === 'Refunded' ? 'refund-status-badge--done' : '']">
@@ -148,10 +114,12 @@
                     <div><dt>Referensi bank</dt><dd>{{ refundBankReference || 'Belum dicatat; perlu rekonsiliasi bank' }}</dd></div>
                     <div v-if="refundNote"><dt>Catatan</dt><dd>{{ refundNote }}</dd></div>
                   </dl>
-                  <a v-if="refundProofSignedUrl" class="proof-download" :href="refundProofSignedUrl" target="_blank" rel="noopener noreferrer">
-                    <ion-icon :icon="downloadOutline" /> Lihat bukti pengembalian
-                  </a>
-                  <p v-if="refundProofError" class="proof-refund-error" role="alert">{{ refundProofError }}</p>
+                  <button v-if="refundProofSignedUrl" type="button" class="proof-download" @click="openProofViewer('refund')">
+                    <ion-icon :icon="imageOutline" /> Lihat bukti pengembalian
+                  </button>
+                  <AppNotice v-if="refundProofError" tone="error">
+                    {{ refundProofError }}
+                  </AppNotice>
                   <button v-if="refundProofError" type="button" class="quiet-action" @click="loadSelectedPaymentProof()">Muat ulang</button>
                 </template>
 
@@ -177,7 +145,9 @@
                     <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" :disabled="refundSubmitting" @change="onRefundProofSelected" />
                     <span>{{ refundFile?.name || 'JPG, PNG, WEBP, atau PDF. Maksimal 5 MB.' }}</span>
                   </label>
-                  <p v-if="refundError" class="proof-refund-error" role="alert">{{ refundError }}</p>
+                  <AppNotice v-if="refundError" tone="error">
+                    {{ refundError }}
+                  </AppNotice>
                   <button type="button" class="proof-refund-submit" :disabled="refundSubmitting || !refundFile" @click="submitRefundProof">
                     <ion-spinner v-if="refundSubmitting" name="crescent" />
                     {{ refundSubmitting ? 'Menyimpan...' : 'Simpan bukti' }}
@@ -198,6 +168,17 @@
                 </div>
               </div>
               <div v-else-if="selectedProofPayment.payment.review_note || selectedProofPayment.payment.note" class="proof-review-note"><strong>Catatan Admin</strong><p>{{ selectedProofPayment.payment.review_note || selectedProofPayment.payment.note }}</p></div>
+              <section v-if="canApproveRelatedSpk" class="proof-spk-cta" aria-label="Persetujuan SPK">
+                <span class="proof-spk-cta-icon"><ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" /></span>
+                <div class="proof-spk-cta-text">
+                  <strong>SPK {{ selectedProofPayment.spk?.spk_number }} menunggu persetujuan</strong>
+                  <p>Pembayaran sudah terverifikasi. Lanjutkan tanpa membuka daftar SPK.</p>
+                </div>
+                <button type="button" class="proof-spk-cta-button" @click="approveRelatedSpk">
+                  Setujui SPK
+                  <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
+                </button>
+              </section>
             </template>
           </section>
         </template>
@@ -218,34 +199,35 @@
                 </div>
               </section>
               <section class="payment-step-card">
-                <header><span>2</span><div><strong>{{ selectedReportLot.paymentType === 'Installment' ? 'Pilih Bulan Cicilan' : 'Nominal Pembayaran' }}</strong><small>{{ selectedReportLot.paymentType === 'Installment' ? 'Centang bulan tagihan' : 'Masukkan nominal pembayaran yang diterima' }}</small></div></header>
+                <header><span>2</span><div><strong>{{ selectedReportLot.paymentType === 'Installment' ? 'Pilih Cicilan' : 'Nominal Pembayaran' }}</strong><small>{{ selectedReportLot.paymentType === 'Installment' ? (installmentProgressLine || 'Pilih cicilan yang dibayar') : 'Masukkan nominal pembayaran yang diterima' }}</small></div></header>
                 <div class="payment-step-body">
                   <SkeletonRowList v-if="selectedReportLot.paymentType === 'Installment' && schedulesLoading" :rows="3" :fields="1" :badges="[1]" label="Memuat jadwal cicilan" />
                   <StatusIllustration v-else-if="selectedReportLot.paymentType === 'Installment' && schedulesError" :variant="resolveErrorVariant(schedulesError)" size="sm" title="Jadwal cicilan gagal dimuat" :on-action="loadSchedulesForSelectedLot" />
                   <template v-else-if="selectedReportLot.paymentType === 'Installment'">
-                    <label v-for="schedule in selectableSchedules" :key="schedule.id" class="payment-schedule-option">
-                      <input v-model="selectedScheduleIds" type="checkbox" :value="schedule.id" />
+                    <label v-for="schedule in selectableSchedules" :key="schedule.id" class="payment-schedule-option" :class="{ 'payment-schedule-option--locked': !isScheduleSelectable(schedule.id) }">
+                      <input type="checkbox" :checked="selectedScheduleIds.includes(schedule.id)" :disabled="!isScheduleSelectable(schedule.id)" @change="toggleSchedule(schedule.id)" />
                       <span class="payment-schedule-check"></span>
-                      <span class="payment-schedule-copy"><strong>Cicilan ke-{{ schedule.installment_number }}</strong><small>{{ formatShortDate(schedule.due_date) }}</small></span>
-                      <span class="payment-schedule-status" :class="`payment-schedule-status--${schedule.status.toLowerCase()}`">{{ schedule.pending_payment ? 'Menunggu Verifikasi' : schedule.due_date < todayDate ? 'Jatuh Tempo' : 'Mendatang' }}</span>
+                      <span class="payment-schedule-copy"><strong>Ke-{{ schedule.installment_number }}</strong><small>{{ formatShortDate(schedule.due_date) }}</small></span>
+                      <span class="payment-schedule-status" :class="`payment-schedule-status--${schedule.status.toLowerCase()}`">{{ schedule.due_date < todayDate ? 'Jatuh Tempo' : 'Mendatang' }}</span>
                       <strong class="payment-schedule-amount">{{ formatCurrency(schedule.amount) }}</strong>
                     </label>
                     <div v-if="!selectableSchedules.length" class="proof-no-file">Tidak ada cicilan yang dapat dipilih.</div>
+                    <small v-if="fieldError('schedules')" class="field-error" role="alert" data-field-error>{{ fieldError('schedules') }}</small>
                   </template>
-                  <div v-else class="instruction-field"><label for="cash-payment-amount">Nominal Pembayaran</label><input id="cash-payment-amount" v-model.number="manualPaymentAmount" type="number" min="1" :max="Math.max(0, selectedReportLot.remaining - selectedReportLot.pendingAmount)" inputmode="numeric" placeholder="Masukkan nominal rupiah" /></div>
+                  <div v-else class="instruction-field" :class="{ 'instruction-field--error': fieldError('amount') }"><label for="cash-payment-amount">Nominal Pembayaran (Rp)</label><input id="cash-payment-amount" v-model.number="manualPaymentAmount" type="number" min="1" :max="availableToPay" inputmode="numeric" placeholder="Contoh: 1500000" :aria-invalid="Boolean(fieldError('amount'))" aria-describedby="cash-payment-amount-hint" /><small id="cash-payment-amount-hint" class="field-hint" :class="{ 'field-error': fieldError('amount') }" :role="fieldError('amount') ? 'alert' : undefined" :data-field-error="fieldError('amount') ? '' : undefined">{{ fieldError('amount') || `Maksimal ${formatCurrency(availableToPay)}` }}</small></div>
                   <div class="payment-total-summary">
-                    <span>Jumlah Bulan Dipilih</span>
-                    <strong v-if="selectedReportLot.paymentType === 'Installment'">{{ selectedScheduleIds.length }} Bulan{{ selectedScheduleIds.length ? ` (Cicilan ke-${selectedSchedulesLabel})` : '' }}</strong>
+                    <span>{{ selectedReportLot.paymentType === 'Installment' ? 'Dibayar' : 'Jenis' }}</span>
+                    <strong v-if="selectedReportLot.paymentType === 'Installment'">{{ selectedSchedulesLabel || 'Belum ada cicilan dipilih' }}</strong>
                     <strong v-else>Pembayaran tunai</strong>
                     <div><span>Total Pembayaran</span><strong>{{ formatCurrency(newPaymentTotal) }}</strong></div>
                   </div>
                 </div>
               </section>
               <section class="payment-step-card">
-                <header><span>3</span><div><strong>Unggah Bukti Pembayaran</strong><small>JPG, PNG, WEBP, atau PDF · Maksimal 5 MB</small></div></header>
+                <header><span>3</span><div><strong>Bukti dan Rincian Pembayaran</strong><small>JPG, PNG, WEBP, atau PDF · Maksimal 5 MB</small></div></header>
                 <div class="payment-step-body">
-                  <div class="instruction-field"><label for="new-payment-method">Metode & Bank</label><select id="new-payment-method" v-model="newPaymentMethod"><option value="">Pilih metode pembayaran</option><option v-for="bank in bankAccounts.filter((item) => item.is_active)" :key="bank.id" :value="`Transfer ${bank.bank_name}`">Transfer {{ bank.bank_name }}</option><option value="Transfer Bank Lain">Transfer Bank Lain</option><option value="Tunai">Tunai</option></select></div>
-                  <div class="instruction-field"><label for="new-payment-date">Tanggal Pembayaran</label><input id="new-payment-date" v-model="newPaymentDate" type="date" :max="todayDate" /></div>
+                  <div class="instruction-field" :class="{ 'instruction-field--error': fieldError('method') }"><label for="new-payment-method">Metode dan Bank</label><select id="new-payment-method" v-model="newPaymentMethod" :aria-invalid="Boolean(fieldError('method'))"><option value="">Pilih metode pembayaran</option><option v-for="bank in bankAccounts.filter((item) => item.is_active)" :key="bank.id" :value="`Transfer ${bank.bank_name}`">Transfer {{ bank.bank_name }}</option><option value="Tunai">Tunai</option></select><div v-if="selectedPaymentBank" class="payment-bank-target" role="status"><span>Rekening tujuan</span><strong>{{ selectedPaymentBank.account_number }}</strong><small>a.n. {{ selectedPaymentBank.account_holder }}</small></div><small v-if="fieldError('method')" class="field-error" role="alert" data-field-error>{{ fieldError('method') }}</small></div>
+                  <div class="instruction-field" :class="{ 'instruction-field--error': fieldError('date') }"><label for="new-payment-date">Tanggal Pembayaran</label><input id="new-payment-date" v-model="newPaymentDate" type="date" :max="todayDate" :aria-invalid="Boolean(fieldError('date'))" /><small v-if="fieldError('date')" class="field-error" role="alert" data-field-error>{{ fieldError('date') }}</small></div>
                   <div class="instruction-field"><label for="new-payment-reference">Nomor Referensi Transfer <span>(Opsional)</span></label><input id="new-payment-reference" v-model.trim="newPaymentReference" maxlength="100" placeholder="Masukkan nomor referensi bank" /></div>
                   <div class="payment-proof-field">
                     <label class="payment-proof-upload" for="new-payment-proof">
@@ -256,12 +238,15 @@
                     </label>
                     <button v-if="paymentProofFile" type="button" class="payment-proof-remove" aria-label="Hapus bukti pembayaran" @click="clearPaymentProof"><ion-icon :icon="closeOutline" /></button>
                   </div>
+                  <small v-if="fieldError('proof')" class="field-error" role="alert" data-field-error>{{ fieldError('proof') }}</small>
                   <div class="instruction-field"><label for="new-payment-note">Catatan <span>(Opsional)</span></label><textarea id="new-payment-note" v-model.trim="newPaymentNote" rows="2" maxlength="500" placeholder="Tambahkan catatan pembayaran bila diperlukan." /></div>
-                  <p v-if="paymentCreateError" class="bank-form-error" role="alert">{{ paymentCreateError }}</p>
+                  <AppNotice v-if="paymentCreateError" tone="error">
+                    {{ paymentCreateError }}
+                  </AppNotice>
                 </div>
               </section>
-              <button type="button" class="payment-save-button" :disabled="paymentSaving || !canCreatePayment" @click="saveNewPayment">
-                <ion-spinner v-if="paymentSaving" name="crescent" /><ion-icon v-else :icon="saveOutline" /> {{ paymentSaving ? 'Menyimpan...' : 'Simpan transaksi' }}
+              <button type="button" class="payment-save-button" :disabled="paymentSaving" :aria-busy="paymentSaving" @click="saveNewPayment">
+                <ion-spinner v-if="paymentSaving" name="crescent" /><ion-icon v-else :icon="saveOutline" /> {{ paymentSaving ? 'Menyimpan...' : 'Simpan pembayaran' }}
               </button>
               <button type="button" class="payment-cancel-button" :disabled="paymentSaving" @click="closePaymentPage">Batal</button>
             </template>
@@ -269,31 +254,6 @@
         </template>
 
         <template v-else-if="activeView === 'instructions'">
-          <nav class="instruction-tabs" role="tablist" aria-label="Pengaturan instruksi pembayaran">
-            <button
-              id="bank-accounts-tab"
-              type="button"
-              role="tab"
-              :aria-selected="activeInstructionTab === 'banks'"
-              aria-controls="bank-accounts-panel"
-              :class="{ 'instruction-tab--active': activeInstructionTab === 'banks' }"
-              @click="activeInstructionTab = 'banks'"
-            >
-              Rekening Bank
-            </button>
-            <button
-              id="payment-instruction-tab"
-              type="button"
-              role="tab"
-              :aria-selected="activeInstructionTab === 'instruction'"
-              aria-controls="payment-instruction-panel"
-              :class="{ 'instruction-tab--active': activeInstructionTab === 'instruction' }"
-              @click="activeInstructionTab = 'instruction'"
-            >
-              Pengaturan Instruksi
-            </button>
-          </nav>
-
           <section
             v-if="activeInstructionTab === 'banks'"
             id="bank-accounts-panel"
@@ -337,7 +297,7 @@
                       <p>{{ account.account_holder }}</p>
                     </div>
                     <div class="bank-card-actions">
-                      <button type="button" class="bank-icon-action" :aria-label="`Edit rekening ${account.bank_name}`" @click="openBankEditor(account)">
+                      <button type="button" class="bank-icon-action" :aria-label="`Ubah rekening ${account.bank_name}`" @click="openBankEditor(account)">
                         <ion-icon :icon="createOutline" aria-hidden="true" />
                       </button>
                       <button type="button" class="bank-icon-action bank-icon-action--danger" :aria-label="`Hapus rekening ${account.bank_name}`" @click="confirmDeleteBank(account)">
@@ -492,9 +452,9 @@
               </div>
               <div class="report-contact-row">
                 <div>
-                  <span>Marketing</span>
+                  <span>Pemasar</span>
                   <strong>{{ selectedMarketingName || selectedReportLot.marketingName || 'Belum ditetapkan' }}</strong>
-                  <small>Marketing yang menangani transaksi</small>
+                  <small>Pemasar yang menangani transaksi</small>
                 </div>
               </div>
             </section>
@@ -529,19 +489,19 @@
               />
               <div class="report-progress-track"><span :style="{ width: `${selectedReportLot.progress}%` }" /></div>
               <div v-if="selectedReportLot.months" class="report-installment-info">
-                <span>Tenor</span><strong>{{ selectedReportLot.months }} kali cicilan</strong>
+                <span>Tenor</span><strong>{{ selectedReportLot.months }} bulan</strong>
                 <span>Angsuran per bulan</span><strong>{{ selectedReportLot.monthlyPayment ? formatCurrency(selectedReportLot.monthlyPayment) : 'Belum ditentukan' }}</strong>
                 <span>Mulai cicilan</span><strong>{{ selectedReportLot.installmentStartDate ? formatShortDate(selectedReportLot.installmentStartDate) : 'Belum ditentukan' }}</strong>
               </div>
             </section>
 
             <section v-if="selectedReportLot.paymentType === 'Installment'" class="report-detail-history">
-              <div class="report-detail-section-title"><h2>Jadwal Cicilan</h2><span>{{ installmentSchedules.length }} jadwal</span></div>
+              <div class="report-detail-section-title"><h2>Jadwal Cicilan</h2><span>{{ installmentProgressLine }}</span></div>
               <SkeletonRowList v-if="schedulesLoading" :rows="3" :fields="1" :badges="[1]" label="Memuat jadwal cicilan" />
               <StatusIllustration v-else-if="schedulesError" :variant="resolveErrorVariant(schedulesError)" size="sm" title="Jadwal cicilan gagal dimuat" :on-action="loadSchedulesForSelectedLot" />
               <article v-for="schedule in installmentSchedules" :key="schedule.id" class="installment-detail-row">
                 <span class="installment-detail-number">{{ schedule.installment_number }}</span>
-                <div><strong>Cicilan {{ schedule.installment_number }}</strong><small>{{ formatShortDate(schedule.due_date) }}</small></div>
+                <div><strong>{{ formatShortDate(schedule.due_date) }}</strong><small>Ke-{{ schedule.installment_number }} dari {{ installmentSchedules.length }}</small></div>
                 <div class="installment-detail-amount"><strong>{{ formatCurrency(schedule.amount) }}</strong><span :class="`installment-status installment-status--${schedule.status.toLowerCase()}`">{{ schedule.status === 'Paid' ? 'Lunas' : schedule.pending_payment ? 'Menunggu Verifikasi' : schedule.due_date < todayDate ? 'Jatuh Tempo' : 'Mendatang' }}</span></div>
               </article>
               <StatusIllustration v-if="!schedulesLoading && !schedulesError && !installmentSchedules.length" variant="empty-data" size="sm" title="Jadwal cicilan belum tersedia" description="Jadwal akan dibuat setelah transaksi cicilan terkonfirmasi." />
@@ -552,7 +512,7 @@
                 <h2>Riwayat Transaksi</h2>
                 <span>{{ selectedReportLot.payments.length }} transaksi</span>
               </div>
-              <article v-for="payment in selectedReportLot.payments" :key="payment.id" class="report-payment-history-card">
+              <article v-for="payment in lotPaymentsPager.items" :key="payment.id" class="report-payment-history-card">
                 <div class="report-payment-history-top">
                   <div><strong>{{ payment.reference }}</strong><small>{{ formatDate(payment.date) }}</small></div>
                 <div class="report-payment-status-group">
@@ -566,31 +526,75 @@
                   <span>{{ payment.method }}</span>
                 </div>
                 <p v-if="payment.note">{{ payment.note }}</p>
-                <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" /> {{ payment.refundStatus === 'Refunded' ? 'Bukti refund' : 'Bukti bayar' }}</button>
+                <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" /> {{ payment.refundStatus === 'Refunded' ? 'Bukti pengembalian' : 'Bukti bayar' }}</button>
               </article>
+              <AppPagination v-model:page="lotPaymentsPager.page" :total-pages="lotPaymentsPager.totalPages" :total="lotPaymentsPager.total" :page-size="lotPaymentsPager.pageSize" label="Halaman riwayat transaksi" />
               <StatusIllustration v-if="!selectedReportLot.payments.length" variant="empty-data" size="sm" title="Belum ada riwayat pembayaran" description="Pembayaran untuk kaveling ini akan tercatat di sini." />
             </section>
-            <button type="button" class="report-add-payment-button" :disabled="selectedReportLot.remaining <= 0" @click="openAddPayment">
-              <ion-icon :icon="addCircleOutline" /> Tambah Pembayaran
+            <button v-if="availableToPay > 0" type="button" class="report-add-payment-button" @click="openAddPayment">
+              <ion-icon :icon="addCircleOutline" aria-hidden="true" /> Catat Pembayaran
             </button>
+            <p v-else class="report-paid-note" role="status">{{ selectedReportLot.remaining <= 0 ? 'Kaveling ini sudah lunas.' : 'Pembayaran yang menunggu verifikasi sudah menutup sisa tagihan.' }}</p>
+          </template>
+
+          <template v-else-if="selectedBuyer">
+            <div class="report-detail-back">
+              <button type="button" @click="selectedReportBuyer = null">
+                <ion-icon :icon="chevronBackOutline" aria-hidden="true" />
+                Kembali
+              </button>
+            </div>
+
+            <section class="report-detail-card">
+              <div class="report-buyer-heading">
+                <div class="report-buyer-avatar">{{ initials(selectedBuyer.name) }}</div>
+                <div class="report-buyer-identity"><h1>{{ selectedBuyer.name }}</h1><p>{{ selectedBuyer.phone || 'Nomor telepon belum tersedia' }}</p></div>
+                <span class="report-buyer-count">{{ selectedBuyer.lotCount }} kaveling</span>
+              </div>
+              <div class="buyer-detail-actions">
+                <a v-if="selectedBuyer.phone" :href="whatsappUrl(selectedBuyer.phone)" target="_blank" rel="noopener noreferrer" class="report-contact-action"><ion-icon :icon="chatbubbleEllipsesOutline" aria-hidden="true" /> WhatsApp</a>
+                <button type="button" class="report-contact-action" @click="openBuyerProfile(selectedBuyer.id)"><ion-icon :icon="peopleOutline" aria-hidden="true" /> Profil lengkap</button>
+              </div>
+            </section>
+
+            <section class="report-detail-card" aria-labelledby="buyer-obligation-heading">
+              <div class="report-detail-section-title"><h2 id="buyer-obligation-heading">Ringkasan kewajiban</h2></div>
+              <dl class="finance-figures">
+                <div><dt>Total kewajiban</dt><dd>{{ formatCurrency(buyerTotals.obligation) }}</dd></div>
+                <div><dt>Sudah dibayar</dt><dd class="amount--in">{{ formatCurrency(buyerTotals.paid) }}</dd></div>
+                <div v-if="buyerTotals.pending > 0"><dt>Menunggu verifikasi</dt><dd>{{ formatCurrency(buyerTotals.pending) }}</dd></div>
+                <div class="finance-figures__total"><dt>Sisa tagihan</dt><dd :class="{ 'amount--out': buyerTotals.remaining > 0 }">{{ formatCurrency(buyerTotals.remaining) }}</dd></div>
+              </dl>
+            </section>
+
+            <section class="report-detail-history" aria-labelledby="buyer-lots-heading">
+              <div class="report-detail-section-title"><h2 id="buyer-lots-heading">Kaveling</h2><span>{{ selectedBuyer.lotCount }} kaveling</span></div>
+              <button v-for="lot in selectedBuyer.lots" :key="lot.key" type="button" class="buyer-lot-row" @click="openReportLot(lot)">
+                <span class="buyer-lot-row__name"><strong>{{ lot.lotCode }} {{ lot.blockName }}</strong><small>{{ lot.statusLabel }}</small></span>
+                <span class="buyer-lot-row__money"><small>Sisa tagihan</small><strong :class="{ 'amount--out': lot.remaining > 0 }">{{ formatCurrency(lot.remaining) }}</strong></span>
+                <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
+              </button>
+            </section>
+
+            <section class="report-detail-history" aria-labelledby="buyer-history-heading">
+              <div class="report-detail-section-title"><h2 id="buyer-history-heading">Riwayat pembayaran</h2><span>{{ buyerPayments.length }} transaksi</span></div>
+              <article v-for="payment in buyerPaymentsPager.items" :key="payment.id" class="report-payment-history-card">
+                <div class="report-payment-history-top">
+                  <div><strong>{{ payment.reference }}</strong><small>{{ formatDate(payment.date) }} · {{ payment.lotCode }}</small></div>
+                  <div class="report-payment-status-group">
+                    <span class="report-payment-status" :class="`report-payment-status--${payment.statusTone}`">{{ payment.statusLabel }}</span>
+                  </div>
+                </div>
+                <div class="report-payment-history-amount">{{ formatCurrency(payment.amount) }}</div>
+                <div class="report-payment-history-meta"><span>{{ payment.categoryLabel }}</span><span>{{ payment.method }}</span></div>
+                <button type="button" class="report-proof-link" @click="openPaymentProof(Number(payment.id))"><ion-icon :icon="imageOutline" aria-hidden="true" /> Bukti pembayaran</button>
+              </article>
+              <AppPagination v-model:page="buyerPaymentsPager.page" :total-pages="buyerPaymentsPager.totalPages" :total="buyerPaymentsPager.total" :page-size="buyerPaymentsPager.pageSize" label="Halaman riwayat pembayaran" />
+              <StatusIllustration v-if="!buyerPayments.length" variant="empty-data" size="sm" title="Belum ada pembayaran" description="Pembayaran pembeli ini akan tercatat di sini." />
+            </section>
           </template>
 
           <template v-else>
-            <nav class="report-tabs" role="tablist" aria-label="Kategori laporan keuangan">
-              <button
-                v-for="tab in reportTabs"
-                :key="tab.value"
-                type="button"
-                role="tab"
-                :aria-selected="activeReportTab === tab.value"
-                :class="{ 'report-tab--active': activeReportTab === tab.value }"
-                @click="activeReportTab = tab.value"
-              >
-                <ion-icon :icon="tab.icon" aria-hidden="true" />
-                {{ tab.label }}
-              </button>
-            </nav>
-
             <div class="report-toolbar" :class="{ 'report-toolbar--period': activeReportTab === 'summary' }">
               <div v-if="activeReportTab === 'summary'" class="report-period" role="group" aria-label="Filter periode laporan">
                 <div class="report-granularity" role="tablist" aria-label="Rentang periode">
@@ -619,7 +623,9 @@
                 {{ pdfExporting ? 'Menyiapkan...' : 'Unduh PDF' }}
               </button>
             </div>
-            <p v-if="pdfError" class="report-pdf-error" role="alert">{{ pdfError }}</p>
+            <AppNotice v-if="pdfError" tone="error">
+              {{ pdfError }}
+            </AppNotice>
 
             <div v-if="loading || (activeReportTab === 'summary' && reportLedgerLoading)" class="finance-skeleton">
               <SkeletonStatGrid :count="4" :label="reportLedgerLoading ? 'Memuat arus kas' : 'Memuat laporan keuangan'" />
@@ -643,10 +649,10 @@
                     </span>
                   </div>
                   <strong>{{ formatCurrency(monthlyIncome) }}</strong>
-                  <p>Penerimaan kas yang sudah dibukukan satu kali. Nilai ini tetap bruto meskipun sebagian dana dikembalikan.</p>
+                  <p>Belum dikurangi pengembalian dana.</p>
                   <div class="report-income-sources">
                     <div>
-                      <span><i class="report-dot report-dot--gold" /> Booking Fee masuk</span>
+                      <span><i class="report-dot report-dot--gold" /> Tanda jadi masuk</span>
                       <strong>{{ formatCurrency(monthlyBookingIncome) }}</strong>
                       <small>{{ monthlyBookingCount }} transaksi</small>
                     </div>
@@ -659,9 +665,9 @@
                 </section>
 
                 <section class="report-summary report-cashflow-metrics" aria-label="Metrik arus kas">
-                  <article class="report-metric-card"><span>Total pengeluaran</span><strong>{{ formatCurrency(monthlyTotalExpenses) }}</strong><small>Semua transaksi kas keluar pada periode ini</small></article>
-                  <article class="report-metric-card"><span>Pengeluaran refund</span><strong>{{ formatCurrency(monthlyRefundExpenses) }}</strong><small>Refund Booking Fee yang sudah ditransfer</small></article>
-                  <article class="report-metric-card"><span>Arus kas bersih</span><strong>{{ formatCurrency(monthlyNetCashFlow) }}</strong><small>Pemasukan bruto dikurangi total pengeluaran; bukan laba</small></article>
+                  <article class="report-metric-card"><span>Pengeluaran</span><strong>{{ formatCurrency(monthlyTotalExpenses) }}</strong></article>
+                  <article class="report-metric-card"><span>Pengembalian dana</span><strong>{{ formatCurrency(monthlyRefundExpenses) }}</strong></article>
+                  <article class="report-metric-card"><span>Arus kas bersih</span><strong>{{ formatCurrency(monthlyNetCashFlow) }}</strong><small>Bukan laba</small></article>
                 </section>
 
                 <section class="report-panel report-trend-panel">
@@ -674,34 +680,46 @@
                       <strong class="chart-value">Masuk {{ formatCompactCurrency(month.grossIncome) }}</strong>
                       <div class="chart-track"><span class="chart-bar chart-bar--income" :class="{ 'chart-bar--peak': month.key === peakMonthKey }" :style="{ height: `${Math.max((month.grossIncome / monthlyMax) * 100, month.grossIncome > 0 ? 5 : 0)}%` }" /><span class="chart-bar chart-bar--expense" :style="{ height: `${Math.max((month.totalExpenses / monthlyMax) * 100, month.totalExpenses > 0 ? 5 : 0)}%` }" /></div>
                       <span class="chart-label">{{ month.label }}</span>
-                      <small class="chart-cashflow-label">Keluar {{ formatCompactCurrency(month.totalExpenses) }} · Refund {{ formatCompactCurrency(month.refundExpenses) }} · Bersih {{ formatCompactCurrency(month.netCashFlow) }}</small>
                     </div>
                   </div>
+                  <details class="report-breakdown">
+                    <summary>Lihat rincian per periode</summary>
+                    <ul>
+                      <li v-for="month in monthlyReport" :key="month.key">
+                        <strong>{{ month.label }}</strong>
+                        <span>Masuk {{ formatCompactCurrency(month.grossIncome) }}</span>
+                        <span>Keluar {{ formatCompactCurrency(month.totalExpenses) }}</span>
+                        <span>Pengembalian dana {{ formatCompactCurrency(month.refundExpenses) }}</span>
+                        <span>Bersih {{ formatCompactCurrency(month.netCashFlow) }}</span>
+                      </li>
+                    </ul>
+                  </details>
                 </section>
 
                 <section class="report-recent-section">
                   <div class="report-section-heading"><h2>Transaksi kas</h2><span>{{ recentReportPayments.length }} transaksi</span></div>
-                  <article v-for="payment in recentReportPayments" :key="payment.id" class="report-recent-card">
+                  <article v-for="payment in recentPager.items" :key="payment.id" class="report-recent-card">
                     <div class="report-recent-icon" :class="payment.flowDirection === 'inflow' ? 'is-confirmed' : 'is-outflow'">
                       <ion-icon :icon="payment.flowDirection === 'inflow' ? checkmarkCircleOutline : closeCircleOutline" aria-hidden="true" />
                     </div>
                     <div class="report-recent-main">
                       <strong>{{ payment.customerName }}</strong>
-                      <p>{{ payment.lotCode }} · {{ payment.categoryLabel }} · {{ payment.method }}</p>
+                      <p>{{ payment.lotCode }} · {{ payment.method }}</p>
                       <small>{{ formatShortDate(payment.date) }}</small>
                     </div>
                     <div class="report-recent-amount">
-                      <strong>{{ payment.flowDirection === 'inflow' ? '+' : '−' }}{{ formatCompactCurrency(payment.amount) }}</strong>
+                      <strong :class="payment.flowDirection === 'inflow' ? 'amount--in' : 'amount--out'">{{ payment.flowDirection === 'inflow' ? '+' : '-' }}{{ formatCurrency(payment.amount) }}</strong>
                       <small :class="`report-text-${payment.statusTone}`">{{ payment.statusLabel }}</small>
                     </div>
                   </article>
+                  <AppPagination v-model:page="recentPager.page" :total-pages="recentPager.totalPages" :total="recentPager.total" :page-size="recentPager.pageSize" label="Halaman transaksi kas" />
                   <StatusIllustration v-if="!recentReportPayments.length" variant="empty-data" size="sm" title="Belum ada transaksi" description="Belum ada transaksi pada periode ini." />
                 </section>
               </template>
 
               <template v-else-if="activeReportTab === 'lots'">
                 <section class="report-list-intro">
-                  <div><h1>Laporan Per Kaveling</h1><p>Pantau harga transaksi, pembayaran diterima, dan sisa tagihan setiap kaveling.</p></div>
+                  <h1 class="visually-hidden">Laporan per kaveling</h1>
                   <span>{{ filteredReportLots.length }} kaveling</span>
                 </section>
                 <label class="report-search report-search--full">
@@ -711,27 +729,28 @@
                   <button v-if="reportQuery" type="button" aria-label="Hapus pencarian" @click="reportQuery = ''"><ion-icon :icon="closeOutline" aria-hidden="true" /></button>
                 </label>
                 <div v-if="filteredReportLots.length" class="report-lot-list">
-                  <article v-for="lot in filteredReportLots" :key="lot.key" class="report-lot-card">
+                  <article v-for="lot in lotsPager.items" :key="lot.key" class="report-lot-card">
                     <div class="report-lot-card-heading">
                       <div><h2>{{ lot.lotCode }} {{ lot.blockName }}</h2><p>Pemilik: <strong>{{ lot.customerName }}</strong></p></div>
                       <span class="report-lot-status" :class="`report-lot-status--${lot.statusTone}`">{{ lot.statusLabel }}</span>
                     </div>
                     <div class="report-lot-metrics">
-                      <div><span>Harga Kaveling</span><strong>{{ formatCompactCurrency(lot.finalPrice) }}</strong></div>
-                      <div><span>Dibayar</span><strong>{{ formatCompactCurrency(lot.paid) }}</strong></div>
-                      <div><span>Tersisa</span><strong :class="{ 'report-text-danger': lot.remaining > 0 && lot.isPastDue }">{{ formatCompactCurrency(lot.remaining) }}</strong></div>
+                      <div><span>Harga kaveling</span><strong>{{ formatCurrency(lot.finalPrice) }}</strong></div>
+                      <div><span>Sudah dibayar</span><strong class="amount--in">{{ formatCurrency(lot.paid) }}</strong></div>
+                      <div><span>Sisa tagihan</span><strong :class="{ 'amount--out': lot.remaining > 0 }">{{ formatCurrency(lot.remaining) }}</strong></div>
                     </div>
                     <div class="report-lot-progress-label"><span>Progres Pembayaran</span><strong>{{ lot.progress.toFixed(1) }}% <small>({{ lot.paidPaymentCount }} pembayaran terkonfirmasi)</small></strong></div>
                     <div class="report-progress-track"><span :style="{ width: `${lot.progress}%` }" /></div>
-                    <button type="button" class="report-detail-button" @click="openReportLot(lot)">Detail <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
+                    <button type="button" class="report-detail-button" @click="openReportLot(lot)">Lihat rincian <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
                   </article>
+                  <AppPagination v-model:page="lotsPager.page" :total-pages="lotsPager.totalPages" :total="lotsPager.total" :page-size="lotsPager.pageSize" label="Halaman daftar kaveling" />
                 </div>
                 <StatusIllustration v-else :variant="reportQuery ? 'no-result' : 'empty-data'" size="sm" :title="reportQuery ? 'Kavling tidak ditemukan' : 'Belum ada transaksi kavling'" :description="reportQuery ? 'Tidak ada kavling yang cocok dengan pencarian.' : 'Data akan tampil setelah ada transaksi.'" />
               </template>
 
               <template v-else>
                 <section class="report-list-intro">
-                  <div><h1>Laporan Per Pembeli</h1><p>Ringkasan pembayaran dan sisa tagihan berdasarkan masing-masing pembeli.</p></div>
+                  <h1 class="visually-hidden">Laporan per pembeli</h1>
                   <span>{{ filteredReportBuyers.length }} pembeli</span>
                 </section>
                 <label class="report-search report-search--full">
@@ -741,21 +760,23 @@
                   <button v-if="reportQuery" type="button" aria-label="Hapus pencarian" @click="reportQuery = ''"><ion-icon :icon="closeOutline" aria-hidden="true" /></button>
                 </label>
                 <div v-if="filteredReportBuyers.length" class="report-buyer-list">
-                  <article v-for="buyer in filteredReportBuyers" :key="buyer.id" class="report-buyer-card">
+                  <article v-for="buyer in buyersPager.items" :key="buyer.id" class="report-buyer-card">
                     <div class="report-buyer-heading">
                       <div class="report-buyer-avatar">{{ initials(buyer.name) }}</div>
                       <div class="report-buyer-identity"><h2>{{ buyer.name }}</h2><p>{{ buyer.phone || 'Nomor telepon belum tersedia' }}</p></div>
-                      <span class="report-buyer-count">{{ buyer.lotCount }} Kaveling</span>
+                      <span class="report-buyer-count">{{ buyer.lotCount }} kaveling</span>
                     </div>
                     <div class="report-buyer-balance">
-                      <div><span>Total Terbayar</span><strong>{{ formatCurrency(buyer.paid) }}</strong></div>
-                      <div><span>Tersisa</span><strong :class="{ 'report-text-danger': buyer.remaining > 0 }">{{ formatCurrency(buyer.remaining) }}</strong></div>
+                      <div><span>Sudah dibayar</span><strong class="amount--in">{{ formatCurrency(buyer.paid) }}</strong></div>
+                      <div><span>Sisa tagihan</span><strong :class="{ 'amount--out': buyer.remaining > 0 }">{{ formatCurrency(buyer.remaining) }}</strong></div>
                     </div>
                     <div class="report-buyer-lots">
                       <span v-for="lot in buyer.lots.slice(0, 3)" :key="lot.key"><ion-icon :icon="businessOutline" aria-hidden="true" /> {{ lot.lotCode }} {{ lot.blockName }}</span>
                       <small v-if="buyer.lotCount > 3">+{{ buyer.lotCount - 3 }} kaveling lainnya</small>
                     </div>
+                    <button type="button" class="report-detail-button report-buyer-open" :aria-label="`Lihat rincian ${buyer.name}`" @click="openBuyer(buyer)">Lihat rincian <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
                   </article>
+                  <AppPagination v-model:page="buyersPager.page" :total-pages="buyersPager.totalPages" :total="buyersPager.total" :page-size="buyersPager.pageSize" label="Halaman daftar pembeli" />
                 </div>
                 <StatusIllustration v-else :variant="reportQuery ? 'no-result' : 'empty-data'" size="sm" :title="reportQuery ? 'Pembeli tidak ditemukan' : 'Belum ada data pembeli'" :description="reportQuery ? 'Tidak ada pembeli yang cocok dengan pencarian.' : 'Data pembeli akan tampil setelah ada transaksi.'" />
               </template>
@@ -767,11 +788,8 @@
           <section class="cancellation-review-page" aria-labelledby="cancellation-review-heading">
             <div class="ledger-heading">
               <div><h1 id="cancellation-review-heading">Pengajuan Pembatalan</h1><p>Persetujuan melepaskan kaveling dan menyiapkan pengembalian 50% dari uang muka serta cicilan terkonfirmasi.</p></div>
-              <button type="button" class="ledger-refresh" :disabled="cancellationLoading" @click="loadCancellationRequests">
-                <ion-spinner v-if="cancellationLoading" name="crescent" /><ion-icon v-else :icon="refreshOutline" aria-hidden="true" /> Muat ulang
-              </button>
             </div>
-            <div class="ledger-policy-note" role="note">Booking Fee dan denda tidak termasuk dasar pengembalian. Transfer refund harus dicatat terpisah dengan referensi bank dan bukti transfer.</div>
+            <div class="ledger-policy-note" role="note">Tanda jadi dan denda tidak termasuk dasar pengembalian. Transfer pengembalian dana harus dicatat terpisah dengan referensi bank dan bukti transfer.</div>
             <SkeletonRowList v-if="cancellationLoading" :rows="2" :fields="3" :badges="[3]" label="Memuat pengajuan" />
             <StatusIllustration
               v-else-if="cancellationError"
@@ -782,7 +800,7 @@
             />
             <StatusIllustration v-else-if="!cancellationRequests.length" variant="empty-data" size="sm" title="Tidak ada pengajuan menunggu" description="Pengajuan pembatalan baru akan muncul di sini." />
             <div v-else class="cancellation-request-list">
-              <article v-for="request in cancellationRequests" :key="request.id" class="cancellation-review-card">
+              <article v-for="request in cancellationPager.items" :key="request.id" class="cancellation-review-card">
                 <div class="cancellation-review-card__top"><div><span>Pengajuan #{{ request.id }} · {{ formatShortDate(request.created_at) }}</span><h2>{{ request.customer_name }}</h2><small>{{ request.customer_phone || 'Nomor kontak tidak tersedia' }}</small></div><strong>{{ request.lot_number }}<small>{{ request.block_name || 'Blok belum tersedia' }}</small></strong></div>
                 <p class="cancellation-review-reason">{{ request.reason }}</p>
                 <div class="cancellation-review-actions">
@@ -790,26 +808,16 @@
                   <button type="button" class="proof-verify-button" @click="openCancellationDecision(request, 'Approved')">Setujui Pembatalan</button>
                 </div>
               </article>
+              <AppPagination v-model:page="cancellationPager.page" :total-pages="cancellationPager.totalPages" :total="cancellationPager.total" :page-size="cancellationPager.pageSize" label="Halaman pengajuan pembatalan" />
             </div>
           </section>
         </template>
 
         <template v-else-if="activeView === 'ledger'">
           <section class="ledger-page" aria-labelledby="ledger-heading">
-            <div class="ledger-heading">
-              <div>
-                <h1 id="ledger-heading">Buku Kas & Jurnal</h1>
-                <p>Penerimaan yang sudah dikonfirmasi, dibukukan satu kali, dan memiliki jurnal seimbang.</p>
-              </div>
-              <button type="button" class="ledger-refresh" :disabled="ledgerLoading" @click="loadFinancialLedger">
-                <ion-spinner v-if="ledgerLoading" name="crescent" />
-                <ion-icon v-else :icon="refreshOutline" aria-hidden="true" />
-                Muat ulang
-              </button>
-            </div>
-
+            <h1 id="ledger-heading" class="visually-hidden">Buku kas dan jurnal</h1>
             <div class="ledger-policy-note" role="note">
-              Jurnal sementara mengkredit akun penerimaan yang belum diklasifikasikan. Admin/akuntan perlu memetakan akun sesuai kebijakan perusahaan.
+              Jurnal sementara mengkredit akun penerimaan yang belum diklasifikasikan. Admin atau akuntan perlu memetakan akun sesuai kebijakan perusahaan.
             </div>
 
             <div v-if="ledgerLoading" class="finance-skeleton">
@@ -824,33 +832,37 @@
               :on-action="loadFinancialLedger"
             />
             <template v-else>
-              <div class="ledger-totals" aria-label="Ringkasan arus kas tercatat">
-                <p class="ledger-count">Menampilkan {{ ledgerEntries.length }} pembukuan terbaru, maksimal 200 entri.</p>
-                <article><span>Penerimaan pada daftar</span><strong>{{ formatCurrency(ledgerInflow) }}</strong></article>
-                <article><span>Pengeluaran pada daftar</span><strong>{{ formatCurrency(ledgerOutflow) }}</strong></article>
-                <article><span>Arus kas bersih pada daftar</span><strong>{{ formatCurrency(ledgerInflow - ledgerOutflow) }}</strong></article>
-              </div>
+              <dl class="ledger-totals" aria-label="Ringkasan arus kas pada daftar">
+                <div><dt>Pemasukan</dt><dd class="amount--in">{{ formatCurrency(ledgerInflow) }}</dd></div>
+                <div><dt>Pengeluaran</dt><dd class="amount--out">{{ formatCurrency(ledgerOutflow) }}</dd></div>
+                <div class="ledger-totals__net"><dt>Arus kas bersih</dt><dd>{{ formatCurrency(ledgerInflow - ledgerOutflow) }}</dd></div>
+              </dl>
+              <p class="ledger-count">{{ ledgerEntries.length }} pembukuan terbaru (maksimal 200 entri)</p>
 
-              <div v-if="ledgerEntries.length" class="report-table-wrap">
-                <table class="report-table ledger-table">
-                  <caption class="visually-hidden">Daftar pembukuan penerimaan dan jurnal</caption>
-                  <thead><tr><th>Tanggal</th><th>Transaksi</th><th>Referensi bank</th><th>Akun jurnal</th><th class="amount-cell">Nominal</th></tr></thead>
-                  <tbody>
-                    <tr v-for="entry in ledgerEntries" :key="entry.id">
-                      <td data-label="Tanggal">{{ formatShortDate(entry.occurred_on) }}</td>
-                      <td data-label="Transaksi"><strong>{{ paymentCategoryLabel(entry.category) }}</strong><small>{{ entry.source_table }} #{{ entry.source_id }}</small></td>
-                      <td data-label="Referensi bank">{{ entry.bank_reference || 'Belum dicantumkan' }}</td>
-                      <td data-label="Akun jurnal">
-                        <span v-for="line in entry.journal?.lines ?? []" :key="`${entry.id}-${line.accountCode}`" class="ledger-account-line">
-                          {{ line.accountCode }} · {{ line.accountName }}<small>Debit {{ formatCurrency(line.debit) }} / Kredit {{ formatCurrency(line.credit) }}</small>
-                        </span>
-                      </td>
-                      <td data-label="Nominal" class="amount-cell">{{ entry.flow_direction === 'inflow' ? '+' : '−' }}{{ formatCurrency(entry.amount) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <StatusIllustration v-else variant="empty-data" size="sm" title="Belum ada pembukuan" description="Pembayaran baru akan muncul setelah Admin mengonfirmasinya." />
+              <ul v-if="ledgerEntries.length" class="ledger-list">
+                <li v-for="entry in ledgerPager.items" :key="entry.id" class="ledger-item">
+                  <div class="ledger-item__top">
+                    <div class="ledger-item__title">
+                      <strong>{{ ledgerEntryTitle(entry) }}</strong>
+                      <small>{{ ledgerSourceLabel(entry) }} · {{ formatShortDate(entry.occurred_on) }}</small>
+                    </div>
+                    <strong class="ledger-item__amount" :class="entry.flow_direction === 'inflow' ? 'amount--in' : 'amount--out'">{{ entry.flow_direction === 'inflow' ? '+' : '-' }}{{ formatCurrency(entry.amount) }}</strong>
+                  </div>
+                  <p class="ledger-item__ref"><span>Referensi bank</span>{{ entry.bank_reference || 'Belum dicantumkan' }}</p>
+                  <details v-if="entry.journal?.lines?.length" class="ledger-journal">
+                    <summary>Lihat jurnal</summary>
+                    <ul>
+                      <li v-for="line in entry.journal.lines" :key="`${entry.id}-${line.accountCode}`">
+                        <strong>{{ line.accountCode }} · {{ line.accountName }}</strong>
+                        <span>Debit {{ formatCurrency(line.debit) }}</span>
+                        <span>Kredit {{ formatCurrency(line.credit) }}</span>
+                      </li>
+                    </ul>
+                  </details>
+                </li>
+              </ul>
+              <AppPagination v-model:page="ledgerPager.page" :total-pages="ledgerPager.totalPages" :total="ledgerPager.total" :page-size="ledgerPager.pageSize" label="Halaman buku kas" />
+              <StatusIllustration v-if="!ledgerEntries.length" variant="empty-data" size="sm" title="Belum ada pembukuan" description="Pembayaran baru akan muncul setelah Admin mengonfirmasinya." />
             </template>
           </section>
         </template>
@@ -892,7 +904,7 @@
                     </div>
                     <span class="payment-plan-usage">{{ plan.usage?.lotInstallments ?? 0 }} kaveling</span>
                     <div class="payment-plan-actions">
-                      <AppButton class="payment-plan-action" variant="neutral" fill="solid" size="small" :aria-label="`Edit skema ${formatPaymentPlanName(plan.plan_name, plan.months)}`" @click="openPlanEditor(plan)">
+                      <AppButton class="payment-plan-action" variant="neutral" fill="solid" size="small" :aria-label="`Ubah skema ${formatPaymentPlanName(plan.plan_name, plan.months)}`" @click="openPlanEditor(plan)">
                         <ion-icon :icon="createOutline" aria-hidden="true" />
                       </AppButton>
                       <AppButton class="payment-plan-action payment-plan-action--delete" variant="danger" fill="outline" size="small" :aria-label="`Hapus skema ${formatPaymentPlanName(plan.plan_name, plan.months)}`" @click="openPlanDeleteConfirmation(plan)">
@@ -914,10 +926,6 @@
               <AppButton class="payment-plan-add-button" variant="secondary" expand="block" @click="openPlanEditor()">
                 <ion-icon :icon="addOutline" aria-hidden="true" />
                 Tambah skema
-              </AppButton>
-              <AppButton class="payment-plan-back-button" variant="neutral" expand="block" @click="activeView = 'verification'">
-                <ion-icon :icon="chevronBackOutline" aria-hidden="true" />
-                Kembali
               </AppButton>
             </template>
           </section>
@@ -945,7 +953,7 @@
             />
           <template v-else>
             <section v-if="filteredTransactions.length" class="transaction-list" aria-label="Daftar transaksi pembayaran">
-              <article v-for="transaction in pagedTransactions" :key="transaction.id" class="transaction-card" :class="{ 'transaction-card--target': isTargetTransaction(transaction) }">
+              <article v-for="transaction in transactionPager.items" :key="transaction.id" class="transaction-card" :class="{ 'transaction-card--target': isTargetTransaction(transaction) }">
                 <div class="transaction-head">
                   <div class="customer-mark" :class="`customer-mark--${transaction.status}`">{{ initials(transaction.customerName) }}</div>
                   <div class="transaction-customer"><h2>{{ transaction.customerName }}</h2><p>{{ transaction.lotCode }} · {{ transaction.paymentType }}</p></div>
@@ -955,7 +963,7 @@
                       : transaction.refundStatus === 'Pending Refund'
                         ? 'Menunggu Pengembalian'
                         : transaction.reviewStatus === 'Needs Reupload'
-                          ? 'Perlu Upload Ulang'
+                          ? 'Perlu unggah ulang'
                           : transaction.reviewStatus === 'Rejected'
                             ? 'Ditolak'
                             : statusLabel(transaction.status) }}
@@ -965,7 +973,7 @@
                 <div class="transaction-actions">
                   <button type="button" class="primary-action" @click="handleFinanceTransactionAction(transaction)">
                     <ion-icon :icon="eyeOutline" aria-hidden="true" />
-                    Lihat
+                    {{ transaction.status === 'pending' ? 'Periksa bukti' : 'Lihat' }}
                   </button>
                   <button v-if="transaction.spkRequestId" type="button" class="quiet-action spk-link-action" @click="openRelatedSpk(transaction)">
                     <ion-icon :icon="documentTextOutline" aria-hidden="true" />
@@ -974,14 +982,7 @@
                 </div>
               </article>
             </section>
-            <nav v-if="filteredTransactions.length > 0 && totalPages > 1" class="finance-pager" aria-label="Halaman transaksi pembayaran">
-              <div class="finance-pager-controls">
-                <button type="button" class="finance-pager-btn" aria-label="Halaman sebelumnya" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)"><ion-icon :icon="chevronBackOutline" aria-hidden="true" /></button>
-                <button v-for="page in visiblePages" :key="page ?? `ellipsis-${currentPage}`" type="button" class="finance-pager-number" :class="{ active: page === currentPage }" :disabled="page === null" :aria-current="page === currentPage ? 'page' : undefined" :aria-label="page === null ? undefined : `Halaman ${page}`" @click="page !== null && goToPage(page)">{{ page ?? '…' }}</button>
-                <button type="button" class="finance-pager-btn" aria-label="Halaman berikutnya" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)"><ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
-              </div>
-              <span class="finance-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
-            </nav>
+            <AppPagination v-model:page="transactionPager.page" :total-pages="transactionPager.totalPages" :total="transactionPager.total" :page-size="transactionPager.pageSize" scroll-to=".transaction-list" label="Halaman transaksi pembayaran" />
             <StatusIllustration
               v-if="!filteredTransactions.length"
               :variant="query ? 'no-result' : 'empty-data'"
@@ -990,12 +991,44 @@
             />
           </template>
         </template>
-        <AppModal v-model="proofZoomOpen" title="Bukti Transfer" variant="fullscreen" :show-footer="false">
-          <div class="proof-zoom-content">
-            <img v-if="proofSignedUrl && selectedProofPayment && isImageProof(proofFilePath)" :src="proofSignedUrl" alt="Bukti transfer diperbesar" />
-            <iframe v-else-if="proofSignedUrl" :src="proofSignedUrl" title="Dokumen bukti pembayaran" />
+        <button
+          v-if="paymentPage === 'none' && !selectedReportLot && !selectedReportBuyer && (activeView === 'verification' || activeView === 'reports')"
+          type="button"
+          class="finance-fab"
+          @click="openPaymentPicker"
+        >
+          <ion-icon :icon="addCircleOutline" aria-hidden="true" />
+          Catat Pembayaran
+        </button>
+
+        <AppModal v-model="paymentPickerOpen" title="Pilih Kaveling" variant="bottom-sheet" :show-footer="false">
+          <div class="payment-picker">
+            <label class="report-search report-search--full">
+              <ion-icon :icon="searchOutline" aria-hidden="true" />
+              <span class="visually-hidden">Cari kaveling atau pembeli</span>
+              <input v-model="paymentPickerQuery" type="search" placeholder="Cari kaveling atau nama pembeli" />
+              <button v-if="paymentPickerQuery" type="button" aria-label="Hapus pencarian" @click="paymentPickerQuery = ''"><ion-icon :icon="closeOutline" aria-hidden="true" /></button>
+            </label>
+            <ul v-if="pickableLots.length" class="payment-picker__list">
+              <li v-for="lot in pickerPager.items" :key="lot.key">
+                <button type="button" @click="startManualPayment(lot)">
+                  <span class="payment-picker__name"><strong>{{ lot.lotCode }} {{ lot.blockName }}</strong><small>{{ lot.customerName }}</small></span>
+                  <span class="payment-picker__due"><small>Sisa tagihan</small><strong>{{ formatCurrency(lot.remaining) }}</strong></span>
+                </button>
+              </li>
+            </ul>
+            <p v-else class="payment-picker__empty">{{ paymentPickerQuery ? 'Tidak ada kaveling yang cocok dengan pencarian.' : 'Semua kaveling sudah lunas atau menunggu verifikasi.' }}</p>
+            <AppPagination v-model:page="pickerPager.page" :total-pages="pickerPager.totalPages" :total="pickerPager.total" :page-size="pickerPager.pageSize" label="Halaman pilihan kaveling" />
           </div>
         </AppModal>
+
+        <DocumentViewerModal
+          :open="proofZoomOpen"
+          :url="proofViewerUrl"
+          :file-name="proofViewerName"
+          :subtitle="proofViewerSubtitle"
+          @close="proofZoomOpen = false"
+        />
 
         <AppModal
           v-model="reviewDialogOpen"
@@ -1018,7 +1051,7 @@
 
         <AppModal
           v-model="bankModalOpen"
-          :title="editingBankId ? 'Edit Rekening Bank' : 'Tambah rekening'"
+          :title="editingBankId ? 'Ubah rekening' : 'Tambah rekening'"
           variant="bottom-sheet"
           :loading="bankSaving"
           :confirm-disabled="!canSaveBank"
@@ -1050,13 +1083,15 @@
               <input v-model="bankDraft.is_primary" type="checkbox" />
               <span><strong>Jadikan prioritas utama</strong><small>Rekening ini akan ditandai sebagai pilihan utama pada halaman pembayaran.</small></span>
             </label>
-            <p v-if="bankFormError" class="bank-form-error" role="alert">{{ bankFormError }}</p>
+            <AppNotice v-if="bankFormError" tone="error">
+              {{ bankFormError }}
+            </AppNotice>
           </div>
         </AppModal>
 
         <AppModal
           v-model="planModalOpen"
-          :title="editingPlanId ? 'Edit Skema Cicilan' : 'Tambah skema'"
+          :title="editingPlanId ? 'Ubah skema' : 'Tambah skema'"
           variant="bottom-sheet"
           :loading="planSaving"
           :confirm-disabled="!canSavePlan"
@@ -1102,7 +1137,9 @@
               <small class="payment-plan-input-note">Masukkan persentase, contoh 5 untuk margin 5%.</small>
               <small>Gunakan nilai persentase, bukan nominal rupiah. Perubahan margin akan memicu trigger sinkronisasi cicilan yang sudah terhubung.</small>
             </div>
-            <p v-if="planFormError" class="bank-form-error" role="alert">{{ planFormError }}</p>
+            <AppNotice v-if="planFormError" tone="error">
+              {{ planFormError }}
+            </AppNotice>
           </div>
         </AppModal>
 
@@ -1125,11 +1162,12 @@
               Digunakan {{ planToDelete.usage.lotInstallments }} kaveling, {{ planToDelete.usage.lotTransactions }} transaksi, dan {{ planToDelete.usage.customerInterests }} minat pembeli.
               Skema yang sudah dipakai transaksi tidak dapat dihapus.
             </small>
-            <p v-if="planDeleteError" class="bank-form-error" role="alert">{{ planDeleteError }}</p>
+            <AppNotice v-if="planDeleteError" tone="error">
+              {{ planDeleteError }}
+            </AppNotice>
           </div>
         </AppModal>
 
-        <p v-if="actionMessage" class="action-message" role="status">{{ actionMessage }}</p>
       </main>
     </ion-content>
     <MobileTabBar variant="admin" />
@@ -1145,26 +1183,32 @@
       @confirm="saveCancellationDecision"
     >
       <div class="cancellation-decision-form">
-        <p v-if="cancellationDecision === 'Approved'">Kaveling akan dilepaskan. Hak refund dihitung dari uang muka dan cicilan yang sudah terkonfirmasi, tanpa Booking Fee dan denda.</p>
+        <p v-if="cancellationDecision === 'Approved'">Kaveling akan dilepaskan. Hak pengembalian dana dihitung dari uang muka dan cicilan yang sudah terkonfirmasi, tanpa tanda jadi dan denda.</p>
         <p v-else>Pengajuan ditolak dan transaksi serta kaveling tetap berjalan seperti semula.</p>
         <label for="cancellation-decision-note">Catatan keputusan Admin</label>
         <textarea id="cancellation-decision-note" v-model="cancellationDecisionNote" rows="3" maxlength="1000" placeholder="Tulis alasan dan tindak lanjut (minimal 3 karakter)." />
-        <p v-if="cancellationDecisionError" class="bank-form-error" role="alert">{{ cancellationDecisionError }}</p>
+        <AppNotice v-if="cancellationDecisionError" tone="error">
+          {{ cancellationDecisionError }}
+        </AppNotice>
       </div>
     </AppModal>
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast, type ToastTone } from '@/composables/useToast'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter, type LocationQuery } from 'vue-router'
+import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
-import { addCircleOutline, addOutline, businessOutline, calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, eyeOutline, chevronBackOutline, chevronForwardOutline, closeCircleOutline, closeOutline, copyOutline, createOutline, documentTextOutline, downloadOutline, imageOutline, informationCircleOutline, peopleOutline, pieChartOutline, refreshOutline, saveOutline, searchOutline, shieldCheckmarkOutline, starOutline, timeOutline, trashOutline, walletOutline } from 'ionicons/icons'
+import { addCircleOutline, addOutline, arrowForwardOutline, businessOutline, calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, eyeOutline, chevronBackOutline, chevronForwardOutline, closeCircleOutline, closeOutline, copyOutline, createOutline, documentTextOutline, downloadOutline, imageOutline, informationCircleOutline, peopleOutline, pieChartOutline, refreshOutline, saveOutline, searchOutline, shieldCheckmarkOutline, starOutline, timeOutline, trashOutline, walletOutline } from 'ionicons/icons'
 import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -1181,13 +1225,27 @@ import { saveBlobAsFile } from '@/utils/fileDownload'
 import { purchaseCancellationService, type PurchaseCancellationRequest } from '@/services/Finance/purchaseCancellationService'
 import { paymentService, type InstallmentScheduleRecord, type PaymentDetail } from '@/services/Finance/paymentService'
 import { supabase } from '@/services/config/supabase'
+import {
+  formatInstallmentRange,
+  formatProgressLine,
+  formatRupiah,
+  nextSelection,
+  selectableSequence,
+  summarizeInstallmentProgress,
+  validateSelectionOrder,
+} from '@/utils/installmentFormat'
 import AppModal from '@/components/ui/AppModal.vue'
+import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { useCelebration } from '@/composables/useCelebration'
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import type { FinanceAdminPaymentRecord, FinanceCustomerRecord, FinancePaymentRecord, FinanceTransactionRecord } from '@/types/finance'
 import FinanceAmountBreakdown from '@/components/Admin/finance/FinanceAmountBreakdown.vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
+
+const { confirm } = useConfirm()
 
 const { celebrate } = useCelebration()
 
@@ -1230,7 +1288,7 @@ const defaultInstructionDraft = (): PaymentInstructionDraft => ({
   ],
   important_notes_text: [
     'Pastikan pembayaran hanya dikirim ke rekening resmi PoliLand Kairagi.',
-    'Jangan melakukan transfer ke rekening pribadi marketing atau pihak lain.',
+    'Jangan melakukan transfer ke rekening pribadi pemasar atau pihak lain.',
     'Pembayaran dinyatakan terkonfirmasi setelah diverifikasi oleh Admin.',
   ].join('\n'),
   is_active: true,
@@ -1309,13 +1367,11 @@ const query = ref('')
 const loading = ref(true)
 const refreshing = ref(false)
 const errorMessage = ref('')
-const actionMessage = ref('')
-const route = useRoute()
+const toast = useToast()
+const routeQuery = useOwnRouteQuery()
 const router = useRouter()
 const targetPaymentId = ref('')
 const targetSpkRequestId = ref('')
-const PAGE_SIZE = 10
-const currentPage = ref(1)
 const activeView = ref<'verification' | 'instructions' | 'reports' | 'ledger' | 'cancellations' | 'plans'>('verification')
 const ledgerEntries = ref<FinancialLedgerEntry[]>([])
 const ledgerLoading = ref(false)
@@ -1423,6 +1479,18 @@ const proofFilePath = ref('')
 const proofLoading = ref(false)
 const proofError = ref('')
 const proofZoomOpen = ref(false)
+const proofViewerUrl = ref('')
+const proofViewerName = ref('')
+const proofViewerSubtitle = ref('')
+
+function openProofViewer(kind: 'proof' | 'refund') {
+  const isRefund = kind === 'refund'
+  const path = isRefund ? refundProofPath.value : proofFilePath.value
+  proofViewerUrl.value = isRefund ? refundProofSignedUrl.value : proofSignedUrl.value
+  proofViewerName.value = path.split('/').pop() || (isRefund ? 'Bukti pengembalian' : 'Bukti transfer')
+  proofViewerSubtitle.value = isRefund ? 'Bukti pengembalian' : 'Bukti transfer'
+  proofZoomOpen.value = true
+}
 const installmentSchedules = ref<InstallmentScheduleRecord[]>([])
 const selectedMarketingName = ref('')
 const schedulesLoading = ref(false)
@@ -1459,35 +1527,100 @@ const refundProofPath = ref('')
 const refundProofSignedUrl = ref('')
 const refundProofError = ref('')
 const refundAmount = ref(0)
-const selectableSchedules = computed(() => installmentSchedules.value.filter((item) => item.status !== 'Paid' && !item.pending_payment))
+const selectableSchedules = computed(() => selectableSequence(installmentSchedules.value))
 const selectedSchedules = computed(() => selectableSchedules.value.filter((item) => selectedScheduleIds.value.includes(item.id)))
-const selectedSchedulesLabel = computed(() => selectedSchedules.value.map((item) => item.installment_number).join(' & '))
+const selectedPaymentBank = computed(() => bankAccounts.value.find((bank) => bank.is_active && `Transfer ${bank.bank_name}` === newPaymentMethod.value) ?? null)
+const installmentProgress = computed(() => summarizeInstallmentProgress(installmentSchedules.value))
+const installmentProgressLine = computed(() => formatProgressLine(installmentProgress.value))
+const selectedSchedulesLabel = computed(() => formatInstallmentRange(
+  selectedSchedules.value.map((item) => item.installment_number),
+  installmentSchedules.value.length,
+))
+const proofInstallmentLabel = computed(() => {
+  const payment = selectedProofPayment.value
+  if (!payment) return ''
+  return formatInstallmentRange(
+    payment.allocations.map((item) => item.schedule?.installment_number),
+    payment.transaction?.months ?? undefined,
+  )
+})
+/** Cicilan hanya bisa dicentang bila berada tepat setelah pilihan terakhir. */
+function isScheduleSelectable(id: number) {
+  const sequence = selectableSchedules.value
+  const index = sequence.findIndex((item) => item.id === id)
+  if (index < 0) return false
+  return index <= selectedScheduleIds.value.length
+}
+function toggleSchedule(id: number) {
+  if (!isScheduleSelectable(id)) return
+  selectedScheduleIds.value = nextSelection(selectableSchedules.value, selectedScheduleIds.value, id)
+}
 const newPaymentTotal = computed(() => selectedReportLot.value?.paymentType === 'Installment'
   ? selectedSchedules.value.reduce((sum, item) => sum + Number(item.amount), 0)
   : Math.max(0, Number(manualPaymentAmount.value || 0)))
-const canCreatePayment = computed(() => Boolean(
-  selectedReportLot.value &&
-  selectedReportLot.value.remaining > 0 &&
-  newPaymentTotal.value > 0 &&
-  newPaymentTotal.value <= selectedReportLot.value.remaining &&
-  newPaymentMethod.value.trim() &&
-  newPaymentDate.value &&
-  paymentProofFile.value &&
-  (selectedReportLot.value.paymentType !== 'Installment' || selectedScheduleIds.value.length > 0) &&
-  !paymentSaving.value
-))
 const reportTabs = [
   { value: 'summary' as const, label: 'Ringkasan', icon: walletOutline },
-  { value: 'lots' as const, label: 'Kavling', icon: businessOutline },
-  { value: 'buyers' as const, label: 'Pembeli', icon: peopleOutline },
+  { value: 'lots' as const, label: 'Per Kavling', icon: businessOutline },
+  { value: 'buyers' as const, label: 'Per Pembeli', icon: peopleOutline },
 ]
+
+type FinanceArea = 'action' | 'reports' | 'settings'
+const activeArea = computed<FinanceArea>(() => {
+  if (activeView.value === 'verification' || activeView.value === 'cancellations') return 'action'
+  if (activeView.value === 'reports' || activeView.value === 'ledger') return 'reports'
+  return 'settings'
+})
+const attentionTotal = computed(() => statusCounts.value.pending + pendingCancellationCount.value)
+const areaTabs = computed(() => [
+  { value: 'action' as const, label: 'Perlu Tindakan', icon: documentTextOutline, badge: attentionTotal.value },
+  { value: 'reports' as const, label: 'Laporan', icon: pieChartOutline, badge: 0 },
+  { value: 'settings' as const, label: 'Pengaturan', icon: businessOutline, badge: 0 },
+])
+const activeAreaLabel = computed(() => areaTabs.value.find((area) => area.value === activeArea.value)?.label ?? '')
+const attentionSummary = computed(() => {
+  const parts: string[] = []
+  if (statusCounts.value.pending) parts.push(`${statusCounts.value.pending} pembayaran menunggu verifikasi`)
+  if (pendingCancellationCount.value) parts.push(`${pendingCancellationCount.value} pembatalan menunggu keputusan`)
+  return parts.length ? parts.join(', ') : 'Tidak ada yang menunggu keputusan Anda.'
+})
+const subTabs = computed(() => {
+  if (activeArea.value === 'action') {
+    return [
+      { key: 'verification', label: 'Pembayaran', active: activeView.value === 'verification', run: () => { activeView.value = 'verification' } },
+      { key: 'cancellations', label: 'Pembatalan', active: activeView.value === 'cancellations', run: openCancellationReview },
+    ]
+  }
+  if (activeArea.value === 'reports') {
+    return [
+      ...reportTabs.map((tab) => ({
+        key: tab.value,
+        label: tab.label,
+        active: activeView.value === 'reports' && activeReportTab.value === tab.value,
+        run: () => { selectedReportBuyer.value = null; selectedReportLot.value = null; activeReportTab.value = tab.value; activeView.value = 'reports' },
+      })),
+      { key: 'ledger', label: 'Buku Kas', active: activeView.value === 'ledger', run: () => { selectedReportBuyer.value = null; openFinancialLedger() } },
+    ]
+  }
+  return [
+    { key: 'banks', label: 'Rekening Bank', active: activeView.value === 'instructions' && activeInstructionTab.value === 'banks', run: () => { activeInstructionTab.value = 'banks'; activeView.value = 'instructions' } },
+    { key: 'instruction', label: 'Petunjuk Pembayaran', active: activeView.value === 'instructions' && activeInstructionTab.value === 'instruction', run: () => { activeInstructionTab.value = 'instruction'; activeView.value = 'instructions' } },
+    { key: 'plans', label: 'Skema Cicilan', active: activeView.value === 'plans', run: () => { activeView.value = 'plans' } },
+  ]
+})
+function openArea(area: FinanceArea) {
+  if (area === activeArea.value) return
+  selectedReportBuyer.value = null
+  if (area === 'action') activeView.value = 'verification'
+  else if (area === 'reports') activeView.value = 'reports'
+  else { activeInstructionTab.value = 'banks'; activeView.value = 'instructions' }
+}
 
 function normalizeReportPayment(payment: FinancePaymentRecord, customer: FinanceCustomerRecord, lot: FinanceTransactionRecord['lots'], transaction: FinanceTransactionRecord | undefined): ReportPayment {
   const status = String(payment.status || 'Pending')
   const statusTone = status === 'Confirmed' ? 'confirmed' : status === 'Rejected' ? 'rejected' : status === 'Needs Reupload' ? 'reupload' : 'pending'
   const category = String(payment.payment_category || 'Unclassified')
   const categoryLabels: Record<string, string> = {
-    Booking: 'Booking Fee',
+    Booking: 'Tanda Jadi',
     'Down Payment': 'Uang Muka',
     Installment: 'Cicilan',
     'Cash Purchase': 'Pembelian Tunai',
@@ -1508,7 +1641,7 @@ function normalizeReportPayment(payment: FinancePaymentRecord, customer: Finance
     amount: Math.max(0, Number(payment.amount || 0)),
     method: payment.payment_method || 'Metode belum tercatat',
     category,
-    categoryLabel: categoryLabels[category] || category,
+    categoryLabel: payment.installment_numbers?.length ? paymentRecordLabel(payment) : (categoryLabels[category] || category),
     status,
     statusLabel: status === 'Confirmed' ? 'Terverifikasi' : status === 'Rejected' ? 'Ditolak' : status === 'Needs Reupload' ? 'Perlu Unggah Ulang' : 'Menunggu',
     statusTone,
@@ -1651,10 +1784,10 @@ const monthlyMax = computed(() => Math.max(...monthlyReport.value.flatMap((month
 const peakMonth = computed(() => monthlyReport.value.reduce((peak, month) => month.grossIncome > peak.grossIncome ? month : peak, monthlyReport.value[0] || { key: '', label: '-', grossIncome: 0, totalExpenses: 0, refundExpenses: 0, netCashFlow: 0 }))
 const peakMonthKey = computed(() => peakMonth.value.grossIncome > 0 ? peakMonth.value.key : '')
 const peakMonthLabel = computed(() => peakMonth.value.grossIncome > 0 ? peakMonth.value.label : '-')
-const monthlyChartDescription = computed(() => monthlyReport.value.map((month) => `${month.label}: pemasukan bruto ${formatCurrency(month.grossIncome)}, pengeluaran ${formatCurrency(month.totalExpenses)}, refund ${formatCurrency(month.refundExpenses)}, arus kas bersih ${formatCurrency(month.netCashFlow)}`).join('. '))
-const recentReportPayments = computed(() => selectedMonthCashflowEntries.value.slice(0, 5).map((entry) => ({
+const monthlyChartDescription = computed(() => monthlyReport.value.map((month) => `${month.label}: pemasukan bruto ${formatCurrency(month.grossIncome)}, pengeluaran ${formatCurrency(month.totalExpenses)}, pengembalian dana ${formatCurrency(month.refundExpenses)}, arus kas bersih ${formatCurrency(month.netCashFlow)}`).join('. '))
+const recentReportPayments = computed(() => selectedMonthCashflowEntries.value.map((entry) => ({
   id: String(entry.id),
-  customerName: entry.source_table === 'booking_fee_refunds' ? 'Refund Booking Fee' : paymentCategoryLabel(entry.category),
+  customerName: entry.source_table === 'booking_fee_refunds' ? 'Refund Booking Fee' : ledgerEntryTitle(entry),
   lotCode: `${ledgerSourceLabel(entry)} · #${entry.source_id}`,
   categoryLabel: entry.category,
   method: entry.bank_reference || 'Referensi bank belum dicantumkan',
@@ -1673,8 +1806,100 @@ const filteredReportBuyers = computed(() => {
   return reportBuyers.value.filter((buyer) => !term || `${buyer.name} ${buyer.phone} ${buyer.lots.map((lot) => lot.lotCode).join(' ')}`.toLowerCase().includes(term))
 })
 watch(activeReportTab, () => { reportQuery.value = '' })
+
+const selectedReportBuyer = ref<ReportBuyer | null>(null)
+const selectedBuyer = computed(() => selectedReportBuyer.value
+  ? reportBuyers.value.find((buyer) => buyer.id === selectedReportBuyer.value?.id) ?? null
+  : null)
+const buyerTotals = computed(() => {
+  const lots = selectedBuyer.value?.lots ?? []
+  return {
+    obligation: lots.reduce((sum, lot) => sum + lot.finalPrice, 0),
+    paid: lots.reduce((sum, lot) => sum + lot.paid, 0),
+    pending: lots.reduce((sum, lot) => sum + lot.pendingAmount, 0),
+    remaining: lots.reduce((sum, lot) => sum + lot.remaining, 0),
+  }
+})
+const buyerPayments = computed(() => (selectedBuyer.value?.lots ?? [])
+  .flatMap((lot) => lot.payments)
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
+const selectedLotPayments = computed(() => selectedReportLot.value?.payments ?? [])
+
+const lotsPager = usePagination(filteredReportLots, { pageSize: 8, resetOn: reportQuery })
+const buyersPager = usePagination(filteredReportBuyers, { pageSize: 8, resetOn: reportQuery })
+const recentPager = usePagination(recentReportPayments, { pageSize: 8, resetOn: [reportGranularity, reportAnchor] })
+const ledgerPager = usePagination(ledgerEntries, { pageSize: 10 })
+const cancellationPager = usePagination(cancellationRequests, { pageSize: 6 })
+const buyerPaymentsPager = usePagination(buyerPayments, { pageSize: 6, resetOn: () => selectedBuyer.value?.id })
+const lotPaymentsPager = usePagination(selectedLotPayments, { pageSize: 6, resetOn: () => selectedReportLot.value?.key })
+
+function scrollFinanceTop() {
+  const content = document.querySelector('.admin-finance-page ion-content') as (HTMLElement & { scrollToTop?: (ms?: number) => void }) | null
+  content?.scrollToTop?.(200)
+}
+function openBuyer(buyer: ReportBuyer) {
+  selectedReportLot.value = null
+  selectedReportBuyer.value = buyer
+  scrollFinanceTop()
+}
+function openBuyerProfile(buyerId: string) {
+  void router.push(`/admin/pembeli/${buyerId}`)
+}
+
+// ----- Pembayaran manual -----
+const paymentPickerOpen = ref(false)
+const paymentPickerQuery = ref('')
+const paymentSubmitAttempted = ref(false)
+const availableToPay = computed(() => selectedReportLot.value
+  ? Math.max(0, selectedReportLot.value.remaining - selectedReportLot.value.pendingAmount)
+  : 0)
+const pickableLots = computed(() => {
+  const term = paymentPickerQuery.value.trim().toLowerCase()
+  return reportLots.value.filter((lot) =>
+    lot.statusTone !== 'cancelled' &&
+    lot.remaining - lot.pendingAmount > 0 &&
+    (!term || `${lot.lotCode} ${lot.blockName} ${lot.customerName}`.toLowerCase().includes(term)))
+})
+const pickerPager = usePagination(pickableLots, { pageSize: 6, resetOn: paymentPickerQuery })
+type PaymentFieldKey = 'amount' | 'schedules' | 'method' | 'date' | 'proof'
+const paymentErrors = computed(() => {
+  const errors: Partial<Record<PaymentFieldKey, string>> = {}
+  const lot = selectedReportLot.value
+  if (!lot) return errors
+  if (lot.paymentType === 'Installment') {
+    const orderError = validateSelectionOrder(selectableSchedules.value, selectedScheduleIds.value)
+    if (!selectedScheduleIds.value.length) errors.schedules = 'Pilih minimal satu cicilan yang dibayar.'
+    else if (orderError) errors.schedules = orderError
+    else if (newPaymentTotal.value > availableToPay.value) errors.schedules = `Total cicilan melebihi sisa tagihan yang dapat dibayar (${formatCurrency(availableToPay.value)}).`
+  } else {
+    const amount = manualPaymentAmount.value
+    if (amount === null || amount === undefined || Number.isNaN(Number(amount))) errors.amount = 'Nominal pembayaran wajib diisi.'
+    else if (Number(amount) <= 0) errors.amount = 'Nominal pembayaran harus lebih dari nol.'
+    else if (Number(amount) > availableToPay.value) errors.amount = `Nominal melebihi sisa tagihan yang dapat dibayar (${formatCurrency(availableToPay.value)}).`
+  }
+  if (!newPaymentMethod.value.trim()) errors.method = 'Pilih metode pembayaran.'
+  if (!newPaymentDate.value) errors.date = 'Tanggal pembayaran wajib diisi.'
+  else if (newPaymentDate.value > todayDate) errors.date = 'Tanggal pembayaran tidak boleh melewati hari ini.'
+  if (!paymentProofFile.value) errors.proof = 'Unggah bukti pembayaran berupa foto atau PDF.'
+  return errors
+})
+function fieldError(key: PaymentFieldKey) {
+  return paymentSubmitAttempted.value ? paymentErrors.value[key] : undefined
+}
+function openPaymentPicker() {
+  paymentPickerQuery.value = ''
+  pickerPager.reset()
+  paymentPickerOpen.value = true
+}
+async function startManualPayment(lot: ReportLot) {
+  paymentPickerOpen.value = false
+  selectedReportBuyer.value = null
+  activeView.value = 'reports'
+  await openReportLot(lot)
+  openAddPayment()
+}
 watch(activeView, (view: typeof activeView.value) => {
-  if (view !== 'reports') selectedReportLot.value = null
+  if (view !== 'reports') { selectedReportLot.value = null; selectedReportBuyer.value = null }
   if (view !== 'reports') paymentPage.value = 'none'
   if (view === 'reports') void loadReportLedger()
 })
@@ -1772,7 +1997,7 @@ async function saveCancellationDecision() {
     const refundId = await purchaseCancellationService.review(target.id, cancellationDecision.value, note)
     cancellationDecisionOpen.value = false
     showMessage(cancellationDecision.value === 'Approved'
-      ? `Pembatalan disetujui. ${refundId ? `Pengajuan refund #${refundId} dibuat.` : 'Refund tidak diperlukan.'}`
+      ? `Pembatalan disetujui. ${refundId ? `Pengajuan pengembalian dana #${refundId} dibuat.` : 'Pengembalian dana tidak diperlukan.'}`
       : 'Pengajuan pembatalan ditolak.')
     await loadCancellationRequests()
   } catch (error: any) {
@@ -1797,41 +2022,21 @@ const filteredTransactions = computed(() => {
     return matchesStatus && (!term || `${item.customerName} ${item.lotCode} ${item.method} ${item.spkNumber} ${item.spkRequestId}`.toLowerCase().includes(term))
   })
 })
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredTransactions.value.length / PAGE_SIZE)))
-const pagedTransactions = computed(() => filteredTransactions.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE))
-const visiblePages = computed<(number | null)[]>(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
-  const pages: (number | null)[] = [1]
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
-  if (start > 2) pages.push(null)
-  for (let page = start; page <= end; page += 1) pages.push(page)
-  if (end < total - 1) pages.push(null)
-  pages.push(total)
-  return pages
-})
+const transactionPager = usePagination(filteredTransactions, { pageSize: 10, resetOn: [query, activeFilter] })
 
-watch([filteredTransactions, totalPages], () => {
-  if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
-  if (currentPage.value < 1) currentPage.value = 1
-})
-watch([query, activeFilter], () => { currentPage.value = 1 })
-
-async function goToPage(page: number) {
-  const nextPage = Math.min(Math.max(page, 1), totalPages.value)
-  if (nextPage === currentPage.value) return
-  currentPage.value = nextPage
-  await nextTick()
-  document.querySelector('.transaction-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+function formatCurrency(value: number) {
+  return formatRupiah(value)
 }
-
-function formatCurrency(value: number) { return `Rp ${value.toLocaleString('id-ID')}` }
+/** Judul pembayaran: rentang cicilan bila ada, jika tidak nama kategorinya. */
+function paymentRecordLabel(payment: Pick<FinancePaymentRecord, 'payment_category' | 'installment_numbers' | 'installment_total'>) {
+  return payment.installment_numbers?.length
+    ? formatInstallmentRange(payment.installment_numbers, payment.installment_total)
+    : paymentCategoryLabel(payment.payment_category || 'Unclassified')
+}
 function paymentCategoryLabel(category: string) {
   const labels: Record<string, string> = {
-    Booking: 'SPK / Booking Fee',
-    'Booking Fee Refund': 'Refund Booking Fee',
+    Booking: 'SPK / Tanda Jadi',
+    'Booking Fee Refund': 'Pengembalian tanda jadi',
     'Down Payment': 'Uang Muka',
     Installment: 'Cicilan',
     'Cash Purchase': 'Pembelian Tunai',
@@ -1839,6 +2044,11 @@ function paymentCategoryLabel(category: string) {
     Unclassified: 'Belum Diklasifikasikan',
   }
   return labels[category] ?? category
+}
+function ledgerEntryTitle(entry: Pick<FinancialLedgerEntry, 'category' | 'installment_numbers' | 'installment_total'>) {
+  return entry.installment_numbers?.length
+    ? formatInstallmentRange(entry.installment_numbers, entry.installment_total)
+    : paymentCategoryLabel(entry.category)
 }
 function ledgerSourceLabel(entry: Pick<FinancialLedgerEntry, 'source_table' | 'source_id'>) {
   if (entry.source_table === 'payments') return `Pembayaran #${entry.source_id}`
@@ -1855,9 +2065,9 @@ function formatMakassarDateTime(value: string) {
     : value
 }
 function formatCompactCurrency(value: number) {
-  if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} M`
-  if (value >= 1_000_000) return `Rp ${(value / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} jt`
-  if (value >= 1_000) return `Rp ${(value / 1_000).toLocaleString('id-ID', { maximumFractionDigits: 0 })} rb`
+  if (value >= 1_000_000_000) return `Rp${(value / 1_000_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} M`
+  if (value >= 1_000_000) return `Rp${(value / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} jt`
+  if (value >= 1_000) return `Rp${(value / 1_000).toLocaleString('id-ID', { maximumFractionDigits: 0 })} rb`
   return formatCurrency(value)
 }
 function formatShortDate(value: string) {
@@ -1978,6 +2188,18 @@ function openRelatedSpk(transaction: FinanceTransaction) {
   if (!transaction.spkRequestId) return
   void router.push({ name: 'AdminSPK', query: { spkId: transaction.spkRequestId } })
 }
+const canApproveRelatedSpk = computed(() => {
+  const detail = selectedProofPayment.value
+  // Hanya Booking Fee SPK (tanpa transaction_id), sama dengan label di daftar transaksi.
+  if (!detail || detail.payment.status !== 'Confirmed' || !detail.payment.spk_request_id || detail.payment.transaction_id) return false
+  const status = String(detail.spk?.status ?? '')
+  return status === 'Submitted' || status === 'Under Review'
+})
+function approveRelatedSpk() {
+  const spkId = selectedProofPayment.value?.payment.spk_request_id
+  if (!spkId) return
+  void router.push({ name: 'AdminSPK', query: { spkId: String(spkId), approve: '1' } })
+}
 function handleFinanceTransactionAction(transaction: FinanceTransaction) {
   if (
     transaction.refundStatus
@@ -2043,7 +2265,7 @@ async function loadSelectedPaymentProof(paymentId?: number) {
               .from('payment-proofs')
               .createSignedUrl(refund.proof_path, 300)
 
-          if (refundUrlError) refundProofError.value = 'Bukti refund tercatat, tetapi gagal dimuat. Periksa koneksi lalu coba lagi.'
+          if (refundUrlError) refundProofError.value = 'Bukti pengembalian dana tercatat, tetapi gagal dimuat. Periksa koneksi lalu coba lagi.'
           else refundProofSignedUrl.value = refundUrl?.signedUrl ?? ''
         }
       }
@@ -2119,7 +2341,7 @@ async function copyPaymentReference() {
     await navigator.clipboard.writeText(paymentReference(selectedProofPayment.value.payment))
     showMessage('Nomor transaksi berhasil disalin.')
   } catch {
-    showMessage('Tidak dapat menyalin nomor transaksi dari browser ini.')
+    showMessage('Tidak dapat menyalin nomor transaksi dari browser ini.', 'error')
   }
 }
 async function reviewPayment(status: 'Confirmed' | 'Rejected' | 'Needs Reupload') {
@@ -2138,7 +2360,7 @@ async function reviewPayment(status: 'Confirmed' | 'Rejected' | 'Needs Reupload'
     await loadTransactions()
     if (selectedReportLot.value) await loadSchedulesForSelectedLot()
   } catch (error) {
-    showMessage(error instanceof Error ? error.message : 'Verifikasi pembayaran gagal.')
+    showMessage(error instanceof Error ? error.message : 'Verifikasi pembayaran gagal.', 'error')
   } finally {
     reviewSaving.value = false
   }
@@ -2154,14 +2376,14 @@ async function submitPaymentReview() {
   try {
     await paymentService.reviewPayment(selectedProofPayment.value.payment.id, reviewTargetStatus.value, reviewReason.value.trim())
     reviewDialogOpen.value = false
-    showMessage(reviewTargetStatus.value === 'Rejected' ? 'Pembayaran berhasil ditolak.' : 'Permintaan upload ulang berhasil dikirim.')
+    showMessage(reviewTargetStatus.value === 'Rejected' ? 'Pembayaran berhasil ditolak.' : 'Permintaan unggah ulang berhasil dikirim.')
     celebrate(reviewTargetStatus.value === 'Rejected'
       ? { title: 'Pembayaran ditolak', message: 'Alasan penolakan sudah dikirim ke klien.', tone: 'rejected' }
       : { title: 'Permintaan terkirim', message: 'Klien diminta mengunggah ulang bukti.' })
     await loadSelectedPaymentProof()
     await loadTransactions()
   } catch (error) {
-    showMessage(error instanceof Error ? error.message : 'Tindakan review gagal.')
+    showMessage(error instanceof Error ? error.message : 'Tindakan review gagal.', 'error')
   } finally {
     reviewSaving.value = false
   }
@@ -2202,7 +2424,7 @@ async function submitRefundProof() {
     payment.payment_category !== 'Booking'
     || !payment.spk_request_id
   ) {
-    refundError.value = 'Pengembalian hanya tersedia untuk pembayaran Booking Fee SPK.'
+    refundError.value = 'Pengembalian hanya tersedia untuk pembayaran tanda jadi SPK.'
     return
   }
 
@@ -2289,6 +2511,13 @@ async function loadSchedulesForSelectedLot() {
   } finally {
     schedulesLoading.value = false
   }
+  preselectNextInstallment()
+}
+/** Form tambah pembayaran langsung menandai cicilan aktif berikutnya. */
+function preselectNextInstallment() {
+  if (paymentPage.value !== 'add' || selectedScheduleIds.value.length) return
+  const next = selectableSchedules.value[0]
+  if (next) selectedScheduleIds.value = [next.id]
 }
 async function openReportLot(lot: ReportLot) {
   selectedReportLot.value = lot
@@ -2304,7 +2533,12 @@ async function openReportLot(lot: ReportLot) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 function openAddPayment() {
-  if (!selectedReportLot.value || selectedReportLot.value.remaining <= 0) return
+  if (!selectedReportLot.value) return
+  if (availableToPay.value <= 0) {
+    showMessage('Tidak ada sisa tagihan yang dapat dibayar. Pembayaran yang menunggu verifikasi sudah menutup sisa tagihan.', 'warning')
+    return
+  }
+  paymentSubmitAttempted.value = false
   paymentPage.value = 'add'
   selectedScheduleIds.value = []
   manualPaymentAmount.value = null
@@ -2314,7 +2548,10 @@ function openAddPayment() {
   newPaymentNote.value = ''
   clearPaymentProof()
   paymentCreateError.value = ''
-  if (selectedReportLot.value.paymentType === 'Installment' && !installmentSchedules.value.length) void loadSchedulesForSelectedLot()
+  if (selectedReportLot.value.paymentType === 'Installment') {
+    if (installmentSchedules.value.length) preselectNextInstallment()
+    else void loadSchedulesForSelectedLot()
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 function onPaymentProofSelected(event: Event) {
@@ -2345,7 +2582,14 @@ function clearPaymentProof() {
   if (input) input.value = ''
 }
 async function saveNewPayment() {
-  if (!selectedReportLot.value || !paymentProofFile.value || !canCreatePayment.value || paymentSaving.value) return
+  if (paymentSaving.value || !selectedReportLot.value) return
+  paymentSubmitAttempted.value = true
+  if (Object.keys(paymentErrors.value).length || !paymentProofFile.value) {
+    paymentCreateError.value = ''
+    await nextTick()
+    document.querySelector('.payment-create-page [data-field-error]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    return
+  }
   paymentSaving.value = true
   paymentCreateError.value = ''
   let uploadedPath = ''
@@ -2373,7 +2617,7 @@ async function saveNewPayment() {
     })
     clearPaymentProof()
     paymentPage.value = 'none'
-    showMessage('Transaksi pembayaran berhasil disimpan dan menunggu verifikasi.')
+    showMessage('Pembayaran berhasil dicatat dan menunggu verifikasi.')
     await loadTransactions()
     const updatedLot = reportLots.value.find((item) => item.transactionId === lot.transactionId)
     if (updatedLot) {
@@ -2382,7 +2626,7 @@ async function saveNewPayment() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (error) {
-    paymentCreateError.value = error instanceof Error ? error.message : 'Transaksi pembayaran gagal disimpan.'
+    paymentCreateError.value = error instanceof Error ? error.message : 'Pembayaran gagal disimpan. Periksa koneksi internet, lalu coba lagi.'
   } finally {
     paymentSaving.value = false
   }
@@ -2452,14 +2696,14 @@ async function savePaymentInstruction() {
     showMessage('Instruksi pembayaran berhasil disimpan.')
   } catch (error) {
     instructionError.value = error instanceof Error ? error.message : 'Instruksi gagal disimpan.'
-    showMessage(instructionError.value)
+    showMessage(instructionError.value, 'error')
   } finally {
     instructionSaving.value = false
   }
 }
 
 async function deletePaymentInstruction() {
-  const confirmed = window.confirm('Hapus instruksi pembayaran? Pembeli tidak akan melihat panduan sampai instruksi dibuat kembali.')
+  const confirmed = await confirm({ title: 'Hapus instruksi pembayaran?', message: 'Pembeli tidak akan melihat panduan sampai instruksi dibuat kembali.', confirmText: 'Hapus', tone: 'error' })
   if (!confirmed || instructionSaving.value) return
   instructionSaving.value = true
   instructionError.value = ''
@@ -2470,7 +2714,7 @@ async function deletePaymentInstruction() {
     showMessage('Instruksi pembayaran berhasil dihapus.')
   } catch (error) {
     instructionError.value = error instanceof Error ? error.message : 'Instruksi gagal dihapus.'
-    showMessage(instructionError.value)
+    showMessage(instructionError.value, 'error')
   } finally {
     instructionSaving.value = false
   }
@@ -2552,14 +2796,14 @@ async function saveBankAccount() {
 }
 
 async function confirmDeleteBank(account: BankAccountRecord) {
-  const confirmed = window.confirm(`Hapus rekening ${account.bank_name} dengan nomor ${formatBankAccountNumber(account.account_number)}?`)
+  const confirmed = await confirm({ title: 'Hapus rekening?', message: `${account.bank_name} ${formatBankAccountNumber(account.account_number)}`, confirmText: 'Hapus', tone: 'error' })
   if (!confirmed) return
   try {
     await bankAccountService.deleteBankAccount(account.id)
     showMessage('Rekening bank berhasil dihapus.')
     await loadBankAccounts()
   } catch (error) {
-    showMessage(error instanceof Error ? error.message : 'Rekening bank gagal dihapus.')
+    showMessage(error instanceof Error ? error.message : 'Rekening bank gagal dihapus.', 'error')
   }
 }
 
@@ -2668,7 +2912,7 @@ async function deletePaymentPlan() {
 
 function initials(name: string) { return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() }
 function statusLabel(status: FinanceStatus) { return status === 'pending' ? 'Menunggu' : status === 'verified' ? 'Terverifikasi' : 'Ditolak / Terlambat' }
-function showMessage(message: string) { actionMessage.value = message; window.setTimeout(() => { actionMessage.value = '' }, 2800) }
+function showMessage(message: string, tone: ToastTone = 'success') { toast.show(tone, message) }
 
 function refreshTransactions() {
   return withRefreshSkeleton(refreshing, () => loadTransactions(true))
@@ -2704,10 +2948,10 @@ async function loadTransactions(silent = false) {
     transactions.value = directPayments.map(({ payment, customer, lot, spk }) => {
       const date = payment.payment_date || payment.created_at || customer?.created_at || new Date().toISOString()
       const status: FinanceStatus = payment.status === 'Confirmed' ? 'verified' : payment.status === 'Rejected' ? 'overdue' : 'pending'
-      const lotCode = lot?.lot_number || `Lot #${payment.lot_id ?? '-'}`
+      const lotCode = lot?.lot_number || `Kavling #${payment.lot_id ?? '-'}`
       const paymentType = payment.spk_request_id && !payment.transaction_id
         ? `Booking Fee SPK${spk?.spk_number ? ` · ${spk.spk_number}` : ''}`
-        : payment.payment_category || 'Pembayaran'
+        : paymentRecordLabel(payment)
       return {
         id: String(payment.id),
         customerName: customer?.full_name || 'Pelanggan tidak tersedia',
@@ -2731,11 +2975,11 @@ async function loadTransactions(silent = false) {
   } catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.' } finally { loading.value = false }
 }
 
-onMounted(async () => {
-  const requestedStatus = route.query.status
-  const requestedTab = route.query.tab
-  const requestedPaymentId = Array.isArray(route.query.paymentId) ? route.query.paymentId[0] : route.query.paymentId
-  const requestedSpkRequestId = Array.isArray(route.query.spkRequestId) ? route.query.spkRequestId[0] : route.query.spkRequestId
+async function applyRouteIntent(params: LocationQuery) {
+  const requestedStatus = params.status
+  const requestedTab = params.tab
+  const requestedPaymentId = Array.isArray(params.paymentId) ? params.paymentId[0] : params.paymentId
+  const requestedSpkRequestId = Array.isArray(params.spkRequestId) ? params.spkRequestId[0] : params.spkRequestId
   targetPaymentId.value = typeof requestedPaymentId === 'string' ? requestedPaymentId : ''
   targetSpkRequestId.value = typeof requestedSpkRequestId === 'string' ? requestedSpkRequestId : ''
   if (requestedTab === 'plans') activeView.value = 'plans'
@@ -2754,6 +2998,21 @@ onMounted(async () => {
       await openPaymentProof(targetPayment.payment.id)
     }
   }
+  if (requestedTab === 'cancellations') openCancellationReview()
+}
+
+// Tap notifikasi saat halaman ini masih tersimpan di tumpukan Ionic.
+watch(() => routeQuery.value.nt, (stamp) => {
+  if (!stamp) return
+  closePaymentPage()
+  query.value = ''
+  activeView.value = 'verification'
+  void applyRouteIntent(routeQuery.value)
+})
+
+onMounted(async () => {
+  await applyRouteIntent(routeQuery.value)
+  void loadCancellationRequests()
   void loadPaymentInstruction()
   void loadBankAccounts()
   void loadPaymentPlans()
@@ -2767,19 +3026,12 @@ onMounted(async () => {
 .ledger-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .ledger-heading h1 { margin: 0; color: var(--text-primary); font-size: 21px; }
 .ledger-heading p { margin: 6px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
-.ledger-refresh { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }
-.ledger-refresh:disabled { opacity: .65; cursor: wait; }
-.ledger-refresh:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 .ledger-policy-note { padding: 12px; border-left: 3px solid var(--poliland-gold-text); border-radius: 4px var(--radius-control) var(--radius-control) 4px; background: var(--poliland-gold-soft); color: var(--text-primary); font-size: 11px; line-height: 1.55; }
 .ledger-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .ledger-totals article { display: grid; gap: 7px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .ledger-count { grid-column: 1 / -1; margin: 0; color: var(--text-secondary); font-size: 11px; }
 .ledger-totals span { color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
 .ledger-totals strong { color: var(--text-primary); font-size: 16px; overflow-wrap: anywhere; }
-.ledger-table { min-width: 760px; }
-.ledger-account-line { display: block; margin: 2px 0 6px; white-space: nowrap; }
-.ledger-account-line small { display: block; }
-.ledger-empty { min-height: 160px; }
 .cancellation-review-page { display: grid; gap: 16px; }
 .cancellation-request-list { display: grid; gap: 12px; }
 .cancellation-review-card { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
@@ -2801,37 +3053,19 @@ onMounted(async () => {
   .ledger-totals { grid-template-columns: 1fr; }
   .ledger-totals article { grid-template-columns: 1fr auto; align-items: center; }
   .ledger-totals strong { text-align: right; font-size: 14px; }
-  .ledger-table { display: block; min-width: 0; }
-  .ledger-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-  .ledger-table tbody { display: grid; gap: 10px; }
-  .ledger-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
-  .ledger-table td { display: grid; align-content: start; gap: 4px; min-width: 0; padding: 10px; border-bottom: 0; font-size: 10px; overflow-wrap: anywhere; }
-  .ledger-table td::before { color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); content: attr(data-label); }
-  .ledger-table td:nth-child(4) { grid-column: 1 / -1; border-top: 1px solid var(--border-default); }
-  .ledger-table .ledger-account-line { white-space: normal; }
-  .ledger-table td.amount-cell { text-align: left; }
   .cancellation-review-card__top { flex-direction: column; }
   .cancellation-review-card__top > strong { text-align: left; }
   .cancellation-review-actions { flex-direction: column-reverse; }
   .cancellation-review-actions button { width: 100%; }
 }
 .transaction-card--target { border-color: var(--poliland-gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--poliland-gold) 22%, transparent); }
-
-.report-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 24px 0 18px; }
-.report-eyebrow { margin: 0 0 6px; color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-bold); letter-spacing: .08em; }
-.report-heading h1 { margin: 0; color: var(--text-primary); font-size: clamp(21px, 5vw, 28px); font-weight: var(--font-weight-bold); letter-spacing: -.035em; }
-.report-description { margin: 6px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 .export-button { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 0 13px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
 .export-button ion-icon { color: var(--poliland-green); font-size: 17px; }
 .export-button:disabled { cursor: not-allowed; opacity: .5; }
-.report-filter { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
-.report-filter label { color: var(--text-secondary); font-size: 12px; font-weight: var(--font-weight-semibold); }
-.report-filter select { width: auto; max-width: 58%; min-height: 40px; padding: 0 30px 0 10px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-muted); color: var(--text-primary); font: inherit; font-size: 12px; }
 .report-summary { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)); gap: 10px; }
 .report-total-card, .report-metric-card { min-width: 0; padding: 15px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .report-total-card { border-color: color-mix(in srgb, var(--poliland-gold) 58%, var(--border-default)); background: color-mix(in srgb, var(--poliland-gold-soft) 24%, var(--surface-primary)); }
 .report-total-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 11px; }
-.report-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border: 1px solid color-mix(in srgb, var(--poliland-gold) 50%, transparent); border-radius: 11px; color: var(--poliland-gold-text); font-size: 18px; }
 .report-total-card > strong { display: block; margin-top: 13px; overflow-wrap: anywhere; color: var(--text-primary); font-size: clamp(19px, 4vw, 26px); letter-spacing: -.035em; }
 .report-total-card p { margin: 5px 0 0; color: var(--text-secondary); font-size: 11px; }
 .report-metric-card { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
@@ -2849,42 +3083,10 @@ onMounted(async () => {
 .chart-bar { display: block; width: 100%; min-height: 0; border-radius: 7px 7px 2px 2px; background: var(--poliland-green); transition: height var(--dur-base) var(--ease-out); }
 .chart-bar--income, .chart-bar--expense { width: calc(50% - 1px); flex: 0 0 calc(50% - 1px); }
 .chart-bar--expense { background: var(--status-danger); }
-.chart-cashflow-label { color: var(--text-secondary); font-size: 8px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
 .chart-label { color: var(--text-secondary); font-size: 10px; text-transform: capitalize; }
-.report-empty-inline { padding: 22px 10px; color: var(--text-secondary); font-size: 12px; text-align: center; }
-.method-list { display: grid; gap: 16px; margin-top: 18px; }
-.method-row { min-width: 0; }
-.method-info { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: 12px; }
-.method-info span { min-width: 0; color: var(--text-primary); overflow-wrap: anywhere; }
-.method-info strong { flex: 0 0 auto; color: var(--text-primary); font-size: 12px; }
-.method-track { height: 7px; overflow: hidden; border-radius: 99px; background: var(--surface-muted); }
-.method-track span { display: block; height: 100%; border-radius: inherit; background: var(--poliland-gold); }
-.method-row small { display: block; margin-top: 5px; color: var(--text-secondary); font-size: 10px; }
-.report-list-heading { align-items: flex-end; margin-bottom: 14px; }
 .report-search { display: flex; flex: 0 1 220px; align-items: center; gap: 7px; min-width: 130px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 10px; color: var(--text-secondary); }
 .report-search ion-icon { flex: 0 0 auto; font-size: 16px; }
 .report-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 11px; }
-.report-table-wrap { width: 100%; overflow-x: auto; }
-.report-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 11px; }
-.report-table th { padding: 10px 9px; border-bottom: 1px solid var(--border-default); color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); white-space: nowrap; }
-.report-table td { padding: 12px 9px; border-bottom: 1px solid var(--border-default); color: var(--text-primary); vertical-align: middle; }
-.report-table tbody tr:last-child td { border-bottom: 0; }
-.report-table td strong, .report-table td small { display: block; }
-.report-table td strong { font-size: 11px; }
-.report-table td small { margin-top: 3px; color: var(--text-secondary); font-size: 10px; }
-.amount-cell { text-align: right; white-space: nowrap; font-weight: var(--font-weight-semibold); }
-.report-status { display: inline-flex; padding: 5px 7px; border-radius: 7px; font-size: 10px; font-weight: var(--font-weight-semibold); white-space: nowrap; }
-.report-status--pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
-.report-status--verified { background: var(--status-success-bg); color: var(--poliland-green); }
-.report-status--overdue { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
-
-
-.instruction-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 10px -16px 16px; padding: 0 16px; border-bottom: 1px solid var(--border-default); background: var(--surface-muted); }
-.instruction-tabs button { position: relative; min-width: 0; min-height: 52px; padding: 0 10px; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
-.instruction-tabs button::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: transparent; content: ''; }
-.instruction-tabs button.instruction-tab--active { color: var(--poliland-gold-text-soft); }
-.instruction-tabs button.instruction-tab--active::after { background: var(--poliland-gold); }
-.instruction-tabs button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: -3px; }
 .bank-panel, .instruction-panel { min-width: 0; }
 .bank-guidance { display: flex; align-items: flex-start; gap: 9px; margin: 14px 0; padding: 13px 12px; border-radius: var(--radius-card); background: var(--surface-muted); }
 .bank-guidance > ion-icon { flex: 0 0 auto; margin-top: 1px; color: var(--poliland-green); font-size: 19px; }
@@ -2917,27 +3119,13 @@ onMounted(async () => {
 .bank-add-button { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; border: 1px solid var(--poliland-gold); border-radius: var(--radius-control); background: var(--poliland-gold); color: #fff; font: inherit; font-size: 13px; font-weight: var(--font-weight-semibold); cursor: pointer; }
 .bank-add-button ion-icon { font-size: 19px; }
 .bank-add-button:focus-visible, .bank-icon-action:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
-.bank-empty-state { display: grid; justify-items: center; gap: 8px; padding: 32px 18px; border: 1px dashed var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); text-align: center; }
-.bank-empty-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; background: var(--surface-muted); color: var(--poliland-gold-text); font-size: 23px; }
-.bank-empty-state strong { color: var(--text-primary); font-size: 13px; }
-.bank-empty-state p { max-width: 280px; margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 .bank-form { display: grid; gap: 16px; padding: 2px 0 8px; }
-.bank-form-error { margin: 0; color: var(--status-danger); font-size: 12px; }
+
 .bank-form .instruction-publish-toggle { margin-top: -5px; }
-.instruction-heading { margin: 18px 0 16px; }
 .instruction-panel .instruction-editor { margin-top: 12px; }
 @media (min-width: 700px) {
-  .instruction-tabs { margin-right: -24px; margin-left: -24px; padding-right: 24px; padding-left: 24px; }
   .bank-account-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.instruction-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin: 24px 0 18px; }
-.instruction-heading h1 { margin: 0; color: var(--text-primary); font-size: clamp(21px, 5vw, 28px); font-weight: var(--font-weight-bold); letter-spacing: -.035em; }
-.instruction-status { flex: 0 0 auto; padding: 7px 10px; border: 1px solid var(--border-default); border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); }
-.instruction-status--active { border-color: color-mix(in srgb, var(--status-success) 30%, var(--border-default)); background: var(--status-success-bg); color: var(--poliland-green); }
-.instruction-notice { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 14px; padding: 14px; border: 1px solid color-mix(in srgb, var(--poliland-gold) 35%, var(--border-default)); border-radius: var(--radius-card); background: color-mix(in srgb, var(--poliland-gold-soft) 18%, var(--surface-primary)); }
-.instruction-notice > ion-icon { flex: 0 0 auto; margin-top: 1px; color: var(--poliland-gold-text); font-size: 19px; }
-.instruction-notice strong { display: block; color: var(--text-primary); font-size: 12px; }
-.instruction-notice p { margin: 4px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 .instruction-editor { display: grid; gap: 18px; padding: 17px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .instruction-field { display: grid; gap: 7px; min-width: 0; }
 .instruction-field label, .instruction-section-heading h2 { color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); }
@@ -2971,45 +3159,26 @@ onMounted(async () => {
 .instruction-delete:disabled { opacity: .5; cursor: not-allowed; }
 .instruction-field input:focus-visible, .instruction-field textarea:focus-visible, .instruction-step input:focus-visible, .instruction-add:focus-visible, .instruction-remove:focus-visible, .instruction-save:focus-visible, .instruction-delete:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 @media (max-width: 600px) {
-  .instruction-heading { align-items: flex-start; flex-direction: column; }
   .instruction-editor { padding: 14px; gap: 16px; }
 }
-.finance-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; }
-.finance-kicker { margin: 0 0 4px; color: var(--poliland-gold-text); font-size: 11px; font-weight: var(--font-weight-bold); letter-spacing: .06em; text-transform: uppercase; }
-.finance-header h1 { margin: 0; font-size: clamp(22px, 6vw, 32px); letter-spacing: -.03em; }
-.finance-subtitle { max-width: 560px; margin: 7px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
-.overview-card span, .overview-card small, .transaction-details span { display: block; color: var(--text-secondary); font-size: 11px; }
-.finance-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
-.shortcut-card { position: relative; display: flex; min-width: 0; min-height: 104px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 9px; padding: 13px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
-.shortcut-card--active { border-color: var(--poliland-gold); background: color-mix(in srgb, var(--poliland-gold-soft) 28%, var(--surface-primary)); }
-.shortcut-icon { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--poliland-gold-soft); border-radius: var(--radius-control); color: var(--poliland-gold-text); font-size: 19px; }
-.shortcut-card strong { font-size: 12px; line-height: 1.25; }.shortcut-count { position: absolute; top: 12px; right: 12px; display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: var(--poliland-gold); color: var(--text-primary); font-size: 10px; font-weight: var(--font-weight-bold); }
-.shortcut-card:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
-.finance-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
-.overview-card { min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
-.overview-card strong { display: block; margin: 7px 0 2px; font-size: 24px; }
-.overview-card--gold strong { color: var(--poliland-gold-text); }.overview-card--green strong { color: var(--poliland-green); }.overview-card--danger strong { color: var(--status-danger); }
+ .transaction-details span { display: block; color: var(--text-secondary); font-size: 11px; }
 .finance-tabs { display: flex; gap: 8px; margin-top: 18px; overflow-x: auto; scrollbar-width: none; }.finance-tabs::-webkit-scrollbar { display: none; }
 .finance-tabs button { min-height: 42px; padding: 0 13px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); white-space: nowrap; cursor: pointer; }.finance-tabs button span { margin-left: 4px; }.finance-tabs button.active { border-color: var(--poliland-gold); background: var(--poliland-gold-soft); color: var(--text-primary); }
 .finance-search { display: flex; align-items: center; gap: 9px; min-height: 46px; margin-top: 12px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }.finance-search > ion-icon { color: var(--text-secondary); font-size: 18px; }.finance-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 13px; }.finance-search button { display: grid; width: 32px; height: 32px; place-items: center; border: 0; background: transparent; color: var(--text-secondary); }
-.transaction-list { display: grid; gap: 12px; margin-top: 16px; }.transaction-card { min-width: 0; padding: 15px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }.transaction-head { display: flex; align-items: center; gap: 10px; }.customer-mark { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 12px; font-size: 12px; font-weight: var(--font-weight-bold); }.customer-mark--pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }.customer-mark--verified { background: var(--status-success-bg); color: var(--poliland-green); }.customer-mark--overdue { background: color-mix(in srgb, var(--status-danger) 11%, white); color: var(--status-danger); }.transaction-customer { min-width: 0; flex: 1; }.transaction-customer h2 { margin: 0; font-size: 14px; }.transaction-customer p { margin: 3px 0 0; color: var(--text-secondary); font-size: 11px; overflow-wrap: anywhere; }.status-badge { flex: 0 0 auto; padding: 5px 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 10px; font-weight: var(--font-weight-semibold); }.status-badge--pending { color: var(--poliland-gold-text); background: var(--poliland-gold-soft); }.status-badge--verified { color: var(--poliland-green); background: var(--status-success-bg); }.status-badge--overdue { color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 10%, white); }
-.finance-pager { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(90px, 1fr); align-items: center; gap: 14px; margin-top: 18px; padding: 16px 0 4px; border-top: 1px solid var(--border-default); }.finance-pager-controls { grid-column: 2; display: flex; align-items: center; gap: 6px; max-width: 100%; overflow-x: auto; scrollbar-width: none; padding: 3px; border: 1px solid var(--border-default); border-radius: var(--radius-panel); background: var(--surface-muted); }.finance-pager-controls::-webkit-scrollbar { display: none; }.finance-pager-btn, .finance-pager-number { min-width: 44px; height: 44px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-primary); color: var(--text-primary); font: inherit; font-weight: var(--font-weight-bold); cursor: pointer; }.finance-pager-btn { display: inline-flex; align-items: center; justify-content: center; font-size: 20px; }.finance-pager-number.active { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }.finance-pager-btn:disabled, .finance-pager-number:disabled { cursor: default; border-color: transparent; background: transparent; opacity: 1; }.finance-pager-position { grid-column: 3; color: var(--text-secondary); font-size: 12px; text-align: center; white-space: nowrap; }
+.transaction-list { display: grid; gap: 12px; margin-top: 16px; }.transaction-card { min-width: 0; padding: 15px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }.transaction-head { display: flex; align-items: center; gap: 10px; }.customer-mark { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 12px; font-size: 12px; font-weight: var(--font-weight-bold); }.customer-mark--pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }.customer-mark--verified { background: var(--status-success-bg); color: var(--poliland-green); }.customer-mark--overdue { background: color-mix(in srgb, var(--status-danger) 11%, white); color: var(--status-danger); }.transaction-customer { min-width: 0; flex: 1; }.transaction-customer h2 { margin: 0; font-size: 14px; }.transaction-customer p { margin: 3px 0 0; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }.status-badge { flex: 0 0 auto; padding: 5px 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 10px; font-weight: var(--font-weight-semibold); }.status-badge--pending { color: var(--poliland-gold-text); background: var(--poliland-gold-soft); }.status-badge--verified { color: var(--poliland-green); background: var(--status-success-bg); }.status-badge--overdue { color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 10%, white); }
 .transaction-details { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); }.transaction-details strong { display: block; margin-top: 4px; font-size: 18px; }.transaction-details time { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 10px; text-align: right; }.transaction-actions { display: flex; gap: 8px; margin-top: 12px; }.transaction-actions button { min-height: 44px; padding: 0 12px; border-radius: var(--radius-control); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.spk-link-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; color: var(--poliland-green); border-color: var(--poliland-green); }
 .spk-link-action:active { transform: scale(0.97); }
-.primary-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--poliland-green); background: var(--poliland-green); color: #fff; }.secondary-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-primary); }.quiet-action { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-secondary); }.action-message { position: fixed; right: 16px; bottom: calc(94px + env(safe-area-inset-bottom)); left: 16px; z-index: 9000; margin: 0 auto; max-width: 520px; padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); box-shadow: 0 8px 24px rgb(37 37 37 / 15%); color: var(--text-primary); font-size: 12px; text-align: center; }.finance-state { display: flex; flex-direction: column; align-items: center; gap: 9px; margin-top: 16px; padding: 34px 18px; border: 1px dashed var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); text-align: center; }.finance-state ion-icon, .finance-state ion-spinner { color: var(--poliland-green); font-size: 28px; }.finance-state strong { font-size: 14px; }.finance-state p { max-width: 390px; margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
+.primary-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--poliland-green); background: var(--poliland-green); color: #fff; }.quiet-action { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-secondary); }.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
-@media (max-width: 600px) { .finance-header { align-items: stretch; flex-direction: column; gap: 12px; }.finance-shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-inline: 0; padding: 0; }.shortcut-card { min-height: 96px; padding: 11px 9px; }.finance-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }.overview-card { padding: 11px; }.overview-card strong { font-size: 20px; }.transaction-actions { flex-wrap: wrap; }.primary-action, .secondary-action { flex: 1 1 100%; }.quiet-action { flex: 1 1 100%; }.finance-pager { grid-template-columns: 1fr; gap: 8px; }.finance-pager-controls { grid-column: 1; justify-self: center; }.finance-pager-position { grid-column: 1; } }
+@media (max-width: 600px) {.transaction-actions { flex-wrap: wrap; }.primary-action{ flex: 1 1 100%; }.quiet-action { flex: 1 1 100%; } }
 .transaction-actions .primary-action, .transaction-actions .spk-link-action { flex: 1 1 0; min-width: 0; white-space: nowrap; }
 @media (max-width: 600px) {
-  .report-heading { align-items: flex-start; flex-direction: column; gap: 12px; margin-top: 20px; }
   .export-button { width: 100%; }
   .report-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-total-card { grid-column: 1 / -1; }
   .report-metric-card { min-height: 104px; }
   .report-panel { padding: 14px; }
-  .report-list-heading { align-items: stretch; flex-direction: column; }
   .report-search { flex: 1 1 auto; width: 100%; }
-  .report-table { min-width: 540px; }
 }
 @media (max-width: 360px) {
   .report-summary { gap: 7px; }
@@ -3017,22 +3186,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
   .report-metric-card > strong { font-size: 16px; }
   .report-total-card { padding: 13px; }
   .report-total-card > strong { font-size: 19px; }
-  .report-filter { align-items: flex-start; flex-direction: column; }
-  .report-filter select { width: 100%; max-width: none; }
   .monthly-chart { gap: 6px; }
   .chart-value { font-size: 9px; }
 }
-@media (max-width: 360px) { .finance-overview { gap: 6px; }.overview-card { padding: 9px; }.overview-card span, .overview-card small { font-size: 10px; }.overview-card strong { font-size: 18px; }.transaction-details { align-items: flex-start; flex-direction: column; }.transaction-details time { text-align: left; } }
-
-/* Laporan keuangan: tab Ringkasan, Kavling, Pembeli */
-.report-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 16px 0 12px; }
-.report-tabs button { display: inline-flex; min-width: 0; min-height: 42px; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; border: 1px solid transparent; border-radius: 999px; background: var(--surface-muted); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); white-space: nowrap; cursor: pointer; }
-.report-tabs button ion-icon { font-size: 15px; }
-.report-tabs button.report-tab--active { background: var(--poliland-gold); color: #fff; }
+@media (max-width: 360px) {.transaction-details { align-items: flex-start; flex-direction: column; }.transaction-details time { text-align: left; } }
 .report-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 10px 0 16px; }
-.report-month-picker { display: inline-flex; min-height: 42px; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); }
-.report-month-picker ion-icon { color: var(--poliland-gold-text); font-size: 17px; }
-.report-month-picker input { width: 142px; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; font-size: 12px; }
 .report-toolbar .export-button { min-height: 42px; padding: 0 11px; }
 .report-total-card--monthly { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .report-total-card--monthly .report-total-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 11px; font-weight: var(--font-weight-semibold); }
@@ -3052,7 +3210,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-trend-panel { margin-top: 14px; padding: 16px; }
 .report-trend-panel .monthly-chart { min-height: 190px; }
 .monthly-chart--dense { gap: 4px; }
-.monthly-chart--dense .chart-value, .monthly-chart--dense .chart-cashflow-label { display: none; }
+.monthly-chart--dense .chart-value{ display: none; }
 .monthly-chart--dense .chart-column { grid-template-rows: minmax(70px, 1fr) 16px; }
 .monthly-chart--dense .chart-track { width: min(100%, 22px); }
 .monthly-chart--dense .chart-label { font-size: 9px; }
@@ -3068,7 +3226,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-stepper__label ion-icon { flex: 0 0 auto; color: var(--poliland-gold-text); font-size: 16px; }
 .report-stepper__label span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .report-toolbar--period .export-button { width: 100%; }
-.report-pdf-error { margin: -8px 0 12px; color: var(--status-danger); font-size: 12px; }
+
 .export-button ion-spinner { width: 16px; height: 16px; }
 .chart-bar--peak { background: var(--poliland-gold); }
 .report-panel .panel-period { padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-primary); font-size: 10px; }
@@ -3079,7 +3237,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-recent-card { display: flex; min-width: 0; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .report-recent-icon { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: var(--surface-muted); color: var(--text-secondary); font-size: 19px; }
 .report-recent-icon.is-confirmed { background: var(--status-success-bg); color: var(--poliland-green); }
-.report-recent-icon.is-pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
 .report-recent-icon.is-outflow { background: color-mix(in srgb, var(--status-danger) 12%, var(--surface-primary)); color: var(--status-danger); }
 .report-recent-main { flex: 1; min-width: 0; }
 .report-recent-main strong { display: block; font-size: 12px; }
@@ -3089,7 +3246,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-recent-amount strong { display: block; font-size: 12px; white-space: nowrap; }
 .report-text-confirmed { color: var(--poliland-green) !important; }
 .report-text-pending { color: var(--poliland-gold-text) !important; }
-.report-text-rejected, .report-text-danger { color: var(--status-danger) !important; }
+.report-text-rejected{ color: var(--status-danger) !important; }
 .report-list-intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin: 18px 0 12px; }
 .report-list-intro h1 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
 .report-list-intro p { max-width: 270px; margin: 4px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
@@ -3171,33 +3328,26 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-payment-status--rejected { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
 .report-payment-status--refunded { background: color-mix(in srgb, var(--poliland-gold) 16%, var(--surface-primary)); color: var(--poliland-gold-text); }
 .report-payment-history-amount { margin: 10px 0 6px; font-size: 20px; font-weight: var(--font-weight-bold); }
+.report-payment-history-meta span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-payment-history-meta span:last-child { flex: 0 0 auto; }
 .report-payment-history-meta { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 9px; border-bottom: 1px solid var(--border-default); color: var(--text-secondary); font-size: 10px; }
 .report-payment-history-card p { margin: 9px 0 0; color: var(--text-secondary); font-size: 10px; }
-.report-detail-back button:focus-visible, .report-tabs button:focus-visible, .report-detail-button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+.report-detail-back button:focus-visible, .report-detail-button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 @media (max-width: 600px) {
   .report-toolbar { justify-content: space-between; }
-  .report-month-picker { flex: 1; }
-  .report-month-picker input { width: 100%; min-width: 0; }
   .report-toolbar .export-button { width: auto; }
   .report-lot-metrics strong { font-size: 10px; }
   .report-recent-card { align-items: flex-start; }
   .report-recent-amount strong { font-size: 10px; }
 }
 @media (max-width: 360px) {
-  .report-tabs { gap: 5px; }
-  .report-tabs button { gap: 4px; padding: 0 5px; font-size: 10px; }
   .report-income-sources { gap: 6px; }
   .report-income-sources > div { padding: 9px; }
   .report-income-sources strong { font-size: 12px; }
   .report-lot-metrics { padding-inline: 5px; }
 }
-
-
-/* Menu keuangan empat modul: mobile horizontal scroll, desktop four columns. */
-.finance-shortcuts { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .payment-plans-page { padding-top: 30px; }
 .payment-plans-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 14px 2px 14px; }
-.payment-plans-eyebrow { margin: 0 0 6px; color: var(--poliland-gold-text); font-size: 9px; font-weight: var(--font-weight-bold); letter-spacing: .08em; }
 .payment-plans-heading h1 { margin: 0; color: var(--text-primary); font-size: 18px; font-weight: var(--font-weight-bold); letter-spacing: -.02em; }
 .payment-plans-description { max-width: 460px; margin: 5px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
 .payment-plans-count { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; }
@@ -3213,13 +3363,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .payment-plan-actions { display: flex; align-items: center; gap: 6px; }
 .payment-plan-usage { color: var(--text-secondary); font-size: var(--font-size-xs); white-space: nowrap; }
 .payment-plan-action { --padding-start: 0; --padding-end: 0; --padding-top: 0; --padding-bottom: 0; --border-radius: var(--radius-control); display: grid; width: 44px; height: 44px; min-height: 44px; place-items: center; margin: 0; font-size: 19px; }
-.payment-plan-add-button, .payment-plan-back-button { width: 100%; min-height: 48px; margin-top: 14px; }
+.payment-plan-add-button{ width: 100%; min-height: 48px; margin-top: 14px; }
 .payment-plan-add-button ion-icon { font-size: 19px; }
-.payment-plan-back-button { min-height: 44px; margin-top: 9px; }
-.payment-plan-empty { display: grid; justify-items: center; gap: 7px; padding: 32px 18px; border: 1px dashed var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); text-align: center; }
-.payment-plan-empty-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: var(--surface-muted); color: var(--poliland-gold-text); font-size: 22px; }
-.payment-plan-empty strong { font-size: 13px; }
-.payment-plan-empty p { max-width: 260px; margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 .payment-plan-form { display: grid; gap: 16px; }
 .payment-plan-form .instruction-field { margin: 0; }
 .payment-plan-delete-content { display: grid; justify-items: center; gap: 10px; padding: 6px 0 10px; text-align: center; }
@@ -3227,9 +3372,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .payment-plan-delete-content p { margin: 0; color: var(--text-primary); font-size: 13px; line-height: 1.5; }
 .payment-plan-delete-content small { color: var(--text-secondary); font-size: 10px; line-height: 1.5; }
 @media (max-width: 600px) {
-  .finance-shortcuts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(108px, 1fr); grid-template-columns: none; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 0 0 4px; }
-  .finance-shortcuts::-webkit-scrollbar { display: none; }
-  .finance-shortcuts .shortcut-card { scroll-snap-align: start; }
   .payment-plans-page { padding-top: 28px; }
   .payment-plans-heading { align-items: flex-start; }
   .payment-plan-card { min-height: 106px; }
@@ -3238,7 +3380,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 @media (min-width: 601px) {
   .payment-plan-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
 
 /* Detail transaksi, review bukti, dan input pembayaran. */
 .payment-flow-page { display: grid; gap: 14px; padding: 8px 0 28px; }
@@ -3274,14 +3415,21 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .proof-pdf-preview { display: grid; justify-items: center; gap: 8px; color: var(--poliland-gold-text); font-size: 14px; }
 .proof-pdf-preview ion-icon { font-size: 46px; }
 .proof-no-file { padding: 14px; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-secondary); font-size: 11px; text-align: center; }
-.proof-download { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-control); background: var(--status-success-bg); color: var(--poliland-green); font-size: 12px; font-weight: var(--font-weight-semibold); text-decoration: none; }
+.proof-download { display: flex; width: 100%; border: 0; font-family: inherit; cursor: pointer; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-control); background: var(--status-success-bg); color: var(--poliland-green); font-size: 12px; font-weight: var(--font-weight-semibold); text-decoration: none; }
 .proof-review-actions { display: grid; gap: 8px; }
-.proof-verify-button, .proof-reject-button, .proof-reupload-button, .proof-back-button, .payment-save-button, .payment-cancel-button, .report-add-payment-button { display: flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: var(--radius-control); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
-.proof-verify-button, .payment-save-button, .report-add-payment-button { background: var(--poliland-gold); color: #fff; }
+.proof-verify-button, .proof-reject-button, .proof-reupload-button, .payment-save-button, .payment-cancel-button, .report-add-payment-button { display: flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: var(--radius-control); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
+.proof-verify-button, .payment-save-button, .report-add-payment-button { background: var(--poliland-gold); color: var(--text-primary); }
+.proof-spk-cta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px; border: 1px solid color-mix(in srgb, var(--poliland-green) 22%, white); border-radius: var(--radius-card); background: var(--status-success-bg); }
+.proof-spk-cta-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 12px; background: var(--poliland-green); color: #fff; font-size: 22px; }
+.proof-spk-cta-text { min-width: 0; }
+.proof-spk-cta-text strong { display: block; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.proof-spk-cta-text p { margin: 3px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
+.proof-spk-cta-button { display: flex; grid-column: 1 / -1; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: var(--radius-control); background: var(--poliland-green); color: #fff; font: inherit; font-size: 13px; font-weight: var(--font-weight-semibold); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: transform var(--dur-fast, 120ms) var(--ease-out, ease-out); }
+.proof-spk-cta-button:active { transform: scale(0.97); }
 .proof-review-secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .proof-reject-button { border: 1px solid color-mix(in srgb, var(--status-danger) 25%, white); background: color-mix(in srgb, var(--status-danger) 7%, white); color: var(--status-danger); }
 .proof-reupload-button { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-secondary); }
-.proof-back-button, .payment-cancel-button { background: var(--surface-muted); color: var(--text-primary); }
+ .payment-cancel-button { background: var(--surface-muted); color: var(--text-primary); }
 .proof-review-note { padding: 13px; border-radius: var(--radius-control); background: var(--surface-muted); font-size: 12px; }
 .proof-review-note p { margin: 5px 0 0; color: var(--text-secondary); line-height: 1.5; }
 .proof-refund-section { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
@@ -3302,12 +3450,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .refund-upload { display: grid; gap: 6px; min-height: 44px; padding: 10px 12px; border: 1px dashed var(--border-default); border-radius: var(--radius-control); font-size: 11px; }
 .refund-upload input { min-height: 44px; font-size: 10px; }
 .refund-upload span { color: var(--text-secondary); }
-.proof-refund-error { margin: 0; color: var(--status-danger); font-size: 11px; }
+
 .proof-refund-submit { min-height: 46px; border: 0; border-radius: var(--radius-control); background: var(--poliland-green); color: #fff; font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
 .proof-refund-submit:disabled { opacity: .55; cursor: not-allowed; }
-.proof-zoom-content { display: grid; min-height: 65dvh; place-items: center; }
-.proof-zoom-content img { max-width: 100%; max-height: 75dvh; object-fit: contain; }
-.proof-zoom-content iframe { width: 100%; height: 75dvh; border: 0; }
 .payment-review-dialog { display: grid; gap: 9px; }
 .payment-review-dialog p { margin: 0 0 5px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 .payment-review-dialog label { font-size: 11px; font-weight: var(--font-weight-semibold); }
@@ -3334,7 +3479,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .payment-schedule-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .payment-schedule-check { display: grid; width: 19px; height: 19px; place-items: center; border: 1px solid var(--border-default); border-radius: 4px; background: var(--surface-primary); }
 .payment-schedule-option input:checked + .payment-schedule-check { border-color: var(--poliland-gold); background: var(--poliland-gold); }
-.payment-schedule-option input:checked + .payment-schedule-check::after { width: 8px; height: 5px; border-bottom: 2px solid white; border-left: 2px solid white; content: ""; transform: rotate(-45deg) translateY(-1px); }
+.payment-bank-target { display: grid; gap: 2px; margin-top: 8px; padding: 10px 12px; border-radius: var(--radius-control); background: var(--surface-muted); }
+.payment-bank-target span, .payment-bank-target small { color: var(--text-secondary); font-size: 11px; }
+.payment-bank-target strong { color: var(--text-primary); font-size: 16px; letter-spacing: 0.02em; overflow-wrap: anywhere; user-select: all; }
+.payment-schedule-option--locked { cursor: not-allowed; opacity: 0.6; }
+.payment-schedule-option input:focus-visible + .payment-schedule-check { outline: 2px solid var(--poliland-green); outline-offset: 2px; }
+.payment-schedule-option input:checked + .payment-schedule-check::after { width: 8px; height: 5px; border-bottom: 2px solid var(--ink); border-left: 2px solid var(--ink); content: ""; transform: rotate(-45deg) translateY(-1px); }
 .payment-schedule-copy { min-width: 0; }
 .payment-schedule-copy strong, .payment-schedule-copy small { display: block; }
 .payment-schedule-copy strong { font-size: 11px; }
@@ -3377,7 +3527,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-contact-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .report-contact-action { display: inline-flex; min-height: 36px; align-items: center; gap: 5px; padding: 0 9px; border-radius: 9px; background: var(--surface-primary); color: var(--text-primary); font-size: 10px; text-decoration: none; white-space: nowrap; }
 .report-proof-link { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; margin-top: 10px; padding: 0; border: 0; background: transparent; color: var(--poliland-gold-text); font: inherit; font-size: 10px; font-weight: var(--font-weight-semibold); cursor: pointer; }
-.report-no-proof { display: block; margin-top: 9px; color: var(--text-secondary); font-size: 9px; }
 .report-add-payment-button { width: min(100%, 280px); min-height: 48px; margin: 24px auto 8px; border-radius: 999px; box-shadow: 0 4px 10px rgb(35 35 35 / 10%); }
 @media (max-width: 360px) {
   .proof-info-grid { gap: 13px 8px; }
@@ -3388,4 +3537,105 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 }
 
 .finance-skeleton { display: grid; gap: 12px; }
+
+/* Navigasi keuangan: 3 area + sub-bagian */
+.finance-nav { position: sticky; top: 0; z-index: 5; display: grid; gap: 8px; margin: 0 -16px 14px; padding: 10px 16px; background: color-mix(in srgb, var(--pl-paper, #f9f5ec) 94%, transparent); border-bottom: 1px solid var(--border-default); }
+.finance-areas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: var(--radius-control); background: var(--surface-muted); }
+.finance-area { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 56px; align-items: center; justify-content: center; gap: 2px; padding: 4px 4px; border: 0; border-radius: calc(var(--radius-control) - 2px); background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; transition: transform 120ms var(--ease-spring, ease), background-color 160ms var(--ease-out, ease); }
+.finance-area ion-icon { flex: 0 0 auto; font-size: 17px; }
+.finance-area span { min-width: 0; font-size: 12px; line-height: 1.2; text-align: center; }
+.finance-area:active { transform: scale(0.97); }
+.finance-area--active { background: var(--surface-primary); color: var(--text-primary); box-shadow: 0 1px 4px rgb(35 35 35 / 12%); }
+.finance-area:focus-visible, .finance-subnav button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+.finance-area__badge { position: absolute; top: 4px; right: 6px; display: grid; min-width: 20px; height: 20px; place-items: center; padding: 0 5px; border-radius: 999px; background: var(--poliland-gold); color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-bold); }
+.finance-subnav { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
+.finance-subnav::-webkit-scrollbar { display: none; }
+.finance-subnav button { min-width: 0; min-height: 44px; padding: 4px 6px; line-height: 1.2; text-align: center; border: 1px solid var(--border-default); border-radius: 999px; background: var(--surface-primary); color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; transition: transform 120ms var(--ease-spring, ease); }
+.finance-subnav button:active { transform: scale(0.97); }
+.finance-subnav button.is-active { border-color: var(--poliland-gold); background: var(--poliland-gold-soft); color: var(--text-primary); }
+.finance-attention { margin: 0; color: var(--text-primary); font-size: 12px; line-height: 1.45; }
+.finance-attention--clear { color: var(--text-secondary); }
+.report-breakdown { margin-top: 12px; border-top: 1px solid var(--border-default); }
+.report-breakdown summary { display: flex; min-height: 44px; align-items: center; color: var(--poliland-gold-text); font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
+.report-breakdown ul { display: grid; gap: 8px; margin: 0; padding: 0 0 4px; list-style: none; }
+.report-breakdown li { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-muted); font-size: 12px; }
+.report-breakdown li strong { grid-column: 1 / -1; }
+.report-breakdown li span { color: var(--text-secondary); }
+.payment-plan-add-button { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 4; box-shadow: 0 6px 16px rgb(35 35 35 / 14%); }
+@media (min-width: 700px) { .finance-nav { margin-inline: 0; padding-inline: 0; } }
+@media (prefers-reduced-motion: reduce) { .finance-area, .finance-subnav button { transition: none; } }
+
+/* Angka, pemasukan, pengeluaran, sisa tagihan */
+.finance-shell { font-variant-numeric: tabular-nums; }
+.amount--in { color: #1B6B3A; }
+.amount--out { color: #B42318; }
+.report-lot-metrics { grid-template-columns: 1fr; gap: 8px; padding: 12px; }
+.report-lot-metrics > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; text-align: left; }
+.report-lot-metrics span { display: inline; font-size: 12px; }
+.report-lot-metrics strong { margin: 0; font-size: 14px; text-align: right; white-space: nowrap; }
+.report-buyer-balance strong { white-space: nowrap; }
+.report-lot-card, .report-buyer-card { position: relative; }
+.report-buyer-open::after { position: absolute; inset: 0; border-radius: inherit; content: ''; }
+.report-buyer-open { position: static; }
+.report-paid-note { margin: 18px 0 8px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); font-size: 12px; text-align: center; }
+/* Catat pembayaran */
+.finance-fab { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 4; display: flex; width: min(100%, 320px); min-height: 52px; align-items: center; justify-content: center; gap: 8px; margin: 18px auto 0; border: 0; border-radius: 999px; background: var(--poliland-gold); color: var(--text-primary); font: inherit; font-size: 13px; font-weight: var(--font-weight-semibold); box-shadow: 0 6px 16px rgb(35 35 35 / 16%); touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; transition: transform 120ms var(--ease-spring, ease); }
+.finance-fab ion-icon { font-size: 20px; }
+.finance-fab:active { transform: scale(0.97); }
+.finance-fab:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 3px; }
+.payment-picker { display: grid; gap: 12px; }
+.payment-picker__list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.payment-picker__list button { display: flex; width: 100%; min-height: 56px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; text-align: left; touch-action: manipulation; cursor: pointer; }
+.payment-picker__list button:active { background: var(--surface-muted); }
+.payment-picker__list button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+.payment-picker__name, .payment-picker__due { display: grid; min-width: 0; gap: 2px; }
+.payment-picker__due { text-align: right; }
+.payment-picker__name small, .payment-picker__due small { color: var(--text-secondary); font-size: 11px; }
+.payment-picker__name strong, .payment-picker__due strong { font-size: 13px; }
+.payment-picker__empty { margin: 8px 0; color: var(--text-secondary); font-size: 12px; text-align: center; }
+/* Pesan kesalahan formulir */
+.field-error { display: block; margin-top: 6px; color: #B42318; font-size: 12px; font-weight: var(--font-weight-semibold); line-height: 1.4; }
+.field-hint { display: block; margin-top: 6px; color: var(--text-secondary); font-size: 12px; }
+.instruction-field--error input, .instruction-field--error select { border-color: #B42318; }
+/* Rincian pembeli */
+.buyer-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.buyer-detail-actions .report-contact-action { min-height: 44px; }
+.finance-figures { display: grid; gap: 0; margin: 0; }
+.finance-figures > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-default); }
+.finance-figures dt { color: var(--text-secondary); font-size: 12px; }
+.finance-figures dd { margin: 0; color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-semibold); text-align: right; }
+.finance-figures__total { border-bottom: 0 !important; }
+.finance-figures__total dt { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
+.finance-figures__total dd { font-size: 17px; }
+.buyer-lot-row { display: flex; width: 100%; min-height: 56px; align-items: center; gap: 12px; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; text-align: left; touch-action: manipulation; cursor: pointer; }
+.buyer-lot-row:active { background: var(--surface-muted); }
+.buyer-lot-row:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+.buyer-lot-row__name, .buyer-lot-row__money { display: grid; min-width: 0; gap: 2px; }
+.buyer-lot-row__name { flex: 1; }
+.buyer-lot-row__money { text-align: right; }
+.buyer-lot-row small { color: var(--text-secondary); font-size: 11px; }
+.buyer-lot-row strong { font-size: 13px; }
+/* Buku kas */
+.ledger-totals { grid-template-columns: 1fr; gap: 0; margin: 0; padding: 4px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+.ledger-totals > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-default); }
+.ledger-totals dt { color: var(--text-secondary); font-size: 12px; }
+.ledger-totals dd { margin: 0; font-size: 15px; font-weight: var(--font-weight-semibold); text-align: right; }
+.ledger-totals__net { border-bottom: 0 !important; }
+.ledger-totals__net dt { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
+.ledger-count { margin: 0; color: var(--text-secondary); font-size: 12px; }
+.ledger-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.ledger-item { min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+.ledger-item__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ledger-item__title { display: grid; min-width: 0; gap: 3px; }
+.ledger-item__title strong { font-size: 14px; }
+.ledger-item__title small { color: var(--text-secondary); font-size: 12px; }
+.ledger-item__amount { flex: 0 0 auto; font-size: 14px; white-space: nowrap; }
+.ledger-item__ref { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; margin: 10px 0 0; color: var(--text-primary); font-size: 12px; overflow-wrap: anywhere; }
+.ledger-item__ref span { color: var(--text-secondary); }
+.ledger-journal { margin-top: 8px; border-top: 1px solid var(--border-default); }
+.ledger-journal summary { display: flex; min-height: 44px; align-items: center; color: var(--poliland-gold-text); font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
+.ledger-journal ul { display: grid; gap: 8px; margin: 0; padding: 0 0 4px; list-style: none; }
+.ledger-journal li { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-muted); font-size: 12px; }
+.ledger-journal li strong { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.ledger-journal li span { color: var(--text-secondary); }
 </style>

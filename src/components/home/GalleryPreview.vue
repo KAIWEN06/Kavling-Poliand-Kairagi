@@ -37,7 +37,7 @@
         <div v-for="item in filteredItems" :key="item.id" class="gallery-item">
           <!-- ADMIN ACTION BUTTONS -->
           <div v-if="isAdmin" class="admin-item-actions">
-            <button type="button" class="action-btn edit-btn" aria-label="Edit foto" @click="openEdit(item)">
+            <button type="button" class="action-btn edit-btn" aria-label="Ubah foto" @click="openEdit(item)">
               <ion-icon :icon="createOutline" />
             </button>
             <button type="button" class="action-btn delete-btn" aria-label="Hapus foto" @click="askDelete(item)">
@@ -46,7 +46,7 @@
           </div>
 
           <button type="button" class="item-open" :aria-label="`Lihat foto ${item.title}`" @click="selectedItem = item">
-            <img :src="item.image_url" :alt="item.title" loading="lazy" />
+            <img :src="item.image_url" :alt="item.title" loading="lazy" decoding="async" />
             <span class="category-badge">{{ item.category }}</span>
             <span class="gallery-overlay">
               <h4>{{ item.title }}</h4>

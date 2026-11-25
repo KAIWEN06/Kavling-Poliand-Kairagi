@@ -141,8 +141,8 @@ function togglePassword() {
         :disabled="disabled"
         :aria-label="
           passwordVisible
-            ? 'Sembunyikan password'
-            : 'Tampilkan password'
+            ? 'Sembunyikan kata sandi'
+            : 'Tampilkan kata sandi'
         "
         :aria-pressed="passwordVisible"
         @pointerdown.prevent

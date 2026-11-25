@@ -55,26 +55,32 @@ let animationTimer: number | null = null
    PRELOAD
 ================================ */
 
-const preloadFrames = async () => {
-  const promises = frames.map((src) => {
-    return new Promise<void>((resolve) => {
-      const image = new Image()
+// Frame yang wajib siap sebelum mulai; sisanya menyusul selagi animasi berjalan.
+const START_BUFFER = 15
 
-      image.onload = () => {
-        resolve()
-      }
+const frameReady: boolean[] = []
 
-      image.onerror = () => {
-        console.warn('Frame gagal dimuat:', src)
-        resolve()
-      }
+const preloadFrames = () =>
+  frames.map(
+    (src, index) =>
+      new Promise<void>((resolve) => {
+        const image = new Image()
 
-      image.src = src
-    })
-  })
+        const done = () => {
+          frameReady[index] = true
+          resolve()
+        }
 
-  await Promise.all(promises)
-}
+        image.onload = done
+
+        image.onerror = () => {
+          console.warn('Frame gagal dimuat:', src)
+          done()
+        }
+
+        image.src = src
+      }),
+  )
 
 /* ================================
    ANIMATION
@@ -87,10 +93,11 @@ const startAnimation = () => {
   }
 
   animationTimer = window.setInterval(() => {
-    if (currentFrameIndex.value < frames.length - 1) {
-      currentFrameIndex.value++
-    } else {
+    if (currentFrameIndex.value >= frames.length - 1) {
       finishSplash()
+    } else if (frameReady[currentFrameIndex.value + 1]) {
+      // Frame berikutnya belum tiba: tahan frame sekarang agar tidak berkedip.
+      currentFrameIndex.value++
     }
   }, FRAME_DURATION)
 }
@@ -105,6 +112,8 @@ const finishSplash = () => {
     animationTimer = null
   }
 
+  // Tap notifikasi bisa sudah membawa pengguna ke tujuan selagi splash berjalan.
+  if (router.currentRoute.value.name !== 'Splash') return
   router.replace('/welcome')
 }
 
@@ -112,12 +121,16 @@ const finishSplash = () => {
    LIFECYCLE
 ================================ */
 
+let disposed = false
+
 onMounted(async () => {
-  await preloadFrames()
-  startAnimation()
+  await Promise.all(preloadFrames().slice(0, START_BUFFER))
+  if (!disposed) startAnimation()
 })
 
 onUnmounted(() => {
+  disposed = true
+
   if (animationTimer !== null) {
     window.clearInterval(animationTimer)
     animationTimer = null

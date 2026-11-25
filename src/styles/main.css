@@ -137,3 +137,8 @@ ion-button .app-button__content,
     scroll-behavior: auto !important;
   }
 }
+/* Data yang dituju notifikasi (lihat useRowFocus). */
+.notif-target {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: -1px;
+}

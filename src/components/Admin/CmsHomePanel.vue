@@ -14,7 +14,7 @@
     <template v-else>
       <section v-if="shows('hero')" class="block" aria-labelledby="hero-title">
         <div class="block-head">
-          <h3 id="hero-title">Hero (bagian paling atas)</h3>
+          <h3 id="hero-title">Sampul (bagian paling atas)</h3>
           <label class="switch">
             <input v-model="hero.is_active" type="checkbox">
             <span>{{ hero.is_active ? 'Ditampilkan' : 'Disembunyikan' }}</span>
@@ -46,8 +46,8 @@
 
         <div class="image-field">
           <div class="image-frame">
-            <img v-if="previewSrc" :src="previewSrc" alt="Pratinjau gambar hero" width="640" height="360">
-            <p v-else>Belum ada gambar. Hero tampil dengan latar hijau polos.</p>
+            <img v-if="previewSrc" :src="previewSrc" alt="Pratinjau gambar sampul" width="640" height="360">
+            <p v-else>Belum ada gambar. Sampul tampil dengan latar hijau polos.</p>
           </div>
           <div class="image-actions">
             <label class="btn btn-secondary file-btn">
@@ -144,9 +144,9 @@
             </div>
           </div>
 
-          <label v-if="videoSource === 'youtube'" class="field wide">Link YouTube
+          <label v-if="videoSource === 'youtube'" class="field wide">Tautan YouTube
             <input v-model="videoUrl" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…">
-            <span v-if="videoUrl && !isYouTubeUrl(videoUrl)" class="hint">Link belum dikenali sebagai YouTube.</span>
+            <span v-if="videoUrl && !isYouTubeUrl(videoUrl)" class="hint">Tautan belum dikenali sebagai YouTube.</span>
           </label>
           <div v-else class="image-actions">
             <label class="btn btn-secondary file-btn">
@@ -393,14 +393,14 @@ function removeFeature(feature: CmsFeature, index: number) {
 
 function validate(): string | null {
   if (shows('hero')) {
-    if (!hero.title.trim()) return 'Judul utama hero wajib diisi.'
+    if (!hero.title.trim()) return 'Judul utama sampul wajib diisi.'
     if (ctaPreset.value === 'custom' && !/^(https?:\/\/|\/)/i.test(hero.cta_url)) return 'Alamat tujuan tombol harus diawali https:// atau /.'
   }
   if (shows('features')) {
     const incomplete = features.value.findIndex((feature) => !feature.title.trim() || !feature.description.trim())
     if (incomplete !== -1) return `Keunggulan nomor ${incomplete + 1} belum lengkap. Isi judul dan deskripsi, atau hapus.`
   }
-  if (shows('about') && videoSource.value === 'youtube' && videoUrl.value.trim() && !isYouTubeUrl(videoUrl.value)) return 'Link video harus berupa link YouTube yang valid.'
+  if (shows('about') && videoSource.value === 'youtube' && videoUrl.value.trim() && !isYouTubeUrl(videoUrl.value)) return 'Tautan video harus berupa tautan YouTube yang valid.'
   if (shows('highlights') && highlights.value.some((item) => !item.value.trim() || !item.label.trim())) return 'Setiap sorotan harus punya isi dan keterangan, atau hapus yang kosong.'
   return null
 }
@@ -431,7 +431,7 @@ async function save(): Promise<boolean> {
       { key: HOME_KEYS.aboutPoints, label: 'Poin Tentang Kami', value: JSON.stringify(aboutPoints.value.map((point) => point.trim()).filter(Boolean)) },
     )
     if (entries.length) await contactsService.saveMany(entries)
-    notify('Tersimpan dan langsung tampil di website.')
+    notify('Tersimpan dan langsung tampil di situs web.')
     emit('saved')
     return true
   } catch (error) {

@@ -3,6 +3,7 @@
     <ion-router-outlet />
     <ToastHost />
     <CelebrationHost />
+    <ConfirmHost />
   </ion-app>
 </template>
 
@@ -26,6 +27,8 @@ import {
 import router from './router'
 import ToastHost from '@/components/ui/ToastHost.vue'
 import CelebrationHost from '@/components/ui/CelebrationHost.vue'
+import ConfirmHost from '@/components/ui/ConfirmHost.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import { App as CapacitorApp } from '@capacitor/app'
 const ionRouter = useIonRouter()
 
@@ -34,7 +37,7 @@ import {
 } from '@/services/siteplanService'
 
 import siteplanImage
-  from '@/assets/siteplan/Siteplan.png'
+  from '@/assets/siteplan/Siteplan.webp'
 
 import siteplanSvg
   from '@/assets/siteplan/LOTS_WITH_ID.svg'
@@ -240,6 +243,12 @@ const ROOT_PATHS = new Set([
 
 /** Menutup overlay teratas (menu pengguna, notifikasi, dialog) bila ada. */
 async function dismissTopOverlay(): Promise<boolean> {
+  const confirmDialog = useConfirm()
+  if (confirmDialog.open.value) {
+    confirmDialog.settle(false)
+    return true
+  }
+
   for (const controller of [
     alertController,
     actionSheetController,

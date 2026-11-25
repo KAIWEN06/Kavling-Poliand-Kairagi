@@ -92,7 +92,7 @@
               @click="openPhoto(photo)"
             >
               <div class="photo-image">
-                <img :src="photo.image" :alt="photo.title" loading="lazy" />
+                <img :src="photo.image" :alt="photo.title" loading="lazy" decoding="async" />
                 <div class="photo-overlay">
                   <div class="photo-top">
                     <span class="photo-category">{{ photo.categoryLabel }}</span>
@@ -149,7 +149,7 @@
           </div>
         </template>
         <template #footer>
-          <AppButton type="button" variant="neutral" fill="outline" @click="openEdit">Edit</AppButton>
+          <AppButton type="button" variant="neutral" fill="outline" @click="openEdit">Ubah</AppButton>
           <AppButton type="button" variant="danger" fill="outline" @click="askDelete">Hapus</AppButton>
         </template>
       </AppModal>

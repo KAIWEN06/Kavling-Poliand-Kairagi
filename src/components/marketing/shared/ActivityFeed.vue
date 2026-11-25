@@ -3,20 +3,22 @@
     <div v-if="loading" class="mk-feed__skel" role="status" aria-label="Memuat aktivitas">
       <Skeleton v-for="n in 3" :key="n" height="56px" border-radius="14px" />
     </div>
-    <p v-else-if="error" class="mk-danger-text" role="alert">{{ error }}</p>
+    <AppNotice v-else-if="error" tone="error">
+      {{ error }}
+    </AppNotice>
     <EmptyState
       v-else-if="!items.length"
       kind="clients"
       compact
       title="Belum ada aktivitas"
-      description="Perubahan status, tindak lanjut, dan SPK dari tim akan tercatat di sini."
+      description="Status, tindak lanjut, dan SPK dari tim tercatat di sini."
     />
     <ul v-else>
       <li v-for="(item, index) in items" :key="index">
         <button type="button" :disabled="!item.customer_id" @click="item.customer_id && emit('open-client', item.customer_id)">
           <span class="mk-feed__kind" :data-kind="item.kind" aria-hidden="true">{{ kindLabel[item.kind] }}</span>
           <span class="mk-feed__body">
-            <strong>{{ item.customer_name || 'Client' }}</strong>
+            <strong>{{ item.customer_name || 'Klien' }}</strong>
             <span>{{ item.title }}</span>
             <small>{{ item.actor_name }} · {{ formatRelative(item.occurred_at) }}</small>
           </span>
@@ -27,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import type { ActivityItem } from '@/services/marketing/marketingCrmService'

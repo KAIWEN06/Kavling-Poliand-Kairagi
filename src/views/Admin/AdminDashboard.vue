@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { useRouter } from 'vue-router'
 import {
   IonContent,
@@ -100,7 +103,7 @@ const inventory = computed<InventoryStatus[]>(() => {
 
 const quickActions: QuickAction[] = [
   {
-    label: 'Siteplan 2D',
+    label: 'Denah 2D',
     description: 'Lihat dan kelola kaveling',
     icon: mapOutline,
     tone: 'green',
@@ -122,7 +125,7 @@ const quickActions: QuickAction[] = [
   },
   {
     label: 'Kelola konten',
-    description: 'Perbarui informasi website',
+    description: 'Perbarui informasi situs web',
     icon: gridOutline,
     tone: 'neutral',
     routeName: 'AdminLainnya',
@@ -170,7 +173,7 @@ const pendingFinanceTasks = computed(() => dashboardCustomers.value.flatMap((cus
       return {
         id: payment.id,
         customerName: customer.full_name,
-        lotCode: transaction?.lots?.lot_number ?? `Lot #${payment.lot_id}`,
+        lotCode: transaction?.lots?.lot_number ?? `Kavling #${payment.lot_id}`,
         amount: Number(payment.amount ?? 0),
         isOverdue: new Date(payment.payment_date ?? payment.created_at).getTime() < Date.now() - 1000 * 60 * 60 * 24 * 30,
         isSold: transaction?.status === 'Sold',
@@ -184,8 +187,6 @@ const actionTasks = computed(() => [
   { id: 'spk-placeholder', customerName: 'Konfirmasi SPK Konsumen', lotCode: '2 berkas pemesanan unit kaveling baru', amount: 0, isOverdue: false, isSold: false, type: 'spk' as const },
 ])
 
-const activityPage = ref(1)
-const ACTIVITY_PAGE_SIZE = 4
 const selectedActivityDate = ref('')
 
 const recentActivities = computed(() => {
@@ -213,7 +214,7 @@ const recentActivities = computed(() => {
     const transactionActivities = (customer.lot_transactions ?? []).map((transaction: any) => ({
       id: `transaction-${transaction.id}`,
       label: transaction.status === 'Sold' ? 'Kaveling terjual' : 'Status kaveling diperbarui',
-      detail: `${customer.full_name} · ${transaction.lots?.lot_number ?? `Lot #${transaction.lot_id}`}`,
+      detail: `${customer.full_name} · ${transaction.lots?.lot_number ?? `Kavling #${transaction.lot_id}`}`,
       date: transaction.sold_date ?? transaction.created_at,
       icon: checkmarkCircleOutline,
       tone: transaction.status === 'Sold' ? 'green' : 'gold',
@@ -232,15 +233,10 @@ const filteredActivities = computed(() => {
   if (!selectedActivityDate.value) return recentActivities.value
   return recentActivities.value.filter((activity) => activity.date.slice(0, 10) === selectedActivityDate.value)
 })
-const filteredActivityTotalPages = computed(() => Math.max(1, Math.ceil(filteredActivities.value.length / ACTIVITY_PAGE_SIZE)))
-const pagedActivities = computed(() => filteredActivities.value.slice((activityPage.value - 1) * ACTIVITY_PAGE_SIZE, activityPage.value * ACTIVITY_PAGE_SIZE))
+const activityPager = usePagination(filteredActivities, { pageSize: 4, resetOn: selectedActivityDate })
 
 function openActivity(activity: { route: string }) {
   void router.push(activity.route)
-}
-
-function resetActivityPage() {
-  activityPage.value = 1
 }
 
 function openTask(task: any) {
@@ -250,12 +246,6 @@ function openTask(task: any) {
     return
   }
   void router.push({ path: '/admin/keuangan', query: { status: task.isOverdue ? 'overdue' : 'pending', payment: String(task.id) } })
-}
-
-async function goToActivityPage(page: number) {
-  activityPage.value = Math.min(Math.max(page, 1), filteredActivityTotalPages.value)
-  await nextTick()
-  document.querySelector('.activity-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function formatCurrency(value: number) {
@@ -274,7 +264,7 @@ async function loadBuyerData() {
   try {
     dashboardCustomers.value = await customerService.getAdminCustomers()
   } catch (error) {
-    buyerDataError.value = error instanceof Error ? error.message : 'Data customer belum dapat dimuat.'
+    buyerDataError.value = error instanceof Error ? error.message : 'Data pembeli belum dapat dimuat.'
   } finally {
     buyerDataLoading.value = false
   }
@@ -425,13 +415,10 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
 
-                <div v-else-if="loadState === 'error'" class="alert" role="alert">
-                  <div>
-                    <strong>Inventaris belum dapat dimuat</strong>
-                    <p>{{ loadError }}</p>
-                  </div>
-                  <AppButton size="small" @click="loadInventory(true)">Coba lagi</AppButton>
-                </div>
+                <AppNotice v-else-if="loadState === 'error'" tone="error" title="Inventaris belum dapat dimuat">
+                  <p>{{ loadError }}</p>
+<AppButton size="small" @click="loadInventory(true)">Coba lagi</AppButton>
+                </AppNotice>
 
                 <EmptyState
                   v-else
@@ -449,21 +436,18 @@ onBeforeUnmount(() => {
             <section class="card" aria-labelledby="buyers-title">
               <div class="card__head">
                 <h2 id="buyers-title" class="card__title">Calon pembeli</h2>
-                <span class="card__meta t-num">{{ dashboardCustomers.length }} customer</span>
+                <span class="card__meta t-num">{{ dashboardCustomers.length }} pembeli</span>
               </div>
 
-              <div v-if="buyerDataLoading" class="stat-grid" role="status" aria-label="Memuat statistik customer">
+              <div v-if="buyerDataLoading" class="stat-grid" role="status" aria-label="Memuat statistik pembeli">
                 <Skeleton height="96px" border-radius="14px" />
                 <Skeleton height="96px" border-radius="14px" />
                 <Skeleton height="96px" border-radius="14px" />
               </div>
-              <div v-else-if="buyerDataError" class="alert" role="alert">
-                <div>
-                  <strong>Statistik belum dapat dimuat</strong>
-                  <p>{{ buyerDataError }}</p>
-                </div>
-                <AppButton size="small" @click="loadBuyerData">Coba lagi</AppButton>
-              </div>
+              <AppNotice v-else-if="buyerDataError" tone="error" title="Statistik belum dapat dimuat">
+                <p>{{ buyerDataError }}</p>
+<AppButton size="small" @click="loadBuyerData">Coba lagi</AppButton>
+              </AppNotice>
               <div v-else class="stat-grid">
                 <StatCard label="Prospek aktif" :value="buyerStats.prospects" hint="Belum melakukan pembelian" />
                 <StatCard label="Pembeli" :value="buyerStats.buyers" hint="Transaksi terjual" />
@@ -548,9 +532,9 @@ onBeforeUnmount(() => {
                 <div class="date-filter">
                   <label>
                     <span class="sr-only">Pilih tanggal aktivitas</span>
-                    <input v-model="selectedActivityDate" type="date" aria-label="Pilih tanggal aktivitas" @change="resetActivityPage" />
+                    <input v-model="selectedActivityDate" type="date" aria-label="Pilih tanggal aktivitas" />
                   </label>
-                  <button v-if="selectedActivityDate" type="button" class="date-filter__clear" @click="selectedActivityDate = ''; resetActivityPage()">
+                  <button v-if="selectedActivityDate" type="button" class="date-filter__clear" @click="selectedActivityDate = ''">
                     Hapus filter
                   </button>
                 </div>
@@ -559,16 +543,13 @@ onBeforeUnmount(() => {
               <div v-if="buyerDataLoading" class="skel-list" role="status" aria-label="Memuat aktivitas">
                 <Skeleton v-for="n in 4" :key="n" height="56px" border-radius="14px" />
               </div>
-              <div v-else-if="buyerDataError" class="alert" role="alert">
-                <div>
-                  <strong>Aktivitas belum dapat dimuat</strong>
-                  <p>{{ buyerDataError }}</p>
-                </div>
-                <AppButton size="small" @click="loadBuyerData">Coba lagi</AppButton>
-              </div>
+              <AppNotice v-else-if="buyerDataError" tone="error" title="Aktivitas belum dapat dimuat">
+                <p>{{ buyerDataError }}</p>
+<AppButton size="small" @click="loadBuyerData">Coba lagi</AppButton>
+              </AppNotice>
               <div v-else-if="filteredActivities.length" class="activity-list">
                 <ul class="rows">
-                  <li v-for="activity in pagedActivities" :key="activity.id">
+                  <li v-for="activity in activityPager.items" :key="activity.id">
                     <button type="button" class="row" @click="openActivity(activity)">
                       <span class="row__icon" :class="`row__icon--${activity.tone}`">
                         <IonIcon :icon="activity.icon" aria-hidden="true" />
@@ -581,18 +562,14 @@ onBeforeUnmount(() => {
                     </button>
                   </li>
                 </ul>
-                <nav v-if="filteredActivityTotalPages > 1" class="pager" aria-label="Halaman aktivitas terkini">
-                  <button type="button" aria-label="Aktivitas sebelumnya" :disabled="activityPage === 1" @click="goToActivityPage(activityPage - 1)">‹</button>
-                  <span class="t-num">Halaman {{ activityPage }} dari {{ filteredActivityTotalPages }}</span>
-                  <button type="button" aria-label="Aktivitas berikutnya" :disabled="activityPage === filteredActivityTotalPages" @click="goToActivityPage(activityPage + 1)">›</button>
-                </nav>
+                <AppPagination v-model:page="activityPager.page" :total-pages="activityPager.totalPages" :total="activityPager.total" :page-size="activityPager.pageSize" scroll-to=".activity-list" label="Halaman aktivitas terkini" />
               </div>
               <EmptyState
                 v-else
                 kind="notifications"
                 compact
                 :title="selectedActivityDate ? 'Tidak ada aktivitas pada tanggal ini' : 'Belum ada aktivitas'"
-                :description="selectedActivityDate ? 'Pilih tanggal lain untuk melihat aktivitas.' : 'Aktivitas customer dan pembayaran akan muncul di sini.'"
+                :description="selectedActivityDate ? 'Pilih tanggal lain untuk melihat aktivitas.' : 'Aktivitas pembeli dan pembayaran akan muncul di sini.'"
               />
             </section>
           </Reveal>
@@ -777,19 +754,6 @@ onBeforeUnmount(() => {
 /* ---------- skeleton / alert ---------- */
 .skel-inv, .skel-list { display: grid; gap: var(--space-3); }
 .skel-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
-.alert {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-.alert strong { display: block; font-size: var(--text-md); }
-.alert p { margin: var(--space-1) 0 0; font-size: var(--text-sm); }
 
 /* ---------- stats ---------- */
 .stat-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -876,18 +840,6 @@ onBeforeUnmount(() => {
   font-weight: 600;
   cursor: pointer;
 }
-.pager { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin-top: var(--space-3); font-size: var(--text-sm); color: var(--text-secondary); }
-.pager button {
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font-size: 20px;
-  cursor: pointer;
-}
-.pager button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ---------- aksi cepat ---------- */
 .quick { display: grid; gap: var(--space-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }

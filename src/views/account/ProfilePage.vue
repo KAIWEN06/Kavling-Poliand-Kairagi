@@ -15,10 +15,9 @@
           <ion-skeleton-text :animated="true" class="skeleton-input" />
         </section>
 
-        <p v-else-if="!profile" class="feedback-alert feedback-alert--error" role="alert">
-          <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-          <span>Profil tidak dapat dimuat. Silakan masuk kembali.</span>
-        </p>
+        <AppNotice v-else-if="!profile" tone="error">
+          Profil tidak dapat dimuat. Silakan masuk kembali.
+        </AppNotice>
 
         <template v-else>
           <!-- Kartu Identitas & Foto Profil -->
@@ -66,10 +65,9 @@
             <AvatarCropModal :file="cropFile" @cancel="cropFile = null" @confirm="saveAvatar" />
             <AvatarViewer :open="viewerOpen" :url="profile.avatarUrl" @close="viewerOpen = false" />
 
-            <div v-if="avatarError" class="feedback-alert feedback-alert--error" role="alert">
-              <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-              <span>{{ avatarError }}</span>
-            </div>
+            <AppNotice v-if="avatarError" tone="error">
+              {{ avatarError }}
+            </AppNotice>
           </section>
 
           <!-- Kartu Formulir -->
@@ -102,9 +100,9 @@
 
               <div class="form-grid">
                 <div class="form-field">
-                  <ion-label class="field-label">Role</ion-label>
+                  <ion-label class="field-label">Peran</ion-label>
                   <ion-item lines="none" class="input-item input-item--readonly">
-                    <ion-input :value="roleLabel || '-'" readonly aria-label="Role" />
+                    <ion-input :value="roleLabel || '-'" readonly aria-label="Peran" />
                   </ion-item>
                 </div>
                 <div v-if="memberSince" class="form-field">
@@ -115,10 +113,9 @@
                 </div>
               </div>
 
-              <div v-if="infoError" class="feedback-alert feedback-alert--error" role="alert">
-                <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-                <span>{{ infoError }}</span>
-              </div>
+              <AppNotice v-if="infoError" tone="error">
+                {{ infoError }}
+              </AppNotice>
 
               <ion-button class="save-button" type="submit" expand="block" :disabled="!dirty || saving">
                 <ion-spinner v-if="saving" slot="start" name="crescent" />
@@ -169,11 +166,12 @@
       </main>
     </ion-content>
 
-    <MobileTabBar :variant="tabVariant" />
+    <MobileTabBar v-if="profile" :variant="tabVariant" />
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import {
   IonButton,
@@ -282,7 +280,6 @@ async function saveInfo() {
     toast.success('Profil berhasil diperbarui.')
   } catch (error) {
     infoError.value = error instanceof Error ? error.message : 'Profil gagal disimpan. Coba lagi.'
-    toast.error(infoError.value)
   } finally {
     saving.value = false
   }
@@ -326,7 +323,6 @@ async function saveAvatar(file: File) {
     void refresh()
   } catch (error) {
     avatarError.value = error instanceof Error ? error.message : 'Foto gagal diunggah. Coba lagi.'
-    toast.error(avatarError.value)
   } finally {
     uploading.value = false
   }
@@ -547,44 +543,6 @@ async function saveAvatar(file: File) {
 }
 
 /* Banner Status Kelengkapan Data */
-.status-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--radius-control, 12px);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.status-banner--warning {
-  border: 1px solid var(--poliland-gold-soft, #f4d69a);
-  background: #fdf8ec;
-  color: var(--poliland-gold-text-soft, #805708);
-}
-
-.status-banner--success {
-  border: 1px solid rgba(53, 90, 44, 0.2);
-  background: var(--status-success-bg, #eef5ec);
-  color: var(--poliland-green, #355a2c);
-}
-
-.status-icon {
-  flex: 0 0 20px;
-  margin-top: 2px;
-  font-size: 20px;
-}
-
-.status-body strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.status-body p {
-  margin: 2px 0 0;
-  font-size: 12.5px;
-}
 
 /* Formulir */
 .profile-form {
@@ -655,34 +613,6 @@ async function saveAvatar(file: File) {
 }
 
 /* Umpan Balik Simpan / Error */
-.feedback-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: var(--radius-control, 12px);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.feedback-alert ion-icon {
-  flex: 0 0 18px;
-  margin-top: 1px;
-  font-size: 18px;
-}
-
-.feedback-alert--error {
-  border: 1px solid rgba(217, 75, 69, 0.25);
-  background: #fdf2f2;
-  color: var(--status-danger, #d94b45);
-}
-
-.feedback-alert--success {
-  border: 1px solid rgba(53, 90, 44, 0.25);
-  background: var(--status-success-bg, #eef5ec);
-  color: var(--poliland-green, #355a2c);
-}
 
 /* Tombol Aksi Utama (Brand PoliLand Green, min-height 48px) */
 .save-button {

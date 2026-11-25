@@ -1,4 +1,5 @@
 import { assertCustomerFields } from '@/utils/inputValidation'
+import { loadPaymentInstallmentInfo } from '@/services/Finance/paymentInstallmentInfo'
 import { supabase } from '@/services/config/supabase'
 import type { FinanceAdminPaymentRecord, FinanceLotRecord, FinancePaymentRecord } from '@/types/finance'
 import type { FinanceCustomerRecord } from '@/types/finance'
@@ -127,6 +128,7 @@ export const customerService = {
     const customerIds = [...new Set((data ?? []).map((row: any) => Number(row.customer_id)).filter((id) => Number.isFinite(id) && id > 0))]
     const lotIds = [...new Set((data ?? []).map((row: any) => Number(row.lot_id)).filter((id) => Number.isFinite(id) && id > 0))]
     const spkIds = [...new Set((data ?? []).map((row: any) => Number(row.spk_request_id)).filter((id) => Number.isFinite(id) && id > 0))]
+    const installmentInfoPromise = loadPaymentInstallmentInfo((data ?? []).map((row: any) => Number(row.id)))
     const [customersResult, lotsResult, spkResult] = await Promise.all([
       customerIds.length
         ? supabase.from('customers').select('id, full_name, phone, whatsapp_phone, created_at').in('id', customerIds)
@@ -145,6 +147,7 @@ export const customerService = {
     const customerMap = new Map<number, any>((customersResult.data || []).map((row: any) => [Number(row.id), row]))
     const lotMap = new Map<number, any>((lotsResult.data || []).map((row: any) => [Number(row.id), row]))
     const spkMap = new Map<number, any>((spkResult.data || []).map((row: any) => [Number(row.id), row]))
+    const installmentInfo = await installmentInfoPromise
 
     return (data ?? []).map((row: any) => {
       const customer = customerMap.get(Number(row.customer_id))
@@ -159,6 +162,8 @@ export const customerService = {
         lot_id: row.lot_id == null ? null : Number(row.lot_id),
         customer_id: row.customer_id == null ? null : Number(row.customer_id),
         amount: row.amount == null ? null : Number(row.amount),
+        installment_numbers: installmentInfo.get(Number(row.id))?.numbers,
+        installment_total: installmentInfo.get(Number(row.id))?.total ?? null,
       } as FinancePaymentRecord
 
       return {
@@ -271,6 +276,7 @@ export const customerService = {
           created_at,
           updated_at,
           payment_plans (id, plan_name, months),
+          installment_schedules (id, installment_number, amount, status),
           lots (
             id,
             lot_number,
@@ -381,7 +387,7 @@ export const customerService = {
     } = await supabase.auth.getUser()
 
     if (userError) throw userError
-    if (!user) throw new Error('Sesi login tidak ditemukan. Silakan login kembali.')
+    if (!user) throw new Error('Sesi masuk tidak ditemukan. Silakan masuk kembali.')
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -414,11 +420,11 @@ export const customerService = {
 
         if (marketingError) throw marketingError
         if (!selectedMarketing) {
-          throw new Error('Marketing yang dipilih tidak ditemukan atau bukan akun Marketing.')
+          throw new Error('Pemasar yang dipilih tidak ditemukan atau bukan akun pemasar.')
         }
       }
     } else {
-      throw new Error('Role akun tidak memiliki izin untuk menambahkan pembeli.')
+      throw new Error('Peran akun tidak memiliki izin untuk menambahkan pembeli.')
     }
 
     assertCustomerFields(payload.customer)
@@ -664,7 +670,7 @@ export async function getCurrentMarketingProfile() {
   }
 
   if (!user) {
-    throw new Error('Sesi login tidak ditemukan.')
+    throw new Error('Sesi masuk tidak ditemukan.')
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -678,7 +684,7 @@ export async function getCurrentMarketingProfile() {
   }
 
   if (!profile || (profile.role !== 'marketing' && profile.role !== 'marketing_head')) {
-    throw new Error('Akun tidak memiliki akses Marketing.')
+    throw new Error('Akun tidak memiliki akses pemasar.')
   }
 
   return {

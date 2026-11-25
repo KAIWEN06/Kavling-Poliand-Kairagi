@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
@@ -16,12 +19,15 @@ import {
 } from 'ionicons/icons'
 
 import AppHeader from '@/components/common/AppHeader.vue'
+import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
+import { useRowFocus } from '@/composables/useRowFocus'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { useCelebration } from '@/composables/useCelebration'
 import { supabase } from '@/services/config/supabase'
 import { paymentService } from '@/services/Finance/paymentService'
+import { formatInstallmentRange, formatProgressLine, formatRupiah, summarizeInstallmentProgress } from '@/utils/installmentFormat'
 import { getSpkProcessSteps, stepIsDone, type SpkProcessStep } from '@/services/spkProcessService'
 import { purchaseCancellationService } from '@/services/Finance/purchaseCancellationService'
 
@@ -75,6 +81,7 @@ type PaymentHistoryItem = {
   reference: string
   date: string | null
   installmentNumbers: number[]
+  installmentTotal: number | null
   category: string
   amount: number
   lot: string
@@ -99,7 +106,6 @@ const loading = ref(true)
 const submitting = ref(false)
 const loadError = ref('')
 const submitError = ref('')
-const submitSuccess = ref('')
 const reuploadPaymentId = ref<number | null>(null)
 const reuploadProof = ref<File | null>(null)
 const reuploadSubmitting = ref(false)
@@ -108,7 +114,8 @@ const cancellationModalOpen = ref(false)
 const cancellationReason = ref('')
 const cancellationSubmitting = ref(false)
 const cancellationError = ref('')
-const cancellationSuccess = ref('')
+const toast = useToast()
+const { alert: showDetail } = useConfirm()
 const latestCancellation = ref<any>(null)
 
 const filters: Array<{ label: string; value: FilterStatus }> = [
@@ -195,6 +202,13 @@ const firstUnpaidSchedule = computed(() => {
   const index = nextInstallmentIndex.value
   return index >= 0 ? selectedTransaction.value?.schedules[index] ?? null : null
 })
+const installmentProgress = computed(() =>
+  summarizeInstallmentProgress(selectedTransaction.value?.schedules ?? []))
+const installmentProgressLine = computed(() => formatProgressLine(installmentProgress.value))
+const selectedRangeLabel = computed(() => formatInstallmentRange(
+  selectedSchedules.value.map(item => item.installmentNumber),
+  selectedTransaction.value?.schedules.length,
+))
 const firstUnpaidHasPending = computed(() => Boolean(firstUnpaidSchedule.value?.hasPendingPayment))
 
 /**
@@ -213,6 +227,12 @@ const selectableSchedules = computed(() => {
     result.push(schedule)
   }
   return result
+})
+/** Cicilan aktif berikutnya otomatis terpilih saat form dibuka. */
+watch(selectableSchedules, (list) => {
+  if (selectedScheduleIds.value.length || !list.length) return
+  if (dpRequired.value && !dpConfirmed.value) return
+  selectedScheduleIds.value = [list[0].id]
 })
 const selectedSchedules = computed(() => {
   const ids = new Set(selectedScheduleIds.value)
@@ -248,7 +268,7 @@ const paymentBlockedReason = computed(() => {
   }
   if (dpRequired.value && !dpConfirmed.value) {
     if (dpConfirmed.value) return ''
-    if (dpPending.value) return 'Pembayaran DP sedang menunggu verifikasi Admin. Cicilan belum dapat dibayar.'
+    if (dpPending.value) return 'Pembayaran uang muka sedang menunggu verifikasi Admin. Cicilan belum dapat dibayar.'
     return ''
   }
   if (!transaction.schedules.length) return 'Jadwal cicilan final belum tersedia. Silakan hubungi Admin.'
@@ -272,7 +292,7 @@ const detailMessage = (item: PaymentHistoryItem) => [
   `Referensi: ${item.reference}`,
   `Kaveling: ${item.lot}`,
   `Kategori: ${item.category}`,
-  item.installmentNumbers.length ? `Cicilan: ${item.installmentNumbers.join(', ')}` : '',
+  item.installmentNumbers.length ? `Cicilan: ${formatInstallmentRange(item.installmentNumbers, item.installmentTotal).replace(/^Cicilan /, '')}` : '',
   `Tanggal: ${item.date ? formatDate(item.date) : 'Belum dicatat'}`,
   `Jumlah: ${formatCurrency(item.amount)}`,
   `Metode: ${item.method || 'Tidak dicantumkan'}`,
@@ -282,9 +302,7 @@ const detailMessage = (item: PaymentHistoryItem) => [
 ].filter(Boolean).join('\n')
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', maximumFractionDigits: 0,
-  }).format(amount || 0)
+  return formatRupiah(amount)
 }
 function formatDate(value: string) {
   const date = new Date(value)
@@ -326,8 +344,8 @@ function getStatusLabel(status: PaymentStatus, rawStatus?: string) {
 }
 function getCategoryLabel(category: string) {
   const labels: Record<string, string> = {
-    Booking: 'Booking Fee',
-    'Down Payment': 'Uang Muka (DP)',
+    Booking: 'Tanda Jadi',
+    'Down Payment': 'Uang Muka',
     Installment: 'Cicilan',
     'Cash Purchase': 'Pembelian Tunai',
     Other: 'Lainnya',
@@ -387,7 +405,6 @@ function resetPaymentForm() {
   selectedProof.value = null
   paymentNote.value = ''
   submitError.value = ''
-  submitSuccess.value = ''
   const input = document.getElementById('payment-proof-file') as HTMLInputElement | null
   if (input) input.value = ''
 }
@@ -399,7 +416,7 @@ async function loadPaymentData() {
     const { data: authData, error: authError } = await supabase.auth.getUser()
     if (authError) throw authError
     const user = authData.user
-    if (!user) throw new Error('Sesi login tidak ditemukan. Silakan login kembali.')
+    if (!user) throw new Error('Sesi masuk tidak ditemukan. Silakan masuk kembali.')
 
     const { data: customer, error: customerError } = await supabase
       .from('customers')
@@ -518,6 +535,7 @@ async function loadPaymentData() {
       reference: row.reference_number || `PAY-${String(row.id).padStart(5, '0')}`,
       date: row.payment_date,
       installmentNumbers: getPaymentInstallmentNumbers(row),
+      installmentTotal: transactions.value.find(item => item.id === Number(row.transaction_id))?.months ?? null,
       category: getCategoryLabel(row.payment_category ?? 'Unclassified'),
       amount: Number(row.amount ?? 0),
       lot: getLotLabel(row.lots),
@@ -545,7 +563,6 @@ async function loadPaymentData() {
 
 async function openCancellationForm() {
   cancellationError.value = ''
-  cancellationSuccess.value = ''
   cancellationReason.value = ''
   latestCancellation.value = null
   const transaction = selectedTransaction.value
@@ -566,7 +583,7 @@ async function submitCancellationRequest() {
   cancellationError.value = ''
   try {
     const requestId = await purchaseCancellationService.request(transaction.id, reason)
-    cancellationSuccess.value = `Pengajuan pembatalan #${requestId} sudah dikirim. Admin akan memeriksa permintaan dan riwayat pembayaran Anda.`
+    toast.success('Admin akan memeriksa permintaan dan riwayat pembayaran Anda.', { title: `Pengajuan pembatalan #${requestId} terkirim`, duration: 6000 })
     latestCancellation.value = await purchaseCancellationService.getLatest(transaction.id).catch(() => null)
     cancellationModalOpen.value = false
   } catch (error: any) {
@@ -580,14 +597,13 @@ async function submitPayment() {
   if (!canSubmitPayment.value || !selectedTransaction.value || !selectedProof.value || !paymentCategory.value) return
   submitting.value = true
   submitError.value = ''
-  submitSuccess.value = ''
   let uploadedPath: string | null = null
 
   try {
     const { data: authData, error: authError } = await supabase.auth.getUser()
     if (authError) throw authError
     const user = authData.user
-    if (!user) throw new Error('Sesi login tidak ditemukan. Silakan login kembali.')
+    if (!user) throw new Error('Sesi masuk tidak ditemukan. Silakan masuk kembali.')
 
     const transaction = selectedTransaction.value
     const file = selectedProof.value
@@ -618,13 +634,11 @@ async function submitPayment() {
     if (rpcError) throw new Error(`Pembayaran belum tercatat. ${rpcError.message}`)
     if (!paymentId) throw new Error('Server tidak mengembalikan ID pembayaran.')
 
-    submitSuccess.value = 'Bukti pembayaran berhasil dikirim. Status pembayaran sekarang menunggu verifikasi Admin.'
     celebrate({
       title: 'Bukti terkirim',
       message: 'Admin akan memeriksa pembayaran Anda.',
     })
     await loadPaymentData()
-    submitSuccess.value = 'Bukti pembayaran berhasil dikirim. Status pembayaran menunggu verifikasi Admin.'
   } catch (error: any) {
     console.error('Gagal mengirim pembayaran:', error)
     submitError.value = error?.message || 'Pembayaran gagal dikirim. Silakan coba kembali.'
@@ -646,7 +660,7 @@ function openTransaction(item: PaymentHistoryItem) {
   reuploadProof.value = null
   reuploadPaymentId.value = item.rawStatus === 'Needs Reupload' ? item.id : null
   if (item.rawStatus !== 'Needs Reupload') {
-    window.alert(detailMessage(item))
+    void showDetail({ title: 'Detail pembayaran', message: detailMessage(item), tone: 'info', confirmText: 'Tutup' })
   }
 }
 
@@ -683,7 +697,7 @@ async function submitReupload() {
     await paymentService.replacePaymentProof(reuploadPaymentId.value, reuploadProof.value)
     reuploadPaymentId.value = null
     reuploadProof.value = null
-    submitSuccess.value = 'Bukti pengganti berhasil dikirim. Pengajuan lama kembali berstatus menunggu verifikasi.'
+    toast.success('Pengajuan lama kembali menunggu verifikasi.', { title: 'Bukti pengganti terkirim', duration: 6000 })
     await loadPaymentData()
   } catch (error: any) {
     reuploadError.value = error?.message || 'Bukti pengganti gagal dikirim.'
@@ -692,7 +706,29 @@ async function submitReupload() {
   }
 }
 
-onMounted(loadPaymentData)
+const routeQuery = useOwnRouteQuery()
+const { focusedId, focusRow } = useRowFocus()
+
+/** Dari notifikasi: pilih transaksinya, lalu sorot pembayaran yang dimaksud bila ada. */
+async function applyNotificationTarget() {
+  const { paymentId, transactionId, spkId } = routeQuery.value
+  const payment = paymentHistory.value.find(item => item.id === Number(paymentId))
+  const transaction = transactions.value.find(item =>
+    item.payments.some(row => Number(row.id) === payment?.id)
+    || item.id === Number(transactionId)
+    || (spkId && Number(item.spkRequestId) === Number(spkId)))
+  if (transaction && transaction.id !== selectedTransactionId.value) selectTransaction(transaction.id)
+  if (!payment) return
+  searchQuery.value = ''
+  selectedFilter.value = 'all'
+  if (payment.rawStatus === 'Needs Reupload') reuploadPaymentId.value = payment.id
+  await focusRow(payment.id, `notif-payment-${payment.id}`)
+}
+
+onMounted(() => loadPaymentData().then(applyNotificationTarget))
+watch(() => routeQuery.value.nt, (stamp) => {
+  if (stamp) void loadPaymentData().then(applyNotificationTarget)
+})
 </script>
 
 <template>
@@ -720,12 +756,10 @@ onMounted(loadPaymentData)
             <ion-icon class="lot-chevron" :icon="chevronForward" />
           </div>
           <div v-if="selectedTransaction" class="cancellation-action">
-            <div v-if="cancellationSuccess" class="payment-notice" role="status">{{ cancellationSuccess }}</div>
-            <div v-if="latestCancellation" class="payment-notice" :class="latestCancellation.status === 'Rejected' ? 'warning' : ''">
-              <strong>Status pembatalan: {{ latestCancellation.status === 'Pending' ? 'Menunggu pemeriksaan' : latestCancellation.status === 'Approved' ? 'Disetujui' : 'Ditolak' }}</strong>
-              <span v-if="latestCancellation.decision_note">{{ latestCancellation.decision_note }}</span>
-              <span v-if="latestCancellation.purchase_refunds?.[0]">Nilai pengembalian {{ formatCurrency(Number(latestCancellation.purchase_refunds[0].amount)) }}. Batas transfer {{ formatDate(latestCancellation.purchase_refunds[0].due_date) }}.</span>
-            </div>
+            <AppNotice v-if="latestCancellation" :tone="latestCancellation.status === 'Rejected' ? 'warning' : latestCancellation.status === 'Approved' ? 'success' : 'info'" :title="`Status pembatalan: ${latestCancellation.status === 'Pending' ? 'Menunggu pemeriksaan' : latestCancellation.status === 'Approved' ? 'Disetujui' : 'Ditolak'}`">
+              <p v-if="latestCancellation.decision_note">{{ latestCancellation.decision_note }}</p>
+              <p v-if="latestCancellation.purchase_refunds?.[0]">Nilai pengembalian {{ formatCurrency(Number(latestCancellation.purchase_refunds[0].amount)) }}. Batas transfer {{ formatDate(latestCancellation.purchase_refunds[0].due_date) }}.</p>
+            </AppNotice>
             <button
               v-if="selectedTransaction.transactionStatus !== 'Cancelled'"
               class="cancellation-request-button"
@@ -797,8 +831,8 @@ onMounted(loadPaymentData)
                 </div>
                 <template v-if="isInstallment">
                   <div class="payment-info-item">
-                    <span>Skema DP</span>
-                    <strong>{{ dpRequired ? formatCurrency(selectedTransaction.downPayment) : 'Tanpa DP (Pure Cicilan)' }}</strong>
+                    <span>Skema uang muka</span>
+                    <strong>{{ dpRequired ? formatCurrency(selectedTransaction.downPayment) : 'Tanpa uang muka (cicilan penuh)' }}</strong>
                   </div>
                   <div class="payment-info-item">
                     <span>Tenor SPK</span>
@@ -807,55 +841,52 @@ onMounted(loadPaymentData)
                 </template>
               </div>
 
-              <div v-if="!paymentsOpen" class="payment-notice warning">
-                <strong><ion-icon :icon="lockClosedOutline" /> Pembayaran belum dibuka.</strong>
-                <p>{{ selectedTransaction.spkStatus !== 'Approved' ? 'Pembayaran dibuka setelah SPK disetujui.' : 'Cicilan bisa dibayar setelah PPJB di notaris selesai. Admin akan memberi tahu Anda lewat aplikasi.' }}</p>
-              </div>
+              <AppNotice v-if="!paymentsOpen" tone="warning" title="Pembayaran belum dibuka">
+                {{ selectedTransaction.spkStatus !== 'Approved' ? 'Pembayaran dibuka setelah SPK disetujui.' : 'Cicilan bisa dibayar setelah PPJB di notaris selesai. Admin akan memberi tahu Anda lewat aplikasi.' }}
+              </AppNotice>
 
               <template v-else-if="selectedTransaction.paymentType === 'Cash'">
-                <div class="payment-notice">
-                  Skema tunai hanya menyediakan pelunasan harga final kaveling. Tidak ada pilihan cicilan atau DP.
-                </div>
+                <AppNotice tone="info">
+                  Skema tunai hanya menyediakan pelunasan harga final kaveling. Tidak ada pilihan cicilan atau uang muka.
+                </AppNotice>
                 <div class="payment-total">
                   <span>Sisa pelunasan</span>
                   <strong>{{ formatCurrency(cashOutstanding) }}</strong>
                 </div>
-                <div v-if="cashPending" class="payment-notice warning">
+                <AppNotice v-if="cashPending" tone="warning">
                   Pembayaran tunai sedang menunggu verifikasi Admin. Anda belum dapat mengirim pembayaran lain.
-                </div>
-                <div v-else-if="cashPaid >= selectedTransaction.finalPrice" class="payment-notice">
+                </AppNotice>
+                <AppNotice v-else-if="cashPaid >= selectedTransaction.finalPrice" tone="success">
                   Pembayaran tunai sudah terverifikasi lunas.
-                </div>
+                </AppNotice>
               </template>
 
               <template v-else>
                 <template v-if="dpRequired && !dpConfirmed">
-                  <div class="payment-notice warning">
-                    <strong>DP wajib dibayar terlebih dahulu.</strong>
-                    <p>Setelah DP dikonfirmasi Admin, jadwal cicilan akan terbuka. Untuk transaksi ini DP sebesar {{ formatCurrency(selectedTransaction.downPayment) }}.</p>
-                  </div>
-                  <div v-if="dpPending" class="payment-notice warning">
-                    Bukti DP sedang menunggu verifikasi. Cicilan belum dapat dibayar sampai DP dikonfirmasi.
-                  </div>
+                  <AppNotice tone="warning" title="Uang muka wajib dibayar terlebih dahulu">
+                    Setelah uang muka dikonfirmasi Admin, jadwal cicilan akan terbuka. Untuk transaksi ini uang muka sebesar {{ formatCurrency(selectedTransaction.downPayment) }}.
+                  </AppNotice>
+                  <AppNotice v-if="dpPending" tone="warning">
+                    Bukti uang muka sedang menunggu verifikasi. Cicilan belum dapat dibayar sampai uang muka dikonfirmasi.
+                  </AppNotice>
                   <div v-else class="payment-total">
-                    <span>Nominal DP yang harus dibayar</span>
+                    <span>Nominal uang muka yang harus dibayar</span>
                     <strong>{{ formatCurrency(selectedTransaction.downPayment) }}</strong>
                   </div>
                 </template>
 
                 <template v-else>
-                  <div class="payment-notice">
-                    <strong>{{ dpRequired ? 'DP telah dikonfirmasi.' : 'Pure cicilan tanpa DP.' }}</strong>
-                    <p>Pilih cicilan secara berurutan. Anda dapat membayar satu atau beberapa cicilan sekaligus, tetapi tidak boleh melewati nomor cicilan yang belum lunas.</p>
-                  </div>
+                  <AppNotice tone="info" :title="dpRequired ? 'Uang muka telah dikonfirmasi' : 'Cicilan tanpa uang muka'">
+                    Bayar satu atau beberapa cicilan sekaligus, mulai dari cicilan aktif berikutnya.
+                  </AppNotice>
 
-                  <div v-if="firstUnpaidHasPending" class="payment-notice warning">
-                    Cicilan ke-{{ firstUnpaidSchedule?.installmentNumber }} sedang menunggu verifikasi. Cicilan berikutnya dikunci sampai Admin menyelesaikan verifikasi.
-                  </div>
+                  <AppNotice v-if="firstUnpaidHasPending" tone="warning">
+                    {{ formatInstallmentRange([firstUnpaidSchedule?.installmentNumber], selectedTransaction.schedules.length) }} sedang menunggu verifikasi. Cicilan berikutnya terbuka setelah Admin selesai memeriksa.
+                  </AppNotice>
                   <div v-else-if="firstUnpaidSchedule" class="schedule-picker">
                     <div class="schedule-picker-header">
                       <h3>Jadwal Cicilan</h3>
-                      <small>{{ selectedScheduleIds.length }} dipilih</small>
+                      <small>{{ installmentProgressLine }}</small>
                     </div>
                     <label
                       v-for="schedule in selectedTransaction.schedules"
@@ -874,25 +905,22 @@ onMounted(loadPaymentData)
                           @change="toggleSchedule(schedule, ($event.target as HTMLInputElement).checked)"
                         />
                         <span class="schedule-row-copy">
-                          <strong>Cicilan #{{ schedule.installmentNumber }}</strong>
+                          <strong>Ke-{{ schedule.installmentNumber }}</strong>
                           <small>{{ schedule.dueDate ? formatDate(schedule.dueDate) : 'Tanggal belum ditentukan' }}</small>
-                          <small v-if="schedule.status === 'Paid'">Sudah lunas</small>
-                          <small v-else-if="schedule.hasPendingPayment">Menunggu verifikasi</small>
-                          <small v-else-if="schedule.status === 'Overdue'">Jatuh tempo terlewat</small>
                         </span>
                       </span>
                       <span class="schedule-row-amount">
                         <strong>{{ formatCurrency(schedule.amount) }}</strong>
-                        <small>{{ schedule.status === 'Paid' ? 'Lunas' : schedule.hasPendingPayment ? 'Diproses' : schedule.status }}</small>
+                        <small>{{ schedule.status === 'Paid' ? 'Lunas' : schedule.hasPendingPayment ? 'Diverifikasi' : schedule.status === 'Overdue' ? 'Jatuh tempo' : 'Mendatang' }}</small>
                       </span>
                     </label>
                   </div>
-                  <div v-else class="payment-notice">
+                  <AppNotice v-else tone="success">
                     Semua jadwal cicilan telah lunas.
-                  </div>
+                  </AppNotice>
 
                   <div v-if="selectedScheduleIds.length" class="payment-total">
-                    <span>Total {{ selectedScheduleIds.length }} cicilan dipilih</span>
+                    <span>{{ selectedRangeLabel }}</span>
                     <strong>{{ formatCurrency(installmentTotal) }}</strong>
                   </div>
                 </template>
@@ -919,7 +947,7 @@ onMounted(loadPaymentData)
                   <span class="proof-name">{{ selectedProof ? selectedProof.name : 'JPG, PNG, WEBP, atau PDF. Maksimal 5 MB.' }}</span>
                 </div>
                 <div class="payment-total">
-                  <span>{{ paymentCategory === 'Cash Purchase' ? 'Pelunasan tunai' : paymentCategory === 'Down Payment' ? 'Pembayaran DP' : 'Total pembayaran cicilan' }}</span>
+                  <span>{{ paymentCategory === 'Cash Purchase' ? 'Pelunasan tunai' : paymentCategory === 'Down Payment' ? 'Pembayaran uang muka' : 'Total pembayaran cicilan' }}</span>
                   <strong>{{ formatCurrency(paymentAmount) }}</strong>
                 </div>
                 <SlideToConfirm
@@ -931,11 +959,12 @@ onMounted(loadPaymentData)
                 />
               </template>
 
-              <div v-if="paymentBlockedReason && paymentsOpen" class="payment-notice warning">
+              <AppNotice v-if="paymentBlockedReason && paymentsOpen" tone="warning">
                 {{ paymentBlockedReason }}
-              </div>
-              <div v-if="submitError" class="payment-notice error" role="alert">{{ submitError }}</div>
-              <div v-if="submitSuccess" class="payment-result" role="status">{{ submitSuccess }}</div>
+              </AppNotice>
+              <AppNotice v-if="submitError" tone="error">
+                {{ submitError }}
+              </AppNotice>
             </template>
           </section>
 
@@ -971,8 +1000,10 @@ onMounted(loadPaymentData)
             <section class="transaction-list" aria-label="Daftar transaksi pembayaran">
               <button
                 v-for="item in filteredTransactions"
+                :id="`notif-payment-${item.id}`"
                 :key="item.id"
                 class="transaction-card"
+                :class="{ 'notif-target': focusedId === item.id }"
                 type="button"
                 @click="openTransaction(item)"
               >
@@ -982,7 +1013,7 @@ onMounted(loadPaymentData)
                   <small>{{ formatDateParts(item.date).year }}</small>
                 </span>
                 <span class="transaction-info">
-                  <strong>{{ item.installmentNumbers.length ? `Cicilan ${item.installmentNumbers.map(n => `#${n}`).join(', ')}` : item.category }}</strong>
+                  <strong>{{ item.installmentNumbers.length ? formatInstallmentRange(item.installmentNumbers, item.installmentTotal) : item.category }}</strong>
                   <span>{{ item.lot }}</span>
                 </span>
                 <span class="transaction-payment">
@@ -1006,7 +1037,7 @@ onMounted(loadPaymentData)
               />
             </section>
 
-            <div v-if="reuploadPaymentId" class="payment-notice warning">
+            <div v-if="reuploadPaymentId" class="reupload-panel">
               <strong>Unggah bukti pengganti</strong>
               <p>Pengajuan pembayaran lama akan dipertahankan. Bukti baru mengembalikan status ke Menunggu Verifikasi.</p>
               <label class="proof-input">
@@ -1037,7 +1068,7 @@ onMounted(loadPaymentData)
               >
                 Batal
               </button>
-              <p v-if="reuploadError" class="payment-notice error" role="alert">{{ reuploadError }}</p>
+              <AppNotice v-if="reuploadError" tone="error" :message="reuploadError" />
             </div>
           </section>
         </template>
@@ -1064,11 +1095,13 @@ onMounted(loadPaymentData)
       @confirm="submitCancellationRequest"
     >
       <div class="cancellation-modal-copy">
-        <p>Permintaan akan diperiksa Admin. Jika disetujui, kaveling dilepaskan dan pengembalian dihitung sebesar 50% dari uang muka serta cicilan yang sudah dikonfirmasi. Booking Fee tidak dikembalikan.</p>
+        <p>Permintaan akan diperiksa Admin. Jika disetujui, kaveling dilepaskan dan pengembalian dihitung sebesar 50% dari uang muka serta cicilan yang sudah dikonfirmasi. Tanda jadi tidak dikembalikan.</p>
         <label for="purchase-cancellation-reason">Alasan pembatalan</label>
         <textarea id="purchase-cancellation-reason" v-model="cancellationReason" rows="4" maxlength="2000" placeholder="Jelaskan alasan pengajuan pembatalan (minimal 5 karakter)." />
         <small>{{ cancellationReason.trim().length }}/2000 karakter</small>
-        <p v-if="cancellationError" class="payment-notice error" role="alert">{{ cancellationError }}</p>
+        <AppNotice v-if="cancellationError" tone="error">
+          {{ cancellationError }}
+        </AppNotice>
       </div>
     </AppModal>
   </ion-page>
@@ -1633,9 +1666,7 @@ onMounted(loadPaymentData)
 .payment-info-item { display:grid; gap:4px; padding:12px; border-radius:12px; background:var(--surface-muted,#f5f3ee); }
 .payment-info-item span { color:var(--text-secondary,#717178); font-size:11px; }
 .payment-info-item strong { color:var(--text-primary,#252525); font-size:14px; overflow-wrap:anywhere; }
-.payment-notice { padding:12px 14px; border-radius:12px; background:#f4f6f1; color:#41553b; font-size:12px; line-height:1.55; }
-.payment-notice.warning { background:#fff6e8; color:#925713; }
-.payment-notice.error { background:#fff0ef; color:#a63e38; }
+.reupload-panel { padding:14px; border:1px solid var(--border-default); border-radius:var(--nt-radius-inline); background:var(--surface-muted); color:var(--text-primary); font-size:13px; line-height:1.55; }
 .cancellation-action { display: grid; gap: 9px; margin-top: 14px; }
 .cancellation-request-button { min-height: 44px; padding: 10px 14px; border: 1px solid var(--status-danger, #a63e38); border-radius: var(--radius-control, 12px); background: var(--surface-primary, #fff); color: var(--status-danger, #a63e38); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .cancellation-request-button:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 2px; }
@@ -1678,7 +1709,6 @@ onMounted(loadPaymentData)
 }
 .submit-payment-button:disabled { opacity:.55; cursor:not-allowed; }
 .transaction-card { width:100%; border:1px solid var(--border-default,#eae7e0); text-align:left; }
-.payment-result { padding:12px 14px; border-radius:12px; color:#315d39; background:#edf7ef; font-size:12px; line-height:1.5; }
 @media(max-width:560px) {
   .payment-action-card { padding:16px; }
   .payment-info-grid { grid-template-columns:1fr 1fr; }

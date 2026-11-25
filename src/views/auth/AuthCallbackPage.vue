@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonPage, IonContent, IonSpinner, IonText } from '@ionic/vue'
 import { authService } from '@/services/auth/authService'
+import { consumePostLoginRedirect } from '@/services/auth/postLoginRedirect'
 
 const router = useRouter()
 const message = ref('Menyelesaikan login Google...')
@@ -23,9 +24,9 @@ onMounted(async () => {
       return
     }
 
-    await router.replace(destination)
+    await router.replace(consumePostLoginRedirect(role) ?? destination)
   } catch (error) {
-    message.value = error instanceof Error ? error.message : 'Login Google gagal diselesaikan.'
+    message.value = error instanceof Error ? error.message : 'Masuk Google gagal diselesaikan.'
   }
 })
 </script>
@@ -37,7 +38,7 @@ onMounted(async () => {
         <ion-spinner v-if="message.includes('Menyelesaikan')" name="crescent" />
         <h1>Autentikasi PoliLand</h1>
         <ion-text color="medium"><p>{{ message }}</p></ion-text>
-        <RouterLink v-if="!message.includes('Menyelesaikan')" to="/login">Kembali ke login</RouterLink>
+        <RouterLink v-if="!message.includes('Menyelesaikan')" to="/login">Kembali ke halaman masuk</RouterLink>
       </main>
     </ion-content>
   </ion-page>

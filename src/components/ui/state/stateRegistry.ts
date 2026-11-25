@@ -5,15 +5,15 @@
  * - Ganti teks default: ubah `title` / `description` / `actionLabel`.
  * - Halaman cukup memakai <StatusIllustration variant="..." />.
  */
-import emptyDataImg from '@/assets/mascot/Mascot_No_Data_Scene.png'
-import noResultImg from '@/assets/mascot/MascotInvestigatingSearch Filters.png'
-import creatingImg from '@/assets/mascot/MascotWritingaNewNote.png'
+import emptyDataImg from '@/assets/mascot/Mascot_No_Data_Scene.webp'
+import noResultImg from '@/assets/mascot/MascotInvestigatingSearch Filters.webp'
+import creatingImg from '@/assets/mascot/MascotWritingaNewNote.webp'
 // TODO: belum ada aset khusus offline. Ganti ke ilustrasi baru jika sudah ada.
-import offlineImg from '@/assets/mascot/Worried Mascot and Locked Property Link.png'
-import maintenanceImg from '@/assets/illustrations/perbaikan.png'
-import notFoundImg from '@/assets/illustrations/NotFound.webp'
-import fetchErrorImg from '@/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error.png'
-import successImg from '@/assets/mascot/Verified_Mascot.png'
+import offlineImg from '@/assets/mascot/Worried Mascot and Locked Property Link.webp'
+import maintenanceImg from '@/assets/illustrations/perbaikan.webp'
+import notFoundImg from '@/assets/illustrations/NotFound_opt.webp'
+import fetchErrorImg from '@/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error.webp'
+import successImg from '@/assets/mascot/Verified_Mascot.webp'
 
 export type StatusVariant =
   | 'empty-data'
@@ -56,7 +56,7 @@ export const STATUS_REGISTRY: Record<StatusVariant, StatusDefinition> = {
     image: noResultImg,
     title: 'Hasil tidak ditemukan',
     description: 'Coba ubah kata kunci atau atur ulang filter.',
-    actionLabel: 'Reset Filter',
+    actionLabel: 'Hapus Filter',
     role: 'status',
   },
   'creating-data': {

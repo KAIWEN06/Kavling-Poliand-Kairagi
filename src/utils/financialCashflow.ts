@@ -1,3 +1,5 @@
+import { formatInstallmentRange } from '@/utils/installmentFormat'
+
 export interface CashflowEntry {
   id: number
   flow_direction: 'inflow' | 'outflow'
@@ -8,6 +10,8 @@ export interface CashflowEntry {
   occurred_on: string
   bank_reference: string | null
   status: 'posted' | 'reversed'
+  installment_numbers?: number[]
+  installment_total?: number | null
 }
 
 export interface CashflowTotals {
@@ -107,15 +111,16 @@ export function cashflowCsvRows(entries: CashflowEntry[], month: string): string
   return [
     ['Ringkasan', 'Nominal'],
     ['Pemasukan bruto', String(totals.grossIncome)],
-    ['Pengeluaran refund', String(totals.refundExpenses)],
+    ['Pengembalian dana', String(totals.refundExpenses)],
     ['Total pengeluaran', String(totals.totalExpenses)],
     ['Arus kas bersih', String(totals.netCashFlow)],
     [],
-    ['Tanggal transaksi', 'Arah kas', 'Kategori', 'Sumber', 'ID sumber', 'Referensi bank', 'Nominal'],
+    ['Tanggal transaksi', 'Arah kas', 'Kategori', 'Cicilan', 'Sumber', 'ID sumber', 'Referensi bank', 'Nominal'],
     ...periodEntries.map((entry) => [
       entry.occurred_on,
       entry.flow_direction === 'inflow' ? 'Pemasukan' : 'Pengeluaran',
       entry.category,
+      formatInstallmentRange(entry.installment_numbers ?? [], entry.installment_total),
       entry.source_table,
       String(entry.source_id),
       entry.bank_reference ?? '',

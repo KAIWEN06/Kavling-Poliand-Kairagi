@@ -25,7 +25,7 @@
     <ul v-if="review.photo_urls.length" class="photos" aria-label="Foto pendukung">
       <li v-for="(path, i) in review.photo_urls" :key="path">
         <a v-if="photoUrls[path]" :href="photoUrls[path]" target="_blank" rel="noopener noreferrer">
-          <img :src="photoUrls[path]" :alt="`Foto pendukung ${i + 1} dari ulasan ${review.author_name}`" loading="lazy" />
+          <img :src="photoUrls[path]" :alt="`Foto pendukung ${i + 1} dari ulasan ${review.author_name}`" loading="lazy" decoding="async" />
         </a>
         <span v-else class="photo-placeholder" aria-hidden="true" />
       </li>

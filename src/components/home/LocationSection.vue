@@ -1,9 +1,9 @@
 <template>
   <div v-if="settings || isAdmin" class="location-card">
     <div v-if="isAdmin" class="location-admin">
-      <AdminEditButton label="Edit lokasi" @click="editOpen = true" />
+      <AdminEditButton label="Ubah lokasi" @click="editOpen = true" />
     </div>
-    <p v-if="!settings" class="location-empty">Lokasi belum diatur. Tekan “Edit lokasi” untuk menambahkan titik peta.</p>
+    <p v-if="!settings" class="location-empty">Lokasi belum diatur. Tekan “Ubah lokasi” untuk menambahkan titik peta.</p>
     <template v-else>
     <!-- Peta Satelit Interaktif (Bisa di-zoom, digeser, & tombol Buka Maps) -->
     <div class="location-map">
@@ -28,7 +28,7 @@
     </div>
     </template>
 
-    <CmsPanelModal v-model="editOpen" title="Edit lokasi" panel="location" @saved="load" />
+    <CmsPanelModal v-model="editOpen" title="Ubah lokasi" panel="location" @saved="load" />
   </div>
 </template>
 

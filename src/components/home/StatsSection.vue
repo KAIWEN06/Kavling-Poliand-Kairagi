@@ -38,10 +38,10 @@
     </div>
 
     <div v-if="isAdmin" class="stats-admin">
-      <AdminEditButton label="Edit sorotan" @click="editOpen = true" />
+      <AdminEditButton label="Ubah sorotan" @click="editOpen = true" />
     </div>
 
-    <CmsPanelModal v-model="editOpen" title="Edit sorotan" panel="home" section="highlights" @saved="loadHighlights" />
+    <CmsPanelModal v-model="editOpen" title="Ubah sorotan" panel="home" section="highlights" @saved="loadHighlights" />
   </section>
 </template>
 

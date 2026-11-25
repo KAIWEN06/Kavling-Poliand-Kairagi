@@ -5,8 +5,8 @@
       <main class="cms-shell">
         <Reveal :order="1">
           <header class="cms-intro">
-            <h1>Kelola konten website</h1>
-            <p>Ubah isi halaman yang dilihat calon pembeli sebelum login. Perubahan langsung tampil setelah disimpan.</p>
+            <h1>Kelola konten situs web</h1>
+            <p>Ubah isi halaman yang dilihat calon pembeli sebelum masuk. Perubahan langsung tampil setelah disimpan.</p>
           </header>
         </Reveal>
 
@@ -81,15 +81,15 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 
-/** `where` menjelaskan halaman publik yang terpengaruh; `path` dipakai tombol "Lihat di website". */
+/** `where` menjelaskan halaman publik yang terpengaruh; `path` dipakai tombol "Lihat di situs web". */
 const TABS: Record<CmsTab, TabDef> = {
-  home: { key: 'home', label: 'Beranda', summary: 'Hero, sorotan, keunggulan, tentang kami, ajakan', where: 'Tampil di halaman Beranda.', path: '/home', icon: homeOutline },
+  home: { key: 'home', label: 'Beranda', summary: 'Sampul, sorotan, keunggulan, tentang kami, ajakan', where: 'Tampil di halaman Beranda.', path: '/home', icon: homeOutline },
   location: { key: 'location', label: 'Lokasi', summary: 'Titik peta dan tempat terdekat', where: 'Tampil di bagian Lokasi & Denah Kavling pada Beranda.', path: '/home', icon: locationOutline },
   gallery: { key: 'gallery', label: 'Galeri', summary: 'Foto kawasan dan fasilitas', where: 'Tampil di halaman Galeri dan pratinjau galeri di Beranda.', path: '/gallery', icon: imagesOutline },
   progress: { key: 'progress', label: 'Kemajuan', summary: 'Update perkembangan pembangunan', where: 'Tampil di halaman Kemajuan dan bagian Kemajuan di Beranda.', path: '/progress', icon: constructOutline },
   faq: { key: 'faq', label: 'FAQ', summary: 'Pertanyaan yang sering diajukan', where: 'Tampil di bagian FAQ pada Beranda.', path: '/home', icon: helpCircleOutline },
   contact: { key: 'contact', label: 'Kontak', summary: 'Alamat, WhatsApp, email, media sosial', where: 'Tampil di bagian Hubungi Kami, halaman Kontak, dan semua tombol WhatsApp.', path: '/contact', icon: callOutline },
-  hours: { key: 'hours', label: 'Jam Operasional', summary: 'Hari dan jam survei lokasi', where: 'Menentukan slot survei lokasi yang bisa dipilih klien setelah login.', path: null, icon: timeOutline },
+  hours: { key: 'hours', label: 'Jam Operasional', summary: 'Hari dan jam survei lokasi', where: 'Menentukan sesi survei lokasi yang bisa dipilih klien setelah masuk.', path: null, icon: timeOutline },
 }
 const GROUPS: { label: string; tabs: TabDef[] }[] = [
   { label: 'Halaman publik', tabs: [TABS.home, TABS.location, TABS.gallery, TABS.progress, TABS.faq, TABS.contact] },

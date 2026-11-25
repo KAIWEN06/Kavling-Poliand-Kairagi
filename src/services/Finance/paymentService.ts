@@ -425,7 +425,7 @@ export const paymentService = {
 
     if (!payment) {
       throw new Error(
-        'Pembayaran tidak sedang menunggu upload ulang.',
+        'Pembayaran tidak sedang menunggu unggah ulang.',
       )
     }
 
@@ -444,7 +444,7 @@ export const paymentService = {
     const userId = authData.user?.id
 
     if (!userId) {
-      throw new Error('Sesi login tidak ditemukan.')
+      throw new Error('Sesi masuk tidak ditemukan.')
     }
 
     const targetBucket = isClientSpkPayment
@@ -484,7 +484,7 @@ export const paymentService = {
       await supabase.storage
         .from(targetBucket)
         .remove([newPath])
-      throw replaceError ?? new Error('Pembayaran gagal dikembalikan ke status Pending.')
+      throw replaceError ?? new Error('Pembayaran gagal dikembalikan ke status Menunggu.')
     }
 
     // Bukti lama tetap disimpan di Storage dan dicatat pada
@@ -519,12 +519,12 @@ export const paymentService = {
 
     if (!input.proof_path.trim()) {
       throw new Error(
-        'Bukti Booking Fee wajib tersedia sebelum pembayaran dibuat.',
+        'Bukti tanda jadi wajib tersedia sebelum pembayaran dibuat.',
       )
     }
 
     if (!Number.isInteger(input.amount) || input.amount <= 0) {
-      throw new Error('Nominal Booking Fee tidak valid.')
+      throw new Error('Nominal tanda jadi tidak valid.')
     }
 
     // Cegah pembayaran Booking ganda.
@@ -541,7 +541,7 @@ export const paymentService = {
 
     if (existingPayment) {
       throw new Error(
-        'Booking Fee untuk SPK ini sudah dibuat.',
+        'Tanda jadi untuk SPK ini sudah dibuat.',
       )
     }
 
@@ -558,7 +558,7 @@ export const paymentService = {
         payment_category: 'Booking',
         reference_number: null,
         proof_path: input.proof_path,
-        note: input.note ?? 'Booking Fee dari pengajuan SPK',
+        note: input.note ?? 'Tanda jadi dari pengajuan SPK',
         status: 'Pending',
       })
       .select('*')

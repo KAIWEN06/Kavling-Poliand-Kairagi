@@ -265,14 +265,17 @@
             <div v-else class="survey-unavailable">
               <ion-icon :icon="informationCircleOutline" aria-hidden="true" />
               <span>
-                Pengajuan survei online hanya tersedia untuk kaveling berstatus Tersedia. Hubungi Admin untuk informasi lebih lanjut.
+                Pengajuan survei daring hanya tersedia untuk kaveling berstatus Tersedia. Hubungi Admin untuk informasi lebih lanjut.
               </span>
             </div>
           </section>
 
           <!-- Kartu Utama Kavling -->
           <section class="hero-card">
-            <div class="hero-image-wrap">
+            <div v-if="hideSoldInfo" class="hero-image-wrap hero-image-wrap--sold">
+              <img :src="soldMascot" alt="Maskot PoliLand cemas di samping kalender bertanda terjual" class="sold-mascot" />
+            </div>
+            <div v-else class="hero-image-wrap">
               <img
                 v-if="lot.panorama_url"
                 :src="lot.panorama_url"
@@ -304,12 +307,12 @@
               </div>
             </div>
 
-            <div class="spec-strip">
-              <div>
+            <div :class="['spec-strip', { 'spec-strip--single': hideSoldInfo }]">
+              <div v-if="!hideSoldInfo">
                 <span>Luas Tanah</span>
                 <strong>{{ formatArea(lot.area) }}</strong>
               </div>
-              <div>
+              <div v-if="!hideSoldInfo">
                 <span>Dimensi</span>
                 <strong>{{ lot.dimension || 'Belum diatur' }}</strong>
               </div>
@@ -335,13 +338,13 @@
               Kaveling ini sudah terjual, jadi info harga tidak ditampilkan.
             </div>
 
-            <div class="client-contact-actions">
+            <div :class="['client-contact-actions', { 'client-contact-actions--single': isSold }]">
               <AppButton class="single-line-btn" variant="primary" expand="block" @click="contactAdmin">
                 <ion-icon :icon="callOutline" slot="start" />
-                <span>Chat Admin</span>
+                <span>Hubungi Admin</span>
               </AppButton>
-              <AppButton class="single-line-btn" variant="secondary" expand="block" :disabled="isHeldBySpk" @click="openOrderForm">
-                <span>{{ isHeldBySpk ? 'SEDANG DIPROSES' : 'PESAN' }}</span>
+              <AppButton v-if="!isSold" class="single-line-btn" variant="secondary" expand="block" :disabled="!canOrder" @click="openOrderForm">
+                <span>{{ orderLabel }}</span>
               </AppButton>
             </div>
             <p v-if="isHeldBySpk" class="order-hold-note" role="note">
@@ -353,7 +356,7 @@
           </section>
 
           <!-- Tab Detail -->
-          <nav class="detail-tabs" aria-label="Detail kaveling">
+          <nav v-if="!hideSoldInfo" class="detail-tabs" aria-label="Detail kaveling">
             <button
               v-for="item in tabs"
               :key="item.key"
@@ -372,13 +375,13 @@
               <dl class="info-list">
                 <div><dt>Nomor Kaveling</dt><dd>{{ lot.lot_number }}</dd></div>
                 <div><dt>Blok</dt><dd>{{ blockLabel }}</dd></div>
-                <div><dt>Luas Tanah</dt><dd>{{ formatArea(lot.area) }}</dd></div>
-                <div><dt>Dimensi</dt><dd>{{ lot.dimension || '-' }}</dd></div>
+                <div v-if="!hideSoldInfo"><dt>Luas Tanah</dt><dd>{{ formatArea(lot.area) }}</dd></div>
+                <div v-if="!hideSoldInfo"><dt>Dimensi</dt><dd>{{ lot.dimension || '-' }}</dd></div>
                 <div>
                   <dt>Status Kaveling</dt>
                   <dd><span :class="['status-pill', statusClass]">{{ statusLabel }}</span></dd>
                 </div>
-                <div><dt>Keterangan</dt><dd>{{ lot.description || '-' }}</dd></div>
+                <div v-if="!hideSoldInfo && lotDescription"><dt>Keterangan</dt><dd>{{ lotDescription }}</dd></div>
               </dl>
             </article>
 
@@ -391,13 +394,13 @@
                 <p>Admin siap bantu jelasin detail kaveling dan alur pemesanannya.</p>
                 <AppButton class="single-line-btn" variant="primary" size="small" @click="contactAdmin">
                   <ion-icon :icon="callOutline" slot="start" />
-                  <span>Chat Admin</span>
+                  <span>Hubungi Admin</span>
                 </AppButton>
               </div>
             </article>
           </section>
 
-          <section v-else class="tab-content">
+          <section v-else-if="!hideSoldInfo" class="tab-content">
             <article class="panel panorama-panel">
               <div v-if="lot.panorama_url" class="panorama-preview" @click="openPanorama">
                 <img :src="lot.panorama_url" :alt="`Panorama kavling ${lot.lot_number}`" />
@@ -426,24 +429,18 @@
     </ion-content>
 
     <MobileTabBar variant="client" />
-    <ion-toast
-      :is-open="toast.open"
-      :message="toast.message"
-      :color="toast.color"
-      :duration="3500"
-      @didDismiss="toast.open = false"
-    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  IonPage, IonContent, IonIcon, IonToast, onIonViewWillEnter,
+  IonPage, IonContent, IonIcon, onIonViewWillEnter,
 } from '@ionic/vue'
 import {
   arrowBackOutline, calendarOutline, callOutline,
@@ -454,8 +451,9 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.png'
-import worriedChoosingDayMascot from '@/assets/mascot/Worried Mascot Choosing a Day.png'
+import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
+import soldMascot from '@/assets/mascot/Sold_Lot_Mascot.webp'
+import worriedChoosingDayMascot from '@/assets/mascot/Worried Mascot Choosing a Day.webp'
 import { lotService, type LotRecord } from '@/services/lotService'
 import { getLotsHeldBySpkSafe, lotHoldNote, type HeldLots } from '@/services/lotHoldService'
 import { contactsService, type OperatingHoursConfig, type DayKey } from '@/services/contactService'
@@ -484,9 +482,7 @@ const surveyRequestStatus = ref<ClientSurveyRequest | null>(null)
 const clientSurveyRequests = ref<ClientSurveyRequest[]>([])
 const clientSurveyStatusLoading = ref(false)
 let availabilityRequestVersion = 0
-const toast = reactive<{ open: boolean; message: string; color: 'success' | 'danger' | 'warning' }>({
-  open: false, message: '', color: 'success',
-})
+const toast = useToast()
 
 const DEFAULT_OPERATING_HOURS: OperatingHoursConfig = {
   timezone: 'Asia/Makassar',
@@ -553,6 +549,29 @@ const quickDateChips = computed(() => {
   return chips
 })
 const isSold = computed(() => ['sold', 'terjual'].includes(String(lot.value?.status || '').toLowerCase()))
+/** Client pemilik kavling tetap melihat info lengkap meski sudah terjual. */
+const isOwnLot = ref(false)
+const hideSoldInfo = computed(() => isSold.value && !isOwnLot.value)
+const isBooked = computed(() => ['booking', 'booked', 'dipesan'].includes(String(lot.value?.status || '').toLowerCase()))
+/** Hanya kavling Tersedia yang bisa dipesan; yang sudah dipesan tertutup untuk semua client. */
+const canOrder = computed(() => !isSold.value && !isBooked.value && !isHeldBySpk.value)
+const orderLabel = computed(() => {
+  if (isBooked.value) return 'SUDAH DIPESAN'
+  if (isHeldBySpk.value) return 'SEDANG DIPROSES'
+  return 'PESAN'
+})
+/* Keterangan yang menyebut status lain disembunyikan agar tidak bertentangan dengan status. */
+const lotDescription = computed(() => {
+  const text = String(lot.value?.description || '').trim()
+  if (!text) return ''
+  const words: Record<string, RegExp> = {
+    available: /(tersedia|available|ready)/i,
+    booking: /(dipesan|dibooking|booking|booked|reserved)/i,
+    sold: /(terjual|sold)/i,
+  }
+  const current = isSold.value ? 'sold' : isBooked.value ? 'booking' : 'available'
+  return Object.entries(words).some(([status, pattern]) => status !== current && pattern.test(text)) ? '' : text
+})
 const hasActiveSurveyRequest = computed(() => clientSurveyRequests.value.some((request) => ['pending', 'confirmed'].includes(request.status)))
 const canRequestSurvey = computed(() => !isSold.value
   && !hasActiveSurveyRequest.value
@@ -765,9 +784,7 @@ function parseISODate(value: string) {
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day ? date : null
 }
 function notify(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
-  toast.message = message
-  toast.color = color
-  toast.open = true
+  toast.show(color === 'danger' ? 'error' : color, message)
 }
 function clientSurveyStatusLabel(status: ClientSurveyRequest['status']) {
   return {
@@ -824,7 +841,7 @@ function contactAdmin() {
   openWhatsApp(formatWhatsAppMessage(false))
 }
 function openOrderForm() {
-  if (!lot.value) return
+  if (!lot.value || !canOrder.value) return
   router.push({
     name: 'DokumenClient',
     query: { create: '1', lot_id: String(lot.value.id) },
@@ -881,7 +898,7 @@ async function sendSurveyRequest() {
   if (surveyRequestSaving.value) return
 
   if (!canRequestSurvey.value) {
-    notify('Kaveling ini belum bisa diajukan untuk survei online.', 'warning')
+    notify('Kaveling ini belum bisa diajukan untuk survei daring.', 'warning')
     return
   }
 
@@ -961,8 +978,18 @@ function handleDateChange() {
   }
 }
 function openPanorama() {
-  if (!lot.value?.panorama_url) return
+  if (!lot.value?.panorama_url || hideSoldInfo.value) return
   router.push({ name: 'Panorama', params: { lotId: String(lot.value.id) } })
+}
+// Datang dari tombol "Survei Lokasi" di denah: langsung ke bagian jadwal survei.
+function scrollToSurveyIfRequested() {
+  if (route.query.survei !== '1') return
+  window.setTimeout(() => {
+    document.getElementById('survey-heading')?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  }, 450)
 }
 async function loadDetail() {
   if (!Number.isInteger(lotId.value) || lotId.value <= 0) {
@@ -990,7 +1017,11 @@ async function loadDetail() {
       operatingHours.value = contactSettings.operatingHours
     }
     if (!lot.value) throw new Error('Data kaveling tidak tersedia.')
+    isOwnLot.value = isSold.value
+      ? await lotService.isLotOwnedByMe(lot.value.id).catch(() => false)
+      : false
     await refreshSurveyAvailability()
+    scrollToSurveyIfRequested()
   } catch (error) {
     console.error('[ClientKavlingDetail] Gagal memuat detail:', error)
     errorMessage.value = error instanceof Error ? error.message : 'Belum bisa memuat info kaveling.'
@@ -1680,6 +1711,35 @@ textarea.form-control {
   aspect-ratio: 16 / 9;
   background: var(--surface-muted, #f5f3ee);
 }
+
+.hero-image-wrap--sold {
+  display: grid;
+  place-items: center;
+  aspect-ratio: auto;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--border-default, #eae7e0);
+}
+
+.sold-mascot {
+  display: block;
+  width: min(240px, 78%);
+  height: auto;
+  animation: sold-float 4.2s ease-in-out infinite;
+}
+
+@keyframes sold-float {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50% { transform: translateY(-6px) rotate(0.6deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sold-mascot { animation: none; }
+}
+
+.spec-strip--single { grid-template-columns: 1fr; }
+
+.client-contact-actions--single { grid-template-columns: 1fr; }
 
 .hero-image {
   display: block;

@@ -1,18 +1,17 @@
 <template>
-  <ion-modal :enter-animation="sheetModalEnterAnimation" :leave-animation="sheetModalLeaveAnimation"
-    class="notif-sheet"
-    :is-open="open"
-    :initial-breakpoint="0.85"
-    :breakpoints="[0, 0.85, 1]"
-    @did-dismiss="emit('close')"
+  <AppModal
+    :model-value="open"
+    title="Notifikasi"
+    aria-label="Pusat notifikasi"
+    variant="bottom-sheet"
+    :show-footer="false"
+    :show-divider="false"
+    max-height="88dvh"
+    @update:model-value="(v: boolean) => { if (!v) emit('close') }"
   >
-    <section class="notif" aria-label="Pusat notifikasi">
+    <section class="notif">
       <header class="notif__head">
-        <div>
-          <h2>Notifikasi</h2>
-          <p v-if="unread" class="notif__sub">{{ unread }} belum dibaca</p>
-          <p v-else class="notif__sub">Semua sudah dibaca</p>
-        </div>
+        <p class="notif__sub">{{ unread ? `${unread} belum dibaca` : 'Semua sudah dibaca' }}</p>
         <button type="button" class="notif__markall" :disabled="!unread" @click="markAllRead">
           <ion-icon :icon="checkmarkDoneOutline" aria-hidden="true" />
           Tandai semua dibaca
@@ -42,7 +41,7 @@
               :class="{ 'notif__item--unread': !n.read_at }"
               @click="open_(n)"
             >
-              <span class="notif__icon" :class="`notif__icon--${n.category}`">
+              <span class="notif__icon" :class="`nt-tone--${toneFor(n)}`">
                 <ion-icon :icon="iconFor(n.category)" aria-hidden="true" />
               </span>
               <span class="notif__content">
@@ -59,13 +58,13 @@
         </ul>
       </div>
     </section>
-  </ion-modal>
+  </AppModal>
 </template>
 
 <script setup lang="ts">
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
-import { sheetModalEnterAnimation, sheetModalLeaveAnimation } from '@/utils/modalAnimation'
-import { IonIcon, IonModal, useIonRouter } from '@ionic/vue'
+import AppModal from '@/components/ui/AppModal.vue'
+import { IonIcon, useIonRouter } from '@ionic/vue'
 import {
   alarmOutline,
   calendarOutline,
@@ -78,11 +77,13 @@ import {
   walletOutline,
 } from 'ionicons/icons'
 
+import type { ToastTone } from '@/composables/useToast'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useNotifications } from '@/composables/useNotifications'
 import {
   formatRelativeTime,
   resolveNotificationRoute,
+  withTapStamp,
   type AppNotification,
   type NotificationCategory,
 } from '@/services/notification/notificationService'
@@ -109,53 +110,47 @@ function iconFor(category: NotificationCategory) {
   return ICONS[category] ?? informationCircleOutline
 }
 
+/* Warna ikon memakai nada yang sama dengan toast dan pesan (theme/notify.css). */
+function toneFor(n: AppNotification): ToastTone {
+  if (n.priority === 'high' || n.category === 'reminder') return 'warning'
+  if (n.category === 'payment' || n.category === 'commission') return 'success'
+  return 'info'
+}
+
 async function open_(n: AppNotification) {
   void markRead(n.id)
   const target = resolveNotificationRoute(profile.value?.role ?? null, n)
   if (!target) return
   emit('close')
-  ionRouter.push(target)
+  ionRouter.push(withTapStamp(target))
 }
 </script>
 
 <style scoped>
-.notif-sheet {
-  --border-radius: 24px 24px 0 0;
-  --background: var(--surface-primary, #fff);
-}
-
+/* Isi penuh lebar: batalkan padding bawaan badan AppModal. */
 .notif {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  padding-top: 16px;
+  margin: -14px -16px -18px;
 }
 
 .notif__head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 4px 18px 12px;
+  padding: 0 12px 8px 18px;
   border-bottom: 1px solid var(--border-default, #eae7e0);
 }
 
-.notif__head h2 {
-  margin: 0;
-  color: var(--text-primary, #252525);
-  font-size: 20px;
-  font-weight: 800;
-}
-
 .notif__sub {
-  margin: 2px 0 0;
-  color: var(--text-secondary, #717178);
+  margin: 0;
+  color: var(--text-secondary, #5f5f66);
   font-size: 12px;
 }
 
 .notif__markall {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 44px;
+  touch-action: manipulation;
   flex: 0 0 auto;
   align-items: center;
   gap: 6px;
@@ -180,10 +175,7 @@ async function open_(n: AppNotification) {
 }
 
 .notif__body {
-  flex: 1;
-  overflow-y: auto;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  overscroll-behavior: contain;
 }
 
 .notif__list {
@@ -205,6 +197,8 @@ async function open_(n: AppNotification) {
   font: inherit;
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .notif__item--unread {
@@ -226,21 +220,11 @@ async function open_(n: AppNotification) {
   height: 40px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 12px;
-  color: var(--poliland-green, #355a2c);
-  background: color-mix(in srgb, var(--poliland-green, #355a2c) 12%, transparent);
+  border-radius: 50%;
+  color: var(--nt-title);
+  background: var(--nt-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nt-solid) 30%, transparent);
   font-size: 20px;
-}
-
-.notif__icon--payment,
-.notif__icon--commission {
-  color: var(--poliland-gold-text, #966a12);
-  background: color-mix(in srgb, var(--poliland-gold-text, #966a12) 14%, transparent);
-}
-
-.notif__icon--reminder {
-  color: var(--status-danger, #d94b45);
-  background: color-mix(in srgb, var(--status-danger, #d94b45) 12%, transparent);
 }
 
 .notif__content {

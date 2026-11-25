@@ -100,33 +100,67 @@ export function resolveNotificationRoute(role: UserRole | null, n: AppNotificati
   const customerId = d.customer_id != null ? String(d.customer_id) : ''
   const spkId = d.spk_id != null ? String(d.spk_id) : ''
   const lotId = d.lot_id != null ? String(d.lot_id) : ''
+  const surveyId = d.survey_id != null ? String(d.survey_id) : ''
+  const paymentId = d.payment_id != null ? String(d.payment_id) : ''
+  const transactionId = d.transaction_id != null ? String(d.transaction_id) : ''
+  const commissionId = d.commission_id != null ? String(d.commission_id) : ''
 
   switch (role) {
     case 'admin':
-      if (n.category === 'survey') return lotId ? `/admin/kavling/${lotId}` : '/admin/kavling'
-      if (n.category === 'spk') return spkId ? `/admin/spk/${spkId}/tinjau` : '/admin/spk'
-      if (n.category === 'payment') return '/admin/keuangan'
-      if (n.category === 'client' || n.category === 'transaction') {
+      if (n.category === 'survey') {
+        // Daftar survei menampilkan kavling dan jam; baris yang dimaksud disorot.
+        return withQuery('/admin/survei', { surveyId })
+      }
+      // Halaman /tinjau mewajibkan transactionId, jadi notifikasi membuka detail di daftar SPK.
+      if (n.category === 'spk') return withQuery('/admin/spk', { spkId })
+      if (n.category === 'payment') {
+        if (n.type === 'booking_fee_refund_pending' && spkId) return withQuery('/admin/spk', { spkId, refund: '1' })
+        if (paymentId) return withQuery('/admin/keuangan', { paymentId })
+        if (spkId) return withQuery('/admin/keuangan', { spkRequestId: spkId })
+        return customerId ? `/admin/pembeli/${customerId}` : '/admin/keuangan'
+      }
+      if (n.type === 'cancellation_requested') return '/admin/keuangan?tab=cancellations'
+      if (n.type === 'lot_released' && lotId) return `/admin/kavling/${lotId}`
+      if (n.category === 'reminder' || n.category === 'client' || n.category === 'transaction') {
         return customerId ? `/admin/pembeli/${customerId}` : '/admin/pembeli'
       }
       return null
     case 'marketing':
-      if (n.category === 'spk') return '/marketing/pengajuan'
-      if (n.category === 'payment') return '/marketing/pembayaran'
-      if (n.category === 'commission') return '/marketing/komisi'
-      return customerId ? `/marketing/clients/${customerId}` : '/marketing/clients'
-    case 'marketing_head':
-      if (n.category === 'spk') return '/kepala-marketing/spk'
-      if (n.category === 'payment') return '/kepala-marketing/pembayaran'
-      if (n.category === 'commission') return '/kepala-marketing/komisi'
-      return customerId ? `/kepala-marketing/clients/${customerId}` : '/kepala-marketing/clients'
+    case 'marketing_head': {
+      const base = role === 'marketing' ? '/marketing' : '/kepala-marketing'
+      const spkList = role === 'marketing' ? `${base}/pengajuan` : `${base}/spk`
+      if (n.category === 'spk') return withQuery(spkList, { spkId })
+      if (n.category === 'payment') {
+        // Pengingat tanda jadi belum punya baris pembayaran: yang terkait adalah SPK-nya.
+        if (!paymentId && spkId) return withQuery(spkList, { spkId })
+        return withQuery(`${base}/pembayaran`, { paymentId })
+      }
+      if (n.category === 'commission') return withQuery(`${base}/komisi`, { commissionId })
+      return customerId ? `${base}/clients/${customerId}` : `${base}/clients`
+    }
     case 'client':
-      if (n.category === 'survey') return lotId ? `/client/kavling/${lotId}` : '/client/kavling'
-      if (n.category === 'spk') return spkId ? `/client/dokumen?spk_id=${spkId}` : '/client/dokumen'
-      return '/client/pembayaran'
+      if (n.category === 'survey') return lotId ? `/client/kavling/${lotId}?survei=1` : '/client/kavling'
+      // Tanda jadi diunggah dan dipantau dari detail SPK, bukan halaman pembayaran.
+      if (n.category === 'spk' || (!paymentId && spkId && n.type.startsWith('booking_fee'))) {
+        return withQuery('/client/dokumen', { spk_id: spkId })
+      }
+      return withQuery('/client/pembayaran', { paymentId, transactionId, spkId })
     default:
       return null
   }
+}
+
+function withQuery(path: string, params: Record<string, string>) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value)).toString()
+  return query ? `${path}?${query}` : path
+}
+
+/**
+ * Penanda tiap tap. Ionic menyimpan halaman di tumpukan, jadi tanpa nilai yang berubah
+ * tap kedua ke data yang sama tidak memicu halaman untuk memuat ulang dan menyorotnya.
+ */
+export function withTapStamp(path: string) {
+  return `${path}${path.includes('?') ? '&' : '?'}nt=${Date.now()}`
 }
 
 export function formatRelativeTime(iso: string, now = Date.now()): string {

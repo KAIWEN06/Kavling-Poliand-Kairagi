@@ -17,7 +17,7 @@
           <section class="spk-toolbar">
             <label class="spk-search">
               <ion-icon :icon="searchOutline" />
-              <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, pembeli, marketing, kaveling..." />
+              <input v-model="searchQuery" type="search" placeholder="Cari nomor SPK, pembeli, pemasar, kaveling..." />
               <button v-if="searchQuery" type="button" aria-label="Hapus pencarian" @click="searchQuery = ''"><ion-icon :icon="closeOutline" /></button>
             </label>
             <div class="spk-source-filters" aria-label="Filter sumber SPK">
@@ -44,7 +44,7 @@
         <template v-else>
           <div id="spk-list-top" class="spk-list-head"><h2>Daftar Pengajuan</h2><span>{{ filteredRequests.length }} pengajuan</span></div>
           <section v-if="filteredRequests.length" class="spk-list">
-            <article v-for="request in pagedRequests" :key="request.id" class="spk-card">
+            <article v-for="request in pager.items" :key="request.id" class="spk-card">
               <div class="spk-card-top">
                 <div><span class="spk-number">{{ request.spk_number }}</span><time>{{ formatDate(request.created_at) }}</time></div>
                 <span :class="['spk-status', `status-${request.status.toLowerCase().replaceAll(' ', '-')}`]">{{ statusLabel(request.status) }}</span>
@@ -71,42 +71,7 @@
               </div>
             </article>
           </section>
-          <nav v-if="filteredRequests.length > 0 && totalPages > 1" class="spk-pager" aria-label="Halaman daftar pengajuan SPK">
-            <div class="spk-pager-controls">
-              <button
-                type="button"
-                class="spk-pager-btn"
-                aria-label="Halaman sebelumnya"
-                :disabled="currentPage === 1"
-                @click="goToPage(currentPage - 1)"
-              >
-                <ion-icon :icon="chevronBackOutline" />
-              </button>
-              <button
-                v-for="page in visiblePages"
-                :key="page ?? `ellipsis-${currentPage}`"
-                type="button"
-                class="spk-pager-number"
-                :class="{ active: page === currentPage }"
-                :disabled="page === null"
-                :aria-current="page === currentPage ? 'page' : undefined"
-                :aria-label="page === null ? undefined : `Halaman ${page}`"
-                @click="page !== null && goToPage(page)"
-              >
-                {{ page ?? '…' }}
-              </button>
-              <button
-                type="button"
-                class="spk-pager-btn"
-                aria-label="Halaman berikutnya"
-                :disabled="currentPage === totalPages"
-                @click="goToPage(currentPage + 1)"
-              >
-                <ion-icon :icon="chevronForwardOutline" />
-              </button>
-            </div>
-            <span class="spk-pager-position">Halaman {{ currentPage }} dari {{ totalPages }}</span>
-          </nav>
+          <AppPagination v-model:page="pager.page" :total-pages="pager.totalPages" :total="pager.total" :page-size="pager.pageSize" scroll-to="#spk-list-top" label="Halaman daftar pengajuan SPK" />
           <StatusIllustration
             v-if="!filteredRequests.length"
             variant="no-result"
@@ -125,17 +90,17 @@
       <div v-if="selectedRequest" class="spk-detail">
         <div class="spk-detail-banner"><div><span>Nomor SPK</span><strong>{{ selectedRequest.spk_number }}</strong></div><span :class="['spk-status', `status-${selectedRequest.status.toLowerCase().replaceAll(' ', '-')}`]">{{ statusLabel(selectedRequest.status) }}</span></div>
         <section class="spk-detail-section"><h3>Informasi pembeli</h3>
-          <dl><div><dt>Nama lengkap</dt><dd>{{ selectedRequest.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ selectedRequest.customer_phone }}</dd></div><div><dt>Email</dt><dd>{{ selectedRequest.customer_email || '-' }}</dd></div><div><dt>Alamat</dt><dd>{{ selectedRequest.customer_address || '-' }}</dd></div><div><dt>Marketing</dt><dd>{{ selectedRequest.marketing_name }}</dd></div></dl>
+          <dl><div><dt>Nama lengkap</dt><dd>{{ selectedRequest.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ selectedRequest.customer_phone }}</dd></div><div><dt>Email</dt><dd>{{ selectedRequest.customer_email || '-' }}</dd></div><div><dt>Alamat</dt><dd>{{ selectedRequest.customer_address || '-' }}</dd></div><div><dt>Pemasar</dt><dd>{{ selectedRequest.marketing_name }}</dd></div></dl>
         </section>
         <section class="spk-detail-section"><h3>Informasi kaveling & pembayaran</h3>
-          <dl><div><dt>Nomor kaveling</dt><dd>{{ selectedRequest.lot_number }} · {{ selectedRequest.block_name }}</dd></div><div><dt>Harga snapshot</dt><dd>{{ formatCurrency(selectedRequest.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ selectedRequest.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div v-if="selectedRequest.months"><dt>Tenor</dt><dd>{{ selectedRequest.months }} bulan</dd></div><div v-if="selectedRequest.monthly_payment"><dt>Cicilan per bulan</dt><dd>{{ formatCurrency(selectedRequest.monthly_payment) }}</dd></div><div><dt>Catatan marketing</dt><dd>{{ selectedRequest.notes || '-' }}</dd></div></dl>
+          <dl><div><dt>Nomor kaveling</dt><dd>{{ selectedRequest.lot_number }} · {{ selectedRequest.block_name }}</dd></div><div><dt>Harga tercatat</dt><dd>{{ formatCurrency(selectedRequest.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ selectedRequest.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div v-if="selectedRequest.months"><dt>Tenor</dt><dd>{{ selectedRequest.months }} bulan</dd></div><div v-if="selectedRequest.monthly_payment"><dt>Cicilan per bulan</dt><dd>{{ formatCurrency(selectedRequest.monthly_payment) }}</dd></div><div><dt>Catatan pemasar</dt><dd>{{ selectedRequest.notes || '-' }}</dd></div></dl>
         </section>
-        <section class="spk-detail-section"><h3>Booking Fee</h3>
+        <section class="spk-detail-section"><h3>Tanda jadi</h3>
           <div class="spk-booking-summary">
             <div><span>Status</span><strong>{{ bookingPaymentStatusLabel(selectedRequest) }}</strong></div>
             <div><span>Terverifikasi</span><strong>{{ formatCurrency(selectedRequest.booking_payment.confirmedAmount) }} / {{ formatCurrency(selectedRequest.booking_payment.requiredAmount) }}</strong></div>
             <p v-if="!canApproveSPK(selectedRequest)" class="spk-approval-hint">{{ approvalBlockReason(selectedRequest) }}</p>
-            <p v-else class="spk-approval-ready">Booking Fee sudah memenuhi syarat approval.</p>
+            <p v-else class="spk-approval-ready">Tanda jadi sudah memenuhi syarat persetujuan.</p>
             <button
               v-if="!selectedRequest.booking_payment.isSatisfied"
               type="button"
@@ -165,14 +130,14 @@
             <div class="spk-refund-heading-icon"><ion-icon :icon="cardOutline" /></div>
             <div>
               <span class="spk-refund-eyebrow">PENYELESAIAN DANA</span>
-              <h3>Pengembalian Booking Fee</h3>
+              <h3>Pengembalian tanda jadi</h3>
               <p>Informasi dan bukti pengembalian dana kepada klien.</p>
             </div>
           </div>
 
           <div class="spk-refund-amount-card">
             <div>
-              <span>Booking Fee terkonfirmasi</span>
+              <span>Tanda jadi terkonfirmasi</span>
               <strong>{{ formatCurrency(selectedRequest.booking_payment.confirmedAmount) }}</strong>
             </div>
             <span
@@ -273,9 +238,9 @@
               </label>
             </div>
 
-            <p v-if="refundError" class="spk-refund-error" role="alert">
-              <ion-icon :icon="alertCircleOutline" /> {{ refundError }}
-            </p>
+            <AppNotice v-if="refundError" tone="error">
+              {{ refundError }}
+            </AppNotice>
 
             <AppButton
               :disabled="refundSubmitting || !refundFile || !refundMethod.trim() || !refundTransferAt"
@@ -283,7 +248,7 @@
             >
               {{ refundSubmitting ? 'Menyimpan...' : 'Simpan' }}
             </AppButton>
-            <p class="spk-refund-footnote">Dengan menyimpan, Admin menyatakan pengembalian Booking Fee telah dilakukan dan bukti yang dilampirkan sesuai.</p>
+            <p class="spk-refund-footnote">Dengan menyimpan, Admin menyatakan pengembalian tanda jadi telah dilakukan dan bukti yang dilampirkan sesuai.</p>
           </template>
         </section>
         <div v-if="isPending(selectedRequest)" class="spk-detail-actions">
@@ -295,13 +260,13 @@
 
     <AppModal v-model="approveOpen" title="Setujui pengajuan SPK?" variant="dialog"
       :loading="saving" :confirm-disabled="!actionRequest || !canApproveSPK(actionRequest)" confirm-text="Ya, setujui" cancel-text="Batal" slide-confirm slide-label="Geser untuk menyetujui" confirm-variant="success" @confirm="confirmApprove">
-      <div class="spk-confirm-copy"><p>SPK <strong>{{ actionRequest?.spk_number }}</strong> akan disetujui.</p><p>Status kaveling <strong>{{ actionRequest?.lot_number }}</strong> akan berubah menjadi <strong>Booking</strong>.</p><p>Pastikan data dan dokumen telah diperiksa. Persetujuan tidak dapat dilakukan jika kaveling sudah tidak tersedia.</p></div>
+      <div class="spk-confirm-copy"><p>SPK <strong>{{ actionRequest?.spk_number }}</strong> akan disetujui.</p><p>Status kaveling <strong>{{ actionRequest?.lot_number }}</strong> akan berubah menjadi <strong>Dipesan</strong>.</p><p>Pastikan data dan dokumen telah diperiksa. Persetujuan tidak dapat dilakukan jika kaveling sudah tidak tersedia.</p></div>
     </AppModal>
 
     <AppModal v-model="rejectOpen" title="Tolak pengajuan SPK" variant="dialog"
       :loading="saving" :confirm-disabled="!rejectionReason.trim()" confirm-text="Tolak SPK" confirm-variant="danger" slide-confirm slide-label="Geser untuk menolak SPK"
       cancel-text="Batal" @confirm="confirmReject">
-      <div class="spk-reject-form"><p>Pilih kategori yang sesuai. Booking Fee hanya dapat digunakan ulang jika penolakan terjadi karena kesalahan administratif.</p>
+      <div class="spk-reject-form"><p>Pilih kategori yang sesuai. Tanda jadi hanya dapat digunakan ulang jika penolakan terjadi karena kesalahan administratif.</p>
         <label>Kategori penolakan <b>*</b>
           <select v-model="rejectionCategory">
             <option value="Administrative Error">Kesalahan administratif / salah kaveling</option>
@@ -309,7 +274,7 @@
             <option value="Other">Alasan lainnya</option>
           </select>
         </label>
-        <p v-if="rejectionCategory === 'Administrative Error'" class="spk-reuse-warning">Jika Booking Fee sudah dikonfirmasi Finance, pembayaran akan tersedia untuk digunakan pada pengajuan SPK pengganti.</p>
+        <p v-if="rejectionCategory === 'Administrative Error'" class="spk-reuse-warning">Jika tanda jadi sudah dikonfirmasi bagian Keuangan, pembayaran akan tersedia untuk digunakan pada pengajuan SPK pengganti.</p>
         <label>Alasan penolakan <b>*</b><textarea v-model="rejectionReason" rows="4" maxlength="1000" placeholder="Tuliskan alasan penolakan..." /></label>
         <small>{{ rejectionReason.length }}/1000 karakter</small>
       </div>
@@ -360,7 +325,7 @@
               </div>
               <template v-if="selectedCustomerSource === 'Admin'">
                 <button type="button" class="spk-add-customer-toggle" @click="showNewCustomerForm = !showNewCustomerForm">
-                  {{ showNewCustomerForm ? 'Tutup form' : 'Client baru' }}
+                  {{ showNewCustomerForm ? 'Tutup form' : 'Klien baru' }}
                 </button>
                 <div v-if="showNewCustomerForm" class="spk-new-customer-form">
                 <label>Nama lengkap <b>*</b><input v-model.trim="newCustomer.full_name" data-input="name" required placeholder="Nama sesuai KTP" /></label>
@@ -442,13 +407,20 @@
             <div v-for="lot in selectedCreateLots" :key="lot.id" class="spk-lot-payment-card">
               <strong>{{ lot.lot_number }} · {{ formatCurrency(lotPrice(lot)) }}</strong>
               <template v-if="createForm.payment_method === 'Installment'">
-                <label>DP kaveling ini
-                  <input :value="dpInputs[lot.id] || ''" inputmode="numeric" placeholder="Nominal DP"
-                    @input="updateLotDp(lot.id, ($event.target as HTMLInputElement).value)" />
-                </label>
-                <div class="spk-dp-shortcuts">
-                  <button v-for="p in [10,20,30]" :key="p" type="button" @click="setLotDp(lot.id,p)">{{ p }}%</button>
-                </div>
+                <InstallmentDpChoice :name="`admin-dp-${lot.id}`" :model-value="Boolean(lotUseDp[lot.id])"
+                  @update:model-value="setLotUseDp(lot.id, $event)" />
+                <template v-if="lotUseDp[lot.id]">
+                  <label>Nominal uang muka
+                    <input :value="dpInputs[lot.id] || ''" inputmode="numeric" placeholder="Contoh: 8.000.000"
+                      @input="updateLotDp(lot.id, ($event.target as HTMLInputElement).value)" />
+                  </label>
+                  <div class="spk-dp-shortcuts">
+                    <button v-for="p in [10,20,30]" :key="p" type="button" @click="setLotDp(lot.id,p)">{{ p }}%</button>
+                  </div>
+                  <p v-if="lotDpInvalid(lot)" class="spk-dp-warning" role="alert">
+                    {{ dpAmounts[lot.id] ? 'Uang muka harus lebih kecil dari harga kaveling.' : 'Isi nominal uang muka, atau pilih Langsung cicil.' }}
+                  </p>
+                </template>
                 <label>Tenor cicilan
                   <select v-model="lotPlanIds[lot.id]" :disabled="loadingLotPlanIds.includes(lot.id)">
                     <option value="">{{ loadingLotPlanIds.includes(lot.id) ? 'Memuat skema...' : 'Pilih tenor' }}</option>
@@ -456,7 +428,7 @@
                   </select>
                 </label>
                 <div v-if="lotPaymentSummary(lot.id)" class="spk-payment-result">
-                  <div><span>Total DP</span><strong>{{ formatCurrency(dpAmounts[lot.id] || 0) }}</strong></div>
+                  <div><span>Uang muka</span><strong>{{ lotDp(lot.id) ? formatCurrency(lotDp(lot.id)) : 'Tanpa uang muka' }}</strong></div>
                   <div><span>Cicilan per bulan</span><strong>{{ formatCurrency(lotPaymentSummary(lot.id)!.monthly) }}</strong></div>
                   <div><span>Total cicilan</span><strong>{{ formatCurrency(lotPaymentSummary(lot.id)!.installments) }}</strong></div>
                   <div class="spk-total-row"><span>Total pembayaran SPK</span><strong>{{ formatCurrency(lotPaymentSummary(lot.id)!.total) }}</strong></div>
@@ -469,7 +441,7 @@
 
           <section class="spk-form-section">
             <h3>4. Dokumen Wajib</h3>
-            <p class="spk-required-note">KTP, KK, dan bukti pembayaran wajib disertakan. Untuk Installment, DP merupakan pembayaran tambahan dan tidak menggantikan Booking Fee.</p>
+            <p class="spk-required-note">KTP, KK, dan bukti tanda jadi wajib disertakan. Uang muka, bila dipakai, dibayar terpisah dari tanda jadi.</p>
             <label class="spk-upload-field">KTP <b>*</b><input type="file" accept="image/*,.pdf" required @change="onCreateFileChange('KTP', $event)" /><small>{{ createFiles.KTP?.name || 'Belum ada file dipilih' }}</small></label>
             <label class="spk-upload-field">Kartu Keluarga (KK) <b>*</b><input type="file" accept="image/*,.pdf" required @change="onCreateFileChange('KK', $event)" /><small>{{ createFiles.KK?.name || 'Belum ada file dipilih' }}</small></label>
             <label class="spk-upload-field">Bukti Pembayaran <b>*</b><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required @change="onCreateFileChange('Payment Proof', $event)" /><small>{{ createFiles['Payment Proof']?.name || 'Belum ada file dipilih' }}</small></label>
@@ -481,74 +453,41 @@
             <textarea v-model.trim="createForm.notes" rows="3" placeholder="Catatan tambahan (opsional)" />
           </section>
 
-          <p v-if="createError" class="spk-create-error" role="alert">{{ createError }}</p>
+          <AppNotice v-if="createError" tone="error">
+            {{ createError }}
+          </AppNotice>
+          <p v-else-if="createBlocker" class="spk-create-blocker" role="status">{{ createBlocker }}</p>
       </form>
     </AppModal>
 
     <!-- Preview dokumen tetap di dalam aplikasi -->
-    <IonModal :enter-animation="modalEnterAnimation" :leave-animation="modalLeaveAnimation" :is-open="documentPreviewOpen" class="spk-document-preview-modal" @didDismiss="closeDocumentPreview">
-      <div class="spk-preview-shell">
-        <header class="spk-preview-header">
-          <div class="spk-preview-heading">
-            <strong>{{ previewDocument?.file_name || 'Pratinjau dokumen' }}</strong>
-            <span>{{ previewDocument ? documentLabel(previewDocument.document_type) : '' }}</span>
-          </div>
-          <button type="button" class="spk-preview-close" aria-label="Tutup preview" @click="closeDocumentPreview">
-            <ion-icon :icon="closeOutline" />
-          </button>
-        </header>
-        <main class="spk-preview-content">
-          <div v-if="previewLoading" class="spk-preview-state"><ion-spinner name="crescent" /><span>Memuat dokumen...</span></div>
-          <div v-else-if="previewError" class="spk-preview-state spk-preview-error">{{ previewError }}</div>
-          <template v-else-if="previewUrl">
-            <div v-if="isPreviewImage" class="spk-image-stage">
-              <div class="spk-image-viewport">
-                <img :src="previewUrl" :alt="previewDocument?.file_name || 'Dokumen SPK'"
-                  :style="{ transform: `scale(${previewZoom})` }" />
-              </div>
-              <div class="spk-zoom-controls">
-                <button type="button" aria-label="Perkecil" :disabled="previewZoom <= 0.5" @click="changePreviewZoom(-0.25)">
-                  <ion-icon :icon="removeOutline" />
-                </button>
-                <span>{{ Math.round(previewZoom * 100) }}%</span>
-                <button type="button" aria-label="Perbesar" :disabled="previewZoom >= 4" @click="changePreviewZoom(0.25)">
-                  <ion-icon :icon="addOutline" />
-                </button>
-                <button type="button" aria-label="Atur ulang zoom" @click="previewZoom = 1">
-                  <ion-icon :icon="scanOutline" />
-                </button>
-              </div>
-            </div>
-            <iframe v-else-if="isPreviewPdf" class="spk-pdf-frame" :src="previewUrl" :title="previewDocument?.file_name || 'PDF SPK'"></iframe>
-            <div v-else class="spk-preview-state">
-              <ion-icon :icon="documentTextOutline" />
-              <span>Format dokumen ini tidak dapat ditampilkan langsung. Silakan unduh.</span>
-            </div>
-          </template>
-        </main>
-        <footer class="spk-preview-footer">
-          <button type="button" class="spk-preview-download" :disabled="!previewUrl || downloadingDocument" @click="downloadPreviewDocument">
-            <ion-spinner v-if="downloadingDocument" name="crescent" />
-            <template v-else><ion-icon :icon="downloadOutline" /> Unduh</template>
-          </button>
-          <button type="button" class="spk-preview-done" @click="closeDocumentPreview">Selesai</button>
-        </footer>
-      </div>
-    </IonModal>
+    <DocumentViewerModal
+      :open="documentPreviewOpen"
+      :url="previewUrl"
+      :file-name="previewDocument?.file_name || 'Pratinjau dokumen'"
+      :mime-type="previewDocument?.mime_type"
+      :subtitle="previewDocument ? documentLabel(previewDocument.document_type) : ''"
+      :loading="previewLoading"
+      :error="previewError"
+      @close="closeDocumentPreview"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { IonContent, IonIcon, IonModal, IonPage, IonSpinner } from '@ionic/vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  addOutline, alertCircleOutline, cardOutline, chevronBackOutline, chevronForwardOutline,
-  closeOutline, documentTextOutline, downloadOutline, eyeOutline, searchOutline, removeOutline, scanOutline,
+  addOutline, alertCircleOutline, cardOutline, chevronForwardOutline,
+  closeOutline, documentTextOutline, downloadOutline, eyeOutline, searchOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -556,6 +495,8 @@ import { getRegions } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
+import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import { currentMakassarDateTimeLocal, makassarDateTimeLocalToIso } from '@/utils/financialCashflow'
 import {
   approveSPKRequest, getAdminSPKRequests, getAdminSPKStats,
@@ -588,8 +529,6 @@ const previewDocument = ref<SPKDocument | null>(null)
 const previewUrl = ref('')
 const previewLoading = ref(false)
 const previewError = ref('')
-const previewZoom = ref(1)
-const downloadingDocument = ref(false)
 const refundFile = ref<File | null>(null)
 const refundMethod = ref('')
 const refundNote = ref('')
@@ -597,16 +536,6 @@ const refundBankReference = ref('')
 const refundTransferAt = ref(currentMakassarDateTimeLocal())
 const refundSubmitting = ref(false)
 const refundError = ref('')
-const isPreviewImage = computed(() => {
-  const mime = (previewDocument.value?.mime_type || '').toLowerCase()
-  const name = (previewDocument.value?.file_name || '').toLowerCase()
-  return mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(name)
-})
-const isPreviewPdf = computed(() => {
-  const mime = (previewDocument.value?.mime_type || '').toLowerCase()
-  const name = (previewDocument.value?.file_name || '').toLowerCase()
-  return mime === 'application/pdf' || name.endsWith('.pdf')
-})
 const selectedSource = ref<'All' | 'Marketing' | 'Client' | 'Admin'>('All')
 const createOpen = ref(false)
 const creating = ref(false)
@@ -709,6 +638,8 @@ const lotPlans = reactive<Record<number, AdminLotInstallmentOption[]>>({})
 const lotPlanIds = reactive<Record<number, string>>({})
 const dpInputs = reactive<Record<number, string>>({})
 const dpAmounts = reactive<Record<number, number>>({})
+/** true = pakai DP; default langsung cicil supaya SPK tidak tertahan karena DP kosong. */
+const lotUseDp = reactive<Record<number, boolean>>({})
 const loadingLotPlanIds = ref<number[]>([])
 const createForm = reactive({
   customer_full_name: '',
@@ -730,14 +661,14 @@ const filteredCustomers = computed(() => {
 const selectedCreateLots = computed(() => availableLots.value.filter(lot => selectedLotIds.value.includes(lot.id)))
 const sourceFilters = [
   { label: 'Semua', value: 'All' as const },
-  { label: 'Marketing', value: 'Marketing' as const },
-  { label: 'Client', value: 'Client' as const },
+  { label: 'Pemasar', value: 'Marketing' as const },
+  { label: 'Klien', value: 'Client' as const },
   { label: 'Admin', value: 'Admin' as const },
 ]
 const customerSourceOptions: Array<{ label: string; value: CustomerSource }> = [
   { label: 'Admin', value: 'Admin' },
-  { label: 'Marketing', value: 'Marketing' },
-  { label: 'Client', value: 'Client' },
+  { label: 'Pemasar', value: 'Marketing' },
+  { label: 'Klien', value: 'Client' },
 ]
 const filteredAvailableLots = computed(() => {
   const query = lotSearchQuery.value.trim().toLocaleLowerCase('id-ID')
@@ -758,9 +689,27 @@ const canSubmitCreate = computed(() => Boolean(
   createFiles.KTP && createFiles.KK &&
   createFiles['Payment Proof'] &&
   (createForm.payment_method === 'Cash' || selectedCreateLots.value.every(lot =>
-    Boolean(lotPlanIds[lot.id] && dpAmounts[lot.id] > 0 && dpAmounts[lot.id] < lotPrice(lot) && lotPaymentSummary(lot.id))
+    Boolean(lotPlanIds[lot.id] && !lotDpInvalid(lot) && lotPaymentSummary(lot.id))
   ))
 ))
+// Alasan tombol simpan belum aktif, ditampilkan di bawah form.
+const createBlocker = computed(() => {
+  if (canSubmitCreate.value) return ''
+  if (!selectedCustomerId.value) return 'Pilih klien terlebih dahulu.'
+  if (!selectedLotIds.value.length) return 'Pilih minimal satu kaveling.'
+  if (createForm.payment_method === 'Installment') {
+    const lot = selectedCreateLots.value.find(item => lotDpInvalid(item))
+    if (lot) return `Lengkapi uang muka ${lot.lot_number}, atau pilih Langsung cicil.`
+    const noPlan = selectedCreateLots.value.find(item => !lotPlanIds[item.id])
+    if (noPlan) return `Pilih tenor cicilan untuk ${noPlan.lot_number}.`
+  }
+  const missing = [
+    !createFiles.KTP && 'KTP',
+    !createFiles.KK && 'KK',
+    !createFiles['Payment Proof'] && 'bukti tanda jadi',
+  ].filter(Boolean)
+  return missing.length ? `Unggah ${missing.join(', ')}.` : ''
+})
 watch(() => createForm.payment_method, async value => {
   if (value === 'Installment') {
     for (const lot of selectedCreateLots.value) await loadPlansForLot(lot.id)
@@ -797,42 +746,10 @@ const filteredRequests = computed(() => {
     return matchesStatus && matchesSource && (!q || haystack.includes(q))
   })
 })
-const PAGE_SIZE = 10
-const currentPage = ref(1)
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredRequests.value.length / PAGE_SIZE)))
-const pagedRequests = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return filteredRequests.value.slice(start, start + PAGE_SIZE)
+const pager = usePagination(filteredRequests, {
+  pageSize: 10,
+  resetOn: [selectedStatus, selectedSource, searchQuery],
 })
-const visiblePages = computed<(number | null)[]>(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
-
-  const pages: (number | null)[] = [1]
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
-
-  if (start > 2) pages.push(null)
-  for (let page = start; page <= end; page += 1) pages.push(page)
-  if (end < total - 1) pages.push(null)
-  pages.push(total)
-  return pages
-})
-watch(filteredRequests, () => {
-  currentPage.value = 1
-}, { flush: 'post' })
-watch(totalPages, () => {
-  if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
-}, { flush: 'post' })
-async function goToPage(page: number) {
-  const nextPage = Math.min(Math.max(page, 1), totalPages.value)
-  if (nextPage === currentPage.value) return
-
-  currentPage.value = nextPage
-  await Promise.resolve()
-  document.querySelector('#spk-list-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
 
 async function loadRequests() {
   loading.value = true
@@ -844,12 +761,12 @@ async function loadRequests() {
 function isPending(row: AdminSPKRequest) { return row.status === 'Submitted' || row.status === 'Under Review' }
 function bookingPaymentStatusLabel(row: AdminSPKRequest) {
   const payment = row.booking_payment
-  if (!payment.payments.length) return 'Belum ada pembayaran Booking Fee'
-  if (payment.isSatisfied) return 'Booking Fee terverifikasi'
+  if (!payment.payments.length) return 'Belum ada pembayaran tanda jadi'
+  if (payment.isSatisfied) return 'Tanda jadi terverifikasi'
   if (payment.payments.some(item => item.status === 'Pending')) return 'Menunggu verifikasi Admin Keuangan'
   if (payment.payments.some(item => item.status === 'Needs Reupload')) return 'Bukti pembayaran perlu diunggah ulang'
   if (payment.payments.some(item => item.status === 'Rejected')) return 'Pembayaran ditolak'
-  return 'Booking Fee belum mencukupi'
+  return 'Tanda jadi belum mencukupi'
 }
 function approvalBlockReason(row: AdminSPKRequest) {
   if (!isPending(row)) return 'pembayaran sudah selesai.'
@@ -919,7 +836,6 @@ async function openDocument(doc: SPKDocument) {
   previewLoading.value = true
   previewError.value = ''
   previewUrl.value = ''
-  previewZoom.value = 1
   openingDocumentId.value = doc.id
   try {
     previewUrl.value = await getSPKDocumentUrl(doc.file_path, doc.storage_bucket)
@@ -935,31 +851,6 @@ function closeDocumentPreview() {
   previewDocument.value = null
   previewUrl.value = ''
   previewError.value = ''
-  previewZoom.value = 1
-}
-function changePreviewZoom(delta: number) {
-  previewZoom.value = Math.min(4, Math.max(0.5, Number((previewZoom.value + delta).toFixed(2))))
-}
-async function downloadPreviewDocument() {
-  if (!previewUrl.value || !previewDocument.value) return
-  downloadingDocument.value = true
-  try {
-    const response = await fetch(previewUrl.value)
-    if (!response.ok) throw new Error('File gagal diunduh.')
-    const blob = await response.blob()
-    const objectUrl = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = objectUrl
-    anchor.download = previewDocument.value.file_name || 'dokumen-spk'
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(objectUrl)
-  } catch (error) {
-    previewError.value = error instanceof Error ? error.message : 'Dokumen gagal diunduh.'
-  } finally {
-    downloadingDocument.value = false
-  }
 }
 async function confirmApprove() {
   if (!actionRequest.value) return
@@ -1017,7 +908,7 @@ async function submitRefundProof(row: AdminSPKRequest) {
     || row.booking_payment.payments[0]
 
   if (!payment) {
-    refundError.value = 'Payment Booking Fee untuk SPK ini tidak ditemukan.'
+    refundError.value = 'Pembayaran tanda jadi untuk SPK ini tidak ditemukan.'
     return
   }
 
@@ -1095,6 +986,7 @@ async function openCreateForm() {
   Object.keys(lotPlanIds).forEach(key => delete lotPlanIds[Number(key)])
   Object.keys(dpInputs).forEach(key => delete dpInputs[Number(key)])
   Object.keys(dpAmounts).forEach(key => delete dpAmounts[Number(key)])
+  Object.keys(lotUseDp).forEach(key => delete lotUseDp[Number(key)])
   Object.assign(createForm, { payment_method: 'Cash', payment_plan_id: '', down_payment: 0, monthly_payment: null, notes: '' })
 
   const [lotsResult, customersResult] = await Promise.allSettled([
@@ -1211,6 +1103,22 @@ function updateLotDp(lotId: number, raw: string) {
   dpAmounts[lotId] = amount
   dpInputs[lotId] = amount ? amount.toLocaleString('id-ID') : ''
 }
+function setLotUseDp(lotId: number, useDp: boolean) {
+  lotUseDp[lotId] = useDp
+  if (!useDp) {
+    delete dpAmounts[lotId]
+    delete dpInputs[lotId]
+  }
+}
+/** DP yang benar-benar dipakai: 0 bila memilih langsung cicil. */
+function lotDp(lotId: number) {
+  return lotUseDp[lotId] ? dpAmounts[lotId] || 0 : 0
+}
+function lotDpInvalid(lot: AdminAvailableLot) {
+  if (!lotUseDp[lot.id]) return false
+  const dp = dpAmounts[lot.id] || 0
+  return dp <= 0 || dp >= lotPrice(lot)
+}
 function setLotDp(lotId: number, percentage: number) {
   const lot = availableLots.value.find(item => item.id === lotId)
   if (!lot) return
@@ -1219,14 +1127,15 @@ function setLotDp(lotId: number, percentage: number) {
 function lotPaymentSummary(lotId: number) {
   const lot = availableLots.value.find(item => item.id === lotId)
   const plan = (lotPlans[lotId] || []).find(item => String(item.plan_id) === lotPlanIds[lotId])
-  if (!lot || !plan || !dpAmounts[lotId] || plan.months <= 0) return null
+  if (!lot || !plan || plan.months <= 0 || lotDpInvalid(lot)) return null
+  const dp = lotDp(lotId)
   const margin = Number(plan.margin_percent ?? 0)
-  const calculatedMonthly = Math.ceil((lotPrice(lot) - dpAmounts[lotId]) * (1 + margin / 100) / plan.months)
+  const calculatedMonthly = Math.ceil((lotPrice(lot) - dp) * (1 + margin / 100) / plan.months)
   const monthly = plan.is_custom && plan.monthly_payment != null
     ? Number(plan.monthly_payment)
     : calculatedMonthly
   const installments = monthly * plan.months
-  return { plan, monthly, installments, total: dpAmounts[lotId] + installments }
+  return { plan, monthly, installments, total: dp + installments }
 }
 
 function lotPrice(lot: AdminAvailableLot) {
@@ -1278,7 +1187,7 @@ async function submitAdminSPK() {
         months: summary ? summary.plan.months : null,
         monthly_payment: summary ? summary.monthly : null,
         margin_percent_snapshot: summary ? summary.plan.margin_percent : null,
-        down_payment_snapshot: summary ? dpAmounts[lot.id] : 0,
+        down_payment_snapshot: summary ? lotDp(lot.id) : 0,
         total_payment_snapshot: summary ? summary.total : lotPrice(lot),
         notes: createForm.notes || null,
       }
@@ -1294,6 +1203,7 @@ async function submitAdminSPK() {
     Object.keys(lotPlanIds).forEach(key => delete lotPlanIds[Number(key)])
     Object.keys(dpInputs).forEach(key => delete dpInputs[Number(key)])
     Object.keys(dpAmounts).forEach(key => delete dpAmounts[Number(key)])
+    Object.keys(lotUseDp).forEach(key => delete lotUseDp[Number(key)])
     Object.keys(createFiles).forEach(key => { createFiles[key as SPKDocumentType] = null })
     Object.assign(createForm, { payment_method: 'Cash', payment_plan_id: '', down_payment: 0, monthly_payment: null, notes: '' })
     await loadRequests()
@@ -1318,6 +1228,10 @@ async function openRequestedSPKDetail() {
 
   openDetail(requestedRequest)
 
+  if (route.query.approve === '1' && canApproveSPK(requestedRequest)) {
+    openApprove(requestedRequest)
+  }
+
   if (route.query.refund === '1') {
     await nextTick()
     document.querySelector('.spk-refund-section')?.scrollIntoView({
@@ -1330,7 +1244,7 @@ async function openRequestedSPKDetail() {
 onMounted(openRequestedSPKDetail)
 
 watch(
-  () => [route.query.spkId, route.query.refund],
+  () => [route.query.spkId, route.query.refund, route.query.nt],
   () => {
     if (route.query.spkId) void openRequestedSPKDetail()
   },
@@ -1361,23 +1275,6 @@ watch(
 .spk-list-head h2 { margin:0; font-size:14px; font-weight:800; }
 .spk-list-head span { color:#899188; font-size:10px; }
 .spk-list { display:grid; gap:11px; }
-.spk-pager { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(90px,1fr); align-items:center; gap:14px; margin-top:18px; padding:16px 0 4px; border-top:1px solid var(--border-default); }
-.spk-pager-controls { display:flex; justify-content:center; align-items:center; gap:6px; flex-wrap:nowrap; min-width:0; max-width:100%; overflow-x:auto; scrollbar-width:none; padding:3px; border:1px solid var(--border-default); border-radius:var(--radius-panel); background:var(--surface-muted); }
-.spk-pager-controls::-webkit-scrollbar { display:none; }
-.spk-pager-position { color:var(--text-secondary); font-size:12px; text-align:center; white-space:nowrap; }
-.spk-pager-btn,.spk-pager-number { min-width:44px; height:44px; padding:0 10px; border:1px solid var(--border-default); border-radius:10px; background:var(--surface-primary); color:var(--text-primary); font:inherit; font-weight:var(--font-weight-bold); cursor:pointer; }
-.spk-pager-btn { display:inline-flex; align-items:center; justify-content:center; font-size:20px; }
-.spk-pager-number.active { border-color:var(--poliland-green); background:var(--poliland-green); color:#fff; }
-@media (hover: hover) and (pointer: fine) {
-  .spk-pager-btn:not(:disabled):hover,.spk-pager-number:not(:disabled):not(.active):hover { border-color:var(--poliland-green); background:var(--status-success-bg); }
-}
-.spk-pager-btn:disabled,.spk-pager-number:disabled { cursor:default; opacity:1; border-color:transparent; background:transparent; }
-.spk-pager-btn:focus-visible,.spk-pager-number:focus-visible { outline:3px solid var(--poliland-green); outline-offset:2px; }
-@media (max-width:560px) {
-  .spk-pager { grid-template-columns:1fr auto; gap:10px; }
-  .spk-pager-controls { grid-column:1 / -1; grid-row:2; justify-self:stretch; justify-content:flex-start; }
-  .spk-pager-position { grid-column:1 / -1; grid-row:3; align-self:center; justify-self:center; }
-}
 .spk-card { border:1px solid #e9ece6; border-radius:17px; background:#fff; padding:15px; box-shadow:0 4px 16px #24312608; }
 .spk-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
 .spk-card-top>div { display:grid; gap:4px; }
@@ -1429,8 +1326,7 @@ watch(
 .spk-booking-action ion-icon:first-child { font-size:16px; }
 .spk-booking-action ion-icon:last-child { margin-left:auto; font-size:16px; }
 @media (hover: hover) and (pointer: fine) {
-  .spk-booking-action:hover { background:#294722; }
-}
+  .spk-booking-action:hover { background:#294722; }}
 .spk-booking-action:focus-visible { outline:3px solid #78936d; outline-offset:2px; }
 .spk-detail-section dl { display:grid; gap:0; margin:0; border:1px solid #edf0eb; border-radius:12px; padding:0 12px; }
 .spk-detail-section dl div { display:grid; grid-template-columns: minmax(105px, .8fr) 1.2fr; gap:12px; padding:10px 0; border-bottom:1px solid #f0f2ee; }
@@ -1455,8 +1351,8 @@ watch(
 .spk-reject-form label b { color:#b13d36; }
 .spk-reject-form textarea { width:100%; resize:vertical; border:1px solid #dfe5dc; border-radius:10px; padding:11px; color:#263329; background:#fff; font:inherit; font-weight:400; outline-color:#78936d; }
 .spk-reject-form small { display:block; text-align:right; color:#929a91; font-size:10px; }
-@media (min-width:700px) { .spk-shell { padding:32px 28px 60px; } .spk-stats { gap:13px; } .spk-stat { padding:17px; } .spk-card { padding:19px; } }
-@media (max-width:390px) { .spk-shell { padding-inline:13px; } .spk-stats { gap:6px; } .spk-stat { padding:10px 8px; } .spk-stat strong { font-size:20px; } .spk-card-meta { gap:5px; } .spk-card-meta strong { font-size:9px; } }
+@media (min-width:700px) { .spk-shell { padding:32px 28px 60px; } .spk-stats { gap:13px; } .spk-stat { padding:17px; } .spk-card { padding:19px; }}
+@media (max-width:390px) { .spk-shell { padding-inline:13px; } .spk-stats { gap:6px; } .spk-stat { padding:10px 8px; } .spk-stat strong { font-size:20px; } .spk-card-meta { gap:5px; } .spk-card-meta strong { font-size:9px; }}
 
 .spk-heading-actions { display:flex; align-items:center; gap:7px; }
 .spk-create-btn { display:flex; align-items:center; gap:6px; border:1px solid #355a2c; background:#355a2c; color:#fff; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; white-space:nowrap; }
@@ -1482,8 +1378,7 @@ watch(
   .spk-lot-option:hover {
     border-color:var(--poliland-green);
     background:var(--status-success-bg);
-  }
-}
+  }}
 .spk-lot-option:focus-visible { outline:3px solid var(--poliland-green); outline-offset:2px; }
 .spk-lot-option > span:nth-child(2) { display:grid; min-width:0; gap:3px; }
 .spk-lot-option small { color:var(--text-secondary); font-size:10px; }
@@ -1502,12 +1397,14 @@ watch(
 .spk-payment-options label { display:flex; align-items:center; gap:8px; border:1px solid #e2e8de; border-radius:10px; padding:11px; }
 .spk-payment-options label.chosen { border-color:#55784b; background:#f1f6ee; color:#355a2c; }
 .spk-selected-lot { margin:0; color:#6d786c; font-size:11px; }
-.spk-required-note { margin:0; color:#788276; font-size:10px; line-height:1.5; }
+.spk-required-note { margin:0; color:var(--text-secondary,#5F5F66); font-size:11px; line-height:1.5; }
+.spk-dp-warning { margin:0; color:#A12C22; font-size:11px; font-weight:700; line-height:1.4; }
+.spk-create-blocker { margin:0; padding:10px 12px; border-radius:var(--radius-sm,10px); background:var(--status-success-bg,#E8EEE4); color:var(--poliland-green,#355A2C); font-size:12px; font-weight:700; line-height:1.45; }
 .spk-upload-field { border:1px dashed #cfd8ca; border-radius:11px; padding:11px; }
 .spk-upload-field input { width:100%; font-size:10px; }
 .spk-upload-field small { color:#8a9488; font-weight:400; }
-.spk-create-error { margin:0; border-radius:10px; background:#fff1f0; color:#a63e38; padding:10px; font-size:11px; line-height:1.5; }
-@media (max-width:390px) { .spk-refresh { justify-content:center; } .spk-create-fab { right:calc(14px + env(safe-area-inset-right)); bottom:calc(84px + env(safe-area-inset-bottom)); } }
+
+@media (max-width:390px) { .spk-refresh { justify-content:center; } .spk-create-fab { right:calc(14px + env(safe-area-inset-right)); bottom:calc(84px + env(safe-area-inset-bottom)); }}
 
 .spk-price-summary,.spk-dp-panel,.spk-payment-result { display:grid; gap:10px; border:1px solid #e7ece3; border-radius:12px; background:#fbfcfa; padding:12px; }
 .spk-price-summary>div,.spk-summary-row,.spk-payment-result>div { display:flex; justify-content:space-between; align-items:center; gap:12px; }
@@ -1520,34 +1417,6 @@ watch(
 .spk-payment-result .spk-total-row { border-top:1px solid #e5ebe1; padding-top:10px; }
 .spk-payment-result .spk-total-row strong { color:#355a2c; font-size:15px; }
 .spk-payment-result small,.spk-payment-hint { color:#879184; font-size:10px; line-height:1.5; }
-
-
-/* In-app document preview */
-.spk-document-preview-modal { --width:100%; --height:100%; --border-radius:0; }
-.spk-document-preview-modal::part(content) { background:#111713; }
-.spk-preview-shell { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; background:#111713; color:#fff; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
-.spk-preview-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; background:#1b241d; border-bottom:1px solid #344036; }
-.spk-preview-heading { display:grid; gap:4px; min-width:0; }
-.spk-preview-heading strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
-.spk-preview-heading span { color:#aeb9ad; font-size:10px; }
-.spk-preview-close { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; border:0; border-radius:12px; background:#303b32; color:#fff; font-size:20px; }
-.spk-preview-content { display:flex; flex:1; min-height:0; align-items:center; justify-content:center; overflow:hidden; }
-.spk-preview-state { display:grid; justify-items:center; gap:12px; padding:24px; color:#d0d8cf; text-align:center; font-size:12px; }
-.spk-preview-error { color:#ffaaa3; }
-.spk-image-stage { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; }
-.spk-image-viewport { display:flex; flex:1; min-height:0; align-items:center; justify-content:center; overflow:auto; padding:14px; touch-action:pan-x pan-y; }
-.spk-image-viewport img { display:block; max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; transform-origin:center center; transition:transform var(--dur-fast) var(--ease-out); }
-.spk-zoom-controls { display:flex; align-items:center; justify-content:center; gap:12px; padding:12px; background:#1b241d; }
-.spk-zoom-controls button { display:grid; place-items:center; width:38px; height:38px; border:1px solid #465348; border-radius:10px; background:#29352b; color:#fff; font-size:18px; }
-.spk-zoom-controls button:disabled { opacity:.35; }
-.spk-zoom-controls span { min-width:48px; color:#e3e9e1; text-align:center; font-size:11px; font-variant-numeric:tabular-nums; }
-.spk-pdf-frame { width:100%; height:100%; border:0; background:#fff; }
-.spk-preview-footer { display:flex; gap:10px; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:#1b241d; border-top:1px solid #344036; }
-.spk-preview-footer button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; border-radius:11px; font-size:12px; font-weight:800; }
-.spk-preview-download { flex:1; border:1px solid #58744e; background:#355a2c; color:#fff; }
-.spk-preview-done { min-width:100px; border:1px solid #485349; background:transparent; color:#fff; }
-.spk-preview-footer button:disabled { opacity:.5; }
-
 
 .spk-customer-picker { display:grid; gap:6px; max-height:190px; overflow:auto; }
 .spk-customer-option { display:grid; gap:4px; width:100%; min-height:44px; padding:10px; text-align:left; border:1px solid #e3e9df; border-radius:10px; background:#fff; color:#2e3b2e; cursor:pointer; }
@@ -1632,14 +1501,10 @@ watch(
 .spk-refund-file-copy strong { overflow:hidden; color:#303b31; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
 .spk-refund-file-copy small { color:#717178; font-size:9px; font-weight:400; }
 .spk-refund-choose { display:grid; place-items:center; min-height:36px; padding:0 10px; border-radius:9px; background:#355a2c; color:#fff; font-size:10px; font-weight:750; }
-.spk-refund-error { display:flex; align-items:flex-start; gap:7px; margin:0; padding:10px; border-radius:10px; background:#fcebea; color:#b43f39; font-size:10px; line-height:1.5; }
-.spk-refund-error ion-icon { flex:0 0 15px; margin-top:1px; font-size:15px; }
+
 .spk-refund-footnote { margin:-5px 0 0; color:#717178; font-size:9px; line-height:1.5; }
 .spk-refund-proof-button:focus-visible,.spk-refund-file-picker:focus-within { outline:3px solid rgba(53,90,44,.25); outline-offset:2px; }
 @media (max-width:360px) {
   .spk-refund-section { padding:12px; }
   .spk-refund-amount-card>div strong { font-size:18px; }
-  .spk-refund-info>div { grid-template-columns:1fr; gap:5px; }
-}
-
-</style>
+  .spk-refund-info>div { grid-template-columns:1fr; gap:5px; }}</style>

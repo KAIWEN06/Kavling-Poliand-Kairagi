@@ -27,7 +27,7 @@
         <select id="notes-category-filter" v-model="categoryFilter">
           <option value="all">Semua kategori</option>
           <option v-for="category in categories" :key="category" :value="category">
-            {{ category }}
+            {{ followupLabel(category) }}
           </option>
         </select>
 
@@ -50,10 +50,6 @@
       </div>
     </div>
 
-    <p v-if="saveMessage" class="save-message" role="status">
-      {{ saveMessage }}
-    </p>
-    <p v-if="actionError" class="action-error" role="alert">{{ actionError }}</p>
 
     <div v-if="loading" class="notes-state" role="status">
       <ion-spinner name="crescent" />
@@ -97,7 +93,7 @@
           <p class="note-content">{{ note.content }}</p>
 
           <footer class="note-meta">
-            <span class="category-label">{{ note.category }}</span>
+            <span class="category-label">{{ followupLabel(note.category) }}</span>
             <time :datetime="note.updated_at">
               Diperbarui {{ formatDate(note.updated_at) }}
             </time>
@@ -117,7 +113,7 @@
         v-else
         variant="creating-data"
         title="Belum ada catatan"
-        description="Simpan informasi penting, hasil pertemuan, atau tindak lanjut customer di sini."
+        description="Simpan informasi penting, hasil pertemuan, atau tindak lanjut pembeli di sini."
         action-label="Tambah Catatan"
         :on-action="() => openEditor()"
       />
@@ -137,7 +133,7 @@
       <template #header>
         <div>
           <h2 class="app-modal__title">
-            {{ form.id ? 'Edit catatan' : 'Catatan baru' }}
+            {{ form.id ? 'Ubah catatan' : 'Catatan baru' }}
           </h2>
         </div>
         <button
@@ -158,7 +154,7 @@
             v-model.trim="form.title"
             type="text"
             maxlength="80"
-            placeholder="Contoh: Preferensi lokasi customer"
+            placeholder="Contoh: Preferensi lokasi pembeli"
             required
           />
         </label>
@@ -179,7 +175,7 @@
           <span>Kategori</span>
           <select v-model="form.category">
             <option v-for="category in categories" :key="category" :value="category">
-              {{ category }}
+              {{ followupLabel(category) }}
             </option>
           </select>
         </label>
@@ -192,7 +188,9 @@
           </span>
         </label>
 
-        <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+        <AppNotice v-if="formError" tone="error">
+          {{ formError }}
+        </AppNotice>
       </form>
     </AppModal>
 
@@ -201,7 +199,7 @@
       <div class="note-popover" role="menu" :aria-label="`Aksi ${menuNote.title}`">
         <button type="button" role="menuitem" @click="openEditor(menuNote)">
           <ion-icon :icon="createOutline" aria-hidden="true" />
-          Edit catatan
+          Ubah catatan
         </button>
         <button type="button" role="menuitem" @click="togglePin(menuNote)">
           <ion-icon :icon="pinOutline" aria-hidden="true" />
@@ -219,23 +217,15 @@
     </div>
 
     <!-- Riwayat perubahan -->
-    <div v-if="historyNote" class="modal-overlay history-overlay" @click.self="closeHistory">
-      <section
-        class="modal-panel history-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="history-title"
-      >
-        <header class="sheet-head">
-          <div class="history-heading">
-            <p class="eyebrow">AKTIVITAS CATATAN</p>
-            <h2 id="history-title">Riwayat perubahan</h2>
-            <p class="history-note-title">{{ historyNote.title }}</p>
-          </div>
-          <button type="button" class="icon-button close-button" aria-label="Tutup riwayat" @click="closeHistory">
-            <ion-icon :icon="closeOutline" aria-hidden="true" />
-          </button>
-        </header>
+    <AppModal
+      :model-value="!!historyNote"
+      title="Riwayat perubahan"
+      variant="bottom-sheet"
+      :show-footer="false"
+      @close="closeHistory"
+    >
+      <section class="history-panel">
+        <p v-if="historyNote" class="history-note-title">{{ historyNote.title }}</p>
 
         <div v-if="historyLoading" class="history-state" role="status">
           <ion-spinner name="crescent" />
@@ -275,11 +265,14 @@
           </li>
         </ol>
       </section>
-    </div>
+    </AppModal>
   </section>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { IonIcon, IonSpinner } from '@ionic/vue'
 import {
@@ -293,6 +286,7 @@ import {
   trashOutline,
 } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
+import { followupLabel } from '@/utils/marketingStatus'
 import AppModal from '@/components/ui/AppModal.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
@@ -318,9 +312,9 @@ const loading = ref(true)
 const saving = ref(false)
 const deleting = ref(false)
 const errorMessage = ref('')
-const actionError = ref('')
+const toast = useToast()
+const { confirm } = useConfirm()
 const formError = ref('')
-const saveMessage = ref('')
 const search = ref('')
 const categoryFilter = ref('all')
 const sortMode = ref<'updated' | 'created'>('updated')
@@ -438,6 +432,19 @@ async function saveNote() {
   formError.value = ''
 
   try {
+    const original = form.id ? notes.value.find((note) => note.id === form.id) : null
+    if (
+      original &&
+      original.title === form.title.trim() &&
+      original.content === form.content.trim() &&
+      original.category === form.category &&
+      original.is_pinned === form.is_pinned
+    ) {
+      // Tidak ada yang berubah: jangan tulis ulang baris dan riwayatnya.
+      editing.value = false
+      return
+    }
+
     if (form.id) {
       const updated = await customerNotesService.update(form.id, {
         title: form.title.trim(),
@@ -449,7 +456,7 @@ async function saveNote() {
       notes.value = notes.value.map((note) =>
         note.id === updated.id ? updated : note,
       )
-      saveMessage.value = 'Catatan berhasil diperbarui.'
+      toast.success('Catatan berhasil diperbarui.')
     } else {
       const created = await customerNotesService.create(props.customerId, {
         title: form.title.trim(),
@@ -459,13 +466,10 @@ async function saveNote() {
       })
 
       notes.value = [created, ...notes.value]
-      saveMessage.value = 'Catatan berhasil ditambahkan.'
+      toast.success('Catatan berhasil ditambahkan.')
     }
 
     editing.value = false
-    window.setTimeout(() => {
-      saveMessage.value = ''
-    }, 2800)
   } catch (error) {
     console.error('[CustomerNotes] Gagal menyimpan catatan:', error)
     formError.value =
@@ -481,7 +485,6 @@ function openMenu(note: CustomerNote) {
 
 async function togglePin(note: CustomerNote) {
   menuNote.value = null
-  actionError.value = ''
 
   try {
     const updated = await customerNotesService.update(note.id, {
@@ -491,33 +494,33 @@ async function togglePin(note: CustomerNote) {
     notes.value = notes.value.map((item) =>
       item.id === updated.id ? updated : item,
     )
-    saveMessage.value = updated.is_pinned
-      ? 'Catatan disematkan.'
-      : 'Sematan catatan dilepas.'
+    toast.success(updated.is_pinned ? 'Catatan disematkan.' : 'Sematan catatan dilepas.')
   } catch (error) {
     console.error('[CustomerNotes] Gagal mengubah pin:', error)
-    actionError.value =
-      error instanceof Error ? error.message : 'Status pin gagal diperbarui.'
+    toast.error(error instanceof Error ? error.message : 'Status pin gagal diperbarui.')
   }
 }
 
 async function deleteNote(note: CustomerNote) {
   menuNote.value = null
 
-  const confirmed = window.confirm(`Hapus catatan "${note.title}"?`)
+  const confirmed = await confirm({
+    title: 'Hapus catatan?',
+    message: note.title,
+    confirmText: 'Hapus',
+    tone: 'error',
+  })
   if (!confirmed || deleting.value) return
 
   deleting.value = true
-  actionError.value = ''
 
   try {
     await customerNotesService.remove(note.id)
     notes.value = notes.value.filter((item) => item.id !== note.id)
-    saveMessage.value = 'Catatan berhasil dihapus.'
+    toast.success('Catatan berhasil dihapus.')
   } catch (error) {
     console.error('[CustomerNotes] Gagal menghapus catatan:', error)
-    actionError.value =
-      error instanceof Error ? error.message : 'Catatan gagal dihapus.'
+    toast.error(error instanceof Error ? error.message : 'Catatan gagal dihapus.')
   } finally {
     deleting.value = false
   }
@@ -753,19 +756,6 @@ onUnmounted(() => {
   border-color: var(--poliland-gold-text);
   background: var(--poliland-gold-soft);
   color: var(--poliland-gold-text-soft);
-}
-
-.save-message {
-  margin: 0 0 10px;
-  color: var(--status-success);
-  font-size: 12px;
-  font-weight: var(--font-weight-medium);
-}
-
-.action-error {
-  margin: 0 0 10px;
-  color: var(--status-danger);
-  font-size: 12px;
 }
 
 .note-list {
@@ -1075,12 +1065,6 @@ onUnmounted(() => {
   font-size: 11px;
 }
 
-.form-error {
-  margin: 0;
-  color: var(--status-danger);
-  font-size: 12px;
-}
-
 .sheet-actions {
   display: grid;
   grid-template-columns: 1fr 1.4fr;
@@ -1168,12 +1152,12 @@ onUnmounted(() => {
 }
 
 .history-panel {
-  max-height: min(82vh, 700px);
+  min-width: 0;
 }
 
 .history-note-title {
   max-width: 390px;
-  margin: 6px 0 0;
+  margin: 0;
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;

@@ -7,7 +7,7 @@
 
     <ion-tab-button tab="siteplan" @click="go('/siteplan')">
       <ion-icon :icon="mapOutline" />
-      <ion-label>Siteplan</ion-label>
+      <ion-label>Denah</ion-label>
     </ion-tab-button>
 
     <ion-tab-button tab="progress" @click="go('/progress')">

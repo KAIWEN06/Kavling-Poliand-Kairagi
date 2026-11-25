@@ -241,7 +241,7 @@ function validateInput(input: CreateClientSpkInput) {
 
   // RPC create_client_spk_initial_payment saat ini mencatat metode Booking sebagai Transfer Bank.
   if (input.payment.method !== 'Transfer Bank') {
-    throw new Error('Booking Fee Klien saat ini hanya dapat dibayar melalui Transfer Bank.')
+    throw new Error('Tanda jadi Klien saat ini hanya dapat dibayar melalui Transfer Bank.')
   }
 
   if (input.payment.scheme === 'Cash' || input.payment.scheme === 'Installment') {
@@ -252,10 +252,11 @@ function validateInput(input: CreateClientSpkInput) {
 
       if (
         !Number.isSafeInteger(input.payment.downPaymentAmount)
-        || input.payment.downPaymentAmount <= 0
+        || input.payment.downPaymentAmount < 0
         || (input.lot.price !== null && input.payment.downPaymentAmount >= input.lot.price)
       ) {
-        throw new Error('Nominal DP harus lebih dari Rp 0 dan lebih kecil dari harga kaveling.')
+        // DP 0 berarti langsung cicil tanpa DP.
+        throw new Error('Nominal uang muka harus Rp 0 (langsung cicil) atau lebih kecil dari harga kaveling.')
       }
     }
     if (

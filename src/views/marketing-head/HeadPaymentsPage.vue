@@ -1,14 +1,7 @@
 <template>
-  <MarketingPageLayout title="Pembayaran & Cicilan" tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
+  <MarketingPageLayout title="Pembayaran" subtitle="Pembayaran dan jadwal cicilan klien tim." tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
     <Reveal :order="1">
-      <section class="mk-intro">
-        <p>Pemantauan pembayaran</p>
-        <h1>Pembayaran dan jadwal cicilan klien tim</h1>
-        <span>Data sama dengan halaman Admin dan Klien. Verifikasi tetap menjadi kewenangan Admin.</span>
-      </section>
-    </Reveal>
-    <Reveal :order="2">
-      <PaymentMonitorView ref="view" role="head" :initial-tab="initialTab" @open-client="(id) => router.push(`/kepala-marketing/clients/${id}`)" />
+      <PaymentMonitorView ref="view" role="head" :focus-id="Number(query.paymentId) || undefined" :focus-stamp="String(query.nt ?? '')" :initial-tab="initialTab" @open-client="(id) => router.push(`/kepala-marketing/clients/${id}`)" />
     </Reveal>
   </MarketingPageLayout>
 </template>
@@ -16,13 +9,13 @@
 <script setup lang="ts">
 import Reveal from '@/components/ui/Reveal.vue'
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import { useIonRouter } from '@ionic/vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
 import PaymentMonitorView from '@/components/marketing/shared/PaymentMonitorView.vue'
 
-const route = useRoute()
+const query = useOwnRouteQuery()
 const router = useIonRouter()
 const view = ref<InstanceType<typeof PaymentMonitorView> | null>(null)
-const initialTab = computed(() => (route.query.tab === 'schedules' ? 'schedules' : 'payments'))
+const initialTab = computed(() => (query.value.tab === 'schedules' ? 'schedules' : 'payments'))
 </script>

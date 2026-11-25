@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonInput, IonButton, IonText, IonSpinner } from '@ionic/vue'
@@ -27,7 +28,7 @@ onMounted(async () => {
     const recoveryMarker = window.location.hash.includes('type=recovery') || new URLSearchParams(window.location.search).get('type') === 'recovery'
     if (session && recoveryMarker) recoveryAuthorized.value = true
   } catch {
-    errorMessage.value = 'Sesi pemulihan tidak dapat diverifikasi. Minta tautan reset yang baru.'
+    errorMessage.value = 'Sesi pemulihan tidak dapat diverifikasi. Minta tautan atur ulang yang baru.'
   } finally {
     checking.value = false
   }
@@ -46,7 +47,7 @@ async function savePassword() {
     return
   }
   if (!recoveryAuthorized.value) {
-    errorMessage.value = 'Sesi reset tidak valid atau sudah kedaluwarsa. Minta tautan reset yang baru.'
+    errorMessage.value = 'Sesi atur ulang tidak valid atau sudah kedaluwarsa. Minta tautan atur ulang yang baru.'
     return
   }
 
@@ -76,9 +77,13 @@ async function savePassword() {
           </ion-card-header>
           <ion-card-content>
             <ion-text v-if="checking" color="medium"><p class="message">Memeriksa tautan pemulihan...</p></ion-text>
-            <ion-text v-else-if="success" color="success"><p class="message">Kata sandi berhasil diperbarui. Silakan login menggunakan kata sandi baru.</p></ion-text>
+            <AppNotice v-else-if="success" tone="success">
+              Kata sandi berhasil diperbarui. Silakan masuk menggunakan kata sandi baru.
+            </AppNotice>
             <template v-else-if="recoveryAuthorized">
-              <ion-text v-if="errorMessage" color="danger"><p class="message">{{ errorMessage }}</p></ion-text>
+              <AppNotice v-if="errorMessage" tone="error">
+                {{ errorMessage }}
+              </AppNotice>
               <form class="auth-form" @submit.prevent="savePassword">
                 <ion-input v-model="password" type="password" label="Kata sandi baru" label-placement="stacked" autocomplete="new-password" required />
                 <ion-input v-model="confirmPassword" type="password" label="Konfirmasi kata sandi baru" label-placement="stacked" autocomplete="new-password" required />
@@ -89,9 +94,11 @@ async function savePassword() {
                 </ion-button>
               </form>
             </template>
-            <ion-text v-else color="danger"><p class="message">{{ errorMessage || 'Tautan reset tidak valid atau sudah kedaluwarsa. Silakan minta tautan baru.' }}</p></ion-text>
+            <ion-text v-else color="danger"><AppNotice tone="error">
+  {{ errorMessage || 'Tautan atur ulang tidak valid atau sudah kedaluwarsa. Silakan minta tautan baru.' }}
+</AppNotice></ion-text>
             <RouterLink v-if="success" class="back-link" to="/login">Masuk ke akun</RouterLink>
-            <RouterLink v-else-if="!checking && !recoveryAuthorized" class="back-link" to="/forgot-password">Minta tautan reset baru</RouterLink>
+            <RouterLink v-else-if="!checking && !recoveryAuthorized" class="back-link" to="/forgot-password">Minta tautan baru</RouterLink>
           </ion-card-content>
         </ion-card>
       </main>

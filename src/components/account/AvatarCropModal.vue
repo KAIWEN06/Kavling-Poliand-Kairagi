@@ -38,7 +38,7 @@
               max="4"
               step="0.01"
               :value="zoom"
-              aria-label="Tingkat zoom"
+              aria-label="Tingkat perbesaran"
               @input="setZoom(Number(($event.target as HTMLInputElement).value))"
             />
             <button type="button" class="zoom-btn" aria-label="Perbesar" :disabled="zoom >= 4" @click="setZoom(zoom + 0.25)">
@@ -46,7 +46,9 @@
             </button>
           </div>
 
-          <p v-if="error" class="crop-error" role="alert">{{ error }}</p>
+          <AppNotice v-if="error" tone="error">
+            {{ error }}
+          </AppNotice>
 
           <div class="crop-actions">
             <button type="button" class="crop-btn crop-btn--ghost" :disabled="busy" @click="emit('cancel')">Batal</button>
@@ -61,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { addOutline, removeOutline } from 'ionicons/icons'
@@ -84,28 +87,38 @@ const error = ref('')
 const zoom = ref(1)
 const tx = ref(0)
 const ty = ref(0)
-let natW = 0
-let natH = 0
-let viewport = 0
+/* Ukuran harus reaktif: imgStyle dihitung sebelum foto dimuat, dan tanpa
+   ref ia tetap memakai lebar 0 sampai zoom berubah (foto tampak hitam). */
+const natW = ref(0)
+const natH = ref(0)
+const viewport = ref(0)
 const pointers = new Map<number, { x: number; y: number }>()
 let lastPinch = 0
+let stageObserver: ResizeObserver | null = null
 
 /** Skala dasar: sisi terpendek gambar pas memenuhi lingkaran. */
 function baseScale() {
-  return natW && natH ? viewport / Math.min(natW, natH) : 1
+  return natW.value && natH.value && viewport.value ? viewport.value / Math.min(natW.value, natH.value) : 1
 }
 const scale = computed(() => baseScale() * zoom.value)
 
 const imgStyle = computed(() => ({
-  width: `${natW}px`,
-  height: `${natH}px`,
+  width: `${natW.value}px`,
+  height: `${natH.value}px`,
+  opacity: ready.value ? 1 : 0,
   transform: `translate(-50%, -50%) translate(${tx.value}px, ${ty.value}px) scale(${scale.value})`,
 }))
 
+function measureStage() {
+  const w = stage.value?.clientWidth ?? 0
+  if (w > 0) viewport.value = w
+  clampOffset()
+}
+
 function clampOffset() {
   const s = baseScale() * zoom.value
-  const maxX = Math.max(0, (natW * s - viewport) / 2)
-  const maxY = Math.max(0, (natH * s - viewport) / 2)
+  const maxX = Math.max(0, (natW.value * s - viewport.value) / 2)
+  const maxY = Math.max(0, (natH.value * s - viewport.value) / 2)
   tx.value = Math.min(maxX, Math.max(-maxX, tx.value))
   ty.value = Math.min(maxY, Math.max(-maxY, ty.value))
 }
@@ -141,12 +154,22 @@ async function onImageLoad() {
   await nextTick()
   const el = img.value
   if (!el || !stage.value) return
-  natW = el.naturalWidth
-  natH = el.naturalHeight
-  viewport = stage.value.getBoundingClientRect().width
-  ready.value = natW > 0 && natH > 0
+  natW.value = el.naturalWidth
+  natH.value = el.naturalHeight
+  measureStage()
+  ready.value = natW.value > 0 && natH.value > 0
   if (!ready.value) error.value = 'Foto tidak dapat dibaca. Pilih foto lain.'
 }
+
+/* Lebar stage bisa berubah (rotasi layar, sheet baru masuk): ukur ulang. */
+watch(stage, (el) => {
+  stageObserver?.disconnect()
+  stageObserver = null
+  if (el && typeof ResizeObserver !== 'undefined') {
+    stageObserver = new ResizeObserver(measureStage)
+    stageObserver.observe(el)
+  }
+})
 
 /* Gestur: satu jari menggeser, dua jari mencubit. */
 
@@ -195,9 +218,9 @@ function confirm() {
   error.value = ''
 
   const s = scale.value
-  const side = viewport / s
-  const cx = natW / 2 - tx.value / s
-  const cy = natH / 2 - ty.value / s
+  const side = viewport.value / s
+  const cx = natW.value / 2 - tx.value / s
+  const cy = natH.value / 2 - ty.value / s
 
   const canvas = document.createElement('canvas')
   canvas.width = OUTPUT_SIZE
@@ -228,6 +251,7 @@ function confirm() {
 }
 
 onBeforeUnmount(() => {
+  stageObserver?.disconnect()
   revoke()
   document.documentElement.style.overflow = ''
 })
@@ -342,13 +366,6 @@ onBeforeUnmount(() => {
   height: 44px;
   accent-color: var(--poliland-gold, #cba044);
   touch-action: pan-y;
-}
-
-.crop-error {
-  margin: 0;
-  color: #ffd9d6;
-  font-size: 13px;
-  text-align: center;
 }
 
 .crop-actions {

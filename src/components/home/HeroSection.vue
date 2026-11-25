@@ -14,7 +14,7 @@
     <SceneBackdrop class="hero-scene" height="120px" :sun="false" :lines="false" solid-front="#F9F5EC" />
 
     <div v-if="isAdmin" class="hero-admin">
-      <AdminEditButton label="Edit hero" @click="editOpen = true" />
+      <AdminEditButton label="Ubah sampul" @click="editOpen = true" />
     </div>
 
     <div class="hero-content">
@@ -49,7 +49,7 @@
         >{{ hero.description }}</motion.p>
       </template>
       <h1 v-else class="hero-empty">PoliLand Kairagi</h1>
-      <p v-if="!loading && !hero.title && isAdmin" class="hero-hint">Hero belum diisi. Tekan “Edit hero” untuk menambahkan judul dan gambar.</p>
+      <p v-if="!loading && !hero.title && isAdmin" class="hero-hint">Sampul belum diisi. Tekan “Ubah sampul” untuk menambahkan judul dan gambar.</p>
 
       <motion.div
         class="hero-actions"
@@ -74,7 +74,7 @@
       </motion.div>
     </div>
 
-    <CmsPanelModal v-model="editOpen" title="Edit hero" panel="home" section="hero" @saved="loadHeroData" />
+    <CmsPanelModal v-model="editOpen" title="Ubah sampul" panel="home" section="hero" @saved="loadHeroData" />
   </section>
 </template>
 

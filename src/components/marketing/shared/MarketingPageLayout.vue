@@ -4,9 +4,11 @@
     <AppPullRefresh v-if="refreshable" scoped :refresh-handler="onRefresh" />
     <ion-content class="mk-content" :fullscreen="false">
       <main class="mk-shell">
-        <PageHeader :title="title" :show-back="showBack" :back-fallback="backRoute" />
+        <PageHeader :title="title" :subtitle="subtitle" :show-back="showBack" :back-fallback="backRoute" />
         <slot />
       </main>
+      <!-- Elemen tetap (mis. FAB) di atas konten; beri atribut slot="fixed" pada elemennya. -->
+      <slot name="fixed" />
     </ion-content>
     <MobileTabBar :variant="tabVariant" />
   </ion-page>
@@ -20,8 +22,8 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 
 const props = withDefaults(
-  defineProps<{ title: string; showBack?: boolean; backRoute?: string; tabVariant?: 'marketing' | 'head'; refreshable?: boolean }>(),
-  { showBack: false, backRoute: undefined, tabVariant: 'marketing', refreshable: true },
+  defineProps<{ title: string; subtitle?: string; showBack?: boolean; backRoute?: string; tabVariant?: 'marketing' | 'head'; refreshable?: boolean }>(),
+  { subtitle: undefined, showBack: false, backRoute: undefined, tabVariant: 'marketing', refreshable: true },
 )
 const emit = defineEmits<{ refresh: [] }>()
 

@@ -24,12 +24,15 @@
         Keterangan tambahan (opsional)
         <textarea v-model="details" rows="3" maxlength="500" />
       </label>
-      <p v-if="error" class="error" role="alert">{{ error }}</p>
+      <AppNotice v-if="error" tone="error">
+        {{ error }}
+      </AppNotice>
     </div>
   </AppModal>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { ref, watch } from 'vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { reviewErrorMessage, reviewService } from '@/services/reviewService'

@@ -1,8 +1,8 @@
 <template>
-  <MarketingPageLayout title="Tambah Calon Pembeli" show-back :back-route="listPath" :tab-variant="tabVariant" :refreshable="false">
+  <MarketingPageLayout title="Tambah Klien" show-back :back-route="listPath" :tab-variant="tabVariant" :refreshable="false">
   <div class="prospect-page">
     <main class="page-content">
-      <!-- INFORMASI CALON PEMBELI -->
+      <!-- DATA KLIEN -->
       <section class="form-card">
         <div class="section-title">
           <div class="section-icon">
@@ -11,7 +11,7 @@
               <path d="M4 21a8 8 0 0 1 16 0" />
             </svg>
           </div>
-          <h2>Informasi Calon Pembeli</h2>
+          <h2>Data diri</h2>
         </div>
 
         <div class="fields">
@@ -26,7 +26,7 @@
                 v-model="form.full_name" data-input="name"
                 type="text"
                 autocomplete="name"
-                placeholder="Masukan nama lengkap"
+                placeholder="Sesuai KTP"
                 maxlength="100"
               />
             </div>
@@ -43,14 +43,14 @@
                 type="tel"
                 inputmode="tel"
                 autocomplete="tel"
-                placeholder="Contoh: 0823 4735 8236"
+                placeholder="Contoh: 0812 3456 7890"
                 maxlength="20"
               />
             </div>
           </label>
 
           <label class="field">
-            <span>Nomor WhatsApp <em>(jika berbeda)</em></span>
+            <span>WhatsApp <em>(jika berbeda)</em></span>
             <div class="input-wrap">
               <svg viewBox="0 0 24 24">
                 <path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.1L4 20Z" />
@@ -59,14 +59,14 @@
                 v-model="form.whatsapp_phone"
                 type="tel"
                 inputmode="tel"
-                placeholder="Kosongkan jika sama dengan nomor kontak"
+                placeholder="Kosongkan jika sama"
                 maxlength="20"
               />
             </div>
           </label>
 
           <label class="field">
-            <span>Email <em>(Opsional)</em></span>
+            <span>Email <em>(opsional)</em></span>
             <div class="input-wrap">
               <svg viewBox="0 0 24 24">
                 <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -82,35 +82,16 @@
             </div>
           </label>
 
-          <label class="field">
-            <span>Alamat Lengkap <b>*</b></span>
-            <div class="textarea-wrap address-wrap">
-              <svg viewBox="0 0 24 24">
-                <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
-                <circle cx="12" cy="10" r="2.5" />
-              </svg>
-              <textarea
-                v-model="form.address"
-                maxlength="200"
-                placeholder="Masukan alamat lengkap"
-              ></textarea>
-              <small>{{ form.address.length }}/200</small>
-            </div>
-          </label>
-
-          <div class="field">
-            <span>Wilayah Asal Konsumen <b>*</b></span>
-            <RegionSelect v-model="region" />
-          </div>
+          <AddressFields v-model="address" />
 
           <label v-if="isHead" class="field">
-            <span>Marketing Penanggung Jawab <b>*</b></span>
+            <span>Pemasar penanggung jawab <b>*</b></span>
             <select v-model="form.marketing_id" class="mk-input">
               <option value="">Pilih anggota tim</option>
               <option v-for="m in teamMembers" :key="m.id" :value="m.id">{{ m.full_name }}</option>
             </select>
           </label>
-          <p v-else class="owner-note">Klien otomatis tercatat atas nama akun Marketing Anda.</p>
+          <p v-else class="owner-note">Tercatat atas nama Anda.</p>
         </div>
       </section>
 
@@ -123,18 +104,19 @@
               <path d="M9 4v16M15 4v16M4 9h16M4 15h16" />
             </svg>
           </div>
-          <h2>Informasi Minat Kaveling</h2>
+          <h2>Minat kaveling</h2>
         </div>
 
         <div class="fields">
           <!-- LOT SELECTOR -->
           <div class="field">
-            <span>Kaveling yang diminati <b>*</b></span>
+            <span>Kaveling <b>*</b></span>
 
             <button
               type="button"
               class="select-control"
               :class="{ invalid: submitted && !selectedLots.length }"
+              :aria-expanded="lotPickerOpen"
               @click="lotPickerOpen = !lotPickerOpen"
             >
               <svg viewBox="0 0 24 24">
@@ -143,7 +125,7 @@
               </svg>
 
               <span v-if="!selectedLots.length" class="placeholder">
-                Pilih Kaveling
+                Pilih kaveling
               </span>
 
               <span v-else class="selected-summary">
@@ -167,7 +149,8 @@
                 <input
                   v-model="lotSearch"
                   type="search"
-                  placeholder="Cari nomor kaveling..."
+                  placeholder="Cari nomor kaveling"
+                  aria-label="Cari nomor kaveling"
                 />
               </div>
 
@@ -179,7 +162,7 @@
                 v-else-if="!filteredLots.length"
                 class="picker-message"
               >
-                Kaveling tersedia tidak ditemukan.
+                Tidak ada kaveling yang cocok.
               </div>
 
               <div v-else class="lot-options">
@@ -228,6 +211,7 @@
                 :key="lot.id"
                 type="button"
                 class="lot-chip"
+                :aria-label="`Hapus kaveling ${lot.lot_number}`"
                 @click="removeLot(lot.id)"
               >
                 <span>{{ lot.lot_number }}</span>
@@ -240,13 +224,14 @@
 
           <!-- PAYMENT -->
           <div class="field">
-            <span>Metode Pembayaran <b>*</b></span>
+            <span>Metode pembayaran <b>*</b></span>
 
             <div class="payment-grid">
               <button
                 type="button"
                 class="payment-card"
                 :class="{ active: form.payment_type === 'Cash' }"
+                :aria-pressed="form.payment_type === 'Cash'"
                 @click="selectPayment('Cash')"
               >
                 <span class="radio">
@@ -254,8 +239,8 @@
                 </span>
 
                 <span>
-                  <strong>Cash</strong>
-                  <small>Pembayaran tunai</small>
+                  <strong>Tunai</strong>
+                  <small>Sekali bayar</small>
                 </span>
               </button>
 
@@ -263,6 +248,7 @@
                 type="button"
                 class="payment-card"
                 :class="{ active: form.payment_type === 'Installment' }"
+                :aria-pressed="form.payment_type === 'Installment'"
                 @click="selectPayment('Installment')"
               >
                 <span class="radio">
@@ -270,8 +256,8 @@
                 </span>
 
                 <span>
-                  <strong>Cicil</strong>
-                  <small>Pembayaran bertahap</small>
+                  <strong>Cicilan</strong>
+                  <small>Bayar bertahap</small>
                 </span>
               </button>
             </div>
@@ -283,8 +269,7 @@
             class="field"
           >
             <div class="field-label-row">
-              <span>Rencana Tenor <em>(Opsional)</em></span>
-              <span class="plan-hint">Sesuai data Admin</span>
+              <span>Rencana tenor <em>(opsional)</em></span>
             </div>
 
             <div v-if="loadingPlans" class="plans-loading">
@@ -295,7 +280,7 @@
               v-else-if="!paymentPlans.length"
               class="plans-empty"
             >
-              Belum ada rencana tenor.
+              Belum ada pilihan tenor.
             </div>
 
             <div v-else class="plan-grid">
@@ -305,7 +290,8 @@
                 type="button"
                 class="plan-card"
                 :class="{ active: form.plan_id === plan.id }"
-                @click="form.plan_id = plan.id"
+                :aria-pressed="form.plan_id === plan.id"
+                @click="form.plan_id = form.plan_id === plan.id ? null : plan.id"
               >
                 <span class="radio">
                   <span></span>
@@ -318,14 +304,13 @@
             </div>
 
             <p class="helper-text">
-              Tenor hanya merupakan rencana awal dari calon pembeli.
-              Keputusan transaksi final ditentukan Admin.
+              Hanya rencana awal. Admin menetapkan transaksi final.
             </p>
           </div>
         </div>
       </section>
 
-      <!-- INFORMASI TAMBAHAN -->
+      <!-- CATATAN -->
       <section class="form-card">
         <div class="section-title">
           <div class="section-icon">
@@ -334,17 +319,17 @@
               <path d="M8 9h8M8 13h5" />
             </svg>
           </div>
-          <h2>Informasi Tambahan</h2>
+          <h2>Catatan</h2>
         </div>
 
         <label class="field">
-          <span>Catatan</span>
+          <span>Catatan <em>(opsional)</em></span>
 
           <div class="textarea-wrap notes-wrap">
             <textarea
               v-model="form.notes"
               maxlength="500"
-              placeholder="Tambahkan catatan mengenai calon pembeli"
+              placeholder="Misalnya waktu yang nyaman untuk dihubungi"
             ></textarea>
             <small>{{ form.notes.length }}/500</small>
           </div>
@@ -374,27 +359,23 @@
         </div>
       </div>
 
-      <!-- SAVE -->
-      <button
-        type="button"
-        class="save-button"
-        :disabled="saving"
-        @click="submit"
-      >
-        <span v-if="saving" class="spinner"></span>
-        {{ saving ? 'Menyimpan...' : 'Simpan' }}
-      </button>
-
-      <p class="privacy-note">
-        Data calon pembeli akan dikirim ke Admin untuk diproses.
-      </p>
+      <!-- AKSI -->
+      <div class="form-actions">
+        <button type="button" class="cancel-button" :disabled="saving" @click="cancel">
+          Batal
+        </button>
+        <button type="button" class="save-button" :disabled="saving" @click="submit">
+          <span v-if="saving" class="spinner"></span>
+          {{ saving ? 'Menyimpan…' : 'Simpan klien' }}
+        </button>
+      </div>
     </main>
 
   </div>
   </MarketingPageLayout>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useIonRouter } from '@ionic/vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
@@ -405,16 +386,23 @@ import {
   getPaymentPlans,
 } from '@/services/marketing/customerService'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
-import RegionSelect from '@/components/marketing/shared/RegionSelect.vue'
+import AddressFields from '@/components/marketing/shared/AddressFields.vue'
+import { addressColumns, emptyAddress, missingAddressFields } from '@/utils/address'
 import {
   findContactConflict,
   getTeamMembers,
+  type TeamMember,
 } from '@/services/marketing/marketingCrmService'
+import { useSmartBack } from '@/composables/useSmartBack'
+import { useToast } from '@/composables/useToast'
+
+type AvailableLot = Awaited<ReturnType<typeof getAvailableLots>>[number] & { blocks?: any }
+type PlanOption = Awaited<ReturnType<typeof getPaymentPlans>>[number]
 
 const ionRouter = useIonRouter()
 
-const region = ref({ province_code: null, province_name: null, city_code: null, city_name: null })
-const teamMembers = ref([])
+const address = ref(emptyAddress())
+const teamMembers = ref<TeamMember[]>([])
 const isHead = computed(() => currentProfile.value?.role === 'marketing_head')
 const listPath = computed(() => (isHead.value ? '/kepala-marketing/clients' : '/marketing/clients'))
 const tabVariant = computed(() => (isHead.value ? 'head' : 'marketing'))
@@ -430,12 +418,13 @@ const errorMessage = ref('')
 // Client yang sudah memakai nomor ini dan boleh dibuka pemanggil (null bila bukan miliknya).
 const conflictCustomerId = ref<number | null>(null)
 
-const currentUser = ref(null)
-const currentProfile = ref(null)
+const currentProfile = ref<{ id: string; role: string } | null>(null)
 
-const lots = ref([])
-const paymentPlans = ref([])
-const selectedLots = ref([])
+const lots = ref<AvailableLot[]>([])
+const paymentPlans = ref<PlanOption[]>([])
+const selectedLots = ref<AvailableLot[]>([])
+
+const { goBack: cancel } = useSmartBack(() => listPath.value)
 
 const form = reactive({
   full_name: '',
@@ -443,9 +432,8 @@ const form = reactive({
   whatsapp_phone: '',
   marketing_id: '',
   email: '',
-  address: '',
-  payment_type: 'Cash',
-  plan_id: null,
+  payment_type: 'Cash' as 'Cash' | 'Installment',
+  plan_id: null as number | null,
   notes: '',
 })
 
@@ -470,7 +458,7 @@ const filteredLots = computed(() => {
   })
 })
 
-function getLotMeta(lot) {
+function getLotMeta(lot: AvailableLot) {
   const block = lot.blocks?.code || lot.blocks?.name
   const area = lot.area ? `${Number(lot.area)} m²` : null
   const dimension = lot.dimension
@@ -480,11 +468,11 @@ function getLotMeta(lot) {
     .join(' · ') || 'Detail kaveling tersedia'
 }
 
-function isLotSelected(lotId) {
+function isLotSelected(lotId: number) {
   return selectedLots.value.some((lot) => lot.id === lotId)
 }
 
-function toggleLot(lot) {
+function toggleLot(lot: AvailableLot) {
   const exists = isLotSelected(lot.id)
 
   if (exists) {
@@ -497,13 +485,13 @@ function toggleLot(lot) {
   selectedLots.value.push(lot)
 }
 
-function removeLot(lotId) {
+function removeLot(lotId: number) {
   selectedLots.value = selectedLots.value.filter(
     (lot) => lot.id !== lotId,
   )
 }
 
-function selectPayment(type) {
+function selectPayment(type: 'Cash' | 'Installment') {
   form.payment_type = type
 
   if (type === 'Cash') {
@@ -527,17 +515,13 @@ function validate() {
 
   const digits = form.phone.replace(/\D/g, '')
   if (digits.length < 9 || digits.length > 15) {
-    errorMessage.value = 'Nomor kontak belum lengkap, masukkan 9–15 digit angka.'
+    errorMessage.value = 'Nomor kontak harus 9 sampai 15 angka.'
     return false
   }
 
-  if (!form.address.trim()) {
-    errorMessage.value = 'Alamat lengkap wajib diisi.'
-    return false
-  }
-
-  if (!region.value.province_code || !region.value.city_code) {
-    errorMessage.value = 'Pilih provinsi dan kabupaten/kota asal konsumen.'
+  const missingAddress = missingAddressFields(address.value)
+  if (missingAddress.length) {
+    errorMessage.value = `Lengkapi alamat: ${missingAddress.join(', ')}.`
     return false
   }
 
@@ -548,22 +532,13 @@ function validate() {
 
   if (!selectedLots.value.length) {
     errorMessage.value =
-      'Pilih minimal satu kaveling yang diminati.'
+      'Pilih minimal satu kaveling.'
     return false
   }
 
   if (!form.payment_type) {
     errorMessage.value =
       'Metode pembayaran wajib dipilih.'
-    return false
-  }
-
-  if (
-    form.payment_type === 'Installment' &&
-    !form.plan_id
-  ) {
-    errorMessage.value =
-      'Pilih rencana tenor untuk metode cicil.'
     return false
   }
 
@@ -603,10 +578,9 @@ async function submit() {
         phone: form.phone,
         whatsapp_phone: form.whatsapp_phone || form.phone,
         email: form.email,
-        address: form.address,
         notes: form.notes,
         marketing_id: isHead.value ? form.marketing_id : null,
-        ...region.value,
+        ...addressColumns(address.value),
       },
 
       interests: selectedLots.value.map((lot) => ({
@@ -617,17 +591,16 @@ async function submit() {
       })),
     })
 
-    /*
-     * Setelah berhasil, kembali ke halaman daftar calon pembeli.
-     * Ubah route jika route project kamu berbeda.
-     */
-    await ionRouter.push(listPath.value)
-  } catch (error) {
-    console.error('Gagal menyimpan calon pembeli:', error)
+    useToast().success('Klien tersimpan.')
+    // Formulir diganti (bukan ditumpuk) agar tombol kembali tidak membukanya lagi.
+    ionRouter.navigate(listPath.value, 'back', 'replace')
+  } catch (cause) {
+    const error = cause as { message?: string; hint?: string }
+    console.error('Gagal menyimpan klien:', error)
 
     errorMessage.value =
       error?.message ||
-      'Data calon pembeli gagal disimpan. Silakan coba lagi.'
+      'Klien gagal disimpan. Coba lagi.'
 
     // Nomor baru terdaftar di antara pengecekan dan penyimpanan: jelaskan siapa pemegangnya.
     if (error?.hint === 'phone_exists') {
@@ -667,7 +640,7 @@ async function loadData() {
   } catch (error) {
     console.error(error)
     errorMessage.value =
-      'Data kaveling atau rencana tenor gagal dimuat.'
+      'Daftar kaveling atau tenor gagal dimuat.'
   } finally {
     loadingLots.value = false
     loadingPlans.value = false
@@ -678,7 +651,6 @@ onMounted(async () => {
   try {
     const session = await getCurrentMarketingProfile()
 
-    currentUser.value = session.user
     currentProfile.value = session.profile
 
     if (session.profile.role === 'marketing_head') {
@@ -688,8 +660,10 @@ onMounted(async () => {
     await loadData()
   } catch (error) {
     console.error(error)
+    loadingLots.value = false
+    loadingPlans.value = false
     errorMessage.value =
-      'Sesi login tidak ditemukan atau akun tidak memiliki akses Marketing.'
+      'Akun belum bisa dipakai di sini. Masuk ulang dengan akun pemasar.'
   }
 })
 </script>
@@ -823,7 +797,6 @@ onMounted(async () => {
 }
 
 .input-wrap svg,
-.textarea-wrap > svg,
 .select-control > svg:first-child {
   width: 20px;
   height: 20px;
@@ -843,7 +816,7 @@ onMounted(async () => {
   outline: 0;
   color: var(--text-primary);
   background: transparent;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .input-wrap input::placeholder,
@@ -865,13 +838,8 @@ onMounted(async () => {
   outline: 0;
   background: transparent;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.45;
-}
-
-.textarea-wrap > svg {
-  float: left;
-  margin: 2px 10px 0 0;
 }
 
 .textarea-wrap small {
@@ -960,7 +928,7 @@ onMounted(async () => {
   outline: 0;
   background: transparent;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .lot-options {
@@ -1185,12 +1153,6 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.plan-hint {
-  color: var(--poliland-gold-text) !important;
-  font-size: 12px !important;
-  font-weight: var(--font-weight-semibold) !important;
-}
-
 .plan-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -1235,6 +1197,38 @@ onMounted(async () => {
 }
 
 /* ---------- error + simpan ---------- */
+.form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 10px;
+}
+
+.cancel-button {
+  min-height: 52px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.cancel-button:active:not(:disabled) {
+  background: var(--surface-muted);
+}
+
+.cancel-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-button:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 2px;
+}
+
 .error-message {
   display: flex;
   align-items: flex-start;
@@ -1333,14 +1327,6 @@ onMounted(async () => {
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
-}
-
-.privacy-note {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.4;
-  text-align: center;
 }
 
 @keyframes spin {

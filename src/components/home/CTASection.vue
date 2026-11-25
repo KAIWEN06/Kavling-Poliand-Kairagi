@@ -18,12 +18,12 @@
         </button>
 
         <div v-if="isAdmin" class="cta-admin">
-          <AdminEditButton label="Edit ajakan" @click="editOpen = true" />
+          <AdminEditButton label="Ubah ajakan" @click="editOpen = true" />
         </div>
       </div>
     </div>
 
-    <CmsPanelModal v-model="editOpen" title="Edit ajakan" panel="home" section="cta" @saved="load" />
+    <CmsPanelModal v-model="editOpen" title="Ubah ajakan" panel="home" section="cta" @saved="load" />
   </section>
 </template>
 

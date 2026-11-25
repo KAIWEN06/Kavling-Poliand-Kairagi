@@ -10,7 +10,7 @@
 
     <div v-else-if="!steps.length" class="spt-state">
       <strong>Tahapan belum dimulai</strong>
-      <p>Tahapan muncul setelah SPK disetujui dan Booking Fee terverifikasi.</p>
+      <p>Tahapan muncul setelah SPK disetujui dan tanda jadi terverifikasi.</p>
     </div>
 
     <template v-else>
@@ -24,7 +24,7 @@
 
       <p class="spt-lot-state">
         Status kavling:
-        <strong>{{ allDone ? 'Terjual' : 'Dipesan (booking)' }}</strong>
+        <strong>{{ allDone ? 'Terjual' : 'Dipesan' }}</strong>
         <template v-if="!allDone"> · berubah menjadi Terjual setelah sertifikat diserahkan.</template>
       </p>
 
@@ -71,7 +71,9 @@
                 {{ proofOpening === step.id ? 'Membuka...' : 'Lihat bukti' }}
               </button>
             </div>
-            <p v-if="proofError && proofErrorStep === step.id" class="spt-error" role="alert">{{ proofError }}</p>
+            <AppNotice v-if="proofError && proofErrorStep === step.id" tone="error">
+              {{ proofError }}
+            </AppNotice>
 
             <p v-if="SPK_STEP_INFO[step.key].requirement && step.status !== 'done'" class="spt-require">
               {{ SPK_STEP_INFO[step.key].requirement }}
@@ -87,7 +89,7 @@
               </button>
               <template v-if="current?.id === step.id && step.key !== 'cicilan'">
                 <button v-if="step.status !== 'ready'" type="button" class="spt-btn" @click="open('ready', step)">
-                  Beri tahu client: siap
+                  Beri tahu klien: siap
                 </button>
                 <button type="button" class="spt-btn spt-btn--primary" @click="open('complete', step)">
                   Tandai selesai
@@ -157,19 +159,30 @@
         <small>{{ proofFile?.name || (target?.proofName ? `Tersimpan: ${target.proofName}` : 'JPG, PNG, WEBP, atau PDF. Maksimal 5 MB.') }}</small>
       </label>
       <label class="spt-field">
-        Catatan untuk client (boleh dikosongkan)
+        Catatan untuk klien (boleh dikosongkan)
         <textarea v-model="noteValue" rows="3" maxlength="300" placeholder="Contoh: bawa KTP asli dan materai" />
       </label>
-      <p v-if="actionError" class="spt-error" role="alert">{{ actionError }}</p>
+      <AppNotice v-if="actionError" tone="error">
+        {{ actionError }}
+      </AppNotice>
     </AppModal>
+    <DocumentViewerModal
+      :open="proofViewerOpen"
+      :url="proofViewerUrl"
+      :file-name="proofViewerName"
+      subtitle="Bukti serah terima"
+      @close="proofViewerOpen = false; proofViewerUrl = ''"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { checkmark, chevronBack, chevronForward } from 'ionicons/icons'
 import AppModal from '@/components/ui/AppModal.vue'
+import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import { useCelebration } from '@/composables/useCelebration'
 import {
   SPK_STEP_INFO,
@@ -253,6 +266,9 @@ const proofFile = ref<File | null>(null)
 const proofOpening = ref<number | null>(null)
 const proofError = ref('')
 const proofErrorStep = ref<number | null>(null)
+const proofViewerOpen = ref(false)
+const proofViewerUrl = ref('')
+const proofViewerName = ref('')
 
 function onProofSelected(event: Event) {
   const input = event.target as HTMLInputElement
@@ -275,8 +291,9 @@ async function openProof(step: SpkProcessStep) {
   proofError.value = ''
   proofErrorStep.value = step.id
   try {
-    const url = await getHandoverProofUrl(step.proofPath)
-    window.open(url, '_blank', 'noopener')
+    proofViewerUrl.value = await getHandoverProofUrl(step.proofPath)
+    proofViewerName.value = step.proofName || step.proofPath.split('/').pop() || 'Bukti serah terima'
+    proofViewerOpen.value = true
   } catch (e) {
     proofError.value = e instanceof Error ? e.message : 'Bukti tidak bisa dibuka.'
   } finally {
@@ -286,9 +303,9 @@ async function openProof(step: SpkProcessStep) {
 
 const modalIntro = computed(() => {
   const title = target.value ? SPK_STEP_INFO[target.value.key].title : ''
-  if (action.value === 'schedule') return `${title}. Client dan marketing akan menerima pemberitahuan tanggal ini.`
-  if (action.value === 'ready') return `${title} sudah bisa diproses. Client dan marketing akan menerima pemberitahuan.`
-  if (needsProof.value) return `${title} sudah dilakukan? Lampirkan bukti tanda terima. Client dan marketing bisa melihatnya.`
+  if (action.value === 'schedule') return `${title}. Klien dan pemasar akan menerima pemberitahuan tanggal ini.`
+  if (action.value === 'ready') return `${title} sudah bisa diproses. Klien dan pemasar akan menerima pemberitahuan.`
+  if (needsProof.value) return `${title} sudah dilakukan? Lampirkan bukti tanda terima. Klien dan pemasar bisa melihatnya.`
   return `${title} benar-benar sudah dilakukan? Langkah berikutnya akan menjadi giliran berikutnya.`
 })
 
@@ -443,7 +460,6 @@ async function submit() {
 .spt-upload { padding: 10px 12px; border: 1px dashed var(--border-default); border-radius: var(--radius-control); }
 .spt-upload input { padding: 0; min-height: 44px; border: 0; font-size: 12px; }
 .spt-upload small { font-weight: 400; color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
-.spt-error { margin: 0; color: var(--status-danger); font-size: 13px; }
 
 @keyframes spt-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .spt-step { animation: none; } .spt-btn, .spt-cal-nav, .spt-cal-day { transition: none; } .spt-calendar { animation: none; } }

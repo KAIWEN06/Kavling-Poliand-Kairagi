@@ -1,3 +1,4 @@
+import { formatInstallmentRange } from '@/utils/installmentFormat'
 import type { CashflowEntry, CashflowTotals, ReportPeriod } from '@/utils/financialCashflow'
 
 type Cell = string | number
@@ -24,12 +25,12 @@ const shortDate = (value: string) => new Intl.DateTimeFormat('id-ID', { day: '2-
 
 const SOURCE_LABELS: Record<string, string> = {
   payments: 'Pembayaran',
-  booking_fee_refunds: 'Refund Booking Fee',
-  purchase_refunds: 'Refund pembelian',
-  financial_reversal: 'Reversal',
+  booking_fee_refunds: 'Pengembalian tanda jadi',
+  purchase_refunds: 'Pengembalian dana pembelian',
+  financial_reversal: 'Pembalikan',
 }
 const CATEGORY_LABELS: Record<string, string> = {
-  Booking: 'Booking Fee', 'Down Payment': 'Uang Muka', Installment: 'Cicilan',
+  Booking: 'Tanda Jadi', 'Down Payment': 'Uang Muka', Installment: 'Cicilan',
   'Cash Purchase': 'Pembelian Tunai', Other: 'Lainnya', Unclassified: 'Belum Dikategorikan',
 }
 
@@ -41,7 +42,7 @@ export function buildCashflowPdfInput(entries: CashflowEntry[], totals: Cashflow
     summary: [
       ['Pemasukan bruto', formatPdfRupiah(totals.grossIncome)],
       ['Total pengeluaran', formatPdfRupiah(totals.totalExpenses)],
-      ['Pengeluaran refund', formatPdfRupiah(totals.refundExpenses)],
+      ['Pengembalian dana', formatPdfRupiah(totals.refundExpenses)],
       ['Arus kas bersih', formatPdfRupiah(totals.netCashFlow)],
     ],
     sections: [{
@@ -50,7 +51,7 @@ export function buildCashflowPdfInput(entries: CashflowEntry[], totals: Cashflow
       body: sorted.map((e) => [
         shortDate(e.occurred_on),
         e.flow_direction === 'inflow' ? 'Masuk' : 'Keluar',
-        CATEGORY_LABELS[e.category] ?? e.category,
+        e.installment_numbers?.length ? formatInstallmentRange(e.installment_numbers, e.installment_total) : (CATEGORY_LABELS[e.category] ?? e.category),
         `${SOURCE_LABELS[e.source_table] ?? e.source_table} #${e.source_id}`,
         e.bank_reference || '-',
         `${e.flow_direction === 'inflow' ? '+' : '-'}${formatPdfRupiah(e.amount)}`,

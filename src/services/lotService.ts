@@ -195,6 +195,22 @@ export const lotService = {
     return data as unknown as LotRecord;
   },
 
+  /** True bila kavling ini milik akun client yang sedang login (customers.user_id = auth.uid()). */
+  async isLotOwnedByMe(lotId: number): Promise<boolean> {
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
+    if (!userId) return false;
+
+    const [lotRes, customerRes] = await Promise.all([
+      supabase.from("lots").select("customer_id").eq("id", lotId).maybeSingle(),
+      supabase.from("customers").select("id").eq("user_id", userId),
+    ]);
+
+    const ownerId = lotRes.data?.customer_id;
+    if (!ownerId || customerRes.error) return false;
+    return (customerRes.data ?? []).some((row) => Number(row.id) === Number(ownerId));
+  },
+
   async getPaymentPlans(): Promise<PaymentPlanRecord[]> {
     const { data, error } = await supabase
       .from("payment_plans")
@@ -400,12 +416,12 @@ export const lotService = {
 
     if (paymentCategory === "Installment" || paymentCategory === "Down Payment") {
       if (transaction.payment_type !== "Installment") {
-        throw new Error("DP dan cicilan hanya berlaku untuk transaksi cicilan.");
+        throw new Error("Uang muka dan cicilan hanya berlaku untuk transaksi cicilan.");
       }
     }
 
     if (paymentCategory === "Cash Purchase" && transaction.payment_type !== "Cash") {
-      throw new Error("Pembayaran Cash Purchase hanya berlaku untuk transaksi tunai.");
+      throw new Error("Pembayaran Pelunasan Tunai hanya berlaku untuk transaksi tunai.");
     }
 
     // Booking fee remains available for legacy booking transactions, but
@@ -419,7 +435,7 @@ export const lotService = {
       const bookingRemaining = Math.max(BOOKING_FEE_FIXED - activeBookingReserved, 0);
       if (amount > bookingRemaining) {
         throw new Error(
-          `Nominal booking melebihi sisa biaya booking. Sisa: Rp ${bookingRemaining.toLocaleString("id-ID")}.`,
+          `Nominal melebihi sisa tanda jadi. Sisa: Rp ${bookingRemaining.toLocaleString("id-ID")}.`,
         );
       }
     }
@@ -428,7 +444,7 @@ export const lotService = {
       const summary = await this.getTransactionPaymentSummary(transactionId);
       if (!summary.dpSettled) {
         throw new Error(
-          `DP harus lunas dan dikonfirmasi admin sebelum cicilan pertama dibuat. Sisa DP: Rp ${summary.dpRemaining.toLocaleString("id-ID")}.`,
+          `Uang muka harus lunas dan dikonfirmasi admin sebelum cicilan pertama dibuat. Sisa uang muka: Rp ${summary.dpRemaining.toLocaleString("id-ID")}.`,
         );
       }
     }

@@ -35,14 +35,14 @@ export interface SpkStepInfo {
 
 export const SPK_STEP_INFO: Record<SpkStepKey, SpkStepInfo> = {
   ttd_spk: {
-    title: 'Tanda tangan SPK dan Booking Fee',
+    title: 'Tanda tangan SPK dan tanda jadi',
     summary: 'Tanda tangan langsung di atas kertas. Bisa sekaligus saat acara di notaris.',
     requirement: null,
   },
   ppjb: {
     title: 'Tanda tangan PPJB di notaris',
     summary: 'Perjanjian jual beli dibuat di notaris. Tanggal cicilan pertama ditetapkan saat ini.',
-    requirement: 'Jika memilih DP, DP harus sudah dibayar sebelum atau saat tanda tangan.',
+    requirement: 'Jika memilih uang muka, uang muka harus sudah dibayar sebelum atau saat tanda tangan.',
   },
   cicilan: {
     title: 'Bayar cicilan',

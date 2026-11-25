@@ -29,7 +29,7 @@
           <div v-show="openIndex === index" class="faq-answer">
             {{ faq.answer }}
             <div v-if="isAdmin" class="faq-admin">
-              <button type="button" class="faq-mini" @click="openEdit(faq)"><ion-icon :icon="createOutline" aria-hidden="true" /> Edit</button>
+              <button type="button" class="faq-mini" @click="openEdit(faq)"><ion-icon :icon="createOutline" aria-hidden="true" /> Ubah</button>
               <button type="button" class="faq-mini danger" @click="askDelete(faq)"><ion-icon :icon="trashOutline" aria-hidden="true" /> Hapus</button>
             </div>
           </div>
@@ -52,7 +52,7 @@
       :loading="deleting"
       @confirm="confirmDelete"
     >
-      <p class="confirm-text">“{{ deleteTarget?.question }}” akan dihapus dari website dan tidak bisa dikembalikan.</p>
+      <p class="confirm-text">“{{ deleteTarget?.question }}” akan dihapus dari situs web dan tidak bisa dikembalikan.</p>
     </AppModal>
   </section>
 </template>

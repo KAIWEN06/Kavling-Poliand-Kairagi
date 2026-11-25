@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -37,16 +40,18 @@ import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useClientProfileGate } from '@/composables/useClientProfileGate'
 import { getRegions, getRegionByCode } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
+import { COUNTRIES as countries, composeFullAddress } from '@/utils/address'
+
+const { confirm } = useConfirm()
 
 const router = useRouter()
 
 const isLoading = ref(true)
 const isSaving = ref(false)
 const isLoggingOut = ref(false)
-const showLogoutConfirm = ref(false)
 const profileError = ref('')
 const logoutError = ref('')
-const successMessage = ref('')
+const toast = useToast()
 const userId = ref('')
 const customerId = ref<number | null>(null)
 const authEmail = ref('')
@@ -93,15 +98,6 @@ const villages = ref<Region[]>([])
 const regionsLoading = ref(false)
 
 const isIndonesia = computed(() => form.country_code === 'ID')
-const countries = [
-  { code: 'ID', name: 'Indonesia' },
-  { code: 'MY', name: 'Malaysia' },
-  { code: 'SG', name: 'Singapore' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'US', name: 'United States' },
-  { code: 'JP', name: 'Japan' },
-]
-
 const missingFields = computed(() => {
   const missing: string[] = []
   if (!form.full_name.trim()) missing.push('Nama lengkap')
@@ -331,14 +327,9 @@ async function saveCustomerProfile() {
 
   isSaving.value = true
   profileError.value = ''
-  successMessage.value = ''
 
   try {
-    const addressParts = [
-      form.street_address.trim(), form.village_name, form.district_name,
-      form.city_name, form.province_name, form.country_name,
-    ].filter(Boolean)
-    const fullAddress = addressParts.join(', ')
+    const fullAddress = composeFullAddress(form)
     const payload = {
       user_id: userId.value,
       full_name: form.full_name.trim(),
@@ -391,7 +382,7 @@ async function saveCustomerProfile() {
       customerId.value = Number(data.id)
     }
 
-    successMessage.value = 'Data diri berhasil disimpan.'
+    toast.success('Data diri berhasil disimpan.')
     void gate.check()
   } catch (error: any) {
     console.error('Gagal menyimpan data customer.', error)
@@ -453,7 +444,7 @@ async function uploadAvatar(file: File) {
     avatarUrl.value = nextAvatarUrl
     // Perbarui state global agar avatar di header langsung berubah.
     sharedUser.patch({ avatarUrl: nextAvatarUrl })
-    successMessage.value = 'Foto profil berhasil diperbarui.'
+    toast.success('Foto profil berhasil diperbarui.')
   } catch (error: any) {
     console.error('Gagal mengunggah foto profil.', error)
     profileError.value = error?.message || 'Foto profil gagal diunggah.'
@@ -464,6 +455,8 @@ async function uploadAvatar(file: File) {
 
 async function logout() {
   if (isLoggingOut.value) return
+  const ok = await confirm({ title: 'Keluar dari akun?', message: 'Anda perlu masuk kembali untuk mengakses aplikasi.', confirmText: 'Keluar', tone: 'error' })
+  if (!ok || isLoggingOut.value) return
 
   isLoggingOut.value = true
   logoutError.value = ''
@@ -564,23 +557,13 @@ onMounted(loadCustomerProfile)
             <PhoneVerifySheet :open="otpOpen" :phone="otpPhone" @cancel="otpOpen = false" @verified="onPhoneVerified" />
 
             <!-- Status Kelengkapan Profil -->
-            <div v-if="!isProfileComplete" class="status-banner status-banner--warning" role="status">
-              <ion-icon :icon="alertCircleOutline" class="status-icon" aria-hidden="true" />
-              <div class="status-body">
-                <strong>Lengkapi data diri terlebih dahulu</strong>
-                <p>
-                  Beberapa informasi akun belum tersedia. Silakan lengkapi kolom wajib (<span class="req-mark">*</span>) sebelum melanjutkan pengajuan SPK.
-                </p>
-              </div>
-            </div>
+            <AppNotice v-if="!isProfileComplete" tone="warning" title="Lengkapi data diri terlebih dahulu">
+              Beberapa informasi akun belum tersedia. Silakan lengkapi kolom wajib (<span class="req-mark">*</span>) sebelum melanjutkan pengajuan SPK.
+            </AppNotice>
 
-            <div v-else class="status-banner status-banner--success" role="status">
-              <ion-icon :icon="checkmarkCircleOutline" class="status-icon" aria-hidden="true" />
-              <div class="status-body">
-                <strong>Data diri sudah lengkap</strong>
-                <p>Pastikan nomor kontak dan alamat Anda tetap yang terbaru.</p>
-              </div>
-            </div>
+            <AppNotice v-else tone="success" title="Data diri sudah lengkap">
+              Pastikan nomor kontak dan alamat Anda tetap yang terbaru.
+            </AppNotice>
           </section>
 
           <!-- Kartu Formulir Data Diri -->
@@ -684,15 +667,9 @@ onMounted(loadCustomerProfile)
                 <ion-item lines="none" class="input-item textarea-item"><ion-textarea id="client-address" v-model="form.street_address" placeholder="Nama jalan, nomor rumah, gedung, dan detail lainnya" :auto-grow="true" :rows="3" required /></ion-item>
               </div>
 
-              <div v-if="profileError" class="feedback-alert feedback-alert--error" role="alert">
-                <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-                <span>{{ profileError }}</span>
-              </div>
-
-              <div v-if="successMessage" class="feedback-alert feedback-alert--success" role="status">
-                <ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" />
-                <span>{{ successMessage }}</span>
-              </div>
+              <AppNotice v-if="profileError" tone="error">
+                {{ profileError }}
+              </AppNotice>
 
               <ion-button
                 class="save-button"
@@ -716,49 +693,22 @@ onMounted(loadCustomerProfile)
               </p>
             </div>
 
-            <div v-if="!showLogoutConfirm">
-              <ion-button
-                class="logout-button"
-                color="danger"
-                fill="outline"
-                expand="block"
-                :disabled="isLoggingOut"
-                @click="showLogoutConfirm = true"
-              >
-                <ion-icon slot="start" :icon="logOutOutline" />
-                Keluar
-              </ion-button>
-            </div>
+            <ion-button
+              class="logout-button"
+              color="danger"
+              fill="outline"
+              expand="block"
+              :disabled="isLoggingOut"
+              @click="logout"
+            >
+              <ion-spinner v-if="isLoggingOut" slot="start" name="crescent" />
+              <ion-icon v-else slot="start" :icon="logOutOutline" />
+              {{ isLoggingOut ? 'Keluar...' : 'Keluar' }}
+            </ion-button>
 
-            <div v-else class="logout-confirm-box" role="region" aria-label="Konfirmasi keluar akun">
-              <p class="logout-confirm-text">Yakin ingin keluar dari akun ini sekarang?</p>
-              <div class="logout-confirm-actions">
-                <ion-button
-                  class="confirm-cancel-btn"
-                  fill="outline"
-                  color="medium"
-                  :disabled="isLoggingOut"
-                  @click="showLogoutConfirm = false"
-                >
-                  Batal
-                </ion-button>
-                <ion-button
-                  class="confirm-proceed-btn"
-                  color="danger"
-                  :disabled="isLoggingOut"
-                  @click="logout"
-                >
-                  <ion-spinner v-if="isLoggingOut" slot="start" name="crescent" />
-                  <ion-icon v-else slot="start" :icon="logOutOutline" />
-                  {{ isLoggingOut ? 'Keluar...' : 'Ya, keluar' }}
-                </ion-button>
-              </div>
-            </div>
-
-            <div v-if="logoutError" class="feedback-alert feedback-alert--error" role="alert">
-              <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
-              <span>{{ logoutError }}</span>
-            </div>
+            <AppNotice v-if="logoutError" tone="error">
+              {{ logoutError }}
+            </AppNotice>
           </section>
         </template>
       </main>
@@ -1000,44 +950,6 @@ onMounted(loadCustomerProfile)
 }
 
 /* Banner Status Kelengkapan Data */
-.status-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--radius-control, 12px);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.status-banner--warning {
-  border: 1px solid var(--poliland-gold-soft, #f4d69a);
-  background: #fdf8ec;
-  color: var(--poliland-gold-text-soft, #805708);
-}
-
-.status-banner--success {
-  border: 1px solid rgba(53, 90, 44, 0.2);
-  background: var(--status-success-bg, #eef5ec);
-  color: var(--poliland-green, #355a2c);
-}
-
-.status-icon {
-  flex: 0 0 20px;
-  margin-top: 2px;
-  font-size: 20px;
-}
-
-.status-body strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.status-body p {
-  margin: 2px 0 0;
-  font-size: 12.5px;
-}
 
 /* Formulir */
 .profile-form {
@@ -1108,34 +1020,6 @@ onMounted(loadCustomerProfile)
 }
 
 /* Umpan Balik Simpan / Error */
-.feedback-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: var(--radius-control, 12px);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.feedback-alert ion-icon {
-  flex: 0 0 18px;
-  margin-top: 1px;
-  font-size: 18px;
-}
-
-.feedback-alert--error {
-  border: 1px solid rgba(217, 75, 69, 0.25);
-  background: #fdf2f2;
-  color: var(--status-danger, #d94b45);
-}
-
-.feedback-alert--success {
-  border: 1px solid rgba(53, 90, 44, 0.25);
-  background: var(--status-success-bg, #eef5ec);
-  color: var(--poliland-green, #355a2c);
-}
 
 /* Tombol Aksi Utama (Brand PoliLand Green, min-height 48px) */
 .save-button {
@@ -1179,36 +1063,6 @@ onMounted(loadCustomerProfile)
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0;
-  text-transform: none;
-}
-
-.logout-confirm-box {
-  padding: 14px;
-  border: 1px solid rgba(217, 75, 69, 0.25);
-  border-radius: var(--radius-control, 12px);
-  background: #fdf2f2;
-}
-
-.logout-confirm-text {
-  margin: 0 0 12px;
-  color: var(--text-primary, #252525);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.logout-confirm-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.confirm-cancel-btn,
-.confirm-proceed-btn {
-  --border-radius: var(--radius-control, 12px);
-  min-height: 44px;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
   text-transform: none;
 }
 

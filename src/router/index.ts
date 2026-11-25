@@ -309,6 +309,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'marketing' },
   },
   {
+    path: '/marketing/siteplan',
+    name: 'MarketingSiteplan',
+    component: SiteplanPage,
+    meta: { requiresAuth: true, role: 'marketing' },
+  },
+  {
     path: '/kavling',
     name: 'KavlingMarketing',
     component: KavlingMarketingPage,
@@ -365,6 +371,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/client/kavling',
     name: 'KavlingClient',
     component: KavlingClientPage,
+  },
+  {
+    path: '/client/siteplan',
+    name: 'ClientSiteplan',
+    component: SiteplanPage,
   },
   {
     path: '/client/kavling/:id',

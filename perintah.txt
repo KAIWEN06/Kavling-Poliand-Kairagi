@@ -1,11 +1,20 @@
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\AboutPage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\ContactPage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\GalleryPage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\HomePage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\MaintenancePage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\NotFoundPage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\PanoramaPage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\ProgressDetailPage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\ProgressPage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\SiteplanPage.vue
-C:\Users\Kevin\Desktop\Kavling-PoliLand-Kairagi-v2\poliland-mobile\src\views\WelcomePage.vue
+Perbaiki seluruh modul, halaman, komponen, dan navigasi yang berkaitan dengan **Marketing** pada aplikasi ini agar berfungsi penuh, tidak salah arah navigasi, tampil bersih, dan mudah dibaca.
+
+### 1. Perbaikan Tombol & Rute Marketing (Termasuk `/marketing/clients/new`)
+- Audit semua tombol, tautan, form submission, dan handler event di seluruh halaman Marketing.
+- Pastikan rute `/marketing/clients/new` (dan seluruh rute turunan `/marketing/...`) memiliki komponen halaman yang valid, terhubung dengan benar ke router, serta memiliki aksi simpan/batal/kembali yang berfungsi tanpa error konsol atau dead click.
+- Periksa guard rute, autentikasi, dan peran (*role*) marketing agar user yang berwenang tidak terblokir atau terpental ke halaman yang salah.
+
+### 2. Perbaikan Tabbar & Navigasi
+- Audit komponen tabbar / bottom navigation / navigasi internal di halaman Marketing.
+- Pastikan tab aktif dan item navigasi tetap berada di konteks aplikasi/portal yang sesuai dan **tidak** nyasar ke halaman *public* (kecuali memang tombol keluar/halaman publik yang eksplisit).
+- Sinkronkan status `active` tab dengan URL/rute aktif saat ini (termasuk saat reload atau navigasi mundur/maju).
+
+### 3. Pembersihan Kata Berulang & Penyederhanaan Teks (Copywriting)
+- Bersihkan teks, label, deskripsi, judul bagian, dan pesan status yang berulang (misalnya di halaman **Komisi** dan halaman Marketing lainnya).
+- Ubah kalimat yang panjang, kaku, atau bertele-tele menjadi bahasa Indonesia yang **singkat, jelas, langsung ke inti, dan ramah pengguna** (fokus pada label aksi, informasi utama, dan status yang mudah dipindai).
+- Standarkan istilah agar konsisten di seluruh modul Marketing (contoh: *Klien*, *Booking*, *SPK*, *Komisi*, *Status*).
+
+### 4. Konsistensi UI & Responsivitas
+- Rapikan tata letak, jarak antar elemen, hierarki tipografi, dan state kosong/loading/error agar halaman tampil rapi di tampilan mobile maupun desktop.
+- Setelah selesai, berikan ringkasan file yang diubah, masalah yang diperbaiki, dan daftar pengecekan manual yang perlu diuji.

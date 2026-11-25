@@ -34,8 +34,8 @@
         </section>
 
         <div v-if="isAdmin" class="admin-row">
-          <AdminEditButton label="Edit teks" @click="editTextOpen = true" />
-          <AdminEditButton label="Edit sorotan" @click="editHighlightsOpen = true" />
+          <AdminEditButton label="Ubah teks" @click="editTextOpen = true" />
+          <AdminEditButton label="Ubah sorotan" @click="editHighlightsOpen = true" />
         </div>
 
         <!-- PROFIL -->
@@ -60,7 +60,7 @@
             </li>
           </ul>
         </section>
-        <p v-else-if="!loading && isAdmin" class="empty-hint">Profil belum diisi. Tekan “Edit teks”.</p>
+        <p v-else-if="!loading && isAdmin" class="empty-hint">Profil belum diisi. Tekan “Ubah teks”.</p>
         <p v-else-if="!loading" class="empty-hint soft">Informasi tentang PoliLand akan segera hadir.</p>
 
         <!-- ANGKA: panel hijau dengan angka yang naik dari 0 -->
@@ -119,8 +119,8 @@
         <div class="bottom-space" aria-hidden="true"></div>
       </div>
 
-      <CmsPanelModal v-model="editTextOpen" title="Edit Tentang Kami" panel="home" section="about" @saved="load" />
-      <CmsPanelModal v-model="editHighlightsOpen" title="Edit sorotan" panel="home" section="highlights" @saved="load" />
+      <CmsPanelModal v-model="editTextOpen" title="Ubah Tentang Kami" panel="home" section="about" @saved="load" />
+      <CmsPanelModal v-model="editHighlightsOpen" title="Ubah sorotan" panel="home" section="highlights" @saved="load" />
       <CmsBackBar />
     </ion-content>
   </ion-page>

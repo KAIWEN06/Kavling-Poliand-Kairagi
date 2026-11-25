@@ -1,4 +1,5 @@
 import { supabase } from '@/services/config/supabase'
+import { loadPaymentInstallmentInfo } from '@/services/Finance/paymentInstallmentInfo'
 
 export type FinancialLedgerEntry = {
   id: number
@@ -12,6 +13,10 @@ export type FinancialLedgerEntry = {
   bank_reference: string | null
   occurred_on: string
   posted_at: string
+  /** Nomor cicilan yang dilunasi pembayaran ini (hanya sumber payments). */
+  installment_numbers?: number[]
+  /** Total tenor transaksi, untuk penanda "dari N". */
+  installment_total?: number | null
   journal: {
     date: string
     description: string
@@ -48,6 +53,19 @@ export const financialLedgerService = {
 }
 
 async function fetchLedger(
+  constrain: (query: any) => any,
+): Promise<FinancialLedgerEntry[]> {
+  const entries = await fetchLedgerRows(constrain)
+  const paymentIds = [...new Set(entries.filter((entry) => entry.source_table === 'payments').map((entry) => entry.source_id))]
+  if (!paymentIds.length) return entries
+  const info = await loadPaymentInstallmentInfo(paymentIds)
+  return entries.map((entry) => {
+    const found = entry.source_table === 'payments' ? info.get(entry.source_id) : undefined
+    return found ? { ...entry, installment_numbers: found.numbers, installment_total: found.total } : entry
+  })
+}
+
+async function fetchLedgerRows(
   constrain: (query: any) => any,
 ): Promise<FinancialLedgerEntry[]> {
     const { data, error } = await constrain(supabase

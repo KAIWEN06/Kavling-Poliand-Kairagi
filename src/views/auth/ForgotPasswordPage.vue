@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppNotice from '@/components/ui/AppNotice.vue'
 import { ref } from 'vue'
 import {
   IonPage,
@@ -58,7 +59,7 @@ async function sendResetLink() {
     errorMessage.value =
       error instanceof Error
         ? error.message
-        : 'Email reset belum dapat dikirim. Coba lagi nanti.'
+        : 'Email atur ulang belum dapat dikirim. Coba lagi nanti.'
 
     await mascotRef.value?.playError()
   } finally {
@@ -83,21 +84,19 @@ async function sendResetLink() {
           <ion-card-header class="reveal reveal--fade" style="--i: 2">
             <ion-card-title>Lupa kata sandi?</ion-card-title>
             <p class="subtitle">
-              Masukkan email akunmu untuk menerima tautan reset kata sandi.
+              Masukkan email akunmu untuk menerima tautan atur ulang kata sandi.
             </p>
           </ion-card-header>
 
           <ion-card-content>
-            <ion-text v-if="sent" color="success">
-              <p class="message success-message" role="status">
-                Jika email tersebut terdaftar, tautan reset kata sandi akan
-                dikirim. Periksa inbox dan folder spam.
-              </p>
-            </ion-text>
+            <AppNotice v-if="sent" tone="success">
+              Jika email tersebut terdaftar, tautan atur ulang kata sandi akan
+                dikirim. Periksa kotak masuk dan folder spam.
+            </AppNotice>
 
-            <ion-text v-if="errorMessage" color="danger">
-              <p class="message" role="alert">{{ errorMessage }}</p>
-            </ion-text>
+            <AppNotice v-if="errorMessage" tone="error">
+              {{ errorMessage }}
+            </AppNotice>
 
             <form class="auth-form" @submit.prevent="sendResetLink">
               <AppInput
@@ -125,7 +124,7 @@ async function sendResetLink() {
                 color="primary"
               >
                 <IonSpinner v-if="loading" name="crescent" />
-                <span v-else>Kirim tautan reset</span>
+                <span v-else>Kirim tautan</span>
               </AppButton>
 
               <button
@@ -135,7 +134,7 @@ async function sendResetLink() {
                 @click="router.push('/login')"
               >
                 <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
-                <span>Kembali ke login</span>
+                <span>Kembali ke halaman masuk</span>
               </button>
             </form>
           </ion-card-content>
@@ -289,16 +288,6 @@ ion-card-title {
 
 ion-card-content {
   padding: 6px 18px 18px;
-}
-
-.message {
-  margin: 0 0 8px;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.success-message {
-  color: #2f6247;
 }
 
 /* ---------- Form ---------- */
