@@ -44,9 +44,9 @@
           type="button"
           class="scene"
           aria-label="Sapa maskot PoliLand"
-          :initial="reduced ? false : { opacity: 0, scale: 1.06, y: 14 }"
-          :animate="{ opacity: 1, scale: 1, y: 0 }"
-          :transition="{ duration: 0.9, delay: 0.15, ease: MOTION_EASE_OUT }"
+          :initial="reduced ? false : { opacity: 0, scale: 1.04, y: 10 }"
+          :animate="reduced || sceneShown ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 1.04, y: 10 }"
+          :transition="{ duration: 0.6, ease: MOTION_EASE_OUT }"
           @click="interact"
           @pointermove="onPointerMove"
           @pointerleave="resetTilt"
@@ -145,7 +145,7 @@ import { useRouter } from 'vue-router'
 import logo from '@/assets/logos/logo.png'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { MOTION_EASE_OUT } from '@/utils/motionTokens'
-import { mascotAnimations } from '@/data/mascotAnimations'
+import { loadClip, loadPosterFrame, welcomeClips as clips, type WelcomeClipName as ClipName } from '@/utils/welcomeMascot'
 
 const router = useRouter()
 const reduced = useReducedMotion()
@@ -176,17 +176,11 @@ const parcelLines = [
 
 /* ---------- Maskot: pemutar frame berbasis waktu (rAF) ---------- */
 
-type Clip = { dir: string; count: number; loop: boolean }
-const clips = {
-  idle: { dir: mascotAnimations.idle, count: 25, loop: true },
-  wave: { dir: mascotAnimations.wave, count: 57, loop: false },
-  point: { dir: mascotAnimations.pointDown, count: 38, loop: false },
-} satisfies Record<string, Clip>
-type ClipName = keyof typeof clips
-
 const FRAME_MS = 40
-const frameUrl = (clip: Clip, n: number) =>
-  `/mascot-frames/${clip.dir}/frame-${String(n).padStart(4, '0')}.webp`
+
+/** Animasi masuk baru dimulai setelah ada gambar, bukan pada canvas kosong. */
+const sceneShown = ref(false)
+let disposed = false
 
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 const stageEl = ref<HTMLElement | null>(null)
@@ -201,29 +195,9 @@ let startTimer: number | null = null
 let storyTimer: number | null = null
 
 const frames: Partial<Record<ClipName, HTMLImageElement[]>> = {}
-const loading: Partial<Record<ClipName, Promise<void>>> = {}
 
-/** Muat semua frame satu klip ke memori (HTMLImageElement) agar ditampilkan tanpa jeda. */
-const preload = (name: ClipName) => {
-  const existing = loading[name]
-  if (existing) return existing
-  const clip = clips[name]
-  const task = Promise.all(
-    Array.from(
-      { length: clip.count },
-      (_, i) =>
-        new Promise<HTMLImageElement>((resolve) => {
-          const img = new Image()
-          img.onload = () => resolve(img)
-          img.onerror = () => resolve(img)
-          img.src = frameUrl(clip, i + 1)
-        }),
-    ),
-  ).then((list) => {
-    frames[name] = list
-  })
-  loading[name] = task
-  return task
+const preload = async (name: ClipName) => {
+  frames[name] = await loadClip(name)
 }
 
 const draw = (img: HTMLImageElement | undefined) => {
@@ -296,7 +270,7 @@ const runStep = (i: number, auto: boolean) => {
 }
 
 const interact = () => {
-  if (!ready) return
+  if (!ready || !frames.wave) return
   runStep((lineIndex.value + 1) % story.length, false)
 }
 
@@ -312,9 +286,19 @@ onMounted(async () => {
   ctx = canvasEl.value?.getContext('2d') ?? null
   rafId = requestAnimationFrame(tick)
   document.addEventListener('visibilitychange', onVisibility)
-  await Promise.all([preload('idle'), preload('wave')])
-  draw(frames.idle?.[0])
+  // Satu frame dulu: maskot langsung tampil, animasinya menyusul.
+  const poster = await loadPosterFrame()
+  if (disposed) return
+  draw(poster)
+  sceneShown.value = true
+
+  await preload('idle')
+  if (disposed) return
+  play('idle')
   ready = true
+
+  await preload('wave')
+  if (disposed) return
   void preload('point')
   // Maskot adalah karakter utama, jadi tetap bergerak walau reduced-motion aktif
   // (sama seperti halaman Login). Yang dimatikan hanya gerak dekoratif lain.
@@ -322,6 +306,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  disposed = true
   cancelAnimationFrame(rafId)
   document.removeEventListener('visibilitychange', onVisibility)
   if (startTimer !== null) window.clearTimeout(startTimer)

@@ -15,6 +15,7 @@
 import { IonPage } from '@ionic/vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { warmWelcomeMascot } from '@/utils/welcomeMascot'
 
 const router = useRouter()
 
@@ -124,7 +125,10 @@ const finishSplash = () => {
 let disposed = false
 
 onMounted(async () => {
-  await Promise.all(preloadFrames().slice(0, START_BUFFER))
+  const loads = preloadFrames()
+  // Setelah frame splash lengkap, siapkan maskot Welcome agar tampil tanpa jeda.
+  void Promise.all(loads).then(warmWelcomeMascot)
+  await Promise.all(loads.slice(0, START_BUFFER))
   if (!disposed) startAnimation()
 })
 

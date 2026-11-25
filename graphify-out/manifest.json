@@ -222,9 +222,9 @@
     "semantic_hash": ""
   },
   "src/components/common/SplashVideoPage.vue": {
-    "mtime": 1795631285.7301145,
-    "seen": 1795631380.6162076,
-    "ast_hash": "b7c86d3925d041ad5de2dedd5cc7d956",
+    "mtime": 1795632435.7735126,
+    "seen": 1795632523.49523,
+    "ast_hash": "03ff45bc3cb6b5505398c33d55f191b8",
     "semantic_hash": ""
   },
   "src/components/home/AboutSection.vue": {
@@ -5507,18 +5507,6 @@
     "ast_hash": "8d3ed86dd7b17f05cbd46eff1fa3185a",
     "semantic_hash": ""
   },
-  "src/assets/illustrations/NotFound.webp": {
-    "mtime": 1789528155.4847956,
-    "seen": 1795367324.138945,
-    "ast_hash": "4f3099429d55a559b7205e041246337b",
-    "semantic_hash": ""
-  },
-  "src/assets/illustrations/perbaikan.png": {
-    "mtime": 1789447127.2199433,
-    "seen": 1795367324.138945,
-    "ast_hash": "1cbf1fa8e5618c55150e4e5b38bbd9c1",
-    "semantic_hash": ""
-  },
   "src/assets/images/LB_reset_kirim.png": {
     "mtime": 1791824254.4840944,
     "seen": 1795367324.138945,
@@ -5573,120 +5561,6 @@
     "ast_hash": "94cd68b312dfbd40f6dc029282a2e487",
     "semantic_hash": ""
   },
-  "src/assets/mascot/Cheerful House Mascot Desk Scene.png": {
-    "mtime": 1794370838.4449859,
-    "seen": 1795367324.138945,
-    "ast_hash": "9575382396c02c919a776231fe4c8d61",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Cheerful_Chibi_House_Mascot.png": {
-    "mtime": 1793971767.6467648,
-    "seen": 1795367324.138945,
-    "ast_hash": "8b2c6467544988c9c5e865accf1707d2",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Chibi_House_Mascot_Exploring.png": {
-    "mtime": 1794370838.473592,
-    "seen": 1795367324.138945,
-    "ast_hash": "9d8f7c210a12531ab713c87ffe7fab24",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Confused_Mascot_and_Missing Panorama.png": {
-    "mtime": 1792246827.4575922,
-    "seen": 1795367324.138945,
-    "ast_hash": "dcab824e1815bf32cdb4806e8c3f85b3",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Curious Mascot Investigates Handshake Files.png": {
-    "mtime": 1794980115.7591105,
-    "seen": 1795367324.138945,
-    "ast_hash": "d2a3c52963e1b144c36321a9bdee80f5",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Mascot Examining Transaction History.png": {
-    "mtime": 1794370838.499758,
-    "seen": 1795367324.138945,
-    "ast_hash": "4ad1021dfcbc15b4bc10c1baaaab52bb",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/MascotInvestigatingSearch Filters.png": {
-    "mtime": 1794370838.5266342,
-    "seen": 1795367324.138945,
-    "ast_hash": "f3f12a0eb79189b2baabd4ec396d45ea",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/MascotWritingaNewNote.png": {
-    "mtime": 1794370838.5513377,
-    "seen": 1795367324.138945,
-    "ast_hash": "c7a1a756b5ee62b9acd3b0e966d03607",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Mascot_No_Data_Scene.png": {
-    "mtime": 1792232839.583389,
-    "seen": 1795367324.138945,
-    "ast_hash": "76e020748397da67dcf9e597d8d61db6",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/MascotwithEmptyReceiptandCoins.png": {
-    "mtime": 1794370838.5776517,
-    "seen": 1795367324.138945,
-    "ast_hash": "df1114940e2a35646c0958d6d13e5e9e",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Panicked Mascot and Trash Can Mishap.png": {
-    "mtime": 1794980115.773111,
-    "seen": 1795367324.138945,
-    "ast_hash": "2a838a6f3538c07c9e8a264981ea392f",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/PoliLand Mascot Workspace Scene.png": {
-    "mtime": 1794370838.6076539,
-    "seen": 1795367324.138945,
-    "ast_hash": "84b9fe9cb53adfee3786a932c41ac795",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/SadBeeHouseMascotwithShoppingReceipt.png": {
-    "mtime": 1794370838.6348958,
-    "seen": 1795367324.138945,
-    "ast_hash": "b890ef1199add13e48cf4995eb93a202",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Verified_Mascot.png": {
-    "mtime": 1792229502.6882718,
-    "seen": 1795367324.138945,
-    "ast_hash": "d79da97b316befc80a98b0ca1c827a33",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Worried Mascot Choosing a Day.png": {
-    "mtime": 1795403728.9595559,
-    "seen": 1795407928.5165167,
-    "ast_hash": "9e04e73691a2f154afb470e24058f6ab",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Worried Mascot and Locked Property Link.png": {
-    "mtime": 1794980115.7808664,
-    "seen": 1795367324.138945,
-    "ast_hash": "7fe7790a9d16a135af72d0283f6db39c",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/WorriedMascotwithFailedDetails.png": {
-    "mtime": 1794370838.664472,
-    "seen": 1795367324.138945,
-    "ast_hash": "ec5f2735315cb293e5f80eb98a459776",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Worried_BeeHouseMascotwithClipboard-Map.png": {
-    "mtime": 1794370838.695964,
-    "seen": 1795367324.138945,
-    "ast_hash": "55bf48e904c2d34aaf68d1178172b77c",
-    "semantic_hash": ""
-  },
-  "src/assets/mascot/Worried_Bee_Mascot_Facing_Loading Error.png": {
-    "mtime": 1794370838.7224655,
-    "seen": 1795367324.138945,
-    "ast_hash": "9f320b1b9bd01bb9d4b265a4176e3ed6",
-    "semantic_hash": ""
-  },
   "src/assets/siteplan/BG.svg": {
     "mtime": 1788704235.0010445,
     "seen": 1795367324.138945,
@@ -5709,12 +5583,6 @@
     "mtime": 1788677823.3514085,
     "seen": 1795367324.138945,
     "ast_hash": "a7ba15b0cf949faf5e5f1232ab412bfc",
-    "semantic_hash": ""
-  },
-  "src/assets/siteplan/background.webp": {
-    "mtime": 1788704408.3984594,
-    "seen": 1795367324.138945,
-    "ast_hash": "7a2dd05a69935d891aa4beee820653a1",
     "semantic_hash": ""
   },
   "public/splash/poliland-splash.mp4": {
@@ -6306,9 +6174,9 @@
     "semantic_hash": ""
   },
   "src/views/WelcomePage.vue": {
-    "mtime": 1795500384.117286,
-    "seen": 1795500442.6283667,
-    "ast_hash": "7fd26b7cc9064ea3f8d6839e91fdf2bb",
+    "mtime": 1795632435.7389195,
+    "seen": 1795632523.6242902,
+    "ast_hash": "9aa04fceb05052b393a2b835b82f0cd5",
     "semantic_hash": ""
   },
   "src/components/ui/skeletons/SkeletonCardList.vue": {
@@ -6671,12 +6539,6 @@
     "ast_hash": "ca2f094b8a9c528eb6b7bc6cbc5b7379",
     "semantic_hash": ""
   },
-  "src/assets/mascot/Sold-Out House Bee Mascot.png": {
-    "mtime": 1795610834.9167213,
-    "seen": 1795611737.986154,
-    "ast_hash": "2343a279cdecf113cf03348203c9afdd",
-    "semantic_hash": ""
-  },
   "src/services/auth/postLoginRedirect.ts": {
     "mtime": 1795613384.3910766,
     "seen": 1795613487.0911121,
@@ -6855,6 +6717,12 @@
     "mtime": 1795631251.194,
     "seen": 1795631381.209531,
     "ast_hash": "f48d592cffb2e8b9a6a13c3a7d18b397",
+    "semantic_hash": ""
+  },
+  "src/utils/welcomeMascot.ts": {
+    "mtime": 1795632434.646244,
+    "seen": 1795632523.610464,
+    "ast_hash": "5a755fa5f1be10211b3688b84b14cb56",
     "semantic_hash": ""
   },
   "package-lock.json": {
