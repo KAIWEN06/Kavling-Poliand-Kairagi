@@ -38,3 +38,6 @@ supabase/.temp/
 
 # Local Agent Skills Registry
 skills-lock.json
+
+# Hasil build APK untuk testing (terlalu besar untuk GitHub)
+*.apk
