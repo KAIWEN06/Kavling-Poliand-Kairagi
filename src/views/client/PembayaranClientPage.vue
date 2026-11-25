@@ -2,7 +2,7 @@
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import {
   checkmarkCircleOutline,
@@ -22,6 +22,7 @@ import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { useCelebration } from '@/composables/useCelebration'
 import { supabase } from '@/services/config/supabase'
 import { paymentService } from '@/services/Finance/paymentService'
+import { getSpkProcessSteps, stepIsDone, type SpkProcessStep } from '@/services/spkProcessService'
 import { purchaseCancellationService } from '@/services/Finance/purchaseCancellationService'
 
 /**
@@ -140,15 +141,41 @@ const filteredTransactions = computed(() => {
   })
 })
 
-const isSpkCompleted = computed(() =>
-  selectedTransaction.value?.notaryStatus?.toLocaleLowerCase('id-ID') === 'selesai',
-)
 const isInstallment = computed(() => selectedTransaction.value?.paymentType === 'Installment')
 const dpRequired = computed(() => Boolean(selectedTransaction.value && selectedTransaction.value.downPayment > 0))
 const dpPayments = computed(() =>
   selectedTransaction.value?.payments.filter(item => item.payment_category === 'Down Payment') ?? [],
 )
 const dpConfirmed = computed(() => dpPayments.value.some(item => item.status === 'Confirmed'))
+
+// Pembayaran mengikuti tahapan proses SPK: tunai dan DP dibuka setelah SPK
+// disetujui, cicilan dibuka setelah PPJB di notaris selesai.
+const processSteps = ref<SpkProcessStep[]>([])
+const processLoaded = ref(false)
+watch(
+  () => selectedTransaction.value?.spkRequestId ?? null,
+  async (spkId) => {
+    processSteps.value = []
+    processLoaded.value = false
+    if (!spkId) return
+    try {
+      processSteps.value = await getSpkProcessSteps(Number(spkId))
+    } catch {
+      processSteps.value = []
+    } finally {
+      processLoaded.value = true
+    }
+  },
+  { immediate: true },
+)
+const ppjbDone = computed(() => stepIsDone(processSteps.value, 'ppjb'))
+const paymentsOpen = computed(() => {
+  const tx = selectedTransaction.value
+  if (!tx || tx.spkStatus !== 'Approved') return false
+  if (tx.paymentType === 'Cash') return true
+  if (dpRequired.value && !dpConfirmed.value) return true
+  return ppjbDone.value
+})
 const dpPending = computed(() => dpPayments.value.some(item =>
   item.status === 'Pending' || item.status === 'Needs Reupload'))
 const cashPayments = computed(() =>
@@ -212,7 +239,7 @@ const paymentCategory = computed<PaymentCategory | null>(() => {
 const paymentBlockedReason = computed(() => {
   const transaction = selectedTransaction.value
   if (!transaction) return 'Pilih transaksi terlebih dahulu.'
-  if (!isSpkCompleted.value) return 'Pembayaran baru dapat dilakukan setelah proses SPK dan notaris berstatus Selesai.'
+  if (!paymentsOpen.value) return transaction.spkStatus !== 'Approved' ? 'Pembayaran dibuka setelah SPK disetujui.' : 'Cicilan bisa dibayar setelah PPJB di notaris selesai. Admin akan memberi tahu Anda.'
   if (transaction.transactionStatus === 'Cancelled') return 'Transaksi ini sudah dibatalkan.'
   if (transaction.paymentType === 'Cash') {
     if (cashPaid.value >= transaction.finalPrice) return 'Pembayaran tunai sudah lunas.'
@@ -234,7 +261,7 @@ const canSubmitPayment = computed(() =>
   !loading.value &&
   !submitting.value &&
   Boolean(selectedTransaction.value) &&
-  isSpkCompleted.value &&
+  paymentsOpen.value &&
   paymentAmount.value > 0 &&
   Boolean(paymentCategory.value) &&
   Boolean(selectedProof.value) &&
@@ -687,7 +714,7 @@ onMounted(loadPaymentData)
               <span class="lot-location">{{ selectedTransaction.dimension || selectedTransaction.block }}</span>
               <span class="spk-status">
                 <ion-icon :icon="checkmarkCircleOutline" />
-                SPK: {{ selectedTransaction.notaryStatus || 'Belum selesai' }}
+                SPK: {{ selectedTransaction.spkStatus === 'Approved' ? 'Disetujui' : 'Diproses' }}
               </span>
             </span>
             <ion-icon class="lot-chevron" :icon="chevronForward" />
@@ -780,9 +807,9 @@ onMounted(loadPaymentData)
                 </template>
               </div>
 
-              <div v-if="!isSpkCompleted" class="payment-notice warning">
+              <div v-if="!paymentsOpen" class="payment-notice warning">
                 <strong><ion-icon :icon="lockClosedOutline" /> Pembayaran belum dibuka.</strong>
-                <p>Pengiriman bukti pembayaran hanya tersedia setelah proses SPK dan notaris selesai.</p>
+                <p>{{ selectedTransaction.spkStatus !== 'Approved' ? 'Pembayaran dibuka setelah SPK disetujui.' : 'Cicilan bisa dibayar setelah PPJB di notaris selesai. Admin akan memberi tahu Anda lewat aplikasi.' }}</p>
               </div>
 
               <template v-else-if="selectedTransaction.paymentType === 'Cash'">
@@ -871,7 +898,7 @@ onMounted(loadPaymentData)
                 </template>
               </template>
 
-              <template v-if="isSpkCompleted && !paymentBlockedReason">
+              <template v-if="paymentsOpen && !paymentBlockedReason">
                 <label class="form-field">
                   Metode pembayaran
                   <input v-model="paymentMethod" type="text" readonly />
@@ -904,7 +931,7 @@ onMounted(loadPaymentData)
                 />
               </template>
 
-              <div v-if="paymentBlockedReason && isSpkCompleted" class="payment-notice warning">
+              <div v-if="paymentBlockedReason && paymentsOpen" class="payment-notice warning">
                 {{ paymentBlockedReason }}
               </div>
               <div v-if="submitError" class="payment-notice error" role="alert">{{ submitError }}</div>

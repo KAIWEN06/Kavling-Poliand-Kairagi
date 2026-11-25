@@ -16,6 +16,8 @@ import {
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
+import { stepIsDone, type SpkProcessStep } from '@/services/spkProcessService'
 import { authService } from '@/services/auth/authService'
 import { supabase } from '@/services/config/supabase'
 import { lotService, type LotRecord } from '@/services/lotService'
@@ -127,6 +129,12 @@ const statCards = computed(() => [
   { key: 'approved' as const, label: 'Disetujui', filter: 'Approved' as const },
   { key: 'rejected' as const, label: 'Ditolak', filter: 'Rejected' as const },
 ])
+
+const processSteps = ref<SpkProcessStep[]>([])
+const ppjbDone = computed(() => stepIsDone(processSteps.value, 'ppjb'))
+function onProcessLoaded(steps: SpkProcessStep[]) {
+  processSteps.value = steps
+}
 
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase('id-ID')
@@ -787,12 +795,12 @@ onIonViewWillEnter(handleRouteIntent)
                 </div>
                 <span :class="['spk-status', statusClass(record.status)]">{{ statusLabel(record.status) }}</span>
               </div>
-              <div v-if="record.status !== 'Rejected'" class="spk-notary-progress">
-                <span>Kemajuan SPK</span>
+              <div v-if="record.status === 'Approved'" class="spk-notary-progress">
+                <span>Tahapan proses</span>
                 <strong :class="['spk-notary-status', notaryStatusClass(record.notaryStatus)]">
-                  {{ record.notaryStatus }}
+                  {{ record.notaryStatus === 'Selesai' ? 'Selesai' : record.notaryStatus === 'Menunggu Diproses' ? 'Belum dimulai' : 'Sedang berjalan' }}
                 </strong>
-                <p v-if="record.notaryNote" class="spk-notary-note">{{ record.notaryNote }}</p>
+                <p class="spk-notary-note">Ketuk kartu untuk melihat tahapan dan jadwalnya.</p>
               </div>
 
               <div
@@ -1063,14 +1071,9 @@ onIonViewWillEnter(handleRouteIntent)
           </div>
           <span :class="['spk-status', statusClass(selectedRecord.status)]">{{ statusLabel(selectedRecord.status) }}</span>
         </header>
-        <section v-if="selectedRecord.status !== 'Rejected'" class="spk-detail-section spk-progress-section">
-          <h3><ion-icon :icon="documentTextOutline" /> Proses pengurusan SPK</h3>
-          <div class="spk-progress-card">
-            <strong :class="['spk-notary-status', notaryStatusClass(selectedRecord.notaryStatus)]">
-              {{ selectedRecord.notaryStatus }}
-            </strong>
-            <p v-if="selectedRecord.notaryNote">{{ selectedRecord.notaryNote }}</p>
-          </div>
+        <section v-if="selectedRecord.status === 'Approved'" class="spk-detail-section spk-progress-section">
+          <h3><ion-icon :icon="documentTextOutline" /> Tahapan proses</h3>
+          <SpkProcessTimeline :key="selectedRecord.id" :spk-id="selectedRecord.id" mode="view" @loaded="onProcessLoaded" />
         </section>
 
         <section class="spk-detail-section">
@@ -1165,12 +1168,12 @@ onIonViewWillEnter(handleRouteIntent)
         </section>
 
         <section
-          v-if="selectedRecord.notaryStatus === 'Selesai' && selectedRecord.payment.scheme === 'Installment'"
+          v-if="ppjbDone && selectedRecord.payment.scheme === 'Installment'"
           class="spk-detail-section spk-final-schedule"
         >
           <h3><ion-icon :icon="documentTextOutline" /> Jadwal Pembayaran Disepakati</h3>
           <p class="spk-schedule-description">
-            Berikut jadwal pembayaran final berdasarkan kesepakatan dengan pihak notaris.
+            Tanggal ini ditetapkan saat PPJB di notaris. Cicilan pertama jatuh di bulan setelah PPJB.
           </p>
 
           <div v-if="selectedRecord.schedules.length" class="spk-client-schedule-list">

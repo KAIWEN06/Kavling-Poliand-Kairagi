@@ -8,7 +8,10 @@
         <div v-else-if="errorMessage" class="review-state review-error" role="alert"><strong>Data tidak dapat dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="load">Coba lagi</AppButton></div>
         <template v-else-if="data">
           <header class="review-heading"><div> <h1>{{ data.request.spk_number }}</h1><span class="status-chip">Disetujui</span></div><span class="review-id">SPK #{{ data.request.id }} · Transaksi #{{ data.transaction.id }}</span></header>
-          <section class="review-panel"><div class="section-head"><div><h2>Kemajuan SPK</h2></div><AppButton size="small" @click="progressOpen = true">Perbarui status</AppButton></div><div class="timeline"><div v-for="(item, index) in timeline" :key="item.id || index" class="timeline-item" :class="{ current: index === 0 }"><span class="timeline-dot" aria-hidden="true" /><div><strong>{{ item.new_status || item.status }}</strong><small>{{ date(item.created_at) }} · {{ item.profiles?.full_name || 'Admin' }}</small><p v-if="item.note">{{ item.note }}</p></div></div></div></section>
+          <section class="review-panel">
+            <div class="section-head"><div><h2>Tahapan proses</h2><p class="review-note">{{ data.request.payment_method === 'Cash' ? 'Pembayaran tunai: 4 tahap.' : 'Pembayaran cicilan: 6 tahap.' }} Atur tanggal perkiraan, beri tahu client bila tahap sudah bisa diproses, lalu tandai selesai.</p></div></div>
+            <SpkProcessTimeline :spk-id="Number(data.request.id)" mode="admin" @changed="load" />
+          </section>
           <section class="review-panel"><h2>Informasi SPK</h2><dl class="info-grid">
             <div><dt>Customer</dt><dd>{{ data.request.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ data.request.customer_phone }}</dd></div><div><dt>Kaveling</dt><dd>{{ data.request.lots?.lot_number || data.request.lot_id }}</dd></div><div><dt>Harga transaksi</dt><dd>{{ money(data.request.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ data.request.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div><dt>Booking Fee</dt><dd>{{ money(data.request.booking_fee_snapshot) }}</dd></div><div><dt>Tanggal persetujuan</dt><dd>{{ date(data.request.approved_at) }}</dd></div><div><dt>Marketing</dt><dd>{{ data.request.profiles?.full_name || 'Tidak ada' }}</dd></div><div><dt>Sumber pengajuan</dt><dd>{{ data.request.submission_source }}</dd></div>
           </dl></section>
@@ -24,7 +27,7 @@
                 <span>{{ paidScheduleCount }} sudah dibayar · {{ editableScheduleCount }} dapat diperbarui</span>
               </div>
               <p class="date-picker-hint">
-                Pilih tanggal jatuh tempo untuk setiap cicilan. Bulan dan tahun mengikuti jadwal yang sudah dibuat otomatis. Admin dapat mengubah tanggal satu cicilan tanpa mengubah cicilan lainnya.
+                Setelah PPJB ditandai selesai, cicilan 1 otomatis jatuh di bulan berikutnya. Ubah tanggal tiap cicilan di sini sesudah itu, lalu simpan. Bulan dan tahun mengikuti jadwal otomatis, dan cicilan yang sudah lunas tidak bisa diubah.
               </p>
               <div class="schedule-preview">
                 <div v-for="item in sortedSchedules" :key="item.id" class="schedule-preview-item" :class="{ 'is-paid': item.status === 'Paid' }">
@@ -86,7 +89,6 @@
         </template>
       </main>
     </ion-content>
-    <AppModal v-model="progressOpen" title="Perbarui progres SPK" variant="bottom-sheet" :loading="saving" @confirm="saveProgress"><label class="modal-field">Status baru<select v-model="progressStatus"><option v-for="status in statuses" :key="status" :value="status">{{ status }}</option></select></label><label class="modal-field">Catatan<textarea v-model="progressNote" rows="3" placeholder="Catatan perubahan (opsional)" /></label></AppModal>
   </ion-page>
 </template>
 <script setup lang="ts">
@@ -98,44 +100,29 @@ import { arrowBackOutline } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import AppModal from '@/components/ui/AppModal.vue'
+import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
 import {
   getSPKReview,
   payMarketingCommission,
   updateInstallmentSchedule,
-  updateNotaryProgress,
-  type NotaryStatus,
 } from '@/services/Admin/spkReviewService'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(true)
-const saving = ref(false)
 const savingSchedule = ref(false)
 const errorMessage = ref('')
 const scheduleError = ref('')
 const scheduleSaveMessage = ref('')
 const data = ref<any>(null)
-const progressOpen = ref(false)
 const commissionReference = ref('')
 const payingCommission = ref(false)
 const commissionError = ref('')
-const progressNote = ref('')
 const activeCalendarId = ref<number | null>(null)
 const scheduleDayOverrides = ref<Record<number, number>>({})
 const weekDays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 
-const statuses: NotaryStatus[] = [
-  'Menunggu Diproses',
-  'Diproses',
-  'Proses Notaris',
-  'Penandatanganan Notaris',
-  'Selesai',
-]
-const progressStatus = ref<NotaryStatus>('Menunggu Diproses')
-
-const timeline = computed(() => data.value?.history || [])
 const sortedSchedules = computed(() =>
   [...(data.value?.schedules || [])].sort(
     (a: any, b: any) => Number(a.installment_number) - Number(b.installment_number),
@@ -250,8 +237,6 @@ async function load() {
     }
 
     data.value = await getSPKReview(spkId, transactionId)
-    progressStatus.value = data.value.request.notary_status || 'Menunggu Diproses'
-
     scheduleDayOverrides.value = Object.fromEntries(
       (data.value.schedules || [])
         .filter((item: any) => item.status !== 'Paid' && item.due_date)
@@ -314,52 +299,6 @@ async function saveIndividualSchedules() {
     await load()
   } finally {
     savingSchedule.value = false
-  }
-}
-
-async function saveProgress() {
-  if (
-    progressStatus.value === 'Selesai' &&
-    data.value?.request?.payment_method === 'Installment'
-  ) {
-    const missingDate = sortedSchedules.value.find(
-      (item: any) =>
-        item.status !== 'Paid' &&
-          !generatedScheduleDates.value[Number(item.id)],
-    )
-
-    if (missingDate) {
-      errorMessage.value =
-        `Tanggal jatuh tempo Cicilan #${missingDate.installment_number} belum diisi.`
-      progressOpen.value = false
-      return
-    }
-
-    if (hasScheduleChanges.value) {
-      errorMessage.value =
-        'Simpan jadwal pembayaran terlebih dahulu sebelum menyelesaikan proses notaris.'
-      progressOpen.value = false
-      return
-    }
-  }
-
-  saving.value = true
-  errorMessage.value = ''
-
-  try {
-    await updateNotaryProgress(
-      Number(route.params.spkId),
-      progressStatus.value,
-      progressNote.value,
-    )
-    progressOpen.value = false
-    progressNote.value = ''
-    await load()
-  } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Status gagal diperbarui.'
-  } finally {
-    saving.value = false
   }
 }
 

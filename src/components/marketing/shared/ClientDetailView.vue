@@ -110,6 +110,10 @@
           <p>{{ spk.rejection_reason || 'Tidak dicantumkan' }}</p>
           <span class="mk-muted">Bantu klien memperbaiki data, lalu klien/Admin dapat mengajukan ulang.</span>
         </div>
+        <div v-if="spk.status === 'Approved'" class="mk-mt">
+          <h3 class="mk-subtitle">Tahapan proses</h3>
+          <SpkProcessTimeline :spk-id="spk.id" mode="view" />
+        </div>
         <details>
           <summary class="mk-link">Riwayat pemeriksaan ({{ spk.history.length }})</summary>
           <ol class="mk-timeline mk-mt">
@@ -312,6 +316,7 @@
 </template>
 
 <script setup lang="ts">
+import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
@@ -610,6 +615,7 @@ defineExpose({ reload: load })
 .mk-note--head { border-color: var(--poliland-gold); background: #fffaf0; }
 .mk-subhead { margin: 8px 0 0; font-size: 15px; }
 .mk-mt { margin-top: 10px; }
+.mk-subtitle { margin: 0 0 10px; font-size: 15px; }
 .mk-readonly-note { text-align: center; }
 details summary { cursor: pointer; list-style: none; }
 </style>

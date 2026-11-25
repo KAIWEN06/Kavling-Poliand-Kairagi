@@ -1,12 +1,5 @@
 import { supabase } from '@/services/config/supabase'
 
-export type NotaryStatus =
-  | 'Menunggu Diproses'
-  | 'Diproses'
-  | 'Proses Notaris'
-  | 'Penandatanganan Notaris'
-  | 'Selesai'
-
 export interface SPKReviewData {
   request: any
   transaction: any
@@ -112,73 +105,6 @@ export async function updateInstallmentSchedule(
     .neq('status', 'Paid')
 
   fail(error)
-}
-
-export async function updateNotaryProgress(
-  spkId: number,
-  status: NotaryStatus,
-  note: string,
-): Promise<void> {
-  const { data: actor, error: actorError } = await supabase.auth.getUser()
-  fail(actorError)
-
-  const { data: current, error: readError } = await supabase
-    .from('spk_requests')
-    .select('notary_status, payment_method, transaction_id')
-    .eq('id', spkId)
-    .single()
-
-  fail(readError)
-
-  if (!current) throw new Error('Data SPK tidak ditemukan.')
-
-  // Pastikan seluruh jadwal cicilan memiliki tanggal sebelum proses notaris selesai.
-  if (status === 'Selesai' && current.payment_method === 'Installment') {
-    if (!current.transaction_id) {
-      throw new Error('Transaksi SPK belum tersedia.')
-    }
-
-    const { data: schedules, error: scheduleError } = await supabase
-      .from('installment_schedules')
-      .select('id, installment_number, due_date')
-      .eq('transaction_id', current.transaction_id)
-
-    fail(scheduleError)
-
-    if (!schedules?.length) {
-      throw new Error('Jadwal cicilan belum tersedia.')
-    }
-
-    const missing = schedules.find(item => !item.due_date)
-    if (missing) {
-      throw new Error(
-        `Tanggal jatuh tempo Cicilan #${missing.installment_number} belum diisi.`,
-      )
-    }
-  }
-
-  const { error } = await supabase
-    .from('spk_requests')
-    .update({
-      notary_status: status,
-      notary_note: note.trim() || null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', spkId)
-
-  fail(error)
-
-  const { error: historyError } = await supabase
-    .from('spk_review_activity')
-    .insert({
-      spk_request_id: spkId,
-      old_status: current.notary_status || null,
-      new_status: status,
-      note: note.trim() || null,
-      changed_by: actor.user?.id || null,
-    })
-
-  fail(historyError)
 }
 
 export async function payMarketingCommission(commissionId: number, bankReference: string) {
