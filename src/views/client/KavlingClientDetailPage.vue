@@ -322,6 +322,8 @@
               </div>
             </div>
 
+            <LegalAssurance v-if="!hideSoldInfo" class="hero-legal" />
+
             <div v-if="!isSold" class="price-summary client-price-summary">
               <div>
                 <span>Harga Normal</span>
@@ -353,6 +355,11 @@
             <p class="contact-caption">
               Ada pertanyaan soal harga, skema bayar, atau lokasi? Langsung tanya Admin aja.
             </p>
+          </section>
+
+          <section v-if="showSimulation" class="panel sim-card" aria-labelledby="sim-heading">
+            <h2 id="sim-heading">Simulasi Pembayaran</h2>
+            <PaymentSimulation :key="lot.id" :lot-id="lot.id" :price="effectivePrice" />
           </section>
 
           <!-- Tab Detail -->
@@ -452,6 +459,8 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import LegalAssurance from '@/components/payment/LegalAssurance.vue'
+import PaymentSimulation from '@/components/payment/PaymentSimulation.vue'
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
 import soldMascot from '@/assets/mascot/Sold_Lot_Mascot.webp'
 import worriedChoosingDayMascot from '@/assets/mascot/Worried Mascot Choosing a Day.webp'
@@ -557,10 +566,15 @@ const isBooked = computed(() => ['booking', 'booked', 'dipesan'].includes(String
 /** Hanya kavling Tersedia yang bisa dipesan; yang sudah dipesan tertutup untuk semua client. */
 const canOrder = computed(() => !isSold.value && !isBooked.value && !isHeldBySpk.value)
 const orderLabel = computed(() => {
-  if (isBooked.value) return 'SUDAH DIPESAN'
-  if (isHeldBySpk.value) return 'SEDANG DIPROSES'
-  return 'PESAN'
+  if (isBooked.value) return 'Sudah Dipesan'
+  if (isHeldBySpk.value) return 'Sedang Diproses'
+  return 'Ajukan Booking'
 })
+const effectivePrice = computed(() => Number(
+  (hasPromo.value ? lot.value?.promo_price : lot.value?.cash_price) || 0,
+))
+/* Pemilik kavling sudah punya kesepakatan sendiri, jadi tidak diberi simulasi. */
+const showSimulation = computed(() => canOrder.value && !isOwnLot.value && effectivePrice.value > 0)
 /* Keterangan yang menyebut status lain disembunyikan agar tidak bertentangan dengan status. */
 const lotDescription = computed(() => {
   const text = String(lot.value?.description || '').trim()
@@ -1062,6 +1076,18 @@ useRealtimeRefresh(
 
 .client-detail-page .hero-card {
   order: 1;
+}
+
+.client-detail-page .sim-card {
+  order: 1;
+}
+
+.sim-card h2 {
+  margin-top: 0;
+}
+
+.hero-legal {
+  margin-top: 12px;
 }
 
 .client-detail-page .detail-tabs {

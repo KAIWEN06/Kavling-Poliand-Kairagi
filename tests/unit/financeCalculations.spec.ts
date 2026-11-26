@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
-import { calculateLatePenalty } from '@/services/payment/paymentCalculator'
+import { estimateInstallment, calculateLatePenalty } from '@/services/payment/paymentCalculator'
 
 describe('calculateLatePenalty', () => {
   test('tidak mengenakan denda pada tanggal jatuh tempo atau sebelumnya', () => {
@@ -93,5 +93,20 @@ describe('calculateFinanceBalance', () => {
     expect(balance.principalPaid).toBe(300_000_000)
     expect(balance.remaining).toBe(0)
     expect(balance.progress).toBe(100)
+  })
+})
+
+describe('estimateInstallment (sama dengan RPC create_client_spk_request)', () => {
+  test('membulatkan margin lalu membulatkan cicilan ke bawah', () => {
+    expect(estimateInstallment(100_000_001, 10_000_000, 12, 10)).toEqual({
+      principal: 90_000_001,
+      margin: 9_000_000,
+      total: 99_000_001,
+      monthly: 8_250_000,
+    })
+  })
+
+  test('tanpa uang muka mencicil seluruh harga', () => {
+    expect(estimateInstallment(150_000_000, 0, 24, 20).monthly).toBe(7_500_000)
   })
 })

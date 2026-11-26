@@ -108,6 +108,8 @@
           </div>
         </div>
 
+        <LegalAssurance v-if="showLotInfo" class="detail-legal" />
+
         <!-- SPESIFIKASI -->
         <section v-if="showLotInfo" class="detail-section">
           <h3>Spesifikasi</h3>
@@ -172,126 +174,7 @@
         <section v-else-if="showLotInfo" class="detail-section">
           <h3>Pembayaran</h3>
 
-          <div class="payment-tabs">
-            <button
-              :class="{ active: activeTab === 'cash' }"
-              type="button"
-              @click="activeTab = 'cash'"
-            >
-              Tunai
-            </button>
-
-            <button
-              :class="{ active: activeTab === 'installment' }"
-              type="button"
-              @click="activeTab = 'installment'"
-            >
-              Cicilan
-            </button>
-          </div>
-
-          <!-- CASH -->
-          <div
-            v-if="activeTab === 'cash'"
-            class="cash-box"
-          >
-            <div v-if="hasPromo" class="price-row">
-              <span>Harga tunai</span>
-
-              <strong>
-                {{ formatCurrency(lot.cash_price) }}
-              </strong>
-            </div>
-
-            <div v-if="hasPromo" class="normal-price">
-              <span>Harga Promo</span>
-
-              <del>
-                {{ formatCurrency(lot.cash_price) }}
-              </del>
-
-              <strong>
-                {{ formatCurrency(lot.promo_price) }}
-              </strong>
-            </div>
-
-            <div v-else class="price-row price-row--single">
-              <span>Harga tunai</span>
-
-              <strong>
-                {{ formatCurrency(lot.cash_price) }}
-              </strong>
-            </div>
-          </div>
-
-          <!-- CICILAN -->
-          <div
-            v-else
-            class="installment-list"
-          >
-            <!-- HARGA DASAR DAN DP -->
-            <div class="installment-price-summary">
-              <div class="down-payment-field">
-                <label for="down-payment-input">Uang muka</label>
-                <input
-                  id="down-payment-input"
-                  type="text"
-                  inputmode="numeric" data-input="free"
-                  :value="formatNominal(downPayment)"
-                  placeholder="Masukkan nominal uang muka"
-                  @input="updateDownPayment"
-                />
-              </div>
-
-              <div class="quick-dp-list" aria-label="Pilihan uang muka cepat">
-                <button
-                  v-for="percentage in [10, 20, 30]"
-                  :key="percentage"
-                  type="button"
-                  @click="setQuickDownPayment(percentage)"
-                >
-                  {{ percentage }}%
-                </button>
-              </div>
-
-              <div class="price-row remaining-price-row">
-                <span>Sisa Harga setelah Uang Muka</span>
-                <strong>{{ formatCurrency(remainingAfterDp) }}</strong>
-              </div>
-            </div>
-
-            <div
-              v-if="loadingInstallments"
-              class="payment-note"
-            >
-              Memuat skema cicilan...
-            </div>
-
-            <template
-              v-else-if="installments.length"
-            >
-              <div
-                v-for="item in installments"
-                :key="item.id"
-                class="installment-item"
-              >
-                <span>
-                  {{ formatPaymentPlanName(item.payment_plans?.plan_name, item.payment_plans?.months) }}
-                </span>
-
-                <strong>
-                  {{ formatCurrency(calculateMonthlyPayment(item)) }}
-                </strong>
-              </div>
-            </template>
-
-            <div
-              v-else
-              class="payment-note"
-            >
-              Belum tersedia skema cicilan.
-            </div>
-          </div>
+          <PaymentSimulation :key="lot.id" :lot-id="lot.id" :price="effectivePrice" />
         </section>
 
         <!-- INFORMASI -->
@@ -460,7 +343,6 @@ import {
   onBeforeUnmount,
   onMounted,
   ref,
-  watch,
 } from 'vue'
 import { useRouter } from 'vue-router'
 import { panoramaTransition } from '@/utils/panoramaTransition'
@@ -484,9 +366,8 @@ import { chevronBackOutline, compassOutline, mapOutline } from 'ionicons/icons'
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.webp'
 import soldMascot from '@/assets/mascot/Sold_Lot_Mascot.webp'
-import { formatPaymentPlanName } from '@/utils/paymentPlan'
-
-import { getLotInstallments } from '../../services/siteplanService'
+import LegalAssurance from '@/components/payment/LegalAssurance.vue'
+import PaymentSimulation from '@/components/payment/PaymentSimulation.vue'
 
 import {
   formatCurrency,
@@ -603,19 +484,6 @@ const ionRouter = useIonRouter()
 /* STATE */
 /* ===================================================== */
 
-const activeTab = ref<'cash' | 'installment'>('cash')
-
-const installments = ref<any[]>([])
-
-const loadingInstallments = ref(false)
-
-/*
- * DP hanya digunakan untuk simulasi perhitungan pada halaman detail.
- * Harga dasar menggunakan harga promo jika tersedia, jika tidak
- * menggunakan harga cash.
- */
-const downPayment = ref(0)
-
 /* Harga promo dianggap diatur hanya jika terisi dan lebih murah dari harga cash. */
 const hasPromo = computed(() => {
   const promo = Number(props.lot?.promo_price || 0)
@@ -623,7 +491,8 @@ const hasPromo = computed(() => {
   return promo > 0 && (!cash || promo < cash)
 })
 
-const installmentBasePrice = computed(() => {
+/* Harga yang berlaku: promo bila ada, selain itu harga tunai. */
+const effectivePrice = computed(() => {
   return Number(
     (hasPromo.value ? props.lot?.promo_price : props.lot?.cash_price) ||
     0
@@ -746,13 +615,6 @@ const buyLabel = computed(() => {
   return props.clientMode ? 'Beli Kavling' : 'Beli'
 })
 
-const remainingAfterDp = computed(() => {
-  return Math.max(
-    0,
-    installmentBasePrice.value - Number(downPayment.value || 0)
-  )
-})
-
 /* ===================================================== */
 /* WHATSAPP */
 /* ===================================================== */
@@ -773,25 +635,6 @@ const WHATSAPP_NUMBER = '6281356960253'
 /* WATCH LOT */
 /* ===================================================== */
 
-watch(
-  // Dipantau lewat id: pembaruan data realtime tidak boleh mereset simulasi DP.
-  () => props.lot?.id,
-
-  async () => {
-    const lot = props.lot
-    if (!lot) return
-
-    // Reset DP setiap kali pengguna memilih kavling yang berbeda.
-    downPayment.value = 0
-
-    await loadInstallments(lot.id)
-  },
-
-  {
-    immediate: true,
-  }
-)
-
 function setDetailMode(active: boolean) {
   window.dispatchEvent(
     new CustomEvent('poliland-detail-mode', {
@@ -810,98 +653,6 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => setDetailMode(false))
-
-/* ===================================================== */
-/* LOAD INSTALLMENTS */
-/* ===================================================== */
-
-async function loadInstallments(
-  lotId: string | number
-) {
-  if (!lotId) return
-
-  loadingInstallments.value = true
-
-  try {
-    installments.value =
-      await getLotInstallments(lotId)
-  } catch (error) {
-    console.error(
-      'Gagal memuat cicilan:',
-      error
-    )
-
-    installments.value = []
-  } finally {
-    loadingInstallments.value = false
-  }
-}
-
-/* ===================================================== */
-/* SIMULASI DP DAN CICILAN */
-/* ===================================================== */
-
-function formatNominal(value: number | string) {
-  const nominal = Number(value || 0)
-
-  return nominal
-    ? nominal.toLocaleString('id-ID')
-    : ''
-}
-
-function updateDownPayment(event: Event) {
-  const target = event.target as HTMLInputElement
-  const rawValue = target.value.replace(/[^0-9]/g, '')
-  const safeValue = Number(rawValue || 0)
-
-  downPayment.value = Math.min(
-    installmentBasePrice.value,
-    Math.max(0, safeValue)
-  )
-}
-
-function setQuickDownPayment(percentage: number) {
-  downPayment.value = Math.round(
-    installmentBasePrice.value * percentage / 100
-  )
-}
-
-function getPaymentPlan(item: any) {
-  return Array.isArray(item?.payment_plans)
-    ? item.payment_plans[0]
-    : item?.payment_plans
-}
-
-function getPlanMonths(item: any): number {
-  return Number(getPaymentPlan(item)?.months || 0)
-}
-
-function getPlanMargin(item: any): number {
-  const plan = getPaymentPlan(item)
-  const months = getPlanMonths(item)
-
-  // Gunakan margin dari tabel payment_plans.
-  // Jika belum diisi, ikuti aturan 2,5% untuk setiap 3 bulan.
-  const margin = plan?.margin_percent
-
-  return margin !== null && margin !== undefined
-    ? Number(margin)
-    : (months / 3) * 2.5
-}
-
-function calculateMonthlyPayment(item: any): number {
-  const months = getPlanMonths(item)
-
-  if (!months) return 0
-
-  const marginPercent = getPlanMargin(item)
-  const priceWithMargin =
-    remainingAfterDp.value * (1 + marginPercent / 100)
-
-  // Dibulatkan ke atas ke rupiah penuh agar tidak kurang bayar.
-  return Math.ceil(priceWithMargin / months)
-}
-
 
 /* ===================================================== */
 /* CLOSE DETAIL */
@@ -1447,6 +1198,10 @@ function getBlockCode(
 /* SECTION */
 /* ===================================================== */
 
+.detail-legal {
+  margin: 12px 16px 0;
+}
+
 .detail-section {
   margin-top: 18px;
 }
@@ -1509,65 +1264,7 @@ function getBlockCode(
   font-weight: 700;
 }
 
-/* ===================================================== */
-/* PAYMENT TABS */
-/* ===================================================== */
-
-.payment-tabs {
-  display: flex;
-
-  gap: 8px;
-
-  margin-bottom: 10px;
-}
-
-.payment-tabs button {
-  flex: 1;
-
-  border: none;
-
-  border-radius: 10px;
-
-  background: #fafaf7;
-
-  color: var(--text-secondary, #5f5f66);
-
-  padding: 10px;
-
-  font-weight: 700;
-
-  border:
-    1px solid #e5e5e5;
-
-  cursor: pointer;
-}
-
-.payment-tabs button.active {
-  background: #ede6d6;
-
-  color: #1a1a1a;
-
-  border-color: #8ca072;
-}
-
-/* ===================================================== */
-/* PAYMENT BOX */
-/* ===================================================== */
-
-.cash-box,
-.installment-list {
-  border-radius: 12px;
-
-  background: #fafaf7;
-
-  border:
-    1px solid #e5e5e5;
-
-  padding: 12px;
-}
-
-.price-row,
-.normal-price {
+.price-row {
   display: flex;
 
   justify-content: space-between;
@@ -1581,133 +1278,18 @@ function getBlockCode(
   color: #1a1a1a;
 }
 
-.price-row span,
-.normal-price span {
+.price-row span {
   color: var(--text-secondary, #5f5f66);
 
   font-size: 13px;
 }
 
-.price-row strong,
-.normal-price strong {
+.price-row strong {
   font-size: 14px;
 
   font-weight: 700;
 
   color: #1a1a1a;
-}
-
-.normal-price {
-  display: grid;
-
-  grid-template-columns:
-    1fr auto;
-
-  align-items: center;
-}
-
-.normal-price del {
-  color: var(--text-secondary, #5f5f66);
-
-  font-size: 12px;
-
-  opacity: 0.7;
-}
-
-.payment-note {
-  font-size: 13px;
-
-  color: var(--text-secondary, #5f5f66);
-}
-
-/* ===================================================== */
-/* INSTALLMENT */
-/* ===================================================== */
-
-.installment-price-summary {
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  background: #ffffff;
-}
-
-.down-payment-field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 10px 0;
-}
-
-.down-payment-field label {
-  color: var(--text-secondary, #5f5f66);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.down-payment-field input {
-  width: 100%;
-  min-height: 42px;
-  padding: 10px 12px;
-  border: 1px solid #d8ddd1;
-  border-radius: 9px;
-  outline: none;
-  background: #ffffff;
-  color: #1a1a1a;
-  font: inherit;
-}
-
-.down-payment-field input:focus {
-  border-color: #8ca072;
-  box-shadow: 0 0 0 3px rgba(140, 160, 114, 0.14);
-}
-
-.remaining-price-row {
-  border-top: 1px solid #e5e5e5;
-  padding-top: 10px;
-}
-
-.installment-formula-note {
-  margin: 12px 0 0;
-  line-height: 1.5;
-}
-
-.installment-item {
-  display: grid;
-
-  grid-template-columns:
-    1fr auto;
-
-  gap: 4px 12px;
-
-  padding: 8px 0;
-
-  border-bottom:
-    1px solid #e5e5e5;
-}
-
-.installment-item:last-child {
-  border-bottom: none;
-}
-
-.installment-item span {
-  color: var(--text-secondary, #5f5f66);
-
-  font-size: 13px;
-}
-
-.installment-item strong {
-  color: #1a1a1a;
-
-  font-size: 13px;
-}
-
-.installment-item small {
-  grid-column: 1 / -1;
-
-  color: var(--text-secondary, #5f5f66);
-
-  font-size: 13px;
 }
 
 /* ===================================================== */
@@ -1919,7 +1501,6 @@ function getBlockCode(
 
   font-weight: 700;
 }
-
 
 /* ===================================================== */
 /* PURCHASE MODAL */
@@ -2324,150 +1905,13 @@ function getBlockCode(
   grid-column: 1 / -1;
 }
 
-.price-row--single strong {
-  font-size: 22px;
-  color: var(--poliland-green, #355a2c);
-}
-
-/* Tab pembayaran */
-.payment-tabs {
-  padding: 4px;
-  gap: 4px;
-  border-radius: 14px;
-  background: #ebe7dc;
-}
-
-.payment-tabs button {
-  min-height: 44px;
-  border: 0;
-  border-radius: 11px;
-  background: transparent;
-  color: #4a4a50;
-  font: 700 14px/1 var(--font-primary, 'Plus Jakarta Sans', sans-serif);
-  touch-action: manipulation;
-  transition: background var(--dur-base, 0.2s) var(--ease-out, ease-out),
-    color var(--dur-base, 0.2s) var(--ease-out, ease-out);
-}
-
-.payment-tabs button.active {
-  background: var(--poliland-green, #355a2c);
-  color: #ffffff;
-  box-shadow: 0 6px 14px -8px rgba(53, 90, 44, 0.8);
-}
-
-.payment-tabs button:focus-visible,
-.quick-dp-list button:focus-visible,
 .view-360-button:focus-visible {
   outline: 3px solid var(--poliland-gold, #cba044);
   outline-offset: 2px;
 }
 
-.cash-box,
-.installment-list {
-  border: none;
-  background: transparent;
-  padding: 0;
-}
-
-.price-row span,
-.normal-price span,
-.installment-item span,
-.payment-note {
+.price-row span {
   color: #4a4a50;
-}
-
-.normal-price {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(53, 90, 44, 0.14);
-}
-
-.normal-price del {
-  grid-column: 1;
-  grid-row: 2;
-  color: #63636a;
-  opacity: 1;
-}
-
-.normal-price strong {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  color: var(--poliland-green, #355a2c);
-  font-size: 22px;
-}
-
-/* Simulasi cicilan */
-.installment-price-summary {
-  border: 0;
-  border-radius: 16px;
-  background: #faf8f4;
-}
-
-.down-payment-field label {
-  color: #4a4a50;
-}
-
-.down-payment-field input {
-  min-height: 48px;
-  font-size: 16px;
-  border: 1.5px solid rgba(53, 90, 44, 0.35);
-  border-radius: 12px;
-}
-
-.down-payment-field input:focus {
-  border-color: var(--poliland-green, #355a2c);
-  box-shadow: 0 0 0 3px rgba(203, 160, 68, 0.35);
-}
-
-.quick-dp-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.quick-dp-list button {
-  min-height: 44px;
-  border: 1.5px solid rgba(53, 90, 44, 0.35);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.7);
-  color: var(--poliland-green, #355a2c);
-  font: 700 14px/1 var(--font-primary, 'Plus Jakarta Sans', sans-serif);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.quick-dp-list button:active {
-  transform: scale(0.97);
-  background: #ebe7dc;
-}
-
-.remaining-price-row {
-  border-top: 1px solid rgba(53, 90, 44, 0.14);
-}
-
-.installment-item {
-  align-items: center;
-  margin-bottom: 8px;
-  padding: 14px;
-  border: 1px solid rgba(53, 90, 44, 0.12);
-  border-radius: 14px;
-  background: #ffffff;
-}
-
-.installment-item:last-child {
-  margin-bottom: 0;
-  border-bottom: 1px solid rgba(53, 90, 44, 0.12);
-}
-
-.installment-item span {
-  font-weight: 700;
-  color: var(--text-primary, #252525);
-}
-
-.installment-item strong {
-  font-size: 16px;
-  color: var(--poliland-green, #355a2c);
 }
 
 .detail-description {
@@ -2719,7 +2163,6 @@ function getBlockCode(
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .payment-tabs button,
   .nav-button {
     transition: none;
   }

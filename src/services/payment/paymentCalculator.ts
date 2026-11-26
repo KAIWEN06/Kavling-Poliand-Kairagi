@@ -93,6 +93,26 @@ function toNonNegativeInteger(value: number, label: string): number {
   return Math.round(value);
 }
 
+/** Biaya notaris, ditanggung pembeli dan di luar harga kavling. */
+export const NOTARY_FEE = 250_000;
+
+/**
+ * Estimasi cicilan dengan margin dari tabel payment_plans.
+ * Rumusnya harus sama dengan RPC create_client_spk_request, karena hasil RPC
+ * itulah yang menjadi jadwal tagihan.
+ */
+export function estimateInstallment(
+  price: number,
+  downPayment: number,
+  months: number,
+  marginPercent: number,
+) {
+  const principal = price - downPayment;
+  const margin = Math.round((principal * Math.max(0, marginPercent || 0)) / 100);
+  const total = principal + margin;
+  return { principal, margin, total, monthly: Math.floor(total / months) };
+}
+
 /**
  * Menghitung cicilan.
  *

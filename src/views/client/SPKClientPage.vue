@@ -41,6 +41,7 @@ import { supabase } from '@/services/config/supabase'
 import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
+import { NOTARY_FEE, estimateInstallment } from '@/services/payment/paymentCalculator'
 import IdentityFields from '@/components/identity/IdentityFields.vue'
 import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
 
@@ -143,10 +144,9 @@ const installmentEstimate = computed(() => {
   const downPayment = downPaymentAmount.value
   if (!price || !plan || downPaymentInvalid.value || downPayment >= price) return null
 
-  const principal = price - downPayment
   const marginPercent = Math.max(0, Number(plan.margin_percent) || 0)
-  const installmentTotal = Math.round(principal * (1 + marginPercent / 100))
-  const monthlyPayment = Math.floor(installmentTotal / plan.months)
+  const { principal, total: installmentTotal, monthly: monthlyPayment } =
+    estimateInstallment(price, downPayment, plan.months, marginPercent)
 
   return {
     principal,
@@ -1030,6 +1030,13 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
             </div>
           </section>
 
+          <p
+            v-if="lot && lotAvailable && !lotLoading && !lotError && !submissionComplete"
+            class="spk-notary-note"
+          >
+            Biaya notaris {{ formatCurrency(NOTARY_FEE) }} ditanggung pembeli, di luar harga kavling dan tanda jadi.
+          </p>
+
           <SpkOrderTerms
             v-if="lot && lotAvailable && !lotLoading && !lotError && !submissionComplete"
             v-model="termsAccepted"
@@ -1732,6 +1739,13 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-plan-message,
+.spk-notary-note {
+  margin: 0;
+  color: var(--text-secondary, #5f5f66);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .spk-monthly-estimate {
   margin: 0;
   color: var(--text-secondary, #717178);

@@ -2,6 +2,7 @@
 import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
+import { NOTARY_FEE, estimateInstallment } from '@/services/payment/paymentCalculator'
 import IdentityFields from '@/components/identity/IdentityFields.vue'
 import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
 import IdentityInfo from '@/components/identity/IdentityInfo.vue'
@@ -253,10 +254,8 @@ const installmentEstimate = computed(() => {
   if (!price || !plan) return null
   const dp = useDownPayment.value ? downPaymentAmount.value : 0
   if (dp < 0 || dp >= price) return null
-  const principal = price - dp
-  const margin = Math.max(0, Number(plan.margin_percent) || 0)
-  const total = Math.round(principal * (1 + margin / 100))
-  return { monthly: Math.floor(total / plan.months), total }
+  const { monthly, total } = estimateInstallment(price, dp, plan.months, Number(plan.margin_percent))
+  return { monthly, total }
 })
 const termsAccepted = ref(false)
 const identityForm = useMyIdentityForm()
@@ -992,7 +991,11 @@ useRealtimeRefresh(
               <span>Tanda jadi wajib saat pengajuan SPK</span>
               <strong>{{ formatCurrency(DEFAULT_SPK_BOOKING_FEE) }}</strong>
             </div>
-            <small>Tanda jadi terpisah dari uang muka. Uang muka atau pelunasan dilakukan setelah SPK disetujui.</small>
+            <div>
+              <span>Biaya notaris (ditanggung pembeli)</span>
+              <strong>{{ formatCurrency(NOTARY_FEE) }}</strong>
+            </div>
+            <small>Tanda jadi terpisah dari uang muka. Uang muka atau pelunasan dilakukan setelah SPK disetujui. Biaya notaris tidak ikut dalam transfer tanda jadi.</small>
           </div>
 
           <div v-if="paymentMethod === 'Transfer Bank'" class="spk-payment-guidance">
