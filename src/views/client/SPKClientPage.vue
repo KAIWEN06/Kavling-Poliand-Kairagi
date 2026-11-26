@@ -39,6 +39,7 @@ import { lotService, type LotRecord } from '@/services/lotService'
 import { supabase } from '@/services/config/supabase'
 import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
+import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
 
 type DocumentKey = 'ktp' | 'kk' | 'npwp' | 'paymentProof'
 
@@ -64,6 +65,7 @@ const documentError = ref('')
 const saveError = ref('')
 const saving = ref(false)
 const submissionComplete = ref(false)
+const termsAccepted = ref(false)
 const availableBookingFees = ref<AvailableBookingFeeReuse[]>([])
 const bookingFeesLoading = ref(false)
 const bookingFeesError = ref('')
@@ -435,6 +437,11 @@ async function saveSpk() {
 
   if (method !== 'Transfer Bank') {
     saveError.value = 'Tanda jadi saat ini hanya dapat dibayar melalui Transfer Bank.'
+    return
+  }
+
+  if (!termsAccepted.value) {
+    saveError.value = 'Baca ketentuan pemesanan, lalu centang pernyataannya sebelum menyimpan SPK.'
     return
   }
 
@@ -982,6 +989,11 @@ onMounted(() => {
               </AppNotice>
             </div>
           </section>
+
+          <SpkOrderTerms
+            v-if="lot && lotAvailable && !lotLoading && !lotError && !submissionComplete"
+            v-model="termsAccepted"
+          />
 
           <AppNotice v-if="saveError" tone="error">
             {{ saveError }}

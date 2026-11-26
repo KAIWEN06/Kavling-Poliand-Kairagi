@@ -1,7 +1,7 @@
 # Graph Report - poliland-mobile  (2026-11-26)
 
 ## Corpus Check
-- 523 files · ~587,816 words
+- 523 files · ~587,821 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 97 file(s) not represented in the graph (top: .csv 53, .xml 17, .css 8)
 
@@ -1468,7 +1468,7 @@ Nodes (5): radius, radius, radius, $type, $value
 
 ### Community 319 - "FocusSpotlight.vue"
 Cohesion: 0.40
-Nodes (4): cover, holes, props, Rect
+Nodes (4): holes, props, shade, Rect
 
 ### Community 320 - "loadLot"
 Cohesion: 0.40
@@ -1539,13 +1539,13 @@ Cohesion: 0.50
 Nodes (4): choose(), emit, options, props
 
 ## Ambiguous Edges - Review These
+- `Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner)` → `Three Primary Roles (Admin/Kepala Bagian, Marketing, Client)`  [AMBIGUOUS]
+  .cline/skills/poliland-project-architecture/SKILL.md · relation: conceptually_related_to
 - `Technology Stack (Vue 3, Ionic Vue, TypeScript, Vite, Supabase, Capacitor)` → `Stated Stack: React.js, Vite, Tailwind, Supabase`  [AMBIGUOUS]
   perintah.txt · relation: conceptually_related_to
-- `Three Primary Roles (Admin/Kepala Bagian, Marketing, Client)` → `Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner)`  [AMBIGUOUS]
-  .cline/skills/poliland-project-architecture/SKILL.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **42 isolated node(s):** `PackageDescription`, `npx`, `Customer Origin (Wilayah) Analysis`, `Marketing Notifications (existing system)`, `Supabase Database Audit via MCP Server` (+37 more)
+- **42 isolated node(s):** `PackageDescription`, `npx`, `contacts Supabase Table`, `Customer Origin (Wilayah) Analysis`, `Marketing Notifications (existing system)` (+37 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 4346 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -1553,20 +1553,20 @@ Nodes (4): choose(), emit, options, props
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vue` connect `vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `AdminDetailKavling.vue`, `Client Lot Detail`, `SiteplanMap.vue`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ProgressPage.vue`, `BerandaMarketingPage.vue`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `Marketing SPK Submission`, `Siteplan Search Box`, `Capacitor Dependencies`, `LocationPicker.vue`, `KavlingMarketingPage.vue`, `Dev Tooling Deps`, `StatusIllustration.vue`, `PaymentMonitorView.vue`, `PhoneVerifySheet.vue`, `RegisterPage.vue`, `App Modal Component`, `ClientProfileGateModal.vue`, `Client SPK Modal`, `LoginPage.vue`, `AppPullRefresh.vue`, `ProfilePage.vue`, `DocumentViewer.vue`, `ClientDetailView.vue`, `AvatarCropModal.vue`, `SiteplanPage.vue`, `siteplanBlocks.ts`, `Panorama Viewer`, `CmsHomePanel.vue`, `MobileTabBar.vue`, `SpkProcessTimeline.vue`, `CommissionView.vue`, `SlideToConfirm.vue`, `contactService.ts`, `FAQSection.vue`, `AdminContentPage.vue`, `GalleryPreview.vue`, `HomePage.vue`, `@ionic/vue`, `useMascotAnimation`, `ContactPage.vue`, `WelcomePage.vue`, `HeadDashboardPage.vue`, `AdminGabungDataPage.vue`, `useToast.ts`, `SpkListView.vue`, `App.vue`, `useCelebration.ts`, `AdminSurveyRequestsPage.vue`, `GalleryPage.vue`, `surveyService.ts`, `supabase.ts`, `AdminReviewsPage.vue`, `PanoramaPage.vue`, `PolygonLayer.vue`, `calculateFinanceBalance`, `CmsPanelModal.vue`, `LoginPageCanvasTest.vue`, `CmsItemFormModal.vue`, `AppInput.vue`, `useCurrentUser.ts`, `BerandaClientPage.vue`, `ProgressDetailPage.vue`, `marketingStatus.ts`, `siteplanService.ts`, `CustomerReviewsSection.vue`, `AddressFields.vue`, `ReviewForm.vue`, `useMascotAnimation.ts`, `ClientListView.vue`, `ReviewReportDialog.vue`, `AppPagination.vue`, `useConfirm.ts`, `GallerySkeleton.vue`, `useNotifications.ts`, `supabase.ts`, `ReviewSummaryCard.vue`, `AppVideo.vue`, `GlobalMobileHeader.vue`, `ReviewCard.vue`, `SplashVideoPage.vue`, `UserMenu.vue`, `FocusSpotlight.vue`?**
-  _High betweenness centrality (0.122) - this node is a cross-community bridge._
+  _High betweenness centrality (0.135) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `TailwindConfigGenerator` (e.g. with `TestGeneratedConfigIsValidJs` and `TestTailwindConfigGenerator`) actually correct?**
   _`TailwindConfigGenerator` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `PackageDescription`, `npx`, `Customer Origin (Wilayah) Analysis` to the rest of the system?**
+- **What connects `PackageDescription`, `npx`, `contacts Supabase Table` to the rest of the system?**
   _42 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Admin Finance Page` be split into smaller, more focused modules?**
   _Cohesion score 0.009655416777393924 - nodes in this community are weakly interconnected._
 - **Why does `@ionic/vue` connect `@ionic/vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `AdminDetailKavling.vue`, `Client Lot Detail`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ProgressPage.vue`, `BerandaMarketingPage.vue`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `vue`, `Marketing SPK Submission`, `Siteplan Search Box`, `Capacitor Dependencies`, `LocationPicker.vue`, `KavlingMarketingPage.vue`, `Dev Tooling Deps`, `StatusIllustration.vue`, `RegisterPage.vue`, `App Modal Component`, `ClientProfileGateModal.vue`, `Client SPK Modal`, `LoginPage.vue`, `ProfilePage.vue`, `DocumentViewer.vue`, `ClientDetailView.vue`, `AvatarCropModal.vue`, `SiteplanPage.vue`, `CmsHomePanel.vue`, `MobileTabBar.vue`, `SpkProcessTimeline.vue`, `SlideToConfirm.vue`, `contactService.ts`, `FAQSection.vue`, `AdminContentPage.vue`, `GalleryPreview.vue`, `HomePage.vue`, `ContactPage.vue`, `WelcomePage.vue`, `HeadDashboardPage.vue`, `AdminGabungDataPage.vue`, `App.vue`, `AdminSurveyRequestsPage.vue`, `GalleryPage.vue`, `surveyService.ts`, `modalAnimation.ts`, `AdminReviewsPage.vue`, `PanoramaPage.vue`, `LoginPageCanvasTest.vue`, `AppInput.vue`, `BerandaClientPage.vue`, `PageBackButton.vue`, `ProgressDetailPage.vue`, `marketingStatus.ts`, `ReviewForm.vue`, `ClientListView.vue`, `roleNotificationService.ts`, `AppPagination.vue`, `GallerySkeleton.vue`, `supabase.ts`, `ReviewSummaryCard.vue`, `GlobalMobileHeader.vue`, `ReviewCard.vue`, `SplashVideoPage.vue`, `UserMenu.vue`, `siteplanBlocks.ts`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+  _High betweenness centrality (0.061) - this node is a cross-community bridge._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._
 
-- **What is the exact relationship between `Technology Stack (Vue 3, Ionic Vue, TypeScript, Vite, Supabase, Capacitor)` and `Stated Stack: React.js, Vite, Tailwind, Supabase`?**
+- **What is the exact relationship between `Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner)` and `Three Primary Roles (Admin/Kepala Bagian, Marketing, Client)`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **What is the exact relationship between `Three Primary Roles (Admin/Kepala Bagian, Marketing, Client)` and `Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner)`?**
+- **What is the exact relationship between `Technology Stack (Vue 3, Ionic Vue, TypeScript, Vite, Supabase, Capacitor)` and `Stated Stack: React.js, Vite, Tailwind, Supabase`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._

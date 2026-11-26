@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppNotice from '@/components/ui/AppNotice.vue'
+import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
@@ -245,7 +246,9 @@ const installmentEstimate = computed(() => {
   const total = Math.round(principal * (1 + margin / 100))
   return { monthly: Math.floor(total / plan.months), total }
 })
+const termsAccepted = ref(false)
 const canSubmitCreate = computed(() => Boolean(
+  termsAccepted.value &&
   !reuseFeesLoading.value &&
   !reuseFeesError.value &&
   selectedCreateLot.value &&
@@ -332,6 +335,7 @@ async function loadBookingFeesWithTimeout() {
 async function openCreateForm(preferredLotId: number | null = null) {
   createOpen.value = true
   createError.value = ''
+  termsAccepted.value = false
   selectedReusePaymentId.value = null
   availableBookingFees.value = []
   reuseFeesLoading.value = true
@@ -570,7 +574,7 @@ function handleCreateFile(type: 'ktp' | 'kk' | 'npwp' | 'paymentProof', event: E
 
 async function submitCreateSPK() {
   if (!canSubmitCreate.value || !selectedCreateLot.value || !selectedCreateLotPrice.value) {
-    createError.value = 'Lengkapi data pembeli, pilih kaveling, isi rencana pembayaran, serta unggah KTP, KK, dan bukti transfer tanda jadi.'
+    createError.value = 'Lengkapi data pembeli, pilih kaveling, isi rencana pembayaran, serta unggah KTP, KK, dan bukti transfer tanda jadi. Centang juga bahwa Anda sudah membaca ketentuan pemesanan.'
     return
   }
   creating.value = true
@@ -1013,6 +1017,8 @@ watch(() => route.query.nt, (stamp) => {
           <div v-else class="spk-reuse-info">Bukti tanda jadi tidak perlu diunggah ulang karena menggunakan pembayaran terverifikasi sebelumnya.</div>
           <label class="spk-upload-field">NPWP <span>(opsional)</span><input type="file" accept="image/*,.pdf" @change="handleCreateFile('npwp', $event)" /><small>{{ createDocuments.npwp?.name || 'Belum ada file dipilih' }}</small></label>
         </section>
+
+        <SpkOrderTerms v-model="termsAccepted" title="5. Ketentuan Pemesanan" />
 
         <AppNotice v-if="createError" tone="error">
           {{ createError }}

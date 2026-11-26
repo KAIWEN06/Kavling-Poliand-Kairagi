@@ -882,9 +882,9 @@
     "semantic_hash": ""
   },
   "src/views/client/DokumenClientPage.vue": {
-    "mtime": 1795630614.8491814,
-    "seen": 1795630942.4995134,
-    "ast_hash": "79ad720518594758bfe4632ddea9f734",
+    "mtime": 1795674881.2549438,
+    "seen": 1795674991.249242,
+    "ast_hash": "b01a4b18e0ea82b52eba4c244e503570",
     "semantic_hash": ""
   },
   "src/views/client/KavlingClientDetailPage.vue": {
@@ -906,9 +906,9 @@
     "semantic_hash": ""
   },
   "src/views/client/SPKClientPage.vue": {
-    "mtime": 1795630592.1583238,
-    "seen": 1795630942.5010228,
-    "ast_hash": "f9904f020851fd956bc6d0b55bac5de3",
+    "mtime": 1795674881.2591407,
+    "seen": 1795674991.2551441,
+    "ast_hash": "3d7b98c2be87450f1293af762259ce79",
     "semantic_hash": ""
   },
   "src/views/marketing/BerandaMarketingPage.vue": {
@@ -6789,6 +6789,12 @@
     "mtime": 1795673031.171896,
     "seen": 1795673403.3047442,
     "ast_hash": "b48ac15c35dd29d530d1367941c94b8f",
+    "semantic_hash": ""
+  },
+  "src/components/spk/SpkOrderTerms.vue": {
+    "mtime": 1795674886.8359,
+    "seen": 1795674991.14148,
+    "ast_hash": "280b783ddc15ea7a1ebad01786e1b243",
     "semantic_hash": ""
   },
   "package-lock.json": {
