@@ -2,6 +2,7 @@
 import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
+import { askNotificationPermission } from '@/composables/useNotificationPrompt'
 import { NOTARY_FEE, estimateInstallment } from '@/services/payment/paymentCalculator'
 import IdentityFields from '@/components/identity/IdentityFields.vue'
 import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
@@ -618,6 +619,7 @@ async function submitCreateSPK() {
     })
     createOpen.value = false
     await loadSpkRecords()
+    void askNotificationPermission('Supaya Anda tahu hasil pemeriksaan pengajuan SPK.')
   } catch (error) {
     createError.value = getClientSpkErrorMessage(error, 'SPK gagal disimpan. Silakan coba kembali.')
   } finally {

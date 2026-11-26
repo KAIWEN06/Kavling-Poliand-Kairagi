@@ -305,6 +305,7 @@
                 <h1>{{ lot.lot_number }}</h1>
                 <p>{{ blockLabel }}</p>
               </div>
+              <FavoriteButton v-if="!hideSoldInfo" :key="lot.id" :lot-id="Number(lot.id)" />
             </div>
 
             <div :class="['spec-strip', { 'spec-strip--single': hideSoldInfo }]">
@@ -460,6 +461,8 @@ import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import LegalAssurance from '@/components/payment/LegalAssurance.vue'
+import FavoriteButton from '@/components/client/FavoriteButton.vue'
+import { askNotificationPermission } from '@/composables/useNotificationPrompt'
 import PaymentSimulation from '@/components/payment/PaymentSimulation.vue'
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
 import soldMascot from '@/assets/mascot/Sold_Lot_Mascot.webp'
@@ -948,6 +951,7 @@ async function sendSurveyRequest() {
     surveyNote.value = ''
     await refreshClientSurveyStatus()
     await refreshSurveyAvailability()
+    void askNotificationPermission('Supaya Anda tahu saat jadwal survei dikonfirmasi.')
   } catch (error) {
     console.error('[ClientKavlingDetail] Gagal membuat permintaan survei:', error)
 

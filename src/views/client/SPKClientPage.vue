@@ -41,6 +41,7 @@ import { supabase } from '@/services/config/supabase'
 import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
+import { askNotificationPermission } from '@/composables/useNotificationPrompt'
 import { NOTARY_FEE, estimateInstallment } from '@/services/payment/paymentCalculator'
 import IdentityFields from '@/components/identity/IdentityFields.vue'
 import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
@@ -498,6 +499,7 @@ async function saveSpk() {
       reuseBookingPaymentId: selectedReusePaymentId.value,
     })
     submissionComplete.value = true
+    void askNotificationPermission('Supaya Anda tahu hasil pemeriksaan pengajuan SPK.')
   } catch (error) {
     console.error('[SPK Klien] Gagal menyimpan SPK ke Supabase:', error)
     saveError.value = getClientSpkErrorMessage(

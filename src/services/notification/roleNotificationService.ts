@@ -235,6 +235,16 @@ export const roleNotificationService = {
     initialized = false
   },
 
+  /** True bila izin belum diberikan dan masih layak ditanyakan. Tidak memunculkan dialog. */
+  async canAskPermission() {
+    try {
+      return (await CustomNotification.checkPermissions()).notifications !== 'granted'
+    } catch (error) {
+      console.warn('[Notifikasi native] Gagal membaca status izin:', error)
+      return false
+    }
+  },
+
   /** Meminta izin POST_NOTIFICATIONS (Android 13+). */
   async requestPermission() {
     try {
@@ -255,7 +265,8 @@ export const roleNotificationService = {
     } catch (error) {
       console.error('[Notifikasi native] Gagal menetapkan konteks:', error)
     }
-    if (!permissionAsked) {
+    // Pembeli ditanya belakangan, setelah mengajukan survei atau SPK (useNotificationPrompt).
+    if (role !== 'client' && !permissionAsked) {
       permissionAsked = true
       // Izin dulu, baru token push (tanpa izin Android 13+ push tidak bisa ditampilkan).
       void this.requestPermission().then(() => this.registerPush())

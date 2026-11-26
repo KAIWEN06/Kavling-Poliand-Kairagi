@@ -40,6 +40,8 @@ export interface ActiveContextOptions {
 
 export interface CustomNotificationPlugin {
   checkAndRequestPermissions(): Promise<NotificationPermissionResult>
+  /** Bawaan Capacitor: hanya membaca status izin. */
+  checkPermissions(): Promise<{ notifications: 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale' }>
   showCustomNotification(options: CustomNotificationOptions): Promise<{ id: string; channelId: string }>
   setActiveContext(options: ActiveContextOptions): Promise<void>
   clearActiveContext(): Promise<void>
@@ -65,6 +67,12 @@ class CustomNotificationWeb extends WebPlugin implements Omit<CustomNotification
     if (typeof Notification === 'undefined') return { granted: false, status: 'denied' }
     const result = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
     return { granted: result === 'granted', status: result === 'granted' ? 'granted' : 'denied' }
+  }
+
+  async checkPermissions() {
+    // Browser tanpa Notification API tidak perlu ditanya; yang sudah ditolak juga tidak.
+    const state = typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+    return { notifications: state === 'default' ? ('prompt' as const) : ('granted' as const) }
   }
 
   async showCustomNotification(options: CustomNotificationOptions) {

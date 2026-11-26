@@ -108,6 +108,13 @@
           </div>
         </div>
 
+        <FavoriteButton
+          v-if="props.clientMode && showLotInfo"
+          :key="lot.id"
+          class="detail-favorite"
+          :lot-id="Number(lot.id)"
+        />
+
         <LegalAssurance v-if="showLotInfo" class="detail-legal" />
 
         <!-- SPESIFIKASI -->
@@ -366,6 +373,7 @@ import { chevronBackOutline, compassOutline, mapOutline } from 'ionicons/icons'
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.webp'
 import soldMascot from '@/assets/mascot/Sold_Lot_Mascot.webp'
+import FavoriteButton from '@/components/client/FavoriteButton.vue'
 import LegalAssurance from '@/components/payment/LegalAssurance.vue'
 import PaymentSimulation from '@/components/payment/PaymentSimulation.vue'
 
@@ -1197,6 +1205,11 @@ function getBlockCode(
 /* ===================================================== */
 /* SECTION */
 /* ===================================================== */
+
+.detail-favorite {
+  align-self: flex-end;
+  margin: 12px 16px 0 auto;
+}
 
 .detail-legal {
   margin: 12px 16px 0;

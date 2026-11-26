@@ -373,6 +373,12 @@ const routes: Array<RouteRecordRaw> = [
     component: KavlingClientPage,
   },
   {
+    path: '/client/favorit',
+    name: 'FavoritKavling',
+    component: () => import('@/views/client/FavoritKavlingPage.vue'),
+    meta: { requiresAuth: true, role: 'client' },
+  },
+  {
     path: '/client/siteplan',
     name: 'ClientSiteplan',
     component: SiteplanPage,

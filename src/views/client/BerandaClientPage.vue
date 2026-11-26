@@ -26,6 +26,7 @@ import {
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import PurchaseJourney from '@/components/client/PurchaseJourney.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import Reveal from '@/components/ui/Reveal.vue'
@@ -38,6 +39,7 @@ const router = useRouter()
 const clientName = ref('Pembeli')
 const clientSpks = ref<ClientSpkRecord[]>([])
 const documentsLoaded = ref(false)
+const documentsFailed = ref(false)
 
 const documentFields: Array<{ key: ClientSpkDocumentKey; label: string }> = [
   { key: 'ktp', label: 'KTP' },
@@ -65,9 +67,13 @@ const uploadedDocumentCount = computed(() => uploadedDocumentLabels.value.length
 async function loadClientDocuments({ silent = false }: LoadOptions = {}) {
   try {
     clientSpks.value = await getClientSpks()
+    documentsFailed.value = false
   } catch (error) {
     console.error('[Beranda Klien] Gagal memuat dokumen dari Supabase:', error)
-    if (!silent) clientSpks.value = []
+    if (!silent) {
+      clientSpks.value = []
+      documentsFailed.value = true
+    }
   } finally {
     documentsLoaded.value = true
   }
@@ -200,6 +206,14 @@ useRealtimeRefresh(
               </button>
             </template>
           </PageHeader>
+        </Reveal>
+
+        <Reveal
+          v-if="documentsLoaded && !documentsFailed && !purchaseLoading && !purchaseError"
+          :order="1"
+          class="dash__journey"
+        >
+          <PurchaseJourney :spks="clientSpks" :has-purchase="Boolean(overview)" />
         </Reveal>
 
         <div class="dash__grid">
@@ -383,6 +397,10 @@ useRealtimeRefresh(
   padding: var(--space-4) var(--page-gutter) calc(var(--bottom-nav-h) + var(--space-12) + var(--safe-bottom));
   color: var(--text-primary);
   font-family: var(--font-ui);
+}
+
+.dash__journey:not(:empty) {
+  margin-bottom: var(--space-4);
 }
 
 .dash__grid {

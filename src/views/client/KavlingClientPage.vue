@@ -39,6 +39,13 @@
         </Reveal>
 
 
+        <router-link v-if="favoritesStatus === 'ready'" to="/client/favorit" class="kv-favorites">
+          <ion-icon :icon="heart" aria-hidden="true" />
+          <span>Kavling Impian</span>
+          <strong v-if="favoriteIds.length">{{ favoriteIds.length }}</strong>
+          <ion-icon :icon="chevronForwardOutline" class="kv-favorites__go" aria-hidden="true" />
+        </router-link>
+
         <!-- SEARCH -->
         <div class="kv-searchbox" @keydown.esc="panelOpen = false">
           <div class="kv-search">
@@ -310,6 +317,7 @@ import {
   callOutline,
   personOutline,
   chevronForwardOutline,
+  heart,
   checkmarkCircleOutline,
   timeOutline,
   closeCircleOutline,
@@ -319,6 +327,7 @@ import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import { useFavorites } from '@/composables/useFavorites'
 import siteplanImage from '@/assets/siteplan/Siteplan.webp'
 import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
@@ -368,6 +377,8 @@ interface Lot {
 /* ---------- state ---------- */
 
 const ionRouter = useIonRouter()
+const { ids: favoriteIds, status: favoritesStatus, load: loadFavorites } = useFavorites()
+onIonViewWillEnter(() => void loadFavorites())
 
 /* siteplan: sumber data yang sama dengan halaman beranda */
 const { lots: siteplanLots, reload: reloadSiteplan } = useSiteplan()
@@ -1305,6 +1316,61 @@ h2 {
 .kv-siteplan-legend .available { background: var(--poliland-green); }
 .kv-siteplan-legend .booking { background: var(--poliland-gold); }
 .kv-siteplan-legend .sold { background: var(--status-danger); }
+
+.kv-favorites {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-control, 12px);
+  background: var(--surface-primary, #fff);
+  color: var(--text-primary, #252525);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-fast, 150ms) var(--ease-spring, ease-out);
+}
+
+.kv-favorites:active {
+  transform: scale(0.98);
+}
+
+.kv-favorites:focus-visible {
+  outline: 3px solid var(--poliland-green, #355a2c);
+  outline-offset: 2px;
+}
+
+.kv-favorites > ion-icon:first-child {
+  color: #b13a3a;
+  font-size: 20px;
+}
+
+.kv-favorites strong {
+  min-width: 24px;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--status-success-bg, #eef5ec);
+  color: var(--poliland-green, #355a2c);
+  font-size: 12px;
+  text-align: center;
+}
+
+.kv-favorites__go {
+  margin-left: auto;
+  color: var(--text-secondary, #5f5f66);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-favorites { transition: none; }
+  .kv-favorites:active { transform: none; }
+}
 
 .kv-siteplan-button {
   display: inline-flex;
