@@ -5,7 +5,7 @@
     <div v-else-if="error" class="spt-state spt-state--error" role="alert">
       <strong>Tahapan proses belum bisa dimuat</strong>
       <p>{{ error }}</p>
-      <button type="button" class="spt-link" @click="load">Coba lagi</button>
+      <button type="button" class="spt-link" @click="load()">Coba lagi</button>
     </div>
 
     <div v-else-if="!steps.length" class="spt-state">
@@ -177,6 +177,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
@@ -211,21 +212,21 @@ const current = computed(() => currentStep(steps.value))
 const doneCount = computed(() => steps.value.filter((s) => s.status === 'done').length)
 const allDone = computed(() => steps.value.length > 0 && !current.value)
 
-async function load() {
-  loading.value = true
+async function load({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
   error.value = ''
   try {
     steps.value = await getSpkProcessSteps(props.spkId)
     emit('loaded', steps.value)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Terjadi kesalahan.'
+    if (!silent) error.value = e instanceof Error ? e.message : 'Terjadi kesalahan.'
   } finally {
     loading.value = false
   }
 }
 
 onMounted(load)
-watch(() => props.spkId, load)
+watch(() => props.spkId, () => load())
 defineExpose({ reload: load })
 
 const dayFmt = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
@@ -382,6 +383,9 @@ async function submit() {
     saving.value = false
   }
 }
+
+useRealtimeRefresh(['spk_process_steps', 'spk_requests'], () => load({ silent: true }))
+
 </script>
 
 <style scoped>

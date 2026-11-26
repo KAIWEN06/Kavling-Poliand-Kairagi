@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -215,6 +216,9 @@ async function confirmDelete() {
     deleting.value = false
   }
 }
+
+useRealtimeRefresh(['gallery'], fetchGallery)
+
 </script>
 
 <style scoped>

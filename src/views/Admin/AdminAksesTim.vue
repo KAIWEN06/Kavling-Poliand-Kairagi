@@ -144,11 +144,11 @@
           <section class="filters" aria-label="Pencarian dan filter anggota">
             <label class="search-field"><span>Pencarian</span><div><ion-icon :icon="searchOutline" /><input v-model="query" type="search" placeholder="Cari nama atau email..." /></div></label>
             <label><span>Status</span><select v-model="statusFilter"><option value="all">Semua status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select></label>
-            <label v-if="activeTab === 'marketing'"><span>Performa</span><select v-model="overviewPeriod" @change="loadOverview"><option value="30d">30 hari</option><option value="90d">3 bulan</option><option value="180d">6 bulan</option><option value="all">Semua waktu</option></select></label>
+            <label v-if="activeTab === 'marketing'"><span>Performa</span><select v-model="overviewPeriod" @change="loadOverview()"><option value="30d">30 hari</option><option value="90d">3 bulan</option><option value="180d">6 bulan</option><option value="all">Semua waktu</option></select></label>
           </section>
 
           <SkeletonCardList v-if="loading" :count="5" :lines="3" label="Memuat anggota tim" />
-          <StatusIllustration v-else-if="pageError" :variant="resolveErrorVariant(pageError)" title="Data tim gagal dimuat" fill :on-action="load" />
+          <StatusIllustration v-else-if="pageError" :variant="resolveErrorVariant(pageError)" title="Data tim gagal dimuat" fill :on-action="() => load()" />
           <template v-else>
             <section v-if="activeTab === 'owner'" class="member-section">
               <div class="section-heading"><div><p class="eyebrow">Akses tingkat tertinggi</p><h2>Daftar pemilik</h2></div></div>
@@ -267,6 +267,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
@@ -398,30 +399,31 @@ function canManage(member: TeamMember) {
   return currentRole.value === 'admin' && member.role === 'marketing'
 }
 
-async function loadOverview() {
+async function loadOverview({ silent = false }: LoadOptions = {}) {
   if (!marketingMembers.value.length) { summaries.value = []; return }
-  overviewLoading.value = true
+  if (!silent) overviewLoading.value = true
   try {
     summaries.value = await teamManagementService.getMarketingOverview(overviewPeriod.value)
   } catch (cause) {
-    pageError.value = cause instanceof Error ? cause.message : 'Ringkasan pemasar gagal dimuat.'
+    if (!silent) pageError.value = cause instanceof Error ? cause.message : 'Ringkasan pemasar gagal dimuat.'
   } finally {
     overviewLoading.value = false
   }
 }
 
-async function load() {
-  loading.value = true
-  pageError.value = ''
+async function load({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
+  if (!silent) pageError.value = ''
   try {
     const user = await authService.getCurrentUser()
     if (!user) throw new Error('Sesi masuk tidak ditemukan. Silakan masuk kembali.')
     currentRole.value = await authService.getUserRole(user.id)
     if (currentRole.value !== 'owner' && currentRole.value !== 'admin') throw new Error('Anda tidak memiliki akses ke halaman ini.')
     members.value = await teamManagementService.list()
-    await loadOverview()
+    pageError.value = ''
+    await loadOverview({ silent })
   } catch (cause) {
-    pageError.value = cause instanceof Error ? cause.message : 'Data anggota gagal dimuat.'
+    if (!silent) pageError.value = cause instanceof Error ? cause.message : 'Data anggota gagal dimuat.'
   } finally {
     loading.value = false
   }
@@ -599,6 +601,13 @@ async function toggleActive(member: TeamMember) {
 }
 
 onMounted(load)
+
+useRealtimeRefresh(
+  ['profiles', 'marketing_profiles', 'customers', 'customer_followups', 'lot_transactions'],
+  () => load({ silent: true }),
+  { pauseWhen: () => createOpen.value || editOpen.value || saving.value || editSaving.value || processingId.value },
+)
+
 </script>
 
 <style scoped>

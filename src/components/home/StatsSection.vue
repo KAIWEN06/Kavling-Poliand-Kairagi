@@ -46,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { ref, onMounted } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { homeOutline, ribbonOutline } from 'ionicons/icons'
@@ -76,9 +77,9 @@ const loadHighlights = async () => {
   }
 }
 
-const loadStats = async () => {
+const loadStats = async ({ silent = false }: LoadOptions = {}) => {
   try {
-    loading.value = true
+    if (!silent) loading.value = true
 
     const [total, sold] = await Promise.all([
       lotService.getTotalLotsCount(),
@@ -99,6 +100,9 @@ onMounted(() => {
   loadStats()
   loadHighlights()
 })
+
+useRealtimeRefresh(['contacts', 'lots'], () => Promise.all([loadHighlights(), loadStats({ silent: true })]))
+
 </script>
 
 <style scoped>

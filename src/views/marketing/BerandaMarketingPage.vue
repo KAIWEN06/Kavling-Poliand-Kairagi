@@ -153,6 +153,7 @@
 
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import {
   IonPage,
@@ -393,6 +394,12 @@ function goTo(path: string) {
 function goToCommission() {
   ionRouter.push('/marketing/komisi')
 }
+
+useRealtimeRefresh(
+  ['customers', 'customer_followups', 'customer_crm_status_history', 'lot_transactions', 'spk_requests', 'payments', 'installment_schedules', 'marketing_commissions', 'survey_requests', 'lots'],
+  () => Promise.all([loadReport(undefined, { silent: true }), loadActivities(), loadDueNotices()]),
+)
+
 </script>
 
 

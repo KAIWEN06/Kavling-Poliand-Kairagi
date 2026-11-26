@@ -372,6 +372,7 @@
 
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import {
   computed,
@@ -1020,6 +1021,25 @@ onMounted(async () => {
   ])
   applySelectedCustomer()
 })
+
+/* Beri tahu lebih awal bila kaveling diambil pengajuan lain selagi formulir diisi. */
+async function checkLotStillOpen() {
+  if (!lot.id || lotError.value) return
+  const [latest, held] = await Promise.all([getLotById(Number(lot.id)), getLotsHeldBySpkSafe()])
+  if (!latest) {
+    lotError.value = 'Kaveling tidak ditemukan atau sudah tidak tersedia.'
+  } else if (held.has(Number(lot.id))) {
+    lotError.value =
+      'Kaveling ini sedang diproses pengajuan SPK lain, jadi belum bisa diajukan. Silakan pilih kaveling lain atau coba lagi nanti.'
+  } else {
+    Object.assign(lot, latest)
+  }
+}
+
+useRealtimeRefresh(['lots', 'spk_requests'], checkLotStillOpen, {
+  pauseWhen: () => lotLoading.value || submitting.value,
+})
+
 </script>
 
 

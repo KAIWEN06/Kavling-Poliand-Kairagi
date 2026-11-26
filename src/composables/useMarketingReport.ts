@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import type { LoadOptions } from '@/composables/useRealtimeRefresh'
 import { getMarketingReport, type MarketingReport } from '@/services/marketing/marketingCrmService'
 
 const monthShort = new Intl.DateTimeFormat('id-ID', { month: 'short' })
@@ -18,15 +19,22 @@ export function useMarketingReport() {
   const error = ref('')
   const range = ref<{ from: string; to: string; marketingId: string | null }>({ from: '', to: '', marketingId: null })
 
-  async function load(next?: { from: string; to: string; marketingId: string | null }) {
+  async function load(next?: { from: string; to: string; marketingId: string | null }, { silent = false }: LoadOptions = {}) {
     if (next) range.value = next
     if (!range.value.from) return
-    loading.value = true
-    error.value = ''
+    if (!silent) {
+      loading.value = true
+      error.value = ''
+    }
+    const requested = range.value
     try {
-      report.value = await getMarketingReport(range.value.from, range.value.to, range.value.marketingId)
+      const result = await getMarketingReport(requested.from, requested.to, requested.marketingId)
+      // Filter bisa diganti saat permintaan berjalan; hasil rentang lama diabaikan.
+      if (requested !== range.value) return
+      report.value = result
+      error.value = ''
     } catch (cause) {
-      error.value = cause instanceof Error ? cause.message : 'Laporan belum dapat dimuat.'
+      if (!silent) error.value = cause instanceof Error ? cause.message : 'Laporan belum dapat dimuat.'
     } finally {
       loading.value = false
     }

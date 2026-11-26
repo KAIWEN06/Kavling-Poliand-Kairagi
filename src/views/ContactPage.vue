@@ -127,6 +127,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   IonContent,
@@ -311,6 +312,9 @@ window.addEventListener('poliland:refresh', handleRefresh)
 onBeforeUnmount(() => {
   window.removeEventListener('poliland:refresh', handleRefresh)
 })
+
+useRealtimeRefresh(['contacts'], () => loadContacts(true))
+
 </script>
 
 <style scoped>

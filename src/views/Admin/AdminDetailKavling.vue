@@ -24,7 +24,7 @@
           <ion-icon :icon="alertCircleOutline" />
           <strong>Detail kavling gagal dimuat</strong>
           <p>{{ errorMessage }}</p>
-          <AppButton variant="primary" @click="loadDetail">Coba Lagi</AppButton>
+          <AppButton variant="primary" @click="loadDetail()">Coba Lagi</AppButton>
         </div>
 
         <template v-else-if="lot">
@@ -194,7 +194,7 @@
               <div v-else-if="historyError" class="empty-inline" role="alert">
                 <ion-icon :icon="alertCircleOutline" />
                 <span>{{ historyError }}</span>
-                <AppButton variant="neutral" fill="outline" size="small" @click="loadActivityLogs">
+                <AppButton variant="neutral" fill="outline" size="small" @click="loadActivityLogs()">
                   Coba Lagi
                 </AppButton>
               </div>
@@ -363,6 +363,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { Capacitor } from '@capacitor/core'
@@ -566,11 +567,11 @@ function errorText(error: unknown) {
   if (error && typeof error === 'object' && 'message' in error) return String((error as { message: unknown }).message)
   return 'Terjadi kesalahan. Periksa koneksi dan izin database.'
 }
-async function loadDetail() {
+async function loadDetail({ silent = false }: LoadOptions = {}) {
   if (!Number.isInteger(lotId.value) || lotId.value <= 0) {
     loadError.value = true; errorMessage.value = 'ID kavling tidak valid.'; loading.value = false; return
   }
-  loading.value = true; loadError.value = false; errorMessage.value = ''
+  if (!silent) { loading.value = true; loadError.value = false; errorMessage.value = '' }
   try {
     lot.value = await lotService.getLotById(lotId.value)
     statusDraft.value = effectiveStatus.value || 'Available'
@@ -579,12 +580,14 @@ async function loadDetail() {
     editDraft.dimension = lot.value.dimension || ''
     editDraft.area = lot.value.area == null ? '' : String(lot.value.area)
     editDraft.description = lot.value.description || ''
-    panoramaSelectedFile.value = null
-    if (panoramaFileInput.value) panoramaFileInput.value.value = ''
-    await Promise.all([loadInstallments(), loadHistory(), loadBlocks()])
+    if (!silent) {
+      panoramaSelectedFile.value = null
+      if (panoramaFileInput.value) panoramaFileInput.value.value = ''
+    }
+    await Promise.all([loadInstallments({ silent }), loadHistory({ silent }), loadBlocks()])
   } catch (error) {
     console.error('[AdminKavlingDetail] Gagal memuat:', error)
-    errorMessage.value = errorText(error); loadError.value = true
+    if (!silent) { errorMessage.value = errorText(error); loadError.value = true }
   } finally { loading.value = false }
 }
 async function loadBlocks() {
@@ -609,9 +612,9 @@ function formatBlockOption(block: BlockOption) {
   if (code) return `Blok ${code}`
   return block.name?.trim().replace(/^block\b/i, 'Blok') || `Blok ${block.id}`
 }
-async function loadInstallments() {
+async function loadInstallments({ silent = false }: LoadOptions = {}) {
   if (!lot.value) return
-  installmentsLoading.value = true
+  if (!silent) installmentsLoading.value = true
   try {
     installments.value = await lotService.getLotInstallments(lot.value.id)
   } catch (error) { console.error('Gagal memuat skema cicilan:', error) }
@@ -627,7 +630,7 @@ function getBookingPaid(transactionId: number): number {
     .reduce((total, payment) => total + Number(payment.amount ?? 0), 0)
 }
 
-async function loadHistory() {
+async function loadHistory({ silent = false }: LoadOptions = {}) {
   if (!lot.value) return
 
   // Riwayat transaksi tetap dimuat untuk kebutuhan informasi transaksi,
@@ -656,18 +659,22 @@ async function loadHistory() {
       })
   } catch (error) {
     console.error('[AdminKavlingDetail] Gagal memuat data transaksi:', error)
-    transactions.value = []
-    payments.value = []
+    if (!silent) {
+      transactions.value = []
+      payments.value = []
+    }
   }
 
-  await loadActivityLogs()
+  await loadActivityLogs({ silent })
 }
 
-async function loadActivityLogs() {
+async function loadActivityLogs({ silent = false }: LoadOptions = {}) {
   if (!lot.value) return
 
-  historyLoading.value = true
-  historyError.value = ''
+  if (!silent) {
+    historyLoading.value = true
+    historyError.value = ''
+  }
 
   try {
     const { data, error } = await supabase
@@ -705,8 +712,10 @@ async function loadActivityLogs() {
     }))
   } catch (error) {
     console.error('[AdminKavlingDetail] Gagal memuat riwayat perubahan:', error)
-    activityLogs.value = []
-    historyError.value = errorText(error)
+    if (!silent) {
+      activityLogs.value = []
+      historyError.value = errorText(error)
+    }
   } finally {
     historyLoading.value = false
   }
@@ -1049,6 +1058,17 @@ function backToLots() {
   void router.replace({ name: 'AdminKavling' })
 }
 onIonViewWillEnter(() => { void loadDetail() })
+
+useRealtimeRefresh(
+  ['lots', 'blocks', 'lot_transactions', 'lot_installments', 'lot_activity_logs', 'payments'],
+  () => loadDetail({ silent: true }),
+  {
+    pauseWhen: () =>
+      loading.value || saving.value || statusModalOpen.value || editModalOpen.value ||
+      priceModalOpen.value || panoramaModalOpen.value,
+  },
+)
+
 </script>
 
 <style scoped>

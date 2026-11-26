@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { computed, onMounted, ref } from 'vue'
 import { IonIcon, onIonViewWillEnter, useIonRouter } from '@ionic/vue'
 import { calendarOutline, chevronForwardOutline } from 'ionicons/icons'
@@ -57,13 +58,13 @@ const visible = computed(() => items.value.slice(0, props.max))
 const hiddenCount = computed(() => Math.max(0, items.value.length - props.max))
 const pendingCount = computed(() => items.value.filter((i) => i.status === 'pending').length)
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   try {
     items.value = await surveyService.getMyAgenda()
   } catch (error) {
     // kartu hanya pelengkap: gagal dimuat = tidak ditampilkan, beranda tetap utuh
     console.error('[Agenda survei] Gagal memuat:', error)
-    items.value = []
+    if (!silent) items.value = []
   } finally {
     state.value = 'ready'
   }
@@ -90,10 +91,13 @@ function openAll() {
   }
 }
 
-onMounted(load)
+onMounted(() => load())
 onIonViewWillEnter(() => {
   if (state.value === 'ready') void load()
 })
+
+useRealtimeRefresh(['survey_requests'], () => load({ silent: true }))
+
 </script>
 
 <style scoped>

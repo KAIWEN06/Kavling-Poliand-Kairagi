@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { ref, watch } from 'vue'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import IdentityFields from '@/components/identity/IdentityFields.vue'
@@ -35,13 +36,15 @@ const saving = ref(false)
 const saveError = ref('')
 let requestId = 0
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   const current = ++requestId
-  loading.value = true
-  loadError.value = ''
-  editing.value = false
-  identity.value = null
-  emit('ready', false)
+  if (!silent) {
+    loading.value = true
+    loadError.value = ''
+    editing.value = false
+    identity.value = null
+    emit('ready', false)
+  }
   if (!props.self && !props.customerId) {
     loading.value = false
     return
@@ -51,16 +54,17 @@ async function load() {
     if (current !== requestId) return
     available.value = result.available
     identity.value = result.identity
+    loadError.value = ''
     emit('ready', !result.available || result.identity !== null)
   } catch (error) {
     if (current !== requestId) return
-    loadError.value = error instanceof Error ? error.message : 'Data identitas gagal dimuat.'
+    if (!silent) loadError.value = error instanceof Error ? error.message : 'Data identitas gagal dimuat.'
   } finally {
     if (current === requestId) loading.value = false
   }
 }
 
-watch(() => [props.customerId, props.self], load, { immediate: true })
+watch(() => [props.customerId, props.self], () => load(), { immediate: true })
 
 function startEdit() {
   draft.value = { ...(identity.value ?? emptyIdentity()) }
@@ -84,6 +88,11 @@ async function save() {
     saving.value = false
   }
 }
+
+useRealtimeRefresh(['customer_identities'], () => load({ silent: true }), {
+  pauseWhen: () => loading.value || editing.value,
+})
+
 </script>
 
 <template>
@@ -99,7 +108,7 @@ async function save() {
 
     <div v-else-if="loadError" class="idi-error" role="alert">
       <span>{{ loadError }}</span>
-      <button type="button" class="idi-btn" @click="load">Coba lagi</button>
+      <button type="button" class="idi-btn" @click="load()">Coba lagi</button>
     </div>
 
     <!-- Enter di dalam formulir induk tidak boleh mengirim formulir itu. -->

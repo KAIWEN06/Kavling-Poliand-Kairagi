@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { ref, onMounted } from 'vue'
 import { IonIcon, IonSpinner } from '@ionic/vue'
@@ -82,13 +83,13 @@ const deleteOpen = ref(false)
 const deleteTarget = ref<FaqItem | null>(null)
 const deleting = ref(false)
 
-async function loadFaqs() {
+async function loadFaqs({ silent = false }: LoadOptions = {}) {
   try {
     const result = await faqService.getFaqs()
     faqs.value = Array.isArray(result) ? result : []
   } catch (error) {
     console.error('Gagal mengambil FAQ:', error)
-    faqs.value = []
+    if (!silent) faqs.value = []
   } finally {
     loading.value = false
   }
@@ -121,7 +122,10 @@ async function confirmDelete() {
   }
 }
 
-onMounted(loadFaqs)
+onMounted(() => loadFaqs())
+
+useRealtimeRefresh(['faqs'], () => loadFaqs({ silent: true }))
+
 </script>
 
 

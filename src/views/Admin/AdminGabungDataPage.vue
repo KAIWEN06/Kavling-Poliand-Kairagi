@@ -13,7 +13,7 @@
         </Reveal>
 
         <AppNotice v-if="loadError" tone="error">
-          {{ loadError }} <button type="button" class="link" @click="load">Coba lagi</button>
+          {{ loadError }} <button type="button" class="link" @click="load()">Coba lagi</button>
         </AppNotice>
         <SkeletonCardList v-else-if="loading" :count="4" :lines="3" label="Memuat data ganda" />
 
@@ -127,6 +127,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onMounted, ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
@@ -179,15 +180,16 @@ function reasonTone(reason: string): BadgeTone {
   return 'neutral'
 }
 
-async function load() {
-  loading.value = true
-  loadError.value = ''
+async function load({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
+  if (!silent) loadError.value = ''
   try {
     candidates.value = await customerMergeService.listCandidates()
-    visibleCount.value = PAGE_SIZE
+    loadError.value = ''
+    if (!silent) visibleCount.value = PAGE_SIZE
   } catch (error: any) {
     console.error('Gagal memuat kandidat data ganda.', error)
-    loadError.value = error?.message || 'Daftar data ganda gagal dimuat. Periksa koneksi lalu coba lagi.'
+    if (!silent) loadError.value = error?.message || 'Daftar data ganda gagal dimuat. Periksa koneksi lalu coba lagi.'
   } finally {
     loading.value = false
   }
@@ -243,7 +245,12 @@ async function confirmMerge() {
   }
 }
 
-onMounted(load)
+onMounted(() => load())
+
+useRealtimeRefresh(['customers', 'customer_merge_log'], () => load({ silent: true }), {
+  pauseWhen: () => mergeOpen.value,
+})
+
 </script>
 
 <style scoped>

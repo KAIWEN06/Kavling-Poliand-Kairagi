@@ -14,7 +14,7 @@
     </label>
 
     <SkeletonRowList v-if="loading" :rows="5" :fields="3" :badges="[3]" label="Memuat data pembayaran" />
-    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Data belum dapat dimuat" :on-action="load" />
+    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Data belum dapat dimuat" :on-action="() => load()" />
 
     <!-- Pembayaran -->
     <template v-else-if="tab === 'payments'">
@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
@@ -164,7 +165,7 @@ function memberName(id: string | null) {
   return members.value.find((m) => m.id === id)?.full_name ?? '-'
 }
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   if (!loaded.value) loading.value = true
   error.value = ''
   try {
@@ -174,7 +175,7 @@ async function load() {
     members.value = team
     loaded.value = true
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
+    if (!silent || !loaded.value) error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {
     loading.value = false
   }
@@ -190,6 +191,12 @@ async function applyFocus() {
 onMounted(() => load().then(applyFocus))
 watch(() => props.focusStamp, () => void load().then(applyFocus))
 defineExpose({ reload: load })
+
+useRealtimeRefresh(
+  ['payments', 'installment_schedules', 'installment_penalties', 'lot_transactions', 'customers', 'profiles'],
+  () => load({ silent: true }),
+)
+
 </script>
 
 <style scoped>

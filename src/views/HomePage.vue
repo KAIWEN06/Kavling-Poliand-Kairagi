@@ -42,6 +42,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { chevronForwardOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
@@ -146,22 +147,25 @@ const toast = useToast()
 const contactSettings = ref({ whatsapp: '', phone: '' })
 
 /** Nomor WhatsApp & telepon diambil dari data Kontak yang dikelola Admin. Tidak ada nomor cadangan di kode. */
-const loadContactSettings = async () => {
+const loadContactSettings = async ({ silent = false }: LoadOptions = {}) => {
   try {
     const rows = await contactsService.getAll()
     const valueOf = (...keys: string[]) => rows.find((row) => keys.includes(row.key.toLowerCase()))?.value?.trim() || ''
     contactSettings.value = { whatsapp: valueOf('whatsapp'), phone: valueOf('phone', 'telepon') }
   } catch {
-    contactSettings.value = { whatsapp: '', phone: '' }
+    if (!silent) contactSettings.value = { whatsapp: '', phone: '' }
   }
 }
-onMounted(loadContactSettings)
+onMounted(() => loadContactSettings())
 
 const contactWhatsapp = () => {
   const number = toWaNumber(contactSettings.value.whatsapp)
   if (!number) return toast.info('Nomor WhatsApp belum tersedia. Silakan coba lagi nanti.')
   window.open(`https://wa.me/${number}`, '_blank')
 }
+
+useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
+
 </script>
 
 <style scoped>

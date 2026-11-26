@@ -13,7 +13,7 @@
           :variant="resolveErrorVariant(errorMessage)"
           title="Detail kaveling belum bisa dibuka"
           fill
-          :on-action="loadDetail"
+          :on-action="() => loadDetail()"
         />
 
         <template v-else-if="lot">
@@ -433,6 +433,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { useToast } from '@/composables/useToast'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
@@ -847,7 +848,7 @@ function openOrderForm() {
     query: { create: '1', lot_id: String(lot.value.id) },
   })
 }
-async function refreshSurveyAvailability() {
+async function refreshSurveyAvailability({ silent = false }: LoadOptions = {}) {
   const dateToCheck = selectedSurveyDate.value
   const requestVersion = ++availabilityRequestVersion
 
@@ -857,7 +858,7 @@ async function refreshSurveyAvailability() {
     return
   }
 
-  availabilityLoading.value = true
+  if (!silent) availabilityLoading.value = true
   try {
     const booked = await surveyService.getBookedSlots(dateToCheck)
     if (requestVersion === availabilityRequestVersion && dateToCheck === selectedSurveyDate.value) {
@@ -865,7 +866,7 @@ async function refreshSurveyAvailability() {
     }
   } catch (error) {
     console.error('[ClientKavlingDetail] Gagal memuat slot survei:', error)
-    if (requestVersion === availabilityRequestVersion && dateToCheck === selectedSurveyDate.value) {
+    if (!silent && requestVersion === availabilityRequestVersion && dateToCheck === selectedSurveyDate.value) {
       occupiedSurveySlots.value = allSurveySlots.value.slice()
       notify('Jam survei belum bisa dimuat. Coba pilih tanggal lain atau muat ulang.', 'warning')
     }
@@ -991,16 +992,18 @@ function scrollToSurveyIfRequested() {
     })
   }, 450)
 }
-async function loadDetail() {
+async function loadDetail({ silent = false }: LoadOptions = {}) {
   if (!Number.isInteger(lotId.value) || lotId.value <= 0) {
     loadError.value = true
     errorMessage.value = 'Info kaveling tidak ditemukan.'
     loading.value = false
     return
   }
-  loading.value = true
-  loadError.value = false
-  errorMessage.value = ''
+  if (!silent) {
+    loading.value = true
+    loadError.value = false
+    errorMessage.value = ''
+  }
   try {
     const [rows, contactSettings, latestRequests, held] = await Promise.all([
       lotService.getClientLots(),
@@ -1020,22 +1023,31 @@ async function loadDetail() {
     isOwnLot.value = isSold.value
       ? await lotService.isLotOwnedByMe(lot.value.id).catch(() => false)
       : false
-    await refreshSurveyAvailability()
-    scrollToSurveyIfRequested()
+    loadError.value = false
+    await refreshSurveyAvailability({ silent })
+    if (!silent) scrollToSurveyIfRequested()
   } catch (error) {
     console.error('[ClientKavlingDetail] Gagal memuat detail:', error)
+    if (silent) return
     errorMessage.value = error instanceof Error ? error.message : 'Belum bisa memuat info kaveling.'
     loadError.value = true
   } finally {
     loading.value = false
   }
 }
-onIonViewWillEnter(loadDetail)
+onIonViewWillEnter(() => loadDetail())
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'info', label: 'Informasi' },
   { key: 'panorama', label: 'Panorama 360°' },
 ]
+
+useRealtimeRefresh(
+  ['lots', 'survey_requests', 'spk_requests', 'lot_transactions', 'contacts'],
+  () => loadDetail({ silent: true }),
+  { pauseWhen: () => loading.value || surveyRequestSaving.value || calendarOpen.value },
+)
+
 </script>
 
 <style scoped>

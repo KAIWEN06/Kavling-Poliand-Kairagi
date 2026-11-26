@@ -143,6 +143,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import Reveal from '@/components/ui/Reveal.vue'
@@ -196,6 +197,12 @@ onMounted(async () => {
     members.value = (await getTeamMembers()).filter((m) => m.role === 'marketing')
   } catch { /* filter Marketing opsional */ }
 })
+
+useRealtimeRefresh(
+  ['customers', 'customer_followups', 'customer_crm_status_history', 'lot_transactions', 'spk_requests', 'payments', 'installment_schedules', 'marketing_commissions', 'survey_requests'],
+  () => load(undefined, { silent: true }),
+)
+
 </script>
 
 <style scoped>

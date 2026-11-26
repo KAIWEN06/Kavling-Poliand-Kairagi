@@ -3,7 +3,7 @@
     <Reveal :order="2">
       <label class="mk-field mk-narrow">
         <span>Pemasar</span>
-        <select v-model="marketingId" class="mk-input" @change="loadActivity">
+        <select v-model="marketingId" class="mk-input" @change="loadActivity()">
           <option value="">Semua pemasar</option>
           <option v-for="m in members" :key="m.id" :value="m.id">{{ m.full_name }}</option>
         </select>
@@ -11,7 +11,7 @@
     </Reveal>
 
     <SkeletonRowList v-if="loading" :rows="5" :fields="3" :badges="[2]" label="Memuat perkembangan klien" />
-    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Data belum dapat dimuat" :on-action="load" />
+    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Data belum dapat dimuat" :on-action="() => load()" />
 
     <template v-else>
       <section class="mk-section">
@@ -71,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
@@ -118,19 +119,21 @@ function openClient(id: number) {
   router.push(`/kepala-marketing/clients/${id}`)
 }
 
-async function loadActivity() {
-  activityLoading.value = true
-  activityError.value = ''
+async function loadActivity({ silent = false }: LoadOptions = {}) {
+  if (!silent) {
+    activityLoading.value = true
+    activityError.value = ''
+  }
   try {
     activity.value = await getMarketingActivity(marketingId.value || null, 30)
   } catch (cause) {
-    activityError.value = cause instanceof Error ? cause.message : 'Aktivitas gagal dimuat.'
+    if (!silent) activityError.value = cause instanceof Error ? cause.message : 'Aktivitas gagal dimuat.'
   } finally {
     activityLoading.value = false
   }
 }
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   if (!loaded.value) loading.value = true
   error.value = ''
   try {
@@ -139,14 +142,20 @@ async function load() {
     members.value = team.filter((m) => m.role === 'marketing')
     loaded.value = true
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
+    if (!silent || !loaded.value) error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {
     loading.value = false
   }
-  void loadActivity()
+  await loadActivity({ silent })
 }
 
 onMounted(load)
+
+useRealtimeRefresh(
+  ['customers', 'customer_followups', 'customer_crm_status_history', 'lot_transactions', 'spk_requests', 'profiles'],
+  () => load({ silent: true }),
+)
+
 </script>
 
 <style scoped>

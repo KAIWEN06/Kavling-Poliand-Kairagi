@@ -19,7 +19,7 @@
           :variant="resolveErrorVariant()"
           title="Data gagal dimuat"
           fill
-          :on-action="load"
+          :on-action="() => load()"
         />
 
         <StatusIllustration
@@ -112,6 +112,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -186,16 +187,19 @@ watch(
 )
 onBeforeUnmount(() => cancelAnimationFrame(countRaf))
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   const id = String(route.params.id || '')
   if (!id) { item.value = null; isLoading.value = false; return }
-  isLoading.value = true
-  loadError.value = false
+  if (!silent) {
+    isLoading.value = true
+    loadError.value = false
+  }
   try {
     item.value = await progressService.getProgressById(id)
+    loadError.value = false
   } catch (error) {
     console.error('Gagal memuat detail kemajuan:', error)
-    loadError.value = true
+    if (!silent) loadError.value = true
   } finally {
     isLoading.value = false
   }
@@ -220,7 +224,10 @@ async function confirmDelete() {
 }
 
 watch(() => route.params.id, (id) => { if (id && route.path.startsWith('/progress/')) void load() })
-onMounted(load)
+onMounted(() => load())
+
+useRealtimeRefresh(['progress'], () => load({ silent: true }))
+
 </script>
 
 <style scoped>

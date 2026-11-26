@@ -74,11 +74,12 @@
       </motion.div>
     </div>
 
-    <CmsPanelModal v-model="editOpen" title="Ubah sampul" panel="home" section="hero" @saved="loadHeroData" />
+    <CmsPanelModal v-model="editOpen" title="Ubah sampul" panel="home" section="hero" @saved="loadHeroData()" />
   </section>
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonButton, IonIcon } from '@ionic/vue'
@@ -132,9 +133,9 @@ const contactWhatsapp = () => {
   window.open(`https://wa.me/${number}`, '_system')
 }
 
-const loadHeroData = async () => {
+const loadHeroData = async ({ silent = false }: LoadOptions = {}) => {
   try {
-    loading.value = true
+    if (!silent) loading.value = true
     const [savedHero, contacts] = await Promise.all([cmsService.getHero(), contactsService.getAll()])
     hero.value = savedHero ?? { title: '', subtitle: '', description: '', image_url: null, cta_text: 'Hubungi Kami', cta_url: 'whatsapp', is_active: true }
     const whatsapp = contacts?.find((item: { key: string; value?: string }) => item.key === 'whatsapp')
@@ -149,6 +150,9 @@ const loadHeroData = async () => {
 onMounted(() => {
   loadHeroData()
 })
+
+useRealtimeRefresh(['home_hero', 'contacts'], () => loadHeroData({ silent: true }))
+
 </script>
 
 <style scoped>

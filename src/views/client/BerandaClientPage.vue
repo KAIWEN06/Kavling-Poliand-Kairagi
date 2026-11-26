@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -61,12 +62,12 @@ const uploadedDocumentLabels = computed(() => {
 
 const uploadedDocumentCount = computed(() => uploadedDocumentLabels.value.length)
 
-async function loadClientDocuments() {
+async function loadClientDocuments({ silent = false }: LoadOptions = {}) {
   try {
     clientSpks.value = await getClientSpks()
   } catch (error) {
     console.error('[Beranda Klien] Gagal memuat dokumen dari Supabase:', error)
-    clientSpks.value = []
+    if (!silent) clientSpks.value = []
   } finally {
     documentsLoaded.value = true
   }
@@ -176,6 +177,12 @@ async function logout() {
 function goTo(path: string) {
   void router.push(path)
 }
+
+useRealtimeRefresh(
+  ['spk_requests', 'spk_request_documents', 'lot_transactions', 'payments', 'installment_schedules', 'lots'],
+  () => Promise.all([loadClientDocuments({ silent: true }), loadPurchase({ silent: true })]),
+)
+
 </script>
 
 <template>
@@ -209,7 +216,7 @@ function goTo(path: string) {
 
               <AppNotice v-else-if="purchaseError" tone="error" title="Data pembelian belum dapat dimuat">
                 <p>{{ purchaseError }}</p>
-<AppButton size="small" @click="loadPurchase">Coba lagi</AppButton>
+<AppButton size="small" @click="loadPurchase()">Coba lagi</AppButton>
               </AppNotice>
 
               <div v-else-if="!overview" class="card">

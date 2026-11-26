@@ -4,7 +4,7 @@
       <SkeletonStatGrid :count="4" label="Memuat komisi" />
       <SkeletonRowList :rows="4" :fields="3" :badges="[3]" />
     </template>
-    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Komisi belum dapat dimuat" :on-action="load" />
+    <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Komisi belum dapat dimuat" :on-action="() => load()" />
 
     <template v-else>
       <div class="mk-grid">
@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
@@ -96,7 +97,7 @@ function memberName(id: string) {
   return members.value.find((m) => m.id === id)?.full_name ?? '-'
 }
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   if (!loaded.value) loading.value = true
   error.value = ''
   try {
@@ -105,7 +106,7 @@ async function load() {
     members.value = team
     loaded.value = true
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
+    if (!silent || !loaded.value) error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {
     loading.value = false
   }
@@ -118,6 +119,12 @@ async function applyFocus() {
 onMounted(() => load().then(applyFocus))
 watch(() => props.focusStamp, () => void load().then(applyFocus))
 defineExpose({ reload: load })
+
+useRealtimeRefresh(
+  ['marketing_commissions', 'lot_transactions', 'spk_requests', 'profiles'],
+  () => load({ silent: true }),
+)
+
 </script>
 
 <style scoped>

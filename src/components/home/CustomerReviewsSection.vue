@@ -39,7 +39,7 @@
 
         <AppNotice v-else-if="loadError" tone="error">
           {{ loadError }}
-          <button type="button" class="link" @click="loadReviews">Coba lagi</button>
+          <button type="button" class="link" @click="loadReviews()">Coba lagi</button>
         </AppNotice>
 
         <div v-else-if="!reviews.length" class="state">
@@ -145,6 +145,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { nextTick, onMounted, reactive, ref, watch } from 'vue'
@@ -193,22 +194,24 @@ const formatNumber = (n: number) => new Intl.NumberFormat('id-ID').format(n)
 
 let loadToken = 0
 
-async function loadStats() {
-  statsLoading.value = true
+async function loadStats({ silent = false }: LoadOptions = {}) {
+  if (!silent) statsLoading.value = true
   try {
     stats.value = await reviewService.getStats()
   } catch (error) {
     console.error('Gagal memuat statistik ulasan.', error)
-    stats.value = null
+    if (!silent) stats.value = null
   } finally {
     statsLoading.value = false
   }
 }
 
-async function loadReviews() {
+async function loadReviews({ silent = false }: LoadOptions = {}) {
   const token = ++loadToken
-  loading.value = true
-  loadError.value = ''
+  if (!silent) {
+    loading.value = true
+    loadError.value = ''
+  }
   try {
     const result = await reviewService.getReviews({
       rating: ratingFilter.value,
@@ -218,6 +221,7 @@ async function loadReviews() {
     })
     if (token !== loadToken) return
     reviews.value = result.items
+    loadError.value = ''
     total.value = result.total
     // Halaman melebihi data (mis. ulasan disembunyikan): kembali ke halaman terakhir.
     if (!result.items.length && result.total > 0 && pager.page > 1) {
@@ -226,6 +230,7 @@ async function loadReviews() {
   } catch (error) {
     if (token !== loadToken) return
     console.error('Gagal memuat ulasan.', error)
+    if (silent) return
     loadError.value = 'Ulasan belum dapat dimuat. Periksa koneksi Anda.'
     reviews.value = []
   } finally {
@@ -237,7 +242,7 @@ watch([ratingFilter, sort], () => {
   if (pager.page !== 1) pager.reset()
   else loadReviews()
 })
-watch(() => pager.page, loadReviews)
+watch(() => pager.page, () => loadReviews())
 
 async function toggleHelpful(review: PublicReview) {
   if (votingId.value) return
@@ -332,6 +337,12 @@ onMounted(() => {
   loadStats()
   loadReviews()
 })
+
+useRealtimeRefresh(
+  ['customer_reviews', 'review_helpful_votes'],
+  () => Promise.all([loadStats({ silent: true }), loadReviews({ silent: true })]),
+)
+
 </script>
 
 <style scoped>

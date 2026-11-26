@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { onMounted, ref } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { cmsService, type CmsFeature } from '@/services/cmsService'
@@ -39,6 +40,9 @@ async function load() {
   try { features.value = await cmsService.getFeatures(false) } catch (error) { console.error('Gagal mengambil keunggulan:', error) }
 }
 onMounted(load)
+
+useRealtimeRefresh(['home_features'], load)
+
 </script>
 
 <style scoped>

@@ -9,7 +9,7 @@
     </header>
 
     <StatusIllustration v-if="loading" variant="processing" size="sm" title="Memuat data" description="Mohon tunggu sebentar." />
-    <StatusIllustration v-else-if="loadError" :variant="resolveErrorVariant(loadError)" size="sm" :on-action="load" />
+    <StatusIllustration v-else-if="loadError" :variant="resolveErrorVariant(loadError)" size="sm" :on-action="() => load()" />
     <StatusIllustration v-else-if="!items.length" variant="empty-data" size="sm" :title="`${meta.title} masih kosong`" :description="meta.empty" />
 
     <ul v-else class="item-list">
@@ -45,6 +45,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { computed, onMounted, ref } from 'vue'
@@ -80,15 +81,16 @@ function itemSummary(item: any) {
   return [item.category, item.description].filter(Boolean).join(' · ')
 }
 
-async function load() {
-  loading.value = true
-  loadError.value = ''
+async function load({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
+  if (!silent) loadError.value = ''
   try {
     items.value = props.type === 'gallery' ? await galleryService.getGallery(false)
       : props.type === 'progress' ? await progressService.getProgress(true)
       : await faqService.getFaqs(false)
+    loadError.value = ''
   } catch (error) {
-    loadError.value = error instanceof Error ? error.message : 'Data gagal dimuat.'
+    if (!silent) loadError.value = error instanceof Error ? error.message : 'Data gagal dimuat.'
   } finally {
     loading.value = false
   }
@@ -118,7 +120,12 @@ async function remove() {
   }
 }
 
-onMounted(load)
+onMounted(() => load())
+
+useRealtimeRefresh(['gallery', 'progress', 'faqs'], () => load({ silent: true }), {
+  pauseWhen: () => open.value || confirmOpen.value || removing.value,
+})
+
 </script>
 
 <style scoped src="./cmsPanel.css"></style>

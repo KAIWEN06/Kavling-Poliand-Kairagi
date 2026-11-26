@@ -25,7 +25,7 @@
         </nav>
 
         <AppNotice v-if="loadError" tone="error">
-          {{ loadError }} <button type="button" class="link" @click="load">Coba lagi</button>
+          {{ loadError }} <button type="button" class="link" @click="load()">Coba lagi</button>
         </AppNotice>
         <SkeletonCardList v-else-if="loading && !items.length" :count="4" :lines="3" label="Memuat ulasan" />
         <p v-else-if="!items.length" class="state">Tidak ada ulasan pada tab ini.</p>
@@ -189,6 +189,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { computed, onMounted, ref } from 'vue'
@@ -313,12 +314,13 @@ const noteConfirm = computed(
 const formatDate = (iso: string) =>
   new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
 
-async function load() {
-  loading.value = true
-  loadError.value = ''
+async function load({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
+  if (!silent) loadError.value = ''
   try {
     const result = await reviewModerationService.list(tab.value, pager.page, PAGE_SIZE)
     items.value = result.items
+    loadError.value = ''
     total.value = result.total
     counts.value = result.counts
     const paths = result.items.flatMap((r) => r.photo_urls)
@@ -329,11 +331,11 @@ async function load() {
     }
     if (!result.items.length && result.total > 0 && pager.page > 1) {
       pager.setPage(Math.ceil(result.total / PAGE_SIZE))
-      await load()
+      await load({ silent })
     }
   } catch (error) {
     console.error('Gagal memuat ulasan.', error)
-    loadError.value = reviewErrorMessage(error, 'Ulasan gagal dimuat.')
+    if (!silent) loadError.value = reviewErrorMessage(error, 'Ulasan gagal dimuat.')
   } finally {
     loading.value = false
   }
@@ -434,6 +436,11 @@ const deleteTerm = (t: BlockedTerm) =>
   runTermAction(() => reviewModerationService.removeTerm(t.id), 'Kata gagal dihapus.')
 
 onMounted(load)
+
+useRealtimeRefresh(['customer_reviews', 'review_reports'], () => load({ silent: true }), {
+  pauseWhen: () => noteOpen.value || noteSubmitting.value || busyId.value,
+})
+
 </script>
 
 <style scoped>

@@ -38,7 +38,7 @@
         <SkeletonCardList v-if="loading" :count="3" :lines="3" label="Memuat pengajuan SPK" />
         <div v-else-if="errorMessage" class="spk-state spk-error" role="alert">
           <ion-icon :icon="alertCircleOutline" /><strong>Data SPK gagal dimuat</strong><p>{{ errorMessage }}</p>
-          <AppButton size="small" @click="loadRequests">Coba lagi</AppButton>
+          <AppButton size="small" @click="loadRequests()">Coba lagi</AppButton>
         </div>
 
         <template v-else>
@@ -477,6 +477,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
@@ -757,11 +758,18 @@ const pager = usePagination(filteredRequests, {
   resetOn: [selectedStatus, selectedSource, searchQuery],
 })
 
-async function loadRequests() {
-  loading.value = true
-  errorMessage.value = ''
-  try { requests.value = await getAdminSPKRequests() }
-  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Terjadi kesalahan.' }
+async function loadRequests({ silent = false }: LoadOptions = {}) {
+  if (!silent) {
+    loading.value = true
+    errorMessage.value = ''
+  }
+  try {
+    requests.value = await getAdminSPKRequests()
+    errorMessage.value = ''
+    const openId = selectedRequest.value?.id
+    if (openId != null) selectedRequest.value = requests.value.find((row) => row.id === openId) ?? selectedRequest.value
+  }
+  catch (error) { if (!silent) errorMessage.value = error instanceof Error ? error.message : 'Terjadi kesalahan.' }
   finally { loading.value = false }
 }
 function isPending(row: AdminSPKRequest) { return row.status === 'Submitted' || row.status === 'Under Review' }
@@ -1255,6 +1263,16 @@ watch(
     if (route.query.spkId) void openRequestedSPKDetail()
   },
 )
+
+useRealtimeRefresh(
+  ['spk_requests', 'spk_request_documents', 'spk_corrections', 'payments', 'booking_fee_refunds', 'customers', 'lots'],
+  () => loadRequests({ silent: true }),
+  {
+    pauseWhen: () =>
+      approveOpen.value || rejectOpen.value || createOpen.value || saving.value || refundSubmitting.value,
+  },
+)
+
 </script>
 
 <style scoped>

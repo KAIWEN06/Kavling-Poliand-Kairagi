@@ -90,7 +90,7 @@
       v-else-if="error"
       :variant="resolveErrorVariant(error)"
       title="Data klien gagal dimuat"
-      :on-action="load"
+      :on-action="() => load()"
     />
     <StatusIllustration
       v-else-if="!rows.length"
@@ -157,6 +157,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { IonIcon } from '@ionic/vue'
 import { addOutline, chevronForwardOutline, closeOutline, optionsOutline, searchOutline } from 'ionicons/icons'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
@@ -270,7 +271,7 @@ function interestPlan(row: ClientListItem) {
   return /cicilan/i.test(plan) ? plan : `Cicilan ${plan}`
 }
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   // Skeleton hanya pada muat awal; saat refresh data lama tetap tampil.
   if (!loaded.value) loading.value = true
   error.value = ''
@@ -280,7 +281,7 @@ async function load() {
     members.value = team
     loaded.value = true
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
+    if (!silent || !loaded.value) error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {
     loading.value = false
   }
@@ -288,6 +289,12 @@ async function load() {
 
 onMounted(load)
 defineExpose({ reload: load })
+
+useRealtimeRefresh(
+  ['customers', 'customer_followups', 'customer_interests', 'lot_transactions', 'spk_requests', 'profiles'],
+  () => load({ silent: true }),
+)
+
 </script>
 
 <style scoped>

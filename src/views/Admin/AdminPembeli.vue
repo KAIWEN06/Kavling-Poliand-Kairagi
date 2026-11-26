@@ -328,6 +328,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
@@ -454,11 +455,12 @@ function refreshCustomers() {
   return withRefreshSkeleton(refreshing, () => loadCustomers(true))
 }
 
-async function loadCustomers(silent = false) {
+async function loadCustomers(silent = false, background = false) {
   if (!silent) loading.value = true
-  errorMessage.value = ''
+  if (!background) errorMessage.value = ''
   try {
     const rows = await customerService.getAdminCustomers()
+    errorMessage.value = ''
     customers.value = (rows ?? []).map((row: any) => ({
       id: row.id,
       full_name: row.full_name,
@@ -504,7 +506,7 @@ async function loadCustomers(silent = false) {
       })),
     }))
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.'
+    if (!background || !customers.value.length) errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.'
   } finally {
     loading.value = false
   }
@@ -869,6 +871,13 @@ function openCustomer(id: number) {
 }
 
 onMounted(() => loadCustomers())
+
+useRealtimeRefresh(
+  ['customers', 'customer_interests', 'customer_notes', 'lot_transactions', 'payments', 'lots'],
+  () => loadCustomers(true, true),
+  { pauseWhen: () => addSaving.value || deleteSaving.value || deleteModalOpen.value },
+)
+
 </script>
 
 <style scoped>

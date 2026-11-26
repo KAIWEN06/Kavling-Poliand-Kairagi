@@ -127,6 +127,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { computed, onMounted, ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { arrowBackOutline, checkmarkCircleOutline, logoWhatsapp } from 'ionicons/icons'
@@ -196,6 +197,9 @@ const contactWhatsapp = () => {
 }
 
 onMounted(load)
+
+useRealtimeRefresh(['contacts', 'videos', 'media'], load)
+
 </script>
 
 <style scoped>

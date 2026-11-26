@@ -774,9 +774,11 @@ const WHATSAPP_NUMBER = '6281356960253'
 /* ===================================================== */
 
 watch(
-  () => props.lot,
+  // Dipantau lewat id: pembaruan data realtime tidak boleh mereset simulasi DP.
+  () => props.lot?.id,
 
-  async (lot) => {
+  async () => {
+    const lot = props.lot
     if (!lot) return
 
     // Reset DP setiap kali pengguna memilih kavling yang berbeda.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppPagination from '@/components/ui/AppPagination.vue'
@@ -312,21 +313,24 @@ function formatActivityDate(value: string) {
 
 async function loadBuyerData(silent = false) {
   if (!silent) buyerDataLoading.value = true
-  buyerDataError.value = ''
-  spkError.value = ''
+  if (!silent) {
+    buyerDataError.value = ''
+    spkError.value = ''
+  }
   try {
     const [customers] = await Promise.all([
       customerService.getAdminCustomers(),
       loadPendingSpks(),
     ])
     dashboardCustomers.value = customers
+    buyerDataError.value = ''
     installmentInfo.value = await loadPaymentInstallmentInfo(
       pendingPayments.value
         .filter(({ payment }) => payment.payment_category === 'Installment')
         .map(({ payment }) => Number(payment.id)),
     )
   } catch (error) {
-    buyerDataError.value = error instanceof Error ? error.message : 'Data pembeli belum dapat dimuat.'
+    if (!silent) buyerDataError.value = error instanceof Error ? error.message : 'Data pembeli belum dapat dimuat.'
   } finally {
     buyerDataLoading.value = false
   }
@@ -336,17 +340,20 @@ async function loadPendingSpks() {
   try {
     const requests = await getAdminSPKRequests()
     pendingSpks.value = requests.filter((spk) => spk.status === 'Submitted' || spk.status === 'Under Review')
+    spkError.value = ''
   } catch (error) {
     spkError.value = error instanceof Error ? error.message : 'Pengajuan SPK belum dapat dimuat.'
   }
 }
 
-async function loadInventory(forceRefresh = false) {
+async function loadInventory(forceRefresh = false, { silent = false }: LoadOptions = {}) {
   const requestId = ++requestSequence
   const hasExistingData = lots.value.length > 0
-  loadError.value = ''
+  if (!silent) loadError.value = ''
 
-  if (forceRefresh && hasExistingData) {
+  if (silent && hasExistingData) {
+    // Pembaruan otomatis: tampilan lama tetap ada sampai data baru tiba.
+  } else if (forceRefresh && hasExistingData) {
     refreshing.value = true
   } else {
     loadState.value = 'loading'
@@ -357,9 +364,12 @@ async function loadInventory(forceRefresh = false) {
     if (isUnmounted || requestId !== requestSequence) return
 
     lots.value = records
+    loadError.value = ''
     loadState.value = records.length === 0 ? 'empty' : 'success'
   } catch (error) {
     if (isUnmounted || requestId !== requestSequence) return
+
+    if (silent && hasExistingData) return
 
     if (hasExistingData) {
       loadError.value =
@@ -412,6 +422,15 @@ onBeforeUnmount(() => {
   isUnmounted = true
   requestSequence += 1
 })
+
+useRealtimeRefresh(
+  [
+    'lots', 'blocks', 'lot_transactions', 'spk_requests', 'customers', 'payments',
+    'installment_schedules', 'survey_requests', 'purchase_cancellation_requests',
+  ],
+  () => Promise.all([loadInventory(true, { silent: true }), loadBuyerData(true)]),
+)
+
 </script>
 
 <template>

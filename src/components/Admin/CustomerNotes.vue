@@ -60,7 +60,7 @@
       v-else-if="errorMessage"
       :variant="resolveErrorVariant(errorMessage)"
       title="Catatan gagal dimuat"
-      :on-action="loadNotes"
+      :on-action="() => loadNotes()"
     />
 
     <template v-else>
@@ -270,6 +270,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
@@ -375,15 +376,15 @@ const filteredNotes = computed(() => {
     })
 })
 
-async function loadNotes() {
-  loading.value = true
-  errorMessage.value = ''
+async function loadNotes({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
+  if (!silent) errorMessage.value = ''
 
   try {
     notes.value = await customerNotesService.list(props.customerId)
   } catch (error) {
     console.error('[CustomerNotes] Gagal memuat catatan:', error)
-    errorMessage.value =
+    if (!silent) errorMessage.value =
       error instanceof Error ? error.message : 'Catatan gagal dimuat.'
   } finally {
     loading.value = false
@@ -637,7 +638,7 @@ function handleEscape(event: KeyboardEvent) {
   else if (menuNote.value) menuNote.value = null
 }
 
-watch(() => props.customerId, loadNotes)
+watch(() => props.customerId, () => loadNotes())
 onMounted(() => {
   loadNotes()
   window.addEventListener('keydown', handleEscape)
@@ -646,6 +647,11 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleEscape)
   window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
 })
+
+useRealtimeRefresh(['customer_notes'], () => loadNotes({ silent: true }), {
+  pauseWhen: () => saving.value,
+})
+
 </script>
 
 <style scoped>

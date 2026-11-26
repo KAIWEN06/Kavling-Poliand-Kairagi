@@ -21,7 +21,7 @@
       v-else-if="error"
       :variant="resolveErrorVariant(error)"
       title="Pengajuan SPK belum dapat dimuat"
-      :on-action="load"
+      :on-action="() => load()"
     />
     <StatusIllustration
       v-else-if="!filtered.length"
@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
@@ -117,7 +118,7 @@ function memberName(id: string | null) {
   return members.value.find((m) => m.id === id)?.full_name ?? '-'
 }
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   if (!loaded.value) loading.value = true
   error.value = ''
   try {
@@ -127,7 +128,7 @@ async function load() {
     members.value = team
     loaded.value = true
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
+    if (!silent || !loaded.value) error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {
     loading.value = false
   }
@@ -143,6 +144,12 @@ async function applyFocus() {
 onMounted(() => load().then(applyFocus))
 watch(() => props.focusStamp, () => void load().then(applyFocus))
 defineExpose({ reload: load })
+
+useRealtimeRefresh(
+  ['spk_requests', 'spk_process_steps', 'customers', 'profiles'],
+  () => load({ silent: true }),
+)
+
 </script>
 
 <style scoped>

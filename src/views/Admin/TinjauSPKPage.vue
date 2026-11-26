@@ -5,12 +5,12 @@
       <main class="review-shell">
         <PageBackButton fallback="/admin/spk" label="Daftar SPK" />
         <SkeletonDetailHeader v-if="loading" :sections="3" :rows="5" label="Memuat data SPK" />
-        <div v-else-if="errorMessage" class="review-state review-error" role="alert"><strong>Data tidak dapat dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="load">Coba lagi</AppButton></div>
+        <div v-else-if="errorMessage" class="review-state review-error" role="alert"><strong>Data tidak dapat dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="load()">Coba lagi</AppButton></div>
         <template v-else-if="data">
           <header class="review-heading"><div> <h1>{{ data.request.spk_number }}</h1><span class="status-chip">Disetujui</span></div><span class="review-id">SPK #{{ data.request.id }} · Transaksi #{{ data.transaction.id }}</span></header>
           <section class="review-panel">
             <div class="section-head"><div><h2>Tahapan proses</h2><p class="review-note">{{ data.request.payment_method === 'Cash' ? 'Pembayaran tunai: 4 tahap.' : 'Pembayaran cicilan: 6 tahap.' }} Atur tanggal perkiraan, beri tahu klien bila tahap sudah bisa diproses, lalu tandai selesai.</p></div></div>
-            <SpkProcessTimeline :spk-id="Number(data.request.id)" mode="admin" @changed="load" />
+            <SpkProcessTimeline :spk-id="Number(data.request.id)" mode="admin" @changed="load()" />
           </section>
           <section class="review-panel"><h2>Informasi SPK</h2><dl class="info-grid">
             <div><dt>Pembeli</dt><dd>{{ data.request.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ data.request.customer_phone }}</dd></div><div><dt>Kaveling</dt><dd>{{ data.request.lots?.lot_number || data.request.lot_id }}</dd></div><div><dt>Harga transaksi</dt><dd>{{ money(data.request.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ data.request.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div><dt>Tanda jadi</dt><dd>{{ money(data.request.booking_fee_snapshot) }}</dd></div><div><dt>Tanggal persetujuan</dt><dd>{{ date(data.request.approved_at) }}</dd></div><div><dt>Pemasar</dt><dd>{{ data.request.profiles?.full_name || 'Tidak ada' }}</dd></div><div><dt>Sumber pengajuan</dt><dd>{{ data.request.submission_source }}</dd></div>
@@ -97,6 +97,7 @@
   </ion-page>
 </template>
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useToast } from '@/composables/useToast'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
@@ -229,10 +230,12 @@ const date = (v: string | null) =>
       }).format(new Date(v))
     : '-'
 
-async function load() {
-  loading.value = true
-  errorMessage.value = ''
-  scheduleError.value = ''
+async function load({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
+  if (!silent) {
+    errorMessage.value = ''
+    scheduleError.value = ''
+  }
 
   try {
     const spkId = Number(route.params.spkId)
@@ -249,9 +252,10 @@ async function load() {
         .filter((item: any) => item.status !== 'Paid' && item.due_date)
         .map((item: any) => [Number(item.id), Number(dateOnly(item.due_date).slice(8, 10))]),
     )
-    activeCalendarId.value = null
+    errorMessage.value = ''
+    if (!silent) activeCalendarId.value = null
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Terjadi kesalahan.'
+    if (!silent) errorMessage.value = error instanceof Error ? error.message : 'Terjadi kesalahan.'
   } finally {
     loading.value = false
   }
@@ -308,7 +312,27 @@ async function saveIndividualSchedules() {
   }
 }
 
-onMounted(load)
+onMounted(() => load())
+
+/* Tanggal cicilan yang sudah diubah tetapi belum disimpan tidak boleh tertimpa. */
+const hasUnsavedSchedule = computed(() =>
+  (data.value?.schedules ?? []).some(
+    (item: any) =>
+      item.status !== 'Paid' && item.due_date &&
+      scheduleDayOverrides.value[Number(item.id)] !== Number(dateOnly(item.due_date).slice(8, 10)),
+  ),
+)
+
+useRealtimeRefresh(
+  ['spk_requests', 'lot_transactions', 'payments', 'installment_schedules', 'marketing_commissions', 'spk_process_steps'],
+  () => load({ silent: true }),
+  {
+    pauseWhen: () =>
+      loading.value || savingSchedule.value || payingCommission.value ||
+      activeCalendarId.value !== null || commissionReference.value || hasUnsavedSchedule.value,
+  },
+)
+
 </script>
 <style scoped>
 .review-page { --review-gap: 16px; font-family: var(--font-primary); } .review-shell { max-width: 1100px; margin: 0 auto; padding: 24px 16px calc(96px + env(safe-area-inset-bottom)); color: var(--text-primary); } .review-navigation { margin-bottom: 16px; } .review-back-button { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:8px 12px; border:1px solid var(--border-default); border-radius:var(--radius-control); background:var(--surface-primary); color:var(--text-primary); font:inherit; font-weight:600; cursor:pointer; transition:background-color .2s ease, border-color .2s ease; } @media (hover: hover) and (pointer: fine) {

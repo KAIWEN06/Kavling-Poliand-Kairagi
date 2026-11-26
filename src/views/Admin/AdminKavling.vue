@@ -300,6 +300,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import SkeletonLotList from '@/components/ui/skeletons/SkeletonLotList.vue'
 import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
 import Reveal from '@/components/ui/Reveal.vue'
@@ -579,9 +580,9 @@ function mapLot(row: LotRecord): Lot {
 
 /* ---------- loading ---------- */
 
-async function load(showSpinner: boolean) {
+async function load(showSpinner: boolean, { silent = false }: LoadOptions = {}) {
   if (showSpinner) loading.value = true
-  loadError.value = false
+  if (!silent) loadError.value = false
 
   try {
     const [rows, surveys] = await Promise.all([
@@ -592,10 +593,11 @@ async function load(showSpinner: boolean) {
       }),
     ])
     lots.value = rows.map(mapLot)
+    loadError.value = false
     surveyByLot.value = surveys
   } catch (error) {
     console.error('Gagal memuat kaveling', error)
-    loadError.value = true
+    if (!silent || lots.value.length === 0) loadError.value = true
   } finally {
     loading.value = false
   }
@@ -894,6 +896,12 @@ function openSurveyRequests(status: 'pending' | 'confirmed') {
 function openDetail(id: number) {
   ionRouter.push(`/admin/kavling/${id}`)
 }
+
+useRealtimeRefresh(
+  ['lots', 'blocks', 'lot_transactions', 'spk_requests', 'survey_requests'],
+  () => Promise.all([load(false, { silent: true }), reloadSiteplan({ silent: true })]),
+)
+
 </script>
 
 <style scoped>

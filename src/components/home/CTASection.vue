@@ -28,6 +28,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { onMounted, ref } from 'vue'
 import { contactsService } from '@/services/contactService'
 import { HOME_KEYS, toWaNumber } from '@/utils/homeContent'
@@ -68,6 +69,9 @@ const emit = defineEmits<{
 const handleWhatsapp = () => {
   emit('contactWhatsapp')
 }
+
+useRealtimeRefresh(['contacts'], load)
+
 </script>
 
 <style scoped>

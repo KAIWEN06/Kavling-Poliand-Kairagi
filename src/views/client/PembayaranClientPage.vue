@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
@@ -409,9 +410,11 @@ function resetPaymentForm() {
   if (input) input.value = ''
 }
 
-async function loadPaymentData() {
-  loading.value = true
-  loadError.value = ''
+async function loadPaymentData({ silent = false }: LoadOptions = {}) {
+  if (!silent) {
+    loading.value = true
+    loadError.value = ''
+  }
   try {
     const { data: authData, error: authError } = await supabase.auth.getUser()
     if (authError) throw authError
@@ -550,9 +553,12 @@ async function loadPaymentData() {
     if (!transactions.value.some(item => item.id === selectedTransactionId.value)) {
       selectedTransactionId.value = transactions.value[0]?.id ?? null
     }
-    resetPaymentForm()
+    loadError.value = ''
+    if (!silent) resetPaymentForm()
   } catch (error: any) {
     console.error('Gagal memuat data pembayaran klien:', error)
+    // Pembaruan otomatis yang gagal mempertahankan data yang sudah tampil.
+    if (silent) return
     loadError.value = error?.message || 'Terjadi kesalahan saat mengambil data pembayaran.'
     transactions.value = []
     paymentHistory.value = []
@@ -729,6 +735,38 @@ onMounted(() => loadPaymentData().then(applyNotificationTarget))
 watch(() => routeQuery.value.nt, (stamp) => {
   if (stamp) void loadPaymentData().then(applyNotificationTarget)
 })
+
+async function refreshPaymentData() {
+  await loadPaymentData({ silent: true })
+
+  // Cicilan yang sudah dibayar dari tempat lain tidak boleh tetap terpilih.
+  const available = new Set(selectableSchedules.value.map((item) => item.id))
+  const stillValid = selectedScheduleIds.value.filter((id) => available.has(id))
+  if (stillValid.length !== selectedScheduleIds.value.length) selectedScheduleIds.value = stillValid
+
+  const spkId = selectedTransaction.value?.spkRequestId
+  if (!spkId) return
+  try {
+    processSteps.value = await getSpkProcessSteps(Number(spkId))
+  } catch (error) {
+    console.warn('[Pembayaran Klien] Tahapan SPK belum diperbarui:', error)
+  }
+}
+
+useRealtimeRefresh(
+  [
+    'payments', 'payment_allocations', 'installment_schedules', 'installment_penalties', 'lot_transactions',
+    'spk_requests', 'spk_process_steps', 'purchase_cancellation_requests', 'purchase_refunds',
+    'booking_fee_refunds', 'bank_accounts', 'payment_instructions',
+  ],
+  refreshPaymentData,
+  {
+    pauseWhen: () =>
+      loading.value || submitting.value || selectedProof.value || reuploadPaymentId.value !== null ||
+      reuploadSubmitting.value || cancellationModalOpen.value || cancellationSubmitting.value,
+  },
+)
+
 </script>
 
 <template>
@@ -797,7 +835,7 @@ watch(() => routeQuery.value.nt, (stamp) => {
           :variant="resolveErrorVariant(loadError)"
           title="Data pembayaran belum dapat dimuat"
           fill
-          :on-action="loadPaymentData"
+          :on-action="() => loadPaymentData()"
         />
 
         <template v-else-if="transactions.length">

@@ -403,6 +403,7 @@
 
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useToast } from '@/composables/useToast'
 
@@ -1214,6 +1215,14 @@ const handlePlayVideo = () => {
   isVideoOpen.value = true
 
 }
+
+/* Hanya data tampil yang diperbarui; isian formulir video tidak disentuh. */
+async function refreshAboutContent() {
+  const [video] = await Promise.all([featureService.getVideo(), loadAboutText()])
+  if (video) videoData.value = video
+}
+
+useRealtimeRefresh(['videos', 'media', 'contacts'], refreshAboutContent)
 
 </script>
 

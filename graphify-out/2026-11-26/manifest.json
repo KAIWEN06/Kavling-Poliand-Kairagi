@@ -762,21 +762,21 @@
     "semantic_hash": ""
   },
   "src/views/Admin/AdminPembeliDetail.vue": {
-    "mtime": 1795631235.141505,
-    "seen": 1795631380.708242,
-    "ast_hash": "cb3e2d27b548b01a8990edb75cb5d1a3",
+    "mtime": 1795675416.8823318,
+    "seen": 1795675591.4122555,
+    "ast_hash": "20adba1dac44c1f09e4b8bf09ab8840c",
     "semantic_hash": ""
   },
   "src/views/Admin/SPKAdminPage.vue": {
-    "mtime": 1795673673.9925838,
-    "seen": 1795674110.6403368,
-    "ast_hash": "fc1ec7cf4d9aeab68562280e8f54c696",
+    "mtime": 1795675416.8799424,
+    "seen": 1795675591.41378,
+    "ast_hash": "0abc5c10137a4f281324f7be8b25a8b4",
     "semantic_hash": ""
   },
   "src/views/Admin/TinjauSPKPage.vue": {
-    "mtime": 1795630614.6131568,
-    "seen": 1795630942.4955094,
-    "ast_hash": "faab543c35c26508a24542ad7e518a5d",
+    "mtime": 1795675416.8813074,
+    "seen": 1795675591.41378,
+    "ast_hash": "dd32a490934691df8a92f4c8d037f59c",
     "semantic_hash": ""
   },
   "src/views/ContactPage.vue": {
@@ -870,9 +870,9 @@
     "semantic_hash": ""
   },
   "src/views/client/AkunClientPage.vue": {
-    "mtime": 1795630614.7458742,
-    "seen": 1795630942.4995134,
-    "ast_hash": "4f6a8a381c93393505657c907953564b",
+    "mtime": 1795675430.0754645,
+    "seen": 1795675591.4244316,
+    "ast_hash": "d8e9bc4d0171b1748fca5d387061c324",
     "semantic_hash": ""
   },
   "src/views/client/BerandaClientPage.vue": {
@@ -882,9 +882,9 @@
     "semantic_hash": ""
   },
   "src/views/client/DokumenClientPage.vue": {
-    "mtime": 1795674881.2549438,
-    "seen": 1795674991.249242,
-    "ast_hash": "b01a4b18e0ea82b52eba4c244e503570",
+    "mtime": 1795675416.877577,
+    "seen": 1795675591.4256408,
+    "ast_hash": "2c98a87581cb3244f50595156f868ce1",
     "semantic_hash": ""
   },
   "src/views/client/KavlingClientDetailPage.vue": {
@@ -906,9 +906,9 @@
     "semantic_hash": ""
   },
   "src/views/client/SPKClientPage.vue": {
-    "mtime": 1795674881.2591407,
-    "seen": 1795674991.2551441,
-    "ast_hash": "3d7b98c2be87450f1293af762259ce79",
+    "mtime": 1795675416.877577,
+    "seen": 1795675591.4266403,
+    "ast_hash": "eea2237551a4d20ae321e4f55dec4999",
     "semantic_hash": ""
   },
   "src/views/marketing/BerandaMarketingPage.vue": {
@@ -942,9 +942,9 @@
     "semantic_hash": ""
   },
   "src/views/marketing/SPKMarketingPage.vue": {
-    "mtime": 1795630615.1049986,
-    "seen": 1795630942.508452,
-    "ast_hash": "807dbadef78a812f91c312aa370c51da",
+    "mtime": 1795675416.885231,
+    "seen": 1795675591.4372027,
+    "ast_hash": "b6859ce211f16c6dd4dfa4049df201e2",
     "semantic_hash": ""
   },
   "src/views/marketing/TambahCalonPembeli.vue": {
@@ -5652,9 +5652,9 @@
     "semantic_hash": ""
   },
   "src/components/marketing/shared/ClientDetailView.vue": {
-    "mtime": 1795630614.029111,
-    "seen": 1795630942.4218922,
-    "ast_hash": "4ad3178bdf4c4bb30ffb8a777249a7aa",
+    "mtime": 1795675416.8823318,
+    "seen": 1795675591.2809193,
+    "ast_hash": "068a9641b7a778cff4774a33018f60ee",
     "semantic_hash": ""
   },
   "src/components/marketing/shared/CommissionView.vue": {
@@ -6048,15 +6048,15 @@
     "semantic_hash": ""
   },
   "src/components/client/ClientProfileGateModal.vue": {
-    "mtime": 1795609582.8929052,
-    "seen": 1795609687.8595598,
-    "ast_hash": "ebaa1f9937e20f50e7717327ca463b3d",
+    "mtime": 1795675416.888595,
+    "seen": 1795675591.2587078,
+    "ast_hash": "95c2ae976c2dab9c60b426a72dab6bd4",
     "semantic_hash": ""
   },
   "src/composables/useClientProfileGate.ts": {
-    "mtime": 1795412398.2525692,
-    "seen": 1795412539.8565762,
-    "ast_hash": "940bf14549480cfb436d2a6615ca39a8",
+    "mtime": 1795675416.8863227,
+    "seen": 1795675591.332848,
+    "ast_hash": "821dc07b657b9e700bf0796f3d200110",
     "semantic_hash": ""
   },
   "src/views/AboutPage.vue": {
@@ -6795,6 +6795,30 @@
     "mtime": 1795674886.8359,
     "seen": 1795674991.14148,
     "ast_hash": "280b783ddc15ea7a1ebad01786e1b243",
+    "semantic_hash": ""
+  },
+  "src/components/identity/IdentityFields.vue": {
+    "mtime": 1795675344.1695535,
+    "seen": 1795675591.2783086,
+    "ast_hash": "e6dc8622566b09a6c1825880d8566ea1",
+    "semantic_hash": ""
+  },
+  "src/components/identity/IdentityInfo.vue": {
+    "mtime": 1795675344.2934263,
+    "seen": 1795675591.2783086,
+    "ast_hash": "7d2352a3a5fc7eb774a3b79a06ad8149",
+    "semantic_hash": ""
+  },
+  "src/composables/useMyIdentityForm.ts": {
+    "mtime": 1795675384.8656178,
+    "seen": 1795675591.338971,
+    "ast_hash": "5d46d1f577702310d0c5087b8b91b033",
+    "semantic_hash": ""
+  },
+  "src/services/customerIdentityService.ts": {
+    "mtime": 1795675343.959483,
+    "seen": 1795675591.367778,
+    "ast_hash": "409ee71e04e2e28370d070b16adfba58",
     "semantic_hash": ""
   },
   "package-lock.json": {

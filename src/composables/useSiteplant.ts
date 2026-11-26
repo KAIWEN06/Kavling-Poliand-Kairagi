@@ -9,6 +9,7 @@ import {
   getCachedLots,
   type SiteplanLot
 } from '../services/siteplanService'
+import type { LoadOptions } from './useRealtimeRefresh'
 
 export function useSiteplan() {
   const lots = ref<SiteplanLot[]>(
@@ -28,7 +29,8 @@ export function useSiteplan() {
     ref<SiteplanLot | null>(null)
 
   async function loadLots(
-    forceRefresh = false
+    forceRefresh = false,
+    { silent = false }: LoadOptions = {}
   ): Promise<void> {
     if (!forceRefresh) {
       const cachedLots = getCachedLots()
@@ -41,8 +43,10 @@ export function useSiteplan() {
       }
     }
 
-    loading.value = true
-    error.value = null
+    if (!silent) {
+      loading.value = true
+      error.value = null
+    }
 
     try {
       const result = forceRefresh
@@ -50,16 +54,29 @@ export function useSiteplan() {
         : await getLots()
 
       lots.value = result || []
+      error.value = null
+      syncSelectedLot()
     } catch (err) {
       console.error(
         'Gagal memuat denah:',
         err
       )
 
-      error.value = err
+      if (!silent || lots.value.length === 0) error.value = err
     } finally {
       loading.value = false
     }
+  }
+
+  /* Panel detail memakai objek terpilih, jadi arahkan ke data terbaru. */
+  function syncSelectedLot(): void {
+    const current = selectedLot.value
+    if (!current) return
+
+    const key = (lot: SiteplanLot) => String(lot.polygon_id || lot.id || '')
+    const latest = lots.value.find((lot) => key(lot) === key(current))
+
+    if (latest) selectedLot.value = latest
   }
 
   function selectLot(
@@ -103,8 +120,8 @@ export function useSiteplan() {
     hoveredLot.value = null
   }
 
-  async function reload(): Promise<void> {
-    await loadLots(true)
+  async function reload(options: LoadOptions = {}): Promise<void> {
+    await loadLots(true, options)
   }
 
   onMounted(() => {

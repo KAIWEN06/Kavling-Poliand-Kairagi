@@ -6,7 +6,7 @@
     SPK (dikonfirmasi Admin); pembayaran, jadwal, dan refund hanya dapat dilihat.
   -->
   <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail klien" />
-  <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Detail klien gagal dimuat" :on-action="load" />
+  <StatusIllustration v-else-if="error" :variant="resolveErrorVariant(error)" title="Detail klien gagal dimuat" :on-action="() => load()" />
 
   <template v-else-if="detail">
     <section class="cd-hero">
@@ -387,6 +387,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useToast } from '@/composables/useToast'
 import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
@@ -552,7 +553,7 @@ function pickLot() {
   router.push(`/kavling?customer_id=${props.customerId}`)
 }
 
-async function load() {
+async function load({ silent = false }: LoadOptions = {}) {
   if (!loaded.value) loading.value = true
   error.value = ''
   try {
@@ -564,7 +565,7 @@ async function load() {
     heldLots.value = held
     loaded.value = true
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
+    if (!silent || !loaded.value) error.value = cause instanceof Error ? cause.message : 'Periksa koneksi, lalu coba lagi.'
   } finally {
     loading.value = false
   }
@@ -751,6 +752,12 @@ watch(() => props.customerId, () => {
 })
 onMounted(load)
 defineExpose({ reload: load })
+
+useRealtimeRefresh(
+  ['customers', 'customer_followups', 'customer_notes', 'customer_interests', 'customer_crm_status_history', 'customer_identities', 'lot_transactions', 'spk_requests', 'payments', 'installment_schedules', 'survey_requests', 'lots'],
+  () => load({ silent: true }), { pauseWhen: () => saving.value || statusModal.value || followupModal.value || noteModal.value || editModal.value },
+)
+
 </script>
 
 <style scoped>

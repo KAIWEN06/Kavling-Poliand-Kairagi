@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { IonContent, IonIcon, IonPage, onIonViewWillEnter } from '@ionic/vue'
 import {
@@ -154,6 +155,9 @@ onMounted(() => {
   void loadCounts()
 })
 onBeforeUnmount(() => mql?.removeEventListener('change', syncWide))
+
+useRealtimeRefresh(['gallery', 'progress', 'faqs', 'contacts', 'home_features'], loadCounts)
+
 </script>
 
 <style scoped>

@@ -63,11 +63,12 @@
       </button>
     </div>
 
-    <CmsPanelModal v-model="editOpen" title="Ubah kontak" panel="contact" @saved="loadContacts" />
+    <CmsPanelModal v-model="editOpen" title="Ubah kontak" panel="contact" @saved="loadContacts()" />
   </section>
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { computed, onMounted, ref } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { useRouter } from 'vue-router'
@@ -113,9 +114,9 @@ const cards = computed(() => {
   return isAdmin.value ? all : all.filter((card) => card.value)
 })
 
-async function loadContacts() {
+async function loadContacts({ silent = false }: LoadOptions = {}) {
   try {
-    loading.value = true
+    if (!silent) loading.value = true
     contacts.value = await contactsService.getAll()
   } catch (error) {
     console.error('Gagal mengambil data kontak:', error)
@@ -124,7 +125,10 @@ async function loadContacts() {
   }
 }
 
-onMounted(loadContacts)
+onMounted(() => loadContacts())
+
+useRealtimeRefresh(['contacts'], () => loadContacts({ silent: true }))
+
 </script>
 
 <style scoped>

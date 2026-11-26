@@ -57,6 +57,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonIcon, IonSpinner } from '@ionic/vue'
@@ -132,6 +133,9 @@ onMounted(() => {
   window.addEventListener('poliland:refresh-progress', handleRefresh)
 })
 onUnmounted(() => window.removeEventListener('poliland:refresh-progress', handleRefresh))
+
+useRealtimeRefresh(['progress'], load)
+
 </script>
 
 <style scoped>

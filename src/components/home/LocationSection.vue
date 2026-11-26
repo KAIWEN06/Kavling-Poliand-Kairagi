@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { locationOutline } from 'ionicons/icons'
@@ -89,6 +90,9 @@ async function renderMap() {
 }
 watch(settings, renderMap)
 onBeforeUnmount(() => { map?.remove(); map = null })
+
+useRealtimeRefresh(['contacts'], load)
+
 </script>
 
 <style scoped>

@@ -71,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { computed, onMounted, ref } from 'vue'
@@ -119,13 +120,15 @@ function go(path: string, query?: Record<string, string>) {
   router.push(`${path}${qs}`)
 }
 
-async function loadActivity() {
-  activityLoading.value = true
-  activityError.value = ''
+async function loadActivity({ silent = false }: LoadOptions = {}) {
+  if (!silent) {
+    activityLoading.value = true
+    activityError.value = ''
+  }
   try {
     activity.value = await getMarketingActivity(range.value.marketingId, 10)
   } catch (cause) {
-    activityError.value = cause instanceof Error ? cause.message : 'Aktivitas gagal dimuat.'
+    if (!silent) activityError.value = cause instanceof Error ? cause.message : 'Aktivitas gagal dimuat.'
   } finally {
     activityLoading.value = false
   }
@@ -149,6 +152,12 @@ onMounted(async () => {
     error.value = cause instanceof Error ? cause.message : 'Profil tidak dapat dimuat.'
   }
 })
+
+useRealtimeRefresh(
+  ['customers', 'customer_followups', 'customer_crm_status_history', 'lot_transactions', 'spk_requests', 'payments', 'installment_schedules', 'marketing_commissions', 'survey_requests'],
+  () => Promise.all([load(undefined, { silent: true }), loadActivity({ silent: true })]),
+)
+
 </script>
 
 <style scoped>

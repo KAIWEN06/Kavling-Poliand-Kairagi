@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import {
   onBeforeUnmount,
   onMounted,
@@ -640,6 +640,11 @@ onBeforeUnmount(() => {
       undefined
   }
 })
+
+useRealtimeRefresh(
+  ['lots', 'blocks', 'lot_transactions', 'spk_requests'],
+  () => reload({ silent: true }),
+)
 
 </script>
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
 import IdentityFields from '@/components/identity/IdentityFields.vue'
@@ -173,17 +174,25 @@ const pager = usePagination(filteredRecords, {
   resetOn: [searchQuery, selectedStatus],
 })
 
-async function loadSpkRecords() {
-  loading.value = true
-  storageError.value = ''
+async function loadSpkRecords({ silent = false }: LoadOptions = {}) {
+  if (!silent) {
+    loading.value = true
+    storageError.value = ''
+  }
   try {
     spkRecords.value = await getClientSpks()
+    storageError.value = ''
+    const openId = selectedRecord.value?.id
+    if (openId != null) {
+      selectedRecord.value = spkRecords.value.find((record) => record.id === openId) ?? selectedRecord.value
+    }
   } catch (error) {
     console.error('[SPK Klien] Gagal memuat pengajuan:', error)
-    storageError.value = getClientSpkErrorMessage(error, 'Data SPK gagal dimuat.')
+    if (!silent) storageError.value = getClientSpkErrorMessage(error, 'Data SPK gagal dimuat.')
   } finally {
     loading.value = false
   }
+  if (silent) return
   await nextTick()
   openSpkFromNotification()
 }
@@ -735,6 +744,17 @@ onIonViewWillEnter(handleRouteIntent)
 watch(() => route.query.nt, (stamp) => {
   if (stamp && route.path === '/client/dokumen' && route.query.spk_id) void loadSpkRecords()
 })
+
+useRealtimeRefresh(
+  ['spk_requests', 'spk_request_documents', 'spk_corrections', 'payments', 'booking_fee_refunds', 'lot_transactions'],
+  () => loadSpkRecords({ silent: true }),
+  {
+    pauseWhen: () =>
+      loading.value || createOpen.value || creating.value || reuploadProof.value ||
+      reuploadSubmitting.value || refundProofSubmitting.value,
+  },
+)
+
 </script>
 <template>
   <ion-page class="client-spk-page">
@@ -776,7 +796,7 @@ watch(() => route.query.nt, (stamp) => {
           <ion-icon :icon="alertCircleOutline" />
           <strong>Data SPK gagal dimuat</strong>
           <p>{{ storageError }}</p>
-          <button type="button" class="spk-retry-btn" @click="loadSpkRecords">Coba lagi</button>
+          <button type="button" class="spk-retry-btn" @click="loadSpkRecords()">Coba lagi</button>
         </div>
         <template v-else>
           <div id="client-spk-list-top" class="spk-list-head">

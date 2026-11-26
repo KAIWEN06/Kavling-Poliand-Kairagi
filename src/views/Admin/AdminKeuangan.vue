@@ -276,7 +276,7 @@
               :variant="resolveErrorVariant(bankError)"
               size="sm"
               title="Rekening bank gagal dimuat"
-              :on-action="loadBankAccounts"
+              :on-action="() => loadBankAccounts()"
             />
 
             <template v-else>
@@ -796,7 +796,7 @@
               :variant="resolveErrorVariant(cancellationError)"
               size="sm"
               title="Pengajuan tidak dapat dimuat"
-              :on-action="loadCancellationRequests"
+              :on-action="() => loadCancellationRequests()"
             />
             <StatusIllustration v-else-if="!cancellationRequests.length" variant="empty-data" size="sm" title="Tidak ada pengajuan menunggu" description="Pengajuan pembatalan baru akan muncul di sini." />
             <div v-else class="cancellation-request-list">
@@ -829,7 +829,7 @@
               :variant="resolveErrorVariant(ledgerError)"
               size="sm"
               title="Buku kas belum tersedia"
-              :on-action="loadFinancialLedger"
+              :on-action="() => loadFinancialLedger()"
             />
             <template v-else>
               <dl class="ledger-totals" aria-label="Ringkasan arus kas pada daftar">
@@ -884,7 +884,7 @@
               :variant="resolveErrorVariant(planError)"
               size="sm"
               title="Skema cicilan gagal dimuat"
-              :on-action="loadPaymentPlans"
+              :on-action="() => loadPaymentPlans()"
             />
 
             <template v-else>
@@ -1196,6 +1196,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast, type ToastTone } from '@/composables/useToast'
@@ -1922,16 +1923,21 @@ function stepReportPeriod(delta: -1 | 1) {
 }
 function resetReportPeriod() { reportAnchor.value = currentMakassarDay() }
 
-async function loadReportLedger() {
+async function loadReportLedger({ silent = false }: LoadOptions = {}) {
   const requestId = ++reportLedgerRequestId
-  reportLedgerLoading.value = true
-  reportLedgerError.value = ''
+  if (!silent) {
+    reportLedgerLoading.value = true
+    reportLedgerError.value = ''
+  }
   try {
     const range = reportLoadRange(reportRange.value, reportAnchor.value)
     const entries = await financialLedgerService.listBetween(range.startDate, range.endDate)
-    if (requestId === reportLedgerRequestId) reportLedgerEntries.value = entries
-  } catch (error: any) {
     if (requestId === reportLedgerRequestId) {
+      reportLedgerEntries.value = entries
+      reportLedgerError.value = ''
+    }
+  } catch (error: any) {
+    if (!silent && requestId === reportLedgerRequestId) {
       reportLedgerError.value = error?.message || 'Data arus kas gagal dimuat. Periksa koneksi lalu coba lagi.'
     }
   } finally {
@@ -1943,14 +1949,16 @@ function retryFinanceReport() {
   void Promise.all([loadTransactions(), loadReportLedger()])
 }
 
-async function loadFinancialLedger() {
+async function loadFinancialLedger({ silent = false }: LoadOptions = {}) {
   if (ledgerLoading.value) return
-  ledgerLoading.value = true
-  ledgerError.value = ''
+  if (!silent) {
+    ledgerLoading.value = true
+    ledgerError.value = ''
+  }
   try {
     ledgerEntries.value = await financialLedgerService.listRecent()
   } catch (error: any) {
-    ledgerError.value = error?.message || 'Buku kas tidak dapat dimuat. Periksa koneksi atau jalankan migrasi SQL.'
+    if (!silent) ledgerError.value = error?.message || 'Buku kas tidak dapat dimuat. Periksa koneksi atau jalankan migrasi SQL.'
   } finally {
     ledgerLoading.value = false
   }
@@ -1961,14 +1969,16 @@ function openFinancialLedger() {
   void loadFinancialLedger()
 }
 
-async function loadCancellationRequests() {
+async function loadCancellationRequests({ silent = false }: LoadOptions = {}) {
   if (cancellationLoading.value) return
-  cancellationLoading.value = true
-  cancellationError.value = ''
+  if (!silent) {
+    cancellationLoading.value = true
+    cancellationError.value = ''
+  }
   try {
     cancellationRequests.value = await purchaseCancellationService.listPending()
   } catch (error: any) {
-    cancellationError.value = error?.message || 'Daftar pengajuan pembatalan tidak dapat dimuat.'
+    if (!silent) cancellationError.value = error?.message || 'Daftar pengajuan pembatalan tidak dapat dimuat.'
   } finally {
     cancellationLoading.value = false
   }
@@ -2739,13 +2749,15 @@ function formatBankAccountNumber(value: string) {
   return value.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim()
 }
 
-async function loadBankAccounts() {
-  bankLoading.value = true
-  bankError.value = ''
+async function loadBankAccounts({ silent = false }: LoadOptions = {}) {
+  if (!silent) {
+    bankLoading.value = true
+    bankError.value = ''
+  }
   try {
     bankAccounts.value = await bankAccountService.getAdminBankAccounts()
   } catch (error) {
-    bankError.value = error instanceof Error ? error.message : 'Periksa koneksi dan izin akses database.'
+    if (!silent) bankError.value = error instanceof Error ? error.message : 'Periksa koneksi dan izin akses database.'
   } finally {
     bankLoading.value = false
   }
@@ -2807,13 +2819,15 @@ async function confirmDeleteBank(account: BankAccountRecord) {
   }
 }
 
-async function loadPaymentPlans() {
-  planLoading.value = true
-  planError.value = ''
+async function loadPaymentPlans({ silent = false }: LoadOptions = {}) {
+  if (!silent) {
+    planLoading.value = true
+    planError.value = ''
+  }
   try {
     paymentPlans.value = await paymentPlanService.getAll()
   } catch (error) {
-    planError.value = error instanceof Error ? error.message : 'Periksa koneksi dan izin akses tabel payment_plans.'
+    if (!silent) planError.value = error instanceof Error ? error.message : 'Periksa koneksi dan izin akses tabel payment_plans.'
   } finally {
     planLoading.value = false
   }
@@ -2918,12 +2932,13 @@ function refreshTransactions() {
   return withRefreshSkeleton(refreshing, () => loadTransactions(true))
 }
 
-async function loadTransactions(silent = false) {
+async function loadTransactions(silent = false, background = false) {
   if (!silent) loading.value = true
-  errorMessage.value = ''
+  if (!background) errorMessage.value = ''
   try {
     const customers = await customerService.getAdminCustomers()
     const directPayments = await customerService.getAdminPaymentVerificationRecords()
+    errorMessage.value = ''
     rawCustomers.value = customers ?? []
     directPaymentRecords.value = directPayments
 
@@ -2972,7 +2987,7 @@ async function loadTransactions(silent = false) {
           : null,
       } as FinanceTransaction
     })
-  } catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.' } finally { loading.value = false }
+  } catch (error) { if (!background || !transactions.value.length) errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.' } finally { loading.value = false }
 }
 
 async function applyRouteIntent(params: LocationQuery) {
@@ -3017,6 +3032,47 @@ onMounted(async () => {
   void loadBankAccounts()
   void loadPaymentPlans()
 })
+
+/* Laporan menyimpan salinan kaveling/pembeli terpilih; arahkan ke data terbaru. */
+async function refreshFinanceData() {
+  await Promise.all([
+    loadTransactions(true, true),
+    loadCancellationRequests({ silent: true }),
+    activeView.value === 'reports' ? loadReportLedger({ silent: true }) : undefined,
+    activeView.value === 'ledger' ? loadFinancialLedger({ silent: true }) : undefined,
+    activeView.value === 'plans' ? loadPaymentPlans({ silent: true }) : undefined,
+    loadBankAccounts({ silent: true }),
+  ])
+
+  const openLot = selectedReportLot.value
+  if (!openLot) return
+  const latest = reportLots.value.find((lot) => lot.transactionId === openLot.transactionId)
+  if (latest) selectedReportLot.value = latest
+  if (latest?.paymentType === 'Installment') {
+    try {
+      installmentSchedules.value = await paymentService.getInstallmentSchedules(Number(latest.transactionId))
+    } catch (error) {
+      console.warn('[Keuangan] Jadwal cicilan belum diperbarui:', error)
+    }
+  }
+}
+
+useRealtimeRefresh(
+  [
+    'payments', 'payment_allocations', 'installment_schedules', 'installment_penalties', 'lot_transactions',
+    'spk_requests', 'booking_fee_refunds', 'purchase_cancellation_requests', 'purchase_refunds',
+    'financial_transactions', 'financial_journals', 'bank_accounts', 'payment_plans', 'customers',
+  ],
+  refreshFinanceData,
+  {
+    pauseWhen: () =>
+      paymentPage.value !== 'none' || reviewDialogOpen.value || reviewSaving.value || paymentSaving.value ||
+      refundSubmitting.value || cancellationDecisionOpen.value || cancellationDecisionSaving.value ||
+      planModalOpen.value || planDeleteModalOpen.value || planSaving.value || planDeleting.value ||
+      bankModalOpen.value || bankSaving.value,
+  },
+)
+
 </script>
 
 <style scoped>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
@@ -514,6 +515,26 @@ onMounted(() => {
   void identityForm.load()
   void loadAvailableBookingFees()
 })
+
+/* Hanya ketersediaan kaveling dan tanda jadi; isian formulir tidak disentuh. */
+async function refreshLotAvailability() {
+  const lotId = getRouteLotId()
+  if (!lotId || !lot.value) return
+  lot.value = await lotService.getLotById(lotId)
+  if (!lotAvailable.value) {
+    lotError.value = 'Kaveling ini sudah tidak tersedia untuk pengajuan.'
+  }
+  try {
+    availableBookingFees.value = await getAvailableClientSpkBookingFees()
+  } catch (error) {
+    console.warn('[SPK Klien] Tanda jadi belum diperbarui:', error)
+  }
+}
+
+useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability, {
+  pauseWhen: () => lotLoading.value || saving.value || submissionComplete.value,
+})
+
 </script>
 
 <template>

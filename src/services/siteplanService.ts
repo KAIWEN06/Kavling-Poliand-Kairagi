@@ -1,4 +1,5 @@
 import { supabase } from './config/supabase'
+import { subscribeToTables } from './realtime/realtimeHub'
 
 /*
 |--------------------------------------------------------------------------
@@ -107,6 +108,9 @@ let lotsRequest: Promise<SiteplanLot[]> | null = null
 
 let lotsCacheTime = 0
 
+/* Naik setiap cache dibuang, agar permintaan lama tidak mengisinya kembali. */
+let lotsGeneration = 0
+
 /*
 |--------------------------------------------------------------------------
 | CACHE DURATION
@@ -214,7 +218,9 @@ export async function getLots(
   |--------------------------------------------------------------------------
   */
 
-  lotsRequest = fetchLotsFromSupabase()
+  const generation = lotsGeneration
+
+  const request: Promise<SiteplanLot[]> = fetchLotsFromSupabase()
     .then((data) => {
       /*
       |--------------------------------------------------------------------------
@@ -222,8 +228,10 @@ export async function getLots(
       |--------------------------------------------------------------------------
       */
 
-      lotsCache = data
-      lotsCacheTime = Date.now()
+      if (generation === lotsGeneration) {
+        lotsCache = data
+        lotsCacheTime = Date.now()
+      }
 
       return data
     })
@@ -238,10 +246,14 @@ export async function getLots(
       |
       */
 
-      lotsRequest = null
+      if (lotsRequest === request) {
+        lotsRequest = null
+      }
     })
 
-  return lotsRequest
+  lotsRequest = request
+
+  return request
 }
 
 /*
@@ -296,7 +308,12 @@ export async function refreshLots(): Promise<SiteplanLot[]> {
 export function clearLotsCache(): void {
   lotsCache = null
   lotsCacheTime = 0
+  lotsRequest = null
+  lotsGeneration += 1
 }
+
+/* Cache dibuang begitu data berubah, termasuk saat tidak ada halaman denah yang terbuka. */
+subscribeToTables(['lots', 'blocks', 'lot_transactions', 'spk_requests'], clearLotsCache)
 
 /*
 |--------------------------------------------------------------------------

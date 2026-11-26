@@ -20,7 +20,7 @@
           <div v-else-if="surveysError" class="survey-empty survey-error" role="alert">
             <strong>Permintaan survei gagal dimuat</strong>
             <p>{{ surveysError }}</p>
-            <button class="secondary" type="button" @click="loadSurveyRequests">Coba lagi</button>
+            <button class="secondary" type="button" @click="loadSurveyRequests()">Coba lagi</button>
           </div>
           <div v-else-if="surveyPager.items.length" class="survey-request-list">
             <article v-for="request in surveyPager.items" :id="`survey-row-${request.id}`" :key="request.id" class="survey-request-row" :class="[request.status, { 'is-target': request.id === targetSurveyId }]">
@@ -91,6 +91,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { useToast } from '@/composables/useToast'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
@@ -203,17 +204,19 @@ async function focusTargetSurvey() {
   targetTimer = window.setTimeout(() => { targetSurveyId.value = '' }, 4000)
 }
 
-async function loadSurveyRequests() {
-  surveysLoading.value = true
-  surveysError.value = ''
+async function loadSurveyRequests({ silent = false }: LoadOptions = {}) {
+  if (!silent) surveysLoading.value = true
+  if (!silent) surveysError.value = ''
   try {
     surveyRequests.value = await surveyService.getAdminRequests()
+    surveysError.value = ''
   } catch (error) {
-    surveysError.value = error instanceof Error ? error.message : 'Gagal memuat permintaan survei.'
+    if (!silent) surveysError.value = error instanceof Error ? error.message : 'Gagal memuat permintaan survei.'
   } finally {
     surveysLoading.value = false
   }
-  await focusTargetSurvey()
+  // Muat ulang otomatis tidak boleh menggulir ulang ke survei tujuan.
+  if (!silent) await focusTargetSurvey()
 }
 
 async function changeSurveyStatus(request: AdminSurveyRequest, status: AdminSurveyRequest['status'], reason: string | null = null) {
@@ -263,6 +266,11 @@ watch(() => route.query.nt, (stamp) => {
 })
 onIonViewWillEnter(() => { applyRouteQuery(); void loadSurveyRequests() })
 onMounted(() => { applyRouteQuery(); void loadSurveyRequests() })
+
+useRealtimeRefresh(['survey_requests', 'customers', 'lots'], () => loadSurveyRequests({ silent: true }), {
+  pauseWhen: () => rejectSurveyOpen.value,
+})
+
 </script>
 
 <style scoped>

@@ -185,6 +185,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
@@ -293,12 +294,12 @@ function openProject(project: { id: string }) {
   router.push(`/progress/${project.id}`)
 }
 
-async function loadProjects() {
+async function loadProjects({ silent = false }: LoadOptions = {}) {
   try {
     rows.value = await progressService.getProgress(false)
   } catch (error) {
     console.error('Gagal memuat kemajuan:', error)
-    toast.error('Kemajuan gagal dimuat. Tarik layar ke bawah untuk mencoba lagi.')
+    if (!silent) toast.error('Kemajuan gagal dimuat. Tarik layar ke bawah untuk mencoba lagi.')
   } finally {
     isLoading.value = false
   }
@@ -325,6 +326,9 @@ onUnmounted(() => {
   cancelAnimationFrame(countRaf)
   window.removeEventListener('poliland:refresh', handleRefresh)
 })
+
+useRealtimeRefresh(['progress'], () => loadProjects({ silent: true }))
+
 </script>
 
 <style scoped>

@@ -90,6 +90,7 @@
 </template>
 
 <script setup>
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
@@ -225,14 +226,16 @@ async function loadCustomerLots(customerId) {
 
 watch(selectedCustomerId, loadCustomerLots)
 
-async function loadCustomers() {
+async function loadCustomers({ silent = false } = {}) {
   // Skeleton hanya saat belum ada data; refresh mempertahankan daftar lama.
   if (!customers.value.length) loadingCustomers.value = true
 
   try {
     customers.value = await getMarketingCustomers()
 
-    selectCustomerFromRoute(customers.value)
+    // Muat ulang otomatis tidak boleh mengganti klien yang sedang dipilih.
+    const keepSelection = silent && customers.value.some((item) => item.id === selectedCustomerId.value)
+    if (!keepSelection) selectCustomerFromRoute(customers.value)
   } finally {
     loadingCustomers.value = false
   }
@@ -250,19 +253,19 @@ async function loadHistory() {
   }
 }
 
-async function refresh() {
+async function refresh({ silent = false } = {}) {
   if (!currentUser.value) return
-  loadError.value = ''
+  if (!silent) loadError.value = ''
 
   try {
     await Promise.all([
-      loadCustomers(),
+      loadCustomers({ silent }),
       loadHistory(),
     ])
     await loadCustomerLots(selectedCustomerId.value)
   } catch (error) {
     console.error(error)
-    loadError.value = 'Data gagal dimuat. Tarik ke bawah untuk mencoba lagi.'
+    if (!silent) loadError.value = 'Data gagal dimuat. Tarik ke bawah untuk mencoba lagi.'
   }
 }
 
@@ -360,6 +363,13 @@ watch(
     }
   },
 )
+
+useRealtimeRefresh(
+  ['customers', 'customer_followups', 'customer_interests'],
+  () => (ready ? refresh({ silent: true }) : undefined),
+  { pauseWhen: () => saving.value },
+)
+
 </script>
 
 <style scoped>

@@ -1,6 +1,7 @@
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import { computed, ref } from 'vue'
 import { supabase } from '@/services/config/supabase'
+import type { LoadOptions } from '@/composables/useRealtimeRefresh'
 
 /**
  * Ringkasan pembelian untuk dashboard Client (hanya baca).
@@ -74,9 +75,11 @@ export function useClientPurchaseOverview() {
     overview.value?.schedules.find((s) => s.status !== 'Paid') ?? null,
   )
 
-  async function load() {
-    loading.value = true
-    error.value = ''
+  async function load({ silent = false }: LoadOptions = {}) {
+    if (!silent) {
+      loading.value = true
+      error.value = ''
+    }
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser()
       if (authError) throw authError
@@ -90,6 +93,7 @@ export function useClientPurchaseOverview() {
         .maybeSingle()
       if (customerError) throw customerError
       if (!customer) {
+        error.value = ''
         overview.value = null
         otherLotCount.value = 0
         return
@@ -118,6 +122,7 @@ export function useClientPurchaseOverview() {
       if (transactionResult.error) throw transactionResult.error
       if (paymentResult.error) throw paymentResult.error
 
+      error.value = ''
       const transactions = transactionResult.data ?? []
       otherLotCount.value = Math.max(0, transactions.length - 1)
       const tx: any = transactions[0]
@@ -183,6 +188,7 @@ export function useClientPurchaseOverview() {
       }
     } catch (cause: any) {
       console.error('[Beranda Klien] Gagal memuat ringkasan pembelian:', cause)
+      if (silent) return
       error.value = cause?.message || 'Ringkasan pembelian belum dapat dimuat.'
       overview.value = null
     } finally {

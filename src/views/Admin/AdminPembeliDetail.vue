@@ -9,7 +9,7 @@
           <img src="/src/assets/mascot/WorriedMascotwithFailedDetails.webp" alt="Mascot PoliLand khawatir detail gagal dimuat" class="buyer-detail-error-mascot" />
           <strong>Detail gagal dimuat</strong>
           <p>{{ errorMessage }}</p>
-          <AppButton size="small" @click="loadCustomer">Coba lagi</AppButton>
+          <AppButton size="small" @click="loadCustomer()">Coba lagi</AppButton>
         </div>
         <template v-else-if="customer">
           <section class="detail-hero">
@@ -377,6 +377,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
@@ -618,9 +619,9 @@ async function confirmDeleteCustomer() {
   await router.replace('/admin/pembeli')
 }
 
-async function loadCustomer() {
-  loading.value = true
-  errorMessage.value = ''
+async function loadCustomer({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
+  if (!silent) errorMessage.value = ''
   try {
     const rows = await customerService.getAdminCustomers()
     const row = rows.find((item: any) => String(item.id) === String(route.params.id)) as any
@@ -751,11 +752,22 @@ async function loadCustomer() {
         }
       }),
     }
-  } catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.' }
+  } catch (error) { if (!silent) errorMessage.value = error instanceof Error ? error.message : 'Periksa koneksi internet, lalu coba lagi.' }
   finally { loading.value = false }
 }
 
-onMounted(loadCustomer)
+onMounted(() => loadCustomer())
+
+useRealtimeRefresh(
+  ['customers', 'customer_interests', 'lot_transactions', 'payments', 'installment_schedules', 'lots'],
+  () => loadCustomer({ silent: true }),
+  {
+    pauseWhen: () =>
+      editing.value || saving.value || deleteModalOpen.value || deleteSaving.value ||
+      interestFormOpen.value || interestSaving.value,
+  },
+)
+
 </script>
 
 <style scoped>

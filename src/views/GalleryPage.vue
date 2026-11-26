@@ -174,6 +174,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
@@ -256,13 +257,13 @@ const deleteOpen = ref(false)
 const deleteTarget = ref<GalleryPhoto | null>(null)
 const deleting = ref(false)
 
-async function loadPhotos() {
+async function loadPhotos({ silent = false }: LoadOptions = {}) {
   try {
     rows.value = (await galleryService.getGallery(true)) as GalleryRow[]
     if (!categories.value.some((category) => category.id === selectedCategory.value)) selectedCategory.value = 'all'
   } catch (error) {
     console.error('Gagal memuat galeri:', error)
-    toast.error('Galeri gagal dimuat. Tarik layar ke bawah untuk mencoba lagi.')
+    if (!silent) toast.error('Galeri gagal dimuat. Tarik layar ke bawah untuk mencoba lagi.')
   } finally {
     isLoading.value = false
   }
@@ -321,6 +322,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('poliland:refresh', handleRefresh)
 })
+
+useRealtimeRefresh(['gallery'], () => loadPhotos({ silent: true }))
+
 </script>
 
 <style scoped>

@@ -376,6 +376,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useIonRouter } from '@ionic/vue'
 import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayout.vue'
@@ -666,6 +667,18 @@ onMounted(async () => {
       'Akun belum bisa dipakai di sini. Masuk ulang dengan akun pemasar.'
   }
 })
+
+/* Hanya daftar pilihan yang diperbarui; isian formulir tidak disentuh. */
+async function refreshOptions() {
+  const [availableLots, plans] = await Promise.all([getAvailableLots(), getPaymentPlans()])
+  lots.value = availableLots
+  paymentPlans.value = plans
+}
+
+useRealtimeRefresh(['lots', 'payment_plans'], refreshOptions, {
+  pauseWhen: () => loadingLots.value || saving.value,
+})
+
 </script>
 
 <style scoped>
