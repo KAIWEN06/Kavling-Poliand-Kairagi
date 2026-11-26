@@ -43,6 +43,7 @@
               <div class="personal-info-item"><dt>Asal data klien</dt><dd>{{ customer.registrationSource || 'Belum tercatat' }}</dd></div>
               <div v-if="customer.marketingName" class="personal-info-item"><dt>Pemasar</dt><dd>{{ customer.marketingName }}</dd></div>
             </dl>
+            <IdentityInfo :customer-id="Number(customer.id)" editable />
           </section>
 
           <template v-else-if="activeTab === 'lots'">
@@ -388,6 +389,7 @@ import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import IdentityInfo from '@/components/identity/IdentityInfo.vue'
 import CustomerNotes from '@/components/Admin/CustomerNotes.vue'
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import { customerService } from '@/services/marketing/customerService'

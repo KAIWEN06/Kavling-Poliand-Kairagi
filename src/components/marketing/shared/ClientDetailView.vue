@@ -71,6 +71,8 @@
           <div><dt>Terakhir dihubungi</dt><dd>{{ c.last_contacted_at ? formatDate(c.last_contacted_at) : 'Belum pernah' }}</dd></div>
           <div v-if="c.notes"><dt>Catatan awal</dt><dd>{{ c.notes }}</dd></div>
         </dl>
+        <!-- Kepala pemasaran tidak punya akses ke identitas pembeli. -->
+        <IdentityInfo v-if="role !== 'head'" :customer-id="Number(customerId)" editable />
       </section>
 
       <!-- Kaveling: minat, transaksi, pembayaran, jadwal -->
@@ -388,6 +390,7 @@
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useToast } from '@/composables/useToast'
 import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
+import IdentityInfo from '@/components/identity/IdentityInfo.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'

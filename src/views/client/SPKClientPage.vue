@@ -40,6 +40,8 @@ import { supabase } from '@/services/config/supabase'
 import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
+import IdentityFields from '@/components/identity/IdentityFields.vue'
+import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
 
 type DocumentKey = 'ktp' | 'kk' | 'npwp' | 'paymentProof'
 
@@ -66,6 +68,8 @@ const saveError = ref('')
 const saving = ref(false)
 const submissionComplete = ref(false)
 const termsAccepted = ref(false)
+const identityForm = useMyIdentityForm()
+const { identity, available: identityAvailable, loading: identityLoading, loadError: identityLoadError, problem: identityProblem } = identityForm
 const availableBookingFees = ref<AvailableBookingFeeReuse[]>([])
 const bookingFeesLoading = ref(false)
 const bookingFeesError = ref('')
@@ -440,6 +444,11 @@ async function saveSpk() {
     return
   }
 
+  if (identityProblem.value) {
+    saveError.value = identityProblem.value
+    return
+  }
+
   if (!termsAccepted.value) {
     saveError.value = 'Baca ketentuan pemesanan, lalu centang pernyataannya sebelum menyimpan SPK.'
     return
@@ -463,6 +472,7 @@ async function saveSpk() {
 
   saving.value = true
   try {
+    await identityForm.save()
     await createClientSpk({
       lot: {
         id: lot.value.id,
@@ -501,6 +511,7 @@ async function saveSpk() {
 onMounted(() => {
   void loadLot()
   void loadBuyerProfile()
+  void identityForm.load()
   void loadAvailableBookingFees()
 })
 </script>
@@ -630,6 +641,14 @@ onMounted(() => {
                   ></textarea>
                 </div>
               </div>
+
+              <template v-if="identityAvailable">
+                <p v-if="identityLoading" role="status">Memuat data identitas...</p>
+                <AppNotice v-else-if="identityLoadError" tone="error">
+                  {{ identityLoadError }}
+                </AppNotice>
+                <IdentityFields v-else v-model="identity" />
+              </template>
             </div>
           </section>
 

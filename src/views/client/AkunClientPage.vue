@@ -38,6 +38,8 @@ import { supabase } from '@/services/config/supabase'
 import { profileService } from '@/services/profile/profileService'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useClientProfileGate } from '@/composables/useClientProfileGate'
+import IdentityFields from '@/components/identity/IdentityFields.vue'
+import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
 import { getRegions, getRegionByCode } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
 import { COUNTRIES as countries, composeFullAddress } from '@/utils/address'
@@ -58,6 +60,8 @@ const authEmail = ref('')
 const avatarUrl = ref('')
 const sharedUser = useCurrentUser()
 const gate = useClientProfileGate()
+const identityForm = useMyIdentityForm()
+const { identity, available: identityAvailable, loading: identityLoading, loadError: identityLoadError } = identityForm
 const avatarInput = ref<HTMLInputElement | null>(null)
 const isUploadingAvatar = ref(false)
 const cropFile = ref<File | null>(null)
@@ -113,11 +117,17 @@ const missingFields = computed(() => {
     if (!form.province_name.trim()) missing.push('Province/State')
     if (!form.city_name.trim()) missing.push('City')
   }
+  // Gagal memuat identitas tidak boleh menahan penyimpanan data diri lainnya.
+  if (identityAvailable.value && !identityLoadError.value) {
+    if (!/^\d{16}$/.test(identity.value.nik)) missing.push('NIK (16 digit)')
+    if (identity.value.birthPlace.trim().length < 2) missing.push('Tempat lahir')
+    if (!identity.value.birthDate) missing.push('Tanggal lahir')
+  }
   return missing
 })
 
 const isProfileComplete = computed(() => missingFields.value.length === 0)
-const canSubmit = computed(() => missingFields.value.length === 0 && !isSaving.value)
+const canSubmit = computed(() => missingFields.value.length === 0 && !isSaving.value && !identityLoading.value)
 
 function normalizePhone(value: string): string {
   return value.trim().replace(/[^\d+]/g, '')
@@ -225,6 +235,7 @@ async function selectCountry(code: string) {
 
 async function loadCustomerProfile() {
   isLoading.value = true
+  void identityForm.load()
   profileError.value = ''
 
   try {
@@ -381,6 +392,9 @@ async function saveCustomerProfile() {
       if (error) throw error
       customerId.value = Number(data.id)
     }
+
+    // Disimpan setelah baris pembeli tertaut ke akun, karena aksesnya diperiksa lewat tautan itu.
+    if (!identityLoadError.value) await identityForm.save()
 
     toast.success('Data diri berhasil disimpan.')
     void gate.check()
@@ -637,6 +651,15 @@ onMounted(loadCustomerProfile)
                 </small>
               </div>
 
+              <template v-if="identityAvailable">
+                <p v-if="identityLoading" class="field-hint" role="status">Memuat data identitas...</p>
+                <AppNotice v-else-if="identityLoadError" tone="error">
+                  {{ identityLoadError }}
+                  <button type="button" class="identity-retry" @click="identityForm.load()">Coba lagi</button>
+                </AppNotice>
+                <IdentityFields v-else v-model="identity" />
+              </template>
+
               <div class="form-field">
                 <ion-label for="client-country" class="field-label">Negara <span class="req-mark" aria-hidden="true">*</span></ion-label>
                 <ion-item lines="none" class="input-item">
@@ -719,6 +742,7 @@ onMounted(loadCustomerProfile)
 </template>
 
 <style scoped>
+.identity-retry { min-height: 44px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; }
 .account-content {
   --background: var(--app-background, #faf9f6);
   --padding-bottom: calc(104px + env(safe-area-inset-bottom));

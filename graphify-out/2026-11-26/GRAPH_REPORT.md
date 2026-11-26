@@ -1,17 +1,17 @@
 # Graph Report - poliland-mobile  (2026-11-26)
 
 ## Corpus Check
-- 523 files · ~587,821 words
+- 524 files · ~588,377 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 97 file(s) not represented in the graph (top: .csv 53, .xml 17, .css 8)
 
 ## Summary
-- 7447 nodes · 12223 edges · 340 communities (286 shown, 54 thin omitted)
+- 7451 nodes · 12228 edges · 332 communities (274 shown, 58 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 404 edges (avg confidence: 0.85)
 - Token cost: 314,439 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cdc9fec6`
+- Built from commit: `1983c506`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -35,14 +35,14 @@
 - SPK Review & Notary
 - Team Access & Roles
 - Admin Buyers List
-- ProgressPage.vue
+- ProgressDetailPage.vue
 - Manage Team Edge Function
 - BerandaMarketingPage.vue
 - Customer Notes
 - Marketing Follow-ups
 - Admin Buyer Detail
 - Admin Dashboard
-- vue
+- router/index.ts
 - Marketing SPK Submission
 - Siteplan Search Box
 - marketingCrmService.ts
@@ -66,7 +66,7 @@
 - LoginPage.vue
 - AppPullRefresh.vue
 - financialCashflow.ts
-- ProfilePage.vue
+- @ionic/vue
 - DocumentViewer.vue
 - ClientDetailView.vue
 - AvatarCropModal.vue
@@ -91,7 +91,7 @@
 - GalleryPreview.vue
 - HomePage.vue
 - tsconfig Module
-- @ionic/vue
+- vue
 - useMascotAnimation
 - parsePrice
 - audit 001 2026 11 07 Module
@@ -109,7 +109,7 @@
 - SpkListView.vue
 - App.vue
 - Brand Guidelines v1.0
-- filteredLots
+- AboutSection.vue
 - DESIGN Module
 - fetch-background.py
 - Design
@@ -122,7 +122,7 @@
 - SiteplanScenery.vue
 - surveyService.ts
 - modalAnimation.ts
-- supabase.ts
+- paymentService.ts
 - AdminReviewsPage.vue
 - Tailwind CSS Responsive Design
 - package Module 2
@@ -135,7 +135,7 @@
 - perintah Module
 - financialPdf.ts
 - PolygonLayer.vue
-- test_core.py
+- TestSearchDomains
 - calculateFinanceBalance
 - Animation Standards Reference
 - SPKAdminPage Module 4
@@ -146,7 +146,7 @@
 - Animation Audit Playbook
 - Logo Usage Rules
 - LoginPageCanvasTest.vue
-- CmsItemFormModal.vue
+- ProgressPage.vue
 - Component Specifications
 - html-token-validator.py
 - shadcn/ui Accessibility Patterns
@@ -156,9 +156,9 @@
 - Package Fragment
 - .mcp.json
 - Logo AI Prompt Engineering
-- useCurrentUser.ts
+- HeadCrmPage.vue
 - BerandaClientPage.vue
-- primitive
+- getLotId
 - test_style_taxonomy.py
 - PoliLand Design
 - Color Palette Management
@@ -181,7 +181,7 @@
 - Primary Color Meanings
 - Core Logo Types
 - color
-- PageBackButton.vue
+- AppInput.vue
 - 3. Logo Usage
 - Brand Consistency Checklist
 - CIP Mockup Prompt Engineering
@@ -205,7 +205,7 @@
 - radius
 - Layout Patterns
 - TailwindConfigGenerator
-- ProgressDetailPage.vue
+- CmsItemFormModal.vue
 - update.md
 - Logo Design Reference
 - marketingStatus.ts
@@ -218,7 +218,7 @@
 - Primitive Tokens
 - embed-tokens.cjs
 - validate-tokens.cjs
-- card
+- input
 - Core Visual Elements
 - inject-brand-context.cjs
 - CIP Design Style Guide
@@ -232,10 +232,10 @@
 - CustomerReviewsSection.vue
 - duration
 - Slide Strategies
-- cip/generate.py
+- clampPan
 - handleWheel
 - AddressFields.vue
-- test_relevance_evaluator.py
+- test_native_desktop_stack_freshness.py
 - UI/UX Pro Max - Design Intelligence
 - The Fixes
 - Slides Reference
@@ -256,74 +256,66 @@
 - roleNotificationService.ts
 - Tips for Better Results
 - homeData.ts
-- ReviewReportDialog.vue
+- test_text_layout_resilience.py
 - AppPagination.vue
 - TestWebStackFreshness
 - PoliLand — Laporan Audit UI/UX (Fase 1)
 - components.json
 - logo/core.py
-- useConfirm.ts
+- SettingsPage.vue
 - loadSPKCustomers
-- handleKeyDown
-- runSearch
+- teamManagementService.ts
+- motionTokens.ts
 - slides-create.md
 - create.md
 - DesignSystemGenerator
 - GallerySkeleton.vue
 - vite.config.ts
-- useNotifications.ts
+- fileDownload.ts
 - Finding Animation Opportunities
-- public.lot_activity_logs Audit Table
+- Client Detail Page (Info, Minat Kavling, CRM, SPK, Pembayaran, Jadwal, Catatan, Komisi)
 - loadNewCustomerRegions
 - padding-y
 - TestDomainDetection
 - supabase.ts
 - siteplanCamera.ts
-- ReviewSummaryCard.vue
+- BM25
 - AppVideo.vue
-- notify
+- BarChart.vue
 - Integrasi Database Modul Marketing
 - customNotification.ts
-- GlobalMobileHeader.vue
-- emit
+- CountUp.vue
+- spkReviewService.ts
 - createMember
 - ReviewCard.vue
 - getSPKDocumentUrl
 - PoliLand Project Architecture Skill
 - SplashVideoPage.vue
 - runSave
-- UserMenu.vue
-- input
+- applyRouteIntent
+- flyTo
 - onPointerUp
 - financialLedgerService.ts
-- galleryService.ts
+- Interactive Siteplan Feature
 - siteplanBlocks.ts
 - loadDetail
 - paymentPlanService.ts
-- toISODate
-- deletePaymentInstruction
-- $type
+- public.lot_activity_logs Audit Table
+- getLotsHeldBySpkSafe
+- customerNotesService.ts
 - Notifikasi Native Android
-- $type
+- Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner)
 - @capacitor/cli
-- radius
+- xl
 - getAdminSPKStats
-- FocusSpotlight.vue
+- ContactPage.vue
 - loadLot
 - formatCurrency
-- 50
-- 800
-- pinSurveyLots
-- destructive
-- destructive-foreground
-- muted
-- primary-foreground
-- ring
-- secondary-foreground
-- white
+- matches
+- currency
+- openCreate
 - transactionCustomer
 - formatAuditValue
-- allSurveySlots
 - blockLabel
 - setup
 - installmentFormat.ts
@@ -364,7 +356,7 @@
 - **Cash ledger posting and double-entry flow** — docs_database_schema_financial_cash_ledger_migration, docs_database_schema_financial_transactions, docs_database_schema_financial_journals, docs_financial_business_rules_idempotent_posting, docs_financial_flow_consistency_principle, docs_financial_flow_booking_fee_refund_ledger_migration [INFERRED 0.85]
 - **Late penalty and 90-day default review** — docs_payment_business_rules_late_penalty_rule, docs_payment_business_rules_calculatelatepenalty, docs_database_schema_installment_penalties, docs_database_schema_calculate_installment_penalty, docs_database_schema_default_reviews [INFERRED 0.85]
 
-## Communities (340 total, 54 thin omitted)
+## Communities (332 total, 58 thin omitted)
 
 ### Community 0 - "Admin Finance Page"
 Cohesion: 0.01
@@ -372,7 +364,7 @@ Nodes (187): PurchaseCancellationRequest, purchaseCancellationService, activeAre
 
 ### Community 1 - "Bank & Payment Instructions"
 Cohesion: 0.02
-Nodes (66): activeBankAccounts, availableBookingFees, availableLots, canSubmitCreate, copiedAccountId, createBuyer, createDocuments, createError (+58 more)
+Nodes (73): BankAccountPayload, BankAccountRecord, bankAccountService, PaymentInstructionPayload, PaymentInstructionRecord, paymentInstructionService, activeBankAccounts, availableBookingFees (+65 more)
 
 ### Community 2 - "Admin SPK Page"
 Cohesion: 0.02
@@ -380,11 +372,11 @@ Nodes (70): compareLotNumber(), actionRequest, addressCountries, AdminAvailableL
 
 ### Community 3 - "Client Lot Browser"
 Cohesion: 0.04
-Nodes (61): REFRESH_SKELETON_MS, withRefreshSkeleton(), refreshTransactions(), byNumber(), chips, clearSearch(), countOf(), focusSearch() (+53 more)
+Nodes (59): byNumber(), chips, clearSearch(), countOf(), focusSearch(), formatDate(), formatRupiah(), hasSearchInput (+51 more)
 
 ### Community 4 - "Admin Lot Browser"
 Cohesion: 0.04
-Nodes (59): AdminKavlingPage(), byNumber(), chips, clearSearch(), countOf(), focusSearch(), formatDate(), formatRupiah() (+51 more)
+Nodes (61): pinSurveyLots(), byNumber(), chips, clearSearch(), countOf(), filtered, focusSearch(), formatDate() (+53 more)
 
 ### Community 5 - "Client Payment Page"
 Cohesion: 0.03
@@ -396,23 +388,23 @@ Nodes (42): activeTab, ActivityLogRow, activityLogs, BlockOption, blockOptions, 
 
 ### Community 7 - "Client Lot Detail"
 Cohesion: 0.03
-Nodes (58): activeTab, adminWhatsapp, availabilityLoading, blockLabel, bookedSurveySlots, calendarMonth, calendarMonthTitle, calendarOpen (+50 more)
+Nodes (80): isSurveySlotConflict(), activeTab, adminWhatsapp, allSurveySlots, availabilityLoading, blockLabel, bookedSurveySlots, calendarCells (+72 more)
 
 ### Community 8 - "SiteplanMap.vue"
 Cohesion: 0.06
-Nodes (40): Known Technical Debt (large SiteplanMap, window events), activePointers, blockMarkers, boundsOf(), camera, currentRotation, currentScale, dragState (+32 more)
+Nodes (31): Known Technical Debt (large SiteplanMap, window events), activePointers, camera, currentRotation, currentScale, dragState, fitToView(), homeCamera() (+23 more)
 
 ### Community 9 - "Client SPK Page"
 Cohesion: 0.04
-Nodes (47): SPKClientPage(), accountCopied, availableBookingFees, availablePaymentPlans, bookingFeesError, bookingFeesLoading, customDpPercent, documentError (+39 more)
+Nodes (49): TERMS, SPKClientPage(), accountCopied, availableBookingFees, availablePaymentPlans, bookingFeesError, bookingFeesLoading, customDpPercent (+41 more)
 
 ### Community 10 - "Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner)"
-Cohesion: 0.13
-Nodes (14): ContactPage.vue, contacts Supabase Table, contactService.getContacts(), MobileTabBar, Action-based Role Permissions (view_reports, manage_lots, ...), Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner), Customer Origin (Wilayah) Analysis, Kepala Bagian Marketing Dashboard (+6 more)
+Cohesion: 0.22
+Nodes (8): Action-based Role Permissions (view_reports, manage_lots, ...), Customer Origin (Wilayah) Analysis, Kepala Bagian Marketing Dashboard, Kepala Bagian (department = marketing), Marketing Dashboard (own data), Marketing Notifications (existing system), Marketing Role, Implementasi Role Kepala Bagian Marketing dan Marketing (Brief)
 
 ### Community 11 - "Finance Calc & Customers"
 Cohesion: 0.06
-Nodes (34): TambahCalonPembeliPage(), createProspectiveCustomer(), getAvailableLots(), getPaymentPlans(), addressColumns(), missingAddressFields(), address, AvailableLot (+26 more)
+Nodes (38): TambahCalonPembeliPage(), createProspectiveCustomer(), getAvailableLots(), getPaymentPlans(), addressColumns(), AddressValue, composeFullAddress(), COUNTRIES (+30 more)
 
 ### Community 12 - "Financial Ledger Docs"
 Cohesion: 0.06
@@ -420,43 +412,43 @@ Nodes (37): Supabase MCP server (project ewiundofcsxghkkhremp, read-only), bank_
 
 ### Community 13 - "Address & Client Account"
 Cohesion: 0.05
-Nodes (49): getRegionByCode(), findRegisteredNumber(), AddressValue, composeFullAddress(), COUNTRIES, FIELDS, authEmail, avatarInput (+41 more)
+Nodes (46): emit, props, getRegionByCode(), authEmail, avatarInput, avatarUrl, canSubmit, cities (+38 more)
 
 ### Community 14 - "json"
 Cohesion: 0.06
-Nodes (11): test_sync_parses_bundled_starter_template(), format_brief(), format_results(), main(), main(), _run(), test_flags_hardcoded_hex_sharing_line_with_token(), test_token_only_line_reports_no_violation() (+3 more)
+Nodes (17): test_sync_parses_bundled_starter_template(), build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main() (+9 more)
 
 ### Community 15 - "Siteplan Detail Panel"
 Cohesion: 0.04
-Nodes (48): activeTab, askMoreAboutLot(), buyLabel, calculateMonthlyPayment(), clientLotAvailable, close(), continuePurchase(), deal (+40 more)
+Nodes (49): activeTab, askMoreAboutLot(), buyLabel, calculateMonthlyPayment(), clientLotAvailable, close(), continuePurchase(), deal (+41 more)
 
 ### Community 16 - "SPK Review & Notary"
-Cohesion: 0.07
-Nodes (33): TinjauSPKPage(), fail(), getSPKReview(), payMarketingCommission(), SPKReviewData, updateInstallmentSchedule(), activeCalendarId, calendarOffset() (+25 more)
+Cohesion: 0.08
+Nodes (25): TinjauSPKPage(), activeCalendarId, calendarOffset(), commissionError, commissionReference, data, dateOnly(), daysInScheduleMonth() (+17 more)
 
 ### Community 17 - "Team Access & Roles"
-Cohesion: 0.04
-Nodes (52): AdminAksesTimPage(), CreateTeamMemberInput, MarketingClient, MarketingCommission, MarketingDetail, MarketingPeriod, MarketingSummary, teamManagementService (+44 more)
+Cohesion: 0.05
+Nodes (35): AdminAksesTimPage(), activeCount, activeTab, adminMembers, availableCreateRoles, canCreate, { confirm }, createOpen (+27 more)
 
 ### Community 18 - "Admin Buyers List"
 Cohesion: 0.04
 Nodes (62): AdminPembeliPage(), addAvailableLots, addError, addForm, addLotSearch, addLotsError, addLotsLoading, addModalOpen (+54 more)
 
-### Community 19 - "ProgressPage.vue"
-Cohesion: 0.04
-Nodes (52): motion-v@^2.13.0, motion-v, cleanWhatsapp(), contactWhatsapp(), ctaDisabled, ctaIsWhatsapp, ctaTarget, editOpen (+44 more)
+### Community 19 - "ProgressDetailPage.vue"
+Cohesion: 0.05
+Nodes (50): motion-v@^2.13.0, motion-v, cleanWhatsapp(), contactWhatsapp(), ctaDisabled, ctaIsWhatsapp, ctaTarget, editOpen (+42 more)
 
 ### Community 20 - "Manage Team Edge Function"
 Cohesion: 0.05
 Nodes (57): Action, admin, authorize(), calculateMarketingSummary(), CommissionRow, corsHeaders(), createMember(), CustomerRow (+49 more)
 
 ### Community 21 - "BerandaMarketingPage.vue"
-Cohesion: 0.04
-Nodes (43): BadgeTone, BerandaMarketingPage(), HeadCrmPage(), getMarketingActivity(), getMarketingNotifications(), MarketingNotification, CRM_TONE, formatDate() (+35 more)
+Cohesion: 0.07
+Nodes (23): BadgeTone, BerandaMarketingPage(), getMarketingNotifications(), MarketingNotification, formatDate(), formatRelative(), initials(), activities (+15 more)
 
 ### Community 22 - "Customer Notes"
-Cohesion: 0.05
-Nodes (33): categories, categoryFilter, closeEditor(), closeHistory(), { confirm }, deleting, editing, errorMessage (+25 more)
+Cohesion: 0.06
+Nodes (29): categories, categoryFilter, closeEditor(), closeHistory(), { confirm }, deleteNote(), deleting, editing (+21 more)
 
 ### Community 23 - "Marketing Follow-ups"
 Cohesion: 0.07
@@ -468,27 +460,27 @@ Nodes (46): AdminPembeliDetailPage(), formatProgressLine(), formatRupiah(), inst
 
 ### Community 25 - "Admin Dashboard"
 Cohesion: 0.05
-Nodes (35): BerandaAdminPage(), ActionTask, actionTasks, activityPager, availableQuickActions, buyerDataError, buyerDataLoading, buyerStats (+27 more)
+Nodes (36): Crumb, BerandaAdminPage(), ActionTask, actionTasks, activityPager, availableQuickActions, buyerDataError, buyerDataLoading (+28 more)
 
-### Community 26 - "vue"
-Cohesion: 0.02
-Nodes (105): vue, vue-router, emit, onRefresh(), props, reduced, useOwnRouteQuery(), router (+97 more)
+### Community 26 - "router/index.ts"
+Cohesion: 0.04
+Nodes (44): vue-router, router, AdminKavlingDetailPage(), AdminKavlingPage(), AdminKeuanganPage(), AdminLainnyaPage(), DetailCalonPembeliPage(), DokumenClientPage() (+36 more)
 
 ### Community 27 - "Marketing SPK Submission"
 Cohesion: 0.05
 Nodes (33): SPKMarketingPage(), canSubmit, { celebrate }, completionPercent, currentStep, downPaymentAmount, downPaymentInvalid, effectiveLotPrice (+25 more)
 
 ### Community 28 - "Siteplan Search Box"
-Cohesion: 0.06
-Nodes (24): areaValue, dimensionQuery, expanded, filterOpen, hasSearchCriteria, inputEl, inputWrapper, isOpen (+16 more)
+Cohesion: 0.05
+Nodes (53): areaDistance(), areaValue, canExecuteFilterSearch, closeBar(), closeFilter(), dimensionDistance(), dimensionQuery, emit (+45 more)
 
 ### Community 29 - "marketingCrmService.ts"
-Cohesion: 0.17
-Nodes (24): load(), load(), load(), load(), contactAlreadyRegistered(), ContactConflict, EditableClientFields, fail() (+16 more)
+Cohesion: 0.15
+Nodes (27): load(), load(), load(), load(), ClientListFilters, contactAlreadyRegistered(), ContactConflict, EditableClientFields (+19 more)
 
 ### Community 30 - "design_system.py"
-Cohesion: 0.07
-Nodes (14): _contrast_ratio(), _derive_dark_palette(), _filter_anti_patterns_for_mode(), _palette_is_dark(), _query_wants_dark(), _relative_luminance(), _resolve_color_mode(), _select_palette_for_mode() (+6 more)
+Cohesion: 0.08
+Nodes (13): _contrast_ratio(), _derive_dark_palette(), _filter_anti_patterns_for_mode(), _palette_is_dark(), _query_wants_dark(), _relative_luminance(), _resolve_color_mode(), _select_palette_for_mode() (+5 more)
 
 ### Community 31 - "iOS App Delegates"
 Cohesion: 0.09
@@ -496,7 +488,7 @@ Nodes (4): Capacitor, AppDelegate, SceneDelegate, UIKit
 
 ### Community 32 - "Capacitor Dependencies"
 Cohesion: 0.06
-Nodes (33): dependencies, @capacitor/android@^8.5.2, @capacitor/filesystem@^8.1.5, @capacitor/ios@8.5.2, @capacitor/share@^8.0.3, @capacitor/splash-screen@^8.0.2, @fontsource/plus-jakarta-sans@^5.3.0, @fontsource-variable/fraunces@^5.3.0 (+25 more)
+Nodes (33): dependencies, @capacitor/android@^8.5.2, @capacitor/browser@^8.0.5, @capacitor/ios@8.5.2, @capacitor/splash-screen@^8.0.2, @fontsource/plus-jakarta-sans@^5.3.0, @fontsource-variable/fraunces@^5.3.0, @ionic/vue@^9.0.4 (+25 more)
 
 ### Community 33 - "LocationPicker.vue"
 Cohesion: 0.10
@@ -507,8 +499,8 @@ Cohesion: 0.15
 Nodes (14): CreateCustomerPayload, Customer, CustomerInterest, customerService, CustomerUsage, getCurrentMarketingProfile(), FinanceAdminPaymentRecord, FinanceBalance (+6 more)
 
 ### Community 35 - "Lot Stats & Pricing"
-Cohesion: 0.12
-Nodes (18): BOOKING_FEE_FIXED, LotInstallmentRecord, LotPaymentRecord, LotRecord, lotService, LotTransactionRecord, LotTransactionSummary, PaymentPlanRecord (+10 more)
+Cohesion: 0.13
+Nodes (17): BOOKING_FEE_FIXED, LotInstallmentRecord, LotPaymentRecord, LotRecord, LotTransactionRecord, LotTransactionSummary, PaymentPlanRecord, calculateInstallment() (+9 more)
 
 ### Community 36 - "Admin SPK Service"
 Cohesion: 0.09
@@ -516,7 +508,7 @@ Nodes (36): AdminAvailableLot, AdminLotInstallmentOption, AdminSPKCustomer, Admi
 
 ### Community 37 - "KavlingMarketingPage.vue"
 Cohesion: 0.04
-Nodes (59): byNumber(), chips, clearSearch(), countOf(), focusSearch(), formatRupiah(), hasSearchInput, heldLots (+51 more)
+Nodes (61): REFRESH_SKELETON_MS, withRefreshSkeleton(), byNumber(), chips, clearSearch(), countOf(), focusSearch(), formatRupiah() (+53 more)
 
 ### Community 38 - "Dev Tooling Deps"
 Cohesion: 0.08
@@ -528,15 +520,15 @@ Nodes (30): confirmOpen, editing, emit, items, load(), loadError, loading, META 
 
 ### Community 40 - "PaymentMonitorView.vue"
 Cohesion: 0.07
-Nodes (28): dueSoon, emit, error, { focusedId, focusRow }, isHead, isLate(), loaded, loading (+20 more)
+Nodes (29): dueSoon, emit, error, { focusedId, focusRow }, isHead, isLate(), loaded, loading (+21 more)
 
 ### Community 41 - "Client SPK Service"
 Cohesion: 0.10
-Nodes (26): AvailableBookingFeeReuse, ClientInstallmentSchedule, ClientSpkDocument, ClientSpkDocumentKey, ClientSpkNotaryStatus, ClientSpkRecord, ClientSpkStatus, createClientSpk() (+18 more)
+Nodes (25): AvailableBookingFeeReuse, ClientInstallmentSchedule, ClientSpkDocument, ClientSpkNotaryStatus, ClientSpkRecord, ClientSpkStatus, createClientSpk(), CreateClientSpkInput (+17 more)
 
 ### Community 42 - "PhoneVerifySheet.vue"
-Cohesion: 0.13
-Nodes (24): busy, code, codeInput, cooldown, emit, error, failureMessage(), maskedPhone (+16 more)
+Cohesion: 0.12
+Nodes (25): busy, code, codeInput, cooldown, emit, error, failureMessage(), maskedPhone (+17 more)
 
 ### Community 43 - "RegisterPage.vue"
 Cohesion: 0.08
@@ -547,8 +539,8 @@ Cohesion: 0.11
 Nodes (26): activateModal(), CloseReason, ConfirmVariant, deactivateModal(), dialogRef, emit, focusableSelector, getFocusableElements() (+18 more)
 
 ### Community 45 - "ClientProfileGateModal.vue"
-Cohesion: 0.20
-Nodes (11): { needsCompletion, check }, onAccountPage, route, router, visible, check(), checked, filled() (+3 more)
+Cohesion: 0.11
+Nodes (16): { needsCompletion, check }, onAccountPage, route, router, visible, check(), checked, filled() (+8 more)
 
 ### Community 46 - "Client SPK Modal"
 Cohesion: 0.09
@@ -563,20 +555,20 @@ Cohesion: 0.07
 Nodes (42): activePageElement(), anchor, animateTo(), frame(), applyContentShift(), claimGesture(), EXCLUDED_PATHS, findContext() (+34 more)
 
 ### Community 49 - "financialCashflow.ts"
-Cohesion: 0.11
-Nodes (36): addDays(), addMonths(), assertUniqueSources(), BucketSpec, CashflowBucket, cashflowCsvRows(), CashflowEntry, CashflowTotals (+28 more)
+Cohesion: 0.09
+Nodes (41): addDays(), addMonths(), assertUniqueSources(), BucketSpec, CashflowBucket, cashflowCsvRows(), CashflowEntry, CashflowTotals (+33 more)
 
-### Community 50 - "ProfilePage.vue"
-Cohesion: 0.08
-Nodes (25): ionRouter, { profile }, refresh(), useCurrentUser(), patch(), avatarError, cropFile, dirty (+17 more)
+### Community 50 - "@ionic/vue"
+Cohesion: 0.04
+Nodes (52): @ionic/vue, ionRouter, { profile }, ionRouter, notifOpen, { profile, displayName, firstName }, { unread, badgeLabel }, failed (+44 more)
 
 ### Community 51 - "DocumentViewer.vue"
 Cohesion: 0.09
-Nodes (32): animate(), animating, canvasRef, canvasSize(), clampPan(), computeFit(), dist(), downloading (+24 more)
+Nodes (19): animating, canvasRef, downloading, emit, fitH, fitW, hintText, imageFailed (+11 more)
 
 ### Community 52 - "ClientDetailView.vue"
 Cohesion: 0.05
-Nodes (46): activeTab, applyLots, blockName(), c, callNumber, crmTimeline, describe(), detail (+38 more)
+Nodes (45): activeTab, applyLots, blockName(), c, callNumber, crmTimeline, describe(), detail (+37 more)
 
 ### Community 53 - "AvatarCropModal.vue"
 Cohesion: 0.09
@@ -587,12 +579,12 @@ Cohesion: 0.05
 Nodes (3): main(), ShadcnInstaller, TestShadcnInstaller
 
 ### Community 55 - "gray"
-Cohesion: 0.11
-Nodes (19): $type, $value, $type, $value, $type, $value, $type, $value (+11 more)
+Cohesion: 0.05
+Nodes (53): $type, $value, $type, $value, $type, $value, $type, $value (+45 more)
 
 ### Community 56 - "SiteplanPage.vue"
 Cohesion: 0.11
-Nodes (18): SiteplanPage(), {
+Nodes (19): reload(), SiteplanPage(), {
   blocks,
   activeBlock,
   level,
@@ -601,11 +593,11 @@ Nodes (18): SiteplanPage(), {
   tapLot,
   showOverview,
   back
-}, currentRotation, handleRefresh(), handleRetry(), ionRouter, isClientRoute, loadingProgress (+10 more)
+}, currentRotation, handleRefresh(), handleRetry(), ionRouter, isClientRoute (+11 more)
 
 ### Community 57 - "siteplanBlocks.ts"
-Cohesion: 0.26
-Nodes (11): registerBackHandler(), SiteplanLevel, useSiteplanNavigation(), back(), onKeydown(), openBlock(), openLot(), tapLot() (+3 more)
+Cohesion: 0.20
+Nodes (13): BackHandler, handlers, registerBackHandler(), SiteplanLevel, useSiteplanNavigation(), back(), onKeydown(), openBlock() (+5 more)
 
 ### Community 58 - "Panorama Viewer"
 Cohesion: 0.10
@@ -622,16 +614,16 @@ Nodes (28): @photo-sphere-viewer/core@^5.15.1, @photo-sphere-viewer/gyroscope-pl
 }, handleBack() (+20 more)
 
 ### Community 59 - "CmsHomePanel.vue"
-Cohesion: 0.03
-Nodes (80): aboutDescription, aboutPoints, clearImage(), cta, CTA_PRESETS, ctaPreset, customCtaUrl, emit (+72 more)
+Cohesion: 0.05
+Nodes (50): aboutDescription, aboutPoints, clearImage(), cta, CTA_PRESETS, ctaPreset, customCtaUrl, emit (+42 more)
 
 ### Community 60 - "MobileTabBar.vue"
 Cohesion: 0.12
 Nodes (14): @capacitor/keyboard@^8.0.6, @capacitor/keyboard, detailOpen, handleInputBlur(), handleInputFocus(), headTabs, ionRouter, isTextEntry() (+6 more)
 
 ### Community 61 - "design_system.py"
-Cohesion: 0.05
-Nodes (21): ansi_ljust(), _detect_page_type(), format_ascii_box(), format_master_md(), format_page_override_md(), _generate_intelligent_overrides(), hex_to_ansi(), persist_design_system() (+13 more)
+Cohesion: 0.04
+Nodes (19): ansi_ljust(), _detect_page_type(), format_ascii_box(), format_markdown(), format_master_md(), format_page_override_md(), generate_design_system(), _generate_intelligent_overrides() (+11 more)
 
 ### Community 62 - "SpkProcessTimeline.vue"
 Cohesion: 0.04
@@ -647,7 +639,7 @@ Nodes (16): complete(), dragging, emit, handleRef, isUnavailable, maxOffset, mea
 
 ### Community 65 - "validate_data.py"
 Cohesion: 0.07
-Nodes (41): read_rows(), TestAccessibilityGuidance, TestChartsTypographyAndIcons, TestCurrentReactGuidance, TestSemanticColors, _catalog_date(), _check_app_interface_contract(), _check_catalog_contract() (+33 more)
+Nodes (43): read_rows(), TestAccessibilityGuidance, TestChartsTypographyAndIcons, TestCurrentReactGuidance, TestSemanticColors, _catalog_date(), _check_app_interface_contract(), _check_catalog_contract() (+35 more)
 
 ### Community 66 - "generate-slide.py"
 Cohesion: 0.13
@@ -667,7 +659,7 @@ Nodes (15): confirmDelete(), deleteOpen, deleteTarget, deleting, editingItem, fa
 
 ### Community 70 - "loadTransactions"
 Cohesion: 0.07
-Nodes (37): applyRouteIntent(), clearPaymentProof(), closePaymentPage(), confirmDeleteBank(), copyPaymentReference(), deletePaymentPlan(), formatBankAccountNumber(), formatPlanMargin() (+29 more)
+Nodes (34): addInstructionStep(), clearPaymentProof(), closePaymentPage(), confirmDeleteBank(), copyPaymentReference(), createInstructionStepKey(), defaultInstructionDraft(), deletePaymentInstruction() (+26 more)
 
 ### Community 71 - "AdminContentPage.vue"
 Cohesion: 0.10
@@ -679,15 +671,15 @@ Nodes (19): categories, confirmDelete(), deleteOpen, deleteTarget, deleting, edi
 
 ### Community 73 - "HomePage.vue"
 Cohesion: 0.04
-Nodes (64): loadAboutText(), cards, contacts, editOpen, { isAdmin }, loading, phoneHref, router (+56 more)
+Nodes (67): { isAdmin, fromCms, backToCms }, visible, loadAboutText(), cards, contacts, editOpen, { isAdmin }, loading (+59 more)
 
 ### Community 74 - "tsconfig Module"
 Cohesion: 0.12
 Nodes (15): compilerOptions, esModuleInterop, isolatedModules, jsx, lib, module, moduleResolution, noEmit (+7 more)
 
-### Community 75 - "@ionic/vue"
-Cohesion: 0.10
-Nodes (17): @ionic/vue, ionicons, emit, props, { isAdmin, fromCms, backToCms }, visible, pending, props (+9 more)
+### Community 75 - "vue"
+Cohesion: 0.05
+Nodes (44): vue, emit, onRefresh(), props, useOwnRouteQuery(), CalonPembeliMarketingPage(), HeadClientsPage(), HeadCommissionPage() (+36 more)
 
 ### Community 76 - "useMascotAnimation"
 Cohesion: 0.21
@@ -715,7 +707,7 @@ Cohesion: 0.16
 Nodes (17): open(), getAvailableClientSpkBookingFees(), getClientSpkDocumentUrl(), getClientSpkErrorMessage(), changePaymentScheme(), handleRouteIntent(), loadBookingFeesWithTimeout(), loadCreatePaymentPlans() (+9 more)
 
 ### Community 80 - "icon/generate.py"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (17): generate_html(), get_deliverable_info(), get_image_base64(), main(), apply_color(), apply_viewbox_size(), extract_svgs(), generate_batch() (+9 more)
 
 ### Community 81 - "tsconfig.node Module"
@@ -735,40 +727,40 @@ Cohesion: 0.05
 Nodes (43): Arbitrary Values, Aspect Ratio, Background Colors, Border Color, Border Radius, Border Style, Border Width, Borders (+35 more)
 
 ### Community 87 - "HeadDashboardPage.vue"
-Cohesion: 0.05
-Nodes (38): emit, kindLabel, BarItem, hover, max, props, showTable, emit (+30 more)
+Cohesion: 0.07
+Nodes (31): emit, bucketLabel(), dayMonth, monthShort, useMarketingReport(), load(), HeadDashboardPage(), HeadReportsPage() (+23 more)
 
 ### Community 88 - "AdminGabungDataPage.vue"
 Cohesion: 0.07
 Nodes (25): AdminGabungDataPage(), customerMergeService, CustomerSummary, DuplicateCandidate, candidates, canMerge, { celebrate }, confirmMerge() (+17 more)
 
 ### Community 89 - "useToast.ts"
-Cohesion: 0.17
-Nodes (16): drag, dragStyle, endDrag(), held, { items, dismiss, pause, resume }, startDrag(), DEFAULT_DURATION, dismiss() (+8 more)
+Cohesion: 0.09
+Nodes (27): busy, editor, emit, error, HomeSection, onSaved(), props, ready (+19 more)
 
 ### Community 90 - "SpkListView.vue"
 Cohesion: 0.10
 Nodes (20): base, count(), emit, error, filtered, { focusedId, focusRow }, isHead, loaded (+12 more)
 
 ### Community 91 - "App.vue"
-Cohesion: 0.16
-Nodes (13): bootstrapApp(), dismissTopOverlay(), handleAndroidBackButton(), ionRouter, preloadApplicationData(), preloadCriticalAssets(), preloadImage(), preloadSvg() (+5 more)
+Cohesion: 0.18
+Nodes (14): @capacitor/app@^8.1.2, @capacitor/app, bootstrapApp(), dismissTopOverlay(), handleAndroidBackButton(), ionRouter, preloadApplicationData(), preloadCriticalAssets() (+6 more)
 
 ### Community 92 - "Brand Guidelines v1.0"
 Cohesion: 0.05
 Nodes (37): 1. Color Palette, 2. Typography, 3. Logo Usage, 4. Voice & Tone, 5. Imagery Guidelines, 6. Design Components, Accessibility, AI Image Generation (+29 more)
 
-### Community 93 - "filteredLots"
-Cohesion: 0.22
-Nodes (13): areaDistance(), canExecuteFilterSearch, dimensionDistance(), filteredLots, formatArea(), getAreaTarget(), getPrice(), getPriceTarget() (+5 more)
+### Community 93 - "AboutSection.vue"
+Cohesion: 0.07
+Nodes (33): setVideoSource(), thumbSrc, aboutDescription, aboutPoints, aboutText, editTextOpen, fetchData(), formData (+25 more)
 
 ### Community 94 - "DESIGN Module"
 Cohesion: 0.12
 Nodes (11): AppButton, AppFormSheet Standard, AppHeader, AppInput, AppModal, DetailPanel.vue AppButton Variant Issue, Legacy --pl-* Token Aliases, --poliland-gold-text Accessible Gold Token (+3 more)
 
 ### Community 95 - "fetch-background.py"
-Cohesion: 0.11
-Nodes (11): format_output(), generate_design_brief(), generate_css_for_background(), get_background_image(), get_curated_images(), get_overlay_css(), get_pexels_search_url(), load_backgrounds_config() (+3 more)
+Cohesion: 0.16
+Nodes (9): generate_css_for_background(), get_background_image(), get_curated_images(), get_overlay_css(), get_pexels_search_url(), load_backgrounds_config(), load_brand_colors(), main() (+1 more)
 
 ### Community 96 - "Design"
 Cohesion: 0.06
@@ -795,24 +787,24 @@ Cohesion: 0.36
 Nodes (9): canSubmitCreate, createBlocker, lotDp(), lotDpInvalid(), lotPaymentSummary(), lotPrice(), setLotDp(), submitAdminSPK() (+1 more)
 
 ### Community 102 - "GalleryPage.vue"
-Cohesion: 0.06
-Nodes (33): el, props, reveal(), seen, shown, stop(), GalleryPage(), askDelete() (+25 more)
+Cohesion: 0.08
+Nodes (27): GalleryPage(), askDelete(), categories, closePhoto(), compactView, confirmDelete(), deleteOpen, deleteTarget (+19 more)
 
 ### Community 103 - "SiteplanScenery.vue"
 Cohesion: 0.13
 Nodes (14): AVOID, BUSH_TINTS, bushes, cars, HOUSES, inPolygon(), PALM_TINTS, placed (+6 more)
 
 ### Community 104 - "surveyService.ts"
-Cohesion: 0.10
-Nodes (18): hiddenCount, ionRouter, items, pendingCount, props, state, title, visible (+10 more)
+Cohesion: 0.08
+Nodes (23): pending, props, total, emit, hiddenCount, ionRouter, items, pendingCount (+15 more)
 
 ### Community 105 - "modalAnimation.ts"
-Cohesion: 0.12
-Nodes (22): emit, alertEnterAnimation(), alertLeaveAnimation(), build(), IonicAnimation, MODAL_ENTER_EASING, MODAL_LEAVE_EASING, modalEnterAnimation() (+14 more)
+Cohesion: 0.22
+Nodes (13): emit, alertEnterAnimation(), alertLeaveAnimation(), build(), IonicAnimation, MODAL_ENTER_EASING, MODAL_LEAVE_EASING, modalEnterAnimation() (+5 more)
 
-### Community 106 - "supabase.ts"
-Cohesion: 0.08
-Nodes (23): EDITOR_ROLES, isNative, supabase, BankAccountPayload, BankAccountRecord, bankAccountService, financialGovernanceService, ReconciliationStatus (+15 more)
+### Community 106 - "paymentService.ts"
+Cohesion: 0.29
+Nodes (6): DEFAULT_SPK_BOOKING_FEE, InstallmentScheduleRecord, PaymentAllocationInput, PaymentDetail, PaymentRecord, paymentService
 
 ### Community 107 - "AdminReviewsPage.vue"
 Cohesion: 0.04
@@ -835,32 +827,28 @@ Cohesion: 0.22
 Nodes (8): Fungsionalitas (perlu uji manual), Langkah verifikasi setelah migration diterapkan, Laporan Pengujian Modul Marketing & Kepala Bagian Marketing, Masalah yang belum terselesaikan, Ringkasan jujur, Role & hak akses, Sinkronisasi (perlu uji manual), Skenario yang dicakup skrip verifikasi
 
 ### Community 112 - "PanoramaPage.vue"
-Cohesion: 0.07
-Nodes (34): previewSvgContainer, props, renderPreviewLayers(), container, emit, handleClick(), props, updateColors() (+26 more)
+Cohesion: 0.11
+Nodes (18): isTouchDevice, props, PanoramaPage(), formatCurrency(), formatDate(), getStatusLabel(), Lot, errorMessage (+10 more)
 
 ### Community 113 - "Typography Specifications"
 Cohesion: 0.06
 Nodes (30): Accessibility, Base System, Best Practices, Clean & Modern, Common Font Pairings, Contrast Requirements, CSS Implementation, Editorial (+22 more)
 
 ### Community 115 - "slide_search_core.py"
-Cohesion: 0.08
-Nodes (17): format_context(), format_result(), main(), BM25, calculate_pattern_break(), detect_domain(), get_background_config(), get_color_for_emotion() (+9 more)
+Cohesion: 0.11
+Nodes (16): format_context(), format_result(), main(), calculate_pattern_break(), detect_domain(), get_background_config(), get_color_for_emotion(), get_layout_for_goal() (+8 more)
 
 ### Community 116 - "perintah Module"
 Cohesion: 0.40
 Nodes (4): Development Workflow (Understand, Plan, Implement, Verify, Report), Seven Implementation Phases (Audit to Documentation), Supabase Database Audit via MCP Server, Required Marketing Documentation Files (MARKETING_MODULE.md etc.)
 
 ### Community 117 - "financialPdf.ts"
-Cohesion: 0.08
-Nodes (22): jspdf@^4.2.1, jspdf, blobToBase64(), saveBlobAsFile(), currentMakassarDay(), ReportPeriod, buildCashflowPdfInput(), buildReportPdf() (+14 more)
+Cohesion: 0.16
+Nodes (13): ReportPeriod, buildCashflowPdfInput(), buildReportPdf(), CATEGORY_LABELS, Cell, formatPdfRupiah(), PdfReportInput, PdfSection (+5 more)
 
 ### Community 118 - "PolygonLayer.vue"
 Cohesion: 0.23
 Nodes (20): applyFocus(), applyHover(), applyStyles(), bindEvents(), cleanupFunctions, emit, getPolygon(), getSvg() (+12 more)
-
-### Community 119 - "test_core.py"
-Cohesion: 0.05
-Nodes (7): format_markdown(), generate_design_system(), TestBm25CoreBehavior, TestDiagnosticsContracts, TestPersistence, TestSearchDomains, TestTokenizer
 
 ### Community 121 - "calculateFinanceBalance"
 Cohesion: 0.12
@@ -875,12 +863,12 @@ Cohesion: 0.29
 Nodes (7): approvalBlockReason(), bookingPaymentStatusLabel(), canApproveSPK(), isPending(), openApprove(), openDetail(), openRequestedSPKDetail()
 
 ### Community 128 - "button"
-Cohesion: 0.20
-Nodes (10): fg, font-size, hover-bg, button, $type, $value, $type, $value (+2 more)
+Cohesion: 0.12
+Nodes (19): $type, $value, bg, fg, font-size, hover-bg, padding-x, bg (+11 more)
 
 ### Community 129 - "CmsPanelModal.vue"
-Cohesion: 0.10
-Nodes (21): emit, FIELD_LABELS, FieldKey, form, isHttpUrl(), load(), loading, save() (+13 more)
+Cohesion: 0.21
+Nodes (12): emit, FIELD_LABELS, FieldKey, form, isHttpUrl(), load(), loading, save() (+4 more)
 
 ### Community 130 - "Animation Audit Playbook"
 Cohesion: 0.08
@@ -894,9 +882,9 @@ Nodes (28): Absolute Don'ts, Approved Backgrounds, Before Using Logo, Clear Spac
 Cohesion: 0.10
 Nodes (11): canvasRef, mascot, email, errorMessage, googleLoading, loading, password, queryError (+3 more)
 
-### Community 133 - "CmsItemFormModal.vue"
-Cohesion: 0.15
-Nodes (19): blankForm(), buildPayload(), CmsItemType, emit, file, fill(), form, formError (+11 more)
+### Community 133 - "ProgressPage.vue"
+Cohesion: 0.07
+Nodes (28): el, props, reveal(), seen, shown, stop(), ProgressPage(), averageProgress (+20 more)
 
 ### Community 134 - "Component Specifications"
 Cohesion: 0.07
@@ -916,7 +904,7 @@ Nodes (25): Accessibility, Archival, Asset Approval Checklist, Automation Suppor
 
 ### Community 138 - "AppInput.vue"
 Cohesion: 0.07
-Nodes (20): attrs, describedBy, effectiveType, emit, errorId, hasError, inputAttrs, passwordVisible (+12 more)
+Nodes (19): ButtonFill, ButtonSize, ButtonType, ButtonVariant, effectiveFill, effectiveVariant, emit, handleClick() (+11 more)
 
 ### Community 141 - ".mcp.json"
 Cohesion: 0.50
@@ -926,21 +914,31 @@ Nodes (3): npx, shadcn, supabase-poliland
 Cohesion: 0.08
 Nodes (25): Common Pitfalls, Core Prompt Structure, Detailed Brief, Eco/Sustainable, Effective Keywords by Style, Fashion Brand, Healthcare, Industry-Specific Prompts (+17 more)
 
-### Community 143 - "useCurrentUser.ts"
-Cohesion: 0.13
-Nodes (16): clear(), clearListeners, init(), loading, loadListeners, profile, UserRole, ActiveContext (+8 more)
+### Community 143 - "HeadCrmPage.vue"
+Cohesion: 0.09
+Nodes (21): emit, kindLabel, HeadCrmPage(), ActivityItem, CRM_TONE, activity, activityError, activityLoading (+13 more)
 
 ### Community 144 - "BerandaClientPage.vue"
-Cohesion: 0.05
-Nodes (35): ButtonFill, ButtonSize, ButtonType, ButtonVariant, effectiveFill, effectiveVariant, emit, handleClick() (+27 more)
+Cohesion: 0.09
+Nodes (16): BerandaClientPage(), ClientSpkDocumentKey, clientName, clientSpks, documentFields, documentsLoaded, isOverdue(), {
+  loading: purchaseLoading,
+  error: purchaseError,
+  overview,
+  otherLotCount,
+  remaining,
+  progressPercent,
+  paidInstallments,
+  nextSchedule,
+  load: loadPurchase,
+} (+8 more)
 
-### Community 145 - "primitive"
-Cohesion: 0.18
-Nodes (19): $type, $value, $type, $value, 500, 600, blue, green (+11 more)
+### Community 145 - "getLotId"
+Cohesion: 0.14
+Nodes (15): previewSvgContainer, props, renderPreviewLayers(), container, emit, handleClick(), props, updateColors() (+7 more)
 
 ### Community 147 - "PoliLand Design"
-Cohesion: 0.18
-Nodes (10): Daftar periksa, Gerak: bermain, tidak mengganggu, Inti visual, Komponen bersama (`src/components/ui/`), Kontras, PoliLand Design, Proses, Sentuh (+2 more)
+Cohesion: 0.22
+Nodes (9): Daftar periksa, Gerak: bermain, tidak mengganggu, Inti visual, Komponen bersama (`src/components/ui/`), Kontras, PoliLand Design, Proses, Sentuh (+1 more)
 
 ### Community 148 - "Color Palette Management"
 Cohesion: 0.08
@@ -999,12 +997,12 @@ Cohesion: 0.11
 Nodes (18): 1. Wordmark (Logotype), 2. Lettermark (Monogram), 3. Pictorial Mark (Brand Mark), 4. Abstract Mark, 5. Mascot, 6. Emblem, 7. Combination Mark, Aesthetic Styles (+10 more)
 
 ### Community 182 - "color"
-Cohesion: 0.11
-Nodes (19): $type, $value, background, foreground, muted-foreground, primary, primary-hover, secondary (+11 more)
+Cohesion: 0.05
+Nodes (37): $type, $value, background, destructive, destructive-foreground, foreground, muted, muted-foreground (+29 more)
 
-### Community 184 - "PageBackButton.vue"
-Cohesion: 0.28
-Nodes (6): { goBack: routerBack }, props, useSmartBack(), goBack(), resolveFallback(), confirmDelete()
+### Community 184 - "AppInput.vue"
+Cohesion: 0.15
+Nodes (12): attrs, describedBy, effectiveType, emit, errorId, hasError, inputAttrs, passwordVisible (+4 more)
 
 ### Community 185 - "3. Logo Usage"
 Cohesion: 0.11
@@ -1031,8 +1029,8 @@ Cohesion: 0.12
 Nodes (15): 22 Art Direction Styles, Banner Sizes & Art Direction Styles Reference, Complete Banner Sizes, CTA Rules, Design Principles, Pinterest Research Queries, Print, Print Specs (+7 more)
 
 ### Community 191 - "fontSize"
-Cohesion: 0.11
-Nodes (20): $type, $value, $type, $value, $type, $value, $type, $value (+12 more)
+Cohesion: 0.10
+Nodes (21): $type, $value, $type, $value, $type, $value, $type, $value (+13 more)
 
 ### Community 193 - "extract-colors.cjs"
 Cohesion: 0.20
@@ -1083,16 +1081,16 @@ Cohesion: 0.14
 Nodes (13): Animation Tokens, Base Layer, Button Example, Component Classes, CSS Variables Setup, Dark Mode Toggle, HSL Format Benefits, shadcn/ui Alignment (+5 more)
 
 ### Community 206 - "radius"
-Cohesion: 0.11
-Nodes (27): $type, $value, lg, sm, $type, $value, $type, $value (+19 more)
+Cohesion: 0.13
+Nodes (22): $type, $value, sm, $type, $value, $type, $value, $type (+14 more)
 
 ### Community 207 - "Layout Patterns"
 Cohesion: 0.14
 Nodes (13): Card Styles, Component Variants, CSS Structures, Feature Grid (3 columns), Layout Decision Flow, Layout Patterns, Layout Selection by Use Case, Metric Styles (+5 more)
 
-### Community 209 - "ProgressDetailPage.vue"
-Cohesion: 0.05
-Nodes (38): confirmDelete(), deleteOpen, deleteTarget, deleting, editingItem, formOpen, handleRefresh(), { isAdmin } (+30 more)
+### Community 209 - "CmsItemFormModal.vue"
+Cohesion: 0.06
+Nodes (41): blankForm(), buildPayload(), CmsItemType, emit, file, fill(), form, formError (+33 more)
 
 ### Community 210 - "update.md"
 Cohesion: 0.15
@@ -1103,8 +1101,8 @@ Cohesion: 0.15
 Nodes (12): Available Styles, Color Psychology, Commands, Design Brief (Start Here), Detailed References, Generate Logo, Industry Defaults, Logo Design Reference (+4 more)
 
 ### Community 212 - "marketingStatus.ts"
-Cohesion: 0.08
-Nodes (36): openFollowup(), customFrom, customTo, emit, emitRange(), marketing, preset, props (+28 more)
+Cohesion: 0.09
+Nodes (33): openFollowup(), customFrom, customTo, emit, emitRange(), marketing, preset, props (+25 more)
 
 ### Community 213 - "Token Architecture"
 Cohesion: 0.15
@@ -1115,16 +1113,16 @@ Cohesion: 0.10
 Nodes (24): emit, load(), onProofSelected(), submit(), adminCompleteStep(), adminMarkStepReady(), adminSetStepSchedule(), adminUploadHandoverProof() (+16 more)
 
 ### Community 215 - "design-tokens-starter.json"
-Cohesion: 0.15
-Nodes (12): component, $type, $value, dark, semantic, $schema, $type, $value (+4 more)
+Cohesion: 0.17
+Nodes (11): $type, $value, dark, semantic, $schema, $type, $value, semantic (+3 more)
 
 ### Community 217 - "siteplanService.ts"
-Cohesion: 0.21
-Nodes (12): useSiteplan(), loadLots(), reload(), clearLotsCache(), fetchLotsFromSupabase(), getCachedLots(), getLots(), LotInstallment (+4 more)
+Cohesion: 0.23
+Nodes (10): useSiteplan(), loadLots(), clearLotsCache(), fetchLotsFromSupabase(), getCachedLots(), getLots(), LotInstallment, refreshLots() (+2 more)
 
 ### Community 218 - "inputValidation.ts"
-Cohesion: 0.15
-Nodes (20): installInputGuard(), NAME_AUTOCOMPLETE, onInput(), onKeydown(), readAttr(), resolveKind(), SKIPPED_TYPES, assertCustomerFields() (+12 more)
+Cohesion: 0.14
+Nodes (21): updateClientInfo(), installInputGuard(), NAME_AUTOCOMPLETE, onInput(), onKeydown(), readAttr(), resolveKind(), SKIPPED_TYPES (+13 more)
 
 ### Community 219 - "Primitive Tokens"
 Cohesion: 0.17
@@ -1138,9 +1136,9 @@ Nodes (8): args, fs, minimal, MINIMAL_TOKENS, path, projectRoot, tokensPath, wra
 Cohesion: 0.24
 Nodes (11): extensions, formatReport(), fs, getFiles(), main(), parseArgs(), path, patterns (+3 more)
 
-### Community 222 - "card"
-Cohesion: 0.20
-Nodes (12): $type, $value, bg, bg, padding, shadow, card, bg (+4 more)
+### Community 222 - "input"
+Cohesion: 0.12
+Nodes (22): $type, $value, radius, border, padding, radius, shadow, border (+14 more)
 
 ### Community 223 - "Core Visual Elements"
 Cohesion: 0.18
@@ -1183,28 +1181,28 @@ Cohesion: 0.06
 Nodes (27): deleteMyReview(), deleteOpen, deleting, editing, formKey, formOpen, formRef, loadError (+19 more)
 
 ### Community 234 - "duration"
-Cohesion: 0.20
-Nodes (10): fast, normal, slow, $type, $value, $type, $value, duration (+2 more)
+Cohesion: 0.18
+Nodes (11): fast, normal, slow, $type, $value, $type, $value, primitive (+3 more)
 
 ### Community 235 - "Slide Strategies"
 Cohesion: 0.20
 Nodes (9): Common Structures, Duarte Sparkline Pattern, Matching Strategy to Context, Product Demo (6 slides), Sales Pitch (9 slides), Search Commands, Slide Strategies, Strategy Selection (+1 more)
 
-### Community 237 - "cip/generate.py"
-Cohesion: 0.19
-Nodes (7): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main()
+### Community 237 - "clampPan"
+Cohesion: 0.27
+Nodes (13): animate(), canvasSize(), clampPan(), computeFit(), dist(), local(), onImageLoad(), onPointerDown() (+5 more)
 
 ### Community 238 - "handleWheel"
 Cohesion: 0.19
-Nodes (16): clamp(), commitCamera(), emit, exitBlockIfZoomedOut(), getCenter(), getDistance(), handleMiniMapClick(), handleWheel() (+8 more)
+Nodes (17): clamp(), commitCamera(), emit, exitBlockIfZoomedOut(), getCenter(), getDistance(), handleMiniMapClick(), handleWheel() (+9 more)
 
 ### Community 239 - "AddressFields.vue"
 Cohesion: 0.10
 Nodes (22): cache, cities, countryOptions, districts, emit, error, fetchRegions(), isIndonesia (+14 more)
 
-### Community 240 - "test_relevance_evaluator.py"
-Cohesion: 0.12
-Nodes (3): TestFixtureValidation, TestMetricMath, TestThresholdGate
+### Community 240 - "test_native_desktop_stack_freshness.py"
+Cohesion: 0.06
+Nodes (5): _rows(), TestNativeDesktopStackFreshness, TestFixtureValidation, TestMetricMath, TestThresholdGate
 
 ### Community 244 - "UI/UX Pro Max - Design Intelligence"
 Cohesion: 0.25
@@ -1247,16 +1245,16 @@ Cohesion: 0.33
 Nodes (8): images, loadClip(), loadFrame(), loadPosterFrame(), warmWelcomeMascot(), WelcomeClipName, welcomeClips, preload()
 
 ### Community 255 - "ReviewForm.vue"
-Cohesion: 0.11
-Nodes (20): addFiles(), agreed, content, dragging, emit, errors, onDrop(), onPick() (+12 more)
+Cohesion: 0.06
+Nodes (38): toggleHelpful(), addFiles(), agreed, content, dragging, emit, errors, onDrop() (+30 more)
 
 ### Community 256 - "useMascotAnimation.ts"
 Cohesion: 0.27
 Nodes (9): FRAME_COUNTS, IntroClip, poseClip, Transition, TransitionClip, mascotAnimations, MascotClip, MascotInputState (+1 more)
 
 ### Community 257 - "review.ts"
-Cohesion: 0.24
-Nodes (10): reviewModerationService, AdminReview, AdminReviewHistory, AdminReviewPage, AdminReviewReport, AdminReviewTab, BlockedTerm, BlockedTermCategory (+2 more)
+Cohesion: 0.11
+Nodes (17): hasReviews, props, recommendPercent, reviewModerationService, AdminReview, AdminReviewHistory, AdminReviewPage, AdminReviewReport (+9 more)
 
 ### Community 258 - "Common Rules for Professional UI"
 Cohesion: 0.40
@@ -1271,28 +1269,24 @@ Cohesion: 0.08
 Nodes (27): BASE_CHIPS, chipBase, chipCount(), chips, emit, emptyFilters(), error, extraFilterCount (+19 more)
 
 ### Community 262 - "roleNotificationService.ts"
-Cohesion: 0.09
-Nodes (28): emit, ICONS, ionRouter, { items, unread, loading, error, reload, markRead, markAllRead }, open_(), { profile }, NotificationClickEvent, AppNotification (+20 more)
+Cohesion: 0.07
+Nodes (45): emit, ICONS, ionRouter, { items, unread, loading, error, reload, markRead, markAllRead }, open_(), { profile }, onProfileCleared(), onProfileLoaded() (+37 more)
 
 ### Community 263 - "Tips for Better Results"
 Cohesion: 0.50
 Nodes (4): Common Sticking Points, Pre-Delivery Checklist, Query Strategy, Tips for Better Results
 
 ### Community 265 - "homeData.ts"
-Cohesion: 0.18
-Nodes (5): faqsData, features, galleryImages, previewLots, progressItems
+Cohesion: 0.13
+Nodes (9): ionicons, emit, props, toggleLegend(), faqsData, features, galleryImages, previewLots (+1 more)
 
-### Community 266 - "ReviewReportDialog.vue"
-Cohesion: 0.10
-Nodes (21): toggleHelpful(), details, emit, error, props, reason, REASONS, submit() (+13 more)
+### Community 266 - "test_text_layout_resilience.py"
+Cohesion: 0.18
+Nodes (3): read_rows(), TestTextLayoutDataContracts, TestTextLayoutRetrieval
 
 ### Community 267 - "AppPagination.vue"
 Cohesion: 0.16
 Nodes (13): emit, from, go(), pages, props, root, to, buildPageWindow() (+5 more)
-
-### Community 268 - "TestWebStackFreshness"
-Cohesion: 0.08
-Nodes (4): _rows(), TestNativeDesktopStackFreshness, _rows(), TestWebStackFreshness
 
 ### Community 269 - "PoliLand — Laporan Audit UI/UX (Fase 1)"
 Cohesion: 0.15
@@ -1304,27 +1298,27 @@ Nodes (17): aliases, components, composables, lib, ui, utils, iconLibrary, regis
 
 ### Community 271 - "logo/core.py"
 Cohesion: 0.05
-Nodes (16): BM25, detect_domain(), get_cip_brief(), _load_csv(), search(), search_all(), _search_csv(), BM25 (+8 more)
+Nodes (15): BM25, detect_domain(), get_cip_brief(), _load_csv(), search(), search_all(), _search_csv(), BM25 (+7 more)
 
-### Community 272 - "useConfirm.ts"
-Cohesion: 0.19
-Nodes (13): deleteNote(), emit, { current, open, settle }, tone, alert(), confirm(), ConfirmOptions, ConfirmRequest (+5 more)
+### Community 272 - "SettingsPage.vue"
+Cohesion: 0.09
+Nodes (26): { confirm }, confirmLogout(), emit, go(), ionRouter, loggingOut, logout(), { profile, displayName, roleLabel } (+18 more)
 
 ### Community 273 - "loadSPKCustomers"
 Cohesion: 0.33
 Nodes (7): createCustomerForAdminSPK(), changeCustomerSource(), emptyNewCustomer(), loadSPKCustomers(), openCreateForm(), resetNewCustomerForm(), saveNewCustomerForSPK()
 
-### Community 274 - "handleKeyDown"
-Cohesion: 0.29
-Nodes (7): closeBar(), closeFilter(), handleKeyDown(), handleOutsideClick(), hasActiveFilter(), hasActiveQuery(), toggleFilter()
+### Community 274 - "teamManagementService.ts"
+Cohesion: 0.18
+Nodes (9): CreateTeamMemberInput, MarketingClient, MarketingCommission, MarketingDetail, MarketingPeriod, MarketingSummary, teamManagementService, TeamMember (+1 more)
 
-### Community 275 - "runSearch"
-Cohesion: 0.29
-Nodes (7): executeFilterSearch(), formatPrice(), getFilterKeyword(), handleInput(), handleViewportChange(), runSearch(), updateResultsPosition()
+### Community 275 - "motionTokens.ts"
+Cohesion: 0.18
+Nodes (9): MODAL_ENTER_MS, MODAL_LEAVE_MS, MODAL_TRAVEL_PX, MOTION_EASE_DRAWER, MOTION_EASE_DRAWER_CSS, MOTION_EASE_MODAL_IN, MOTION_EASE_MODAL_IN_CSS, MOTION_EASE_MODAL_OUT (+1 more)
 
 ### Community 278 - "DesignSystemGenerator"
-Cohesion: 0.08
-Nodes (6): DesignSystemGenerator, TestReasoningMatch, read_rows(), TestGeneratedCatalogContract, TestLandingAndStackContract, TestReasoningContract
+Cohesion: 0.05
+Nodes (14): DesignSystemGenerator, apply_decision_rules(), _object_without_duplicates(), parse_decision_rules(), _validate_action(), TestReasoningMatch, read_rows(), split_values() (+6 more)
 
 ### Community 279 - "GallerySkeleton.vue"
 Cohesion: 0.14
@@ -1334,17 +1328,17 @@ Nodes (11): categories, CategoryId, compactView, filteredPhotos, GalleryPhoto, h
 Cohesion: 0.25
 Nodes (6): @tailwindcss/vite@^4.3.4, vite@^8.0.0, @vitejs/plugin-vue@^6.0.0, @tailwindcss/vite, vite, @vitejs/plugin-vue
 
-### Community 281 - "useNotifications.ts"
+### Community 281 - "fileDownload.ts"
 Cohesion: 0.25
-Nodes (14): onProfileCleared(), onProfileLoaded(), error, items, load(), loading, markAllRead(), markRead() (+6 more)
+Nodes (6): @capacitor/filesystem@^8.1.5, @capacitor/share@^8.0.3, @capacitor/filesystem, @capacitor/share, blobToBase64(), saveBlobAsFile()
 
 ### Community 282 - "Finding Animation Opportunities"
 Cohesion: 0.12
 Nodes (16): 1. Frequency — how often will a user see this?, 2. Purpose — why does this animate?, 3. Speed — can it stay inside budget?, 4. Function — does motion help or hinder here?, Finding Animation Opportunities, Hard Rules, Initial Response, Operating Posture (+8 more)
 
-### Community 283 - "public.lot_activity_logs Audit Table"
-Cohesion: 0.09
-Nodes (18): Composables (useSiteplan, useMascotAnimation, usePageLoading), Lot Status (Available, Booking, Sold), Interactive Siteplan Feature, public.lot_activity_logs Audit Table, public.lots Table, Panorama 360 & Storage Audit, Release Verification Checklist (vue-tsc, build, git diff --check), Riwayat Perubahan Tab (Admin Lot Detail) (+10 more)
+### Community 283 - "Client Detail Page (Info, Minat Kavling, CRM, SPK, Pembayaran, Jadwal, Catatan, Komisi)"
+Cohesion: 0.22
+Nodes (8): Client Detail Page (Info, Minat Kavling, CRM, SPK, Pembayaran, Jadwal, Catatan, Komisi), Marketing Commission (Komisi), CRM Client Progress Status, Late Penalty Rule (Rp20.000/day, max Rp1.800.000; day 90 wanprestasi review), Marketing Performance Ranking, Payments & Official Installment Schedule, Refund Rule (50% of confirmed DP and principal), SPK System (Rp1.000.000; Menunggu/Ditolak/Terkonfirmasi)
 
 ### Community 284 - "loadNewCustomerRegions"
 Cohesion: 0.43
@@ -1355,24 +1349,20 @@ Cohesion: 0.67
 Nodes (4): padding-y, padding-y, $type, $value
 
 ### Community 287 - "supabase.ts"
-Cohesion: 0.08
-Nodes (22): @capacitor/app@^8.1.2, @capacitor/browser@^8.0.5, @capacitor/core@^8.5.2, @capacitor/app, @capacitor/browser, @capacitor/core, app, bootstrap() (+14 more)
+Cohesion: 0.06
+Nodes (31): @capacitor/core@^8.5.2, @capacitor/core, EDITOR_ROLES, app, bootstrap(), ResetPasswordPage(), AUTH_CALLBACK_URL, ROLE_HOME (+23 more)
 
 ### Community 288 - "siteplanCamera.ts"
-Cohesion: 0.17
-Nodes (16): advanceClock(), Camera, cameraEase, clamp(), createFlight(), fitScaleOf(), Flight, FLIGHT_MAX_MS (+8 more)
-
-### Community 289 - "ReviewSummaryCard.vue"
-Cohesion: 0.17
-Nodes (8): hasReviews, props, recommendPercent, emit, hover, props, step(), ReviewStats
+Cohesion: 0.12
+Nodes (21): holes, props, shade, blockMarkers, boundsOf(), advanceClock(), Camera, cameraEase (+13 more)
 
 ### Community 290 - "AppVideo.vue"
 Cohesion: 0.22
 Nodes (7): handleVisibilityChange(), Props, tryPlay(), videoEl, normalizedProgress, Props, props
 
-### Community 291 - "notify"
-Cohesion: 0.19
-Nodes (13): isSurveySlotConflict(), contactAdmin(), formatWhatsAppMessage(), handleDateChange(), jumpToToday(), loadDetail(), notify(), openWhatsApp() (+5 more)
+### Community 291 - "BarChart.vue"
+Cohesion: 0.22
+Nodes (5): BarItem, hover, max, props, showTable
 
 ### Community 292 - "Integrasi Database Modul Marketing"
 Cohesion: 0.20
@@ -1382,17 +1372,21 @@ Nodes (9): Dampak ke Admin & Client yang sudah diperiksa, Fungsi & trigger baru,
 Cohesion: 0.10
 Nodes (6): ActiveContextOptions, CustomNotification, CustomNotificationOptions, CustomNotificationPlugin, CustomNotificationWeb, NotificationPermissionResult
 
-### Community 294 - "GlobalMobileHeader.vue"
-Cohesion: 0.20
-Nodes (9): ionRouter, notifOpen, { profile, displayName, firstName }, { unread, badgeLabel }, failed, initials, props, showImage (+1 more)
+### Community 294 - "CountUp.vue"
+Cohesion: 0.25
+Nodes (7): current, el, format(), parsed, props, reduced, text
+
+### Community 295 - "spkReviewService.ts"
+Cohesion: 0.33
+Nodes (8): fail(), getSPKReview(), payMarketingCommission(), SPKReviewData, updateInstallmentSchedule(), load(), payCommission(), saveIndividualSchedules()
 
 ### Community 296 - "createMember"
 Cohesion: 0.18
 Nodes (11): canManage(), createMember(), load(), loadMarketingDetail(), loadOverview(), openEditMarketing(), openMarketingDetail(), roleLabel() (+3 more)
 
 ### Community 297 - "ReviewCard.vue"
-Cohesion: 0.20
-Nodes (8): failed, initial, props, formattedDate, paragraphs, photoUrls, props, PublicReview
+Cohesion: 0.14
+Nodes (12): failed, initial, props, formattedDate, paragraphs, photoUrls, props, emit (+4 more)
 
 ### Community 298 - "getSPKDocumentUrl"
 Cohesion: 0.67
@@ -1410,13 +1404,13 @@ Nodes (9): currentFrame, currentFrameIndex, finishSplash(), frameReady, frames, 
 Cohesion: 0.27
 Nodes (10): clearPromoPrice(), notify(), openPanorama(), removePanorama(), runSave(), saveInfo(), savePanorama(), savePrice() (+2 more)
 
-### Community 302 - "UserMenu.vue"
-Cohesion: 0.31
-Nodes (8): { confirm }, confirmLogout(), emit, go(), ionRouter, loggingOut, logout(), { profile, displayName, roleLabel }
+### Community 302 - "applyRouteIntent"
+Cohesion: 0.22
+Nodes (9): applyRouteIntent(), handleFinanceTransactionAction(), loadCancellationRequests(), loadFinancialLedger(), openCancellationReview(), openFinancialLedger(), openPaymentProof(), saveCancellationDecision() (+1 more)
 
-### Community 303 - "input"
-Cohesion: 0.29
-Nodes (8): padding-x, input, $type, $value, focus-ring, padding-x, $type, $value
+### Community 303 - "flyTo"
+Cohesion: 0.32
+Nodes (8): flyTo(), focusCamera(), focusInsets(), renderCamera(), renderLineScale(), renderTransform(), rotate(), toTransform()
 
 ### Community 304 - "onPointerUp"
 Cohesion: 0.50
@@ -1426,9 +1420,9 @@ Nodes (8): continueWithMultiPointerGesture(), continueWithRemainingPointer(), is
 Cohesion: 0.36
 Nodes (6): fetchLedger(), fetchLedgerRows(), FinancialLedgerEntry, financialLedgerService, loadPaymentInstallmentInfo(), PaymentInstallmentInfo
 
-### Community 306 - "galleryService.ts"
-Cohesion: 0.38
-Nodes (5): GalleryPayload, galleryService, compressImage(), encode(), EXTENSIONS
+### Community 306 - "Interactive Siteplan Feature"
+Cohesion: 0.29
+Nodes (6): Composables (useSiteplan, useMascotAnimation, usePageLoading), Lot Status (Available, Booking, Sold), Interactive Siteplan Feature, public.lots Table, Panorama 360 & Storage Audit, Marketing Lot Search via Siteplan
 
 ### Community 308 - "loadDetail"
 Cohesion: 0.40
@@ -1438,37 +1432,37 @@ Nodes (6): errorText(), loadActivityLogs(), loadBlocks(), loadDetail(), loadHist
 Cohesion: 0.32
 Nodes (7): getCount(), getDependencies(), PaymentPlanDependencies, PaymentPlanPayload, PaymentPlanRecord, paymentPlanService, toCount()
 
-### Community 310 - "toISODate"
+### Community 310 - "public.lot_activity_logs Audit Table"
+Cohesion: 0.29
+Nodes (4): public.lot_activity_logs Audit Table, Release Verification Checklist (vue-tsc, build, git diff --check), Riwayat Perubahan Tab (Admin Lot Detail), Supabase Row Level Security for Audit Data
+
+### Community 311 - "getLotsHeldBySpkSafe"
 Cohesion: 0.33
-Nodes (6): calendarCells, getDateInTimeZone(), moveSurveyDay(), quickDateChips, todayISO, toISODate()
+Nodes (6): getLotsHeldBySpk(), getLotsHeldBySpkSafe(), HeldLots, lotHoldNote(), lotHoldNote(), heldNote
 
-### Community 311 - "deletePaymentInstruction"
-Cohesion: 0.40
-Nodes (5): addInstructionStep(), createInstructionStepKey(), defaultInstructionDraft(), deletePaymentInstruction(), loadPaymentInstruction()
-
-### Community 312 - "$type"
-Cohesion: 0.60
-Nodes (5): $type, $value, 700, 700, 700
+### Community 312 - "customerNotesService.ts"
+Cohesion: 0.33
+Nodes (5): CustomerNote, CustomerNoteHistory, customerNotesService, NoteCategory, NotePayload
 
 ### Community 313 - "Notifikasi Native Android"
 Cohesion: 0.25
 Nodes (7): Catatan penting, Checklist pengujian (perangkat fisik), Contoh pemakaian di komponen, File yang terlibat, Notifikasi Native Android, Push saat aplikasi ditutup (FCM), Sinkronisasi & build
 
-### Community 314 - "$type"
-Cohesion: 0.60
-Nodes (5): $type, $value, border, border, border
+### Community 314 - "Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner)"
+Cohesion: 0.40
+Nodes (3): PoliLand Kairagi Design System & Implementation Specification, MobileTabBar, Six Role Contexts (Public, Client, Marketing, Admin, Kepala Bagian, Owner)
 
 ### Community 315 - "@capacitor/cli"
 Cohesion: 0.50
 Nodes (3): config, @capacitor/cli@^8.5.2, @capacitor/cli
 
-### Community 317 - "radius"
-Cohesion: 0.60
-Nodes (5): radius, radius, radius, $type, $value
+### Community 317 - "xl"
+Cohesion: 0.67
+Nodes (4): xl, xl, $type, $value
 
-### Community 319 - "FocusSpotlight.vue"
-Cohesion: 0.40
-Nodes (4): holes, props, shade, Rect
+### Community 319 - "ContactPage.vue"
+Cohesion: 0.50
+Nodes (4): ContactPage.vue, contacts Supabase Table, contactService.getContacts(), WhatsApp Client Contact Button
 
 ### Community 320 - "loadLot"
 Cohesion: 0.40
@@ -1478,45 +1472,9 @@ Nodes (5): getLotById(), getLotByNumber(), getLotInstallments(), loadLot(), load
 Cohesion: 0.40
 Nodes (5): validateSelectionOrder(), formatCompactCurrency(), formatCurrency(), monthlyChartDescription, paymentErrors
 
-### Community 322 - "50"
-Cohesion: 0.67
-Nodes (4): $type, $value, 50, 50
-
-### Community 323 - "800"
-Cohesion: 0.67
-Nodes (4): $type, $value, 800, 800
-
-### Community 324 - "pinSurveyLots"
+### Community 322 - "matches"
 Cohesion: 0.50
-Nodes (4): pinSurveyLots(), filtered, filtered, filtered
-
-### Community 325 - "destructive"
-Cohesion: 0.67
-Nodes (3): destructive, $type, $value
-
-### Community 326 - "destructive-foreground"
-Cohesion: 0.67
-Nodes (3): destructive-foreground, $type, $value
-
-### Community 327 - "muted"
-Cohesion: 0.67
-Nodes (3): muted, $type, $value
-
-### Community 328 - "primary-foreground"
-Cohesion: 0.67
-Nodes (3): primary-foreground, $type, $value
-
-### Community 329 - "ring"
-Cohesion: 0.67
-Nodes (3): ring, $type, $value
-
-### Community 330 - "secondary-foreground"
-Cohesion: 0.67
-Nodes (3): secondary-foreground, $type, $value
-
-### Community 331 - "white"
-Cohesion: 0.67
-Nodes (3): white, $type, $value
+Nodes (4): matches(), visibleAdmins, visibleMarketing, visibleOwners
 
 ### Community 332 - "transactionCustomer"
 Cohesion: 0.67
@@ -1525,10 +1483,6 @@ Nodes (3): bookingCustomer, buyerCustomer, transactionCustomer()
 ### Community 333 - "formatAuditValue"
 Cohesion: 0.67
 Nodes (3): formatArea(), formatAuditValue(), rupiah()
-
-### Community 334 - "allSurveySlots"
-Cohesion: 0.67
-Nodes (3): allSurveySlots, getTimePartsInTimeZone(), isValidTimeRange()
 
 ### Community 340 - "installmentFormat.ts"
 Cohesion: 0.09
@@ -1546,22 +1500,22 @@ Nodes (4): choose(), emit, options, props
 
 ## Knowledge Gaps
 - **42 isolated node(s):** `PackageDescription`, `npx`, `contacts Supabase Table`, `Customer Origin (Wilayah) Analysis`, `Marketing Notifications (existing system)` (+37 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 4346 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 4349 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **58 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vue` connect `vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `AdminDetailKavling.vue`, `Client Lot Detail`, `SiteplanMap.vue`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ProgressPage.vue`, `BerandaMarketingPage.vue`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `Marketing SPK Submission`, `Siteplan Search Box`, `Capacitor Dependencies`, `LocationPicker.vue`, `KavlingMarketingPage.vue`, `Dev Tooling Deps`, `StatusIllustration.vue`, `PaymentMonitorView.vue`, `PhoneVerifySheet.vue`, `RegisterPage.vue`, `App Modal Component`, `ClientProfileGateModal.vue`, `Client SPK Modal`, `LoginPage.vue`, `AppPullRefresh.vue`, `ProfilePage.vue`, `DocumentViewer.vue`, `ClientDetailView.vue`, `AvatarCropModal.vue`, `SiteplanPage.vue`, `siteplanBlocks.ts`, `Panorama Viewer`, `CmsHomePanel.vue`, `MobileTabBar.vue`, `SpkProcessTimeline.vue`, `CommissionView.vue`, `SlideToConfirm.vue`, `contactService.ts`, `FAQSection.vue`, `AdminContentPage.vue`, `GalleryPreview.vue`, `HomePage.vue`, `@ionic/vue`, `useMascotAnimation`, `ContactPage.vue`, `WelcomePage.vue`, `HeadDashboardPage.vue`, `AdminGabungDataPage.vue`, `useToast.ts`, `SpkListView.vue`, `App.vue`, `useCelebration.ts`, `AdminSurveyRequestsPage.vue`, `GalleryPage.vue`, `surveyService.ts`, `supabase.ts`, `AdminReviewsPage.vue`, `PanoramaPage.vue`, `PolygonLayer.vue`, `calculateFinanceBalance`, `CmsPanelModal.vue`, `LoginPageCanvasTest.vue`, `CmsItemFormModal.vue`, `AppInput.vue`, `useCurrentUser.ts`, `BerandaClientPage.vue`, `ProgressDetailPage.vue`, `marketingStatus.ts`, `siteplanService.ts`, `CustomerReviewsSection.vue`, `AddressFields.vue`, `ReviewForm.vue`, `useMascotAnimation.ts`, `ClientListView.vue`, `ReviewReportDialog.vue`, `AppPagination.vue`, `useConfirm.ts`, `GallerySkeleton.vue`, `useNotifications.ts`, `supabase.ts`, `ReviewSummaryCard.vue`, `AppVideo.vue`, `GlobalMobileHeader.vue`, `ReviewCard.vue`, `SplashVideoPage.vue`, `UserMenu.vue`, `FocusSpotlight.vue`?**
-  _High betweenness centrality (0.135) - this node is a cross-community bridge._
+- **Why does `vue` connect `vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `AdminDetailKavling.vue`, `Client Lot Detail`, `SiteplanMap.vue`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ProgressDetailPage.vue`, `BerandaMarketingPage.vue`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `router/index.ts`, `Marketing SPK Submission`, `Siteplan Search Box`, `Capacitor Dependencies`, `LocationPicker.vue`, `KavlingMarketingPage.vue`, `Dev Tooling Deps`, `StatusIllustration.vue`, `PaymentMonitorView.vue`, `PhoneVerifySheet.vue`, `RegisterPage.vue`, `App Modal Component`, `ClientProfileGateModal.vue`, `Client SPK Modal`, `LoginPage.vue`, `AppPullRefresh.vue`, `@ionic/vue`, `DocumentViewer.vue`, `ClientDetailView.vue`, `AvatarCropModal.vue`, `SiteplanPage.vue`, `siteplanBlocks.ts`, `Panorama Viewer`, `CmsHomePanel.vue`, `MobileTabBar.vue`, `SpkProcessTimeline.vue`, `CommissionView.vue`, `SlideToConfirm.vue`, `contactService.ts`, `FAQSection.vue`, `AdminContentPage.vue`, `GalleryPreview.vue`, `HomePage.vue`, `useMascotAnimation`, `ContactPage.vue`, `WelcomePage.vue`, `HeadDashboardPage.vue`, `AdminGabungDataPage.vue`, `useToast.ts`, `SpkListView.vue`, `App.vue`, `AboutSection.vue`, `useCelebration.ts`, `AdminSurveyRequestsPage.vue`, `GalleryPage.vue`, `surveyService.ts`, `AdminReviewsPage.vue`, `PanoramaPage.vue`, `PolygonLayer.vue`, `calculateFinanceBalance`, `CmsPanelModal.vue`, `LoginPageCanvasTest.vue`, `ProgressPage.vue`, `AppInput.vue`, `HeadCrmPage.vue`, `BerandaClientPage.vue`, `getLotId`, `AppInput.vue`, `CmsItemFormModal.vue`, `marketingStatus.ts`, `siteplanService.ts`, `CustomerReviewsSection.vue`, `AddressFields.vue`, `ReviewForm.vue`, `useMascotAnimation.ts`, `review.ts`, `ClientListView.vue`, `roleNotificationService.ts`, `AppPagination.vue`, `SettingsPage.vue`, `GallerySkeleton.vue`, `supabase.ts`, `siteplanCamera.ts`, `AppVideo.vue`, `BarChart.vue`, `CountUp.vue`, `ReviewCard.vue`, `SplashVideoPage.vue`?**
+  _High betweenness centrality (0.155) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `TailwindConfigGenerator` (e.g. with `TestGeneratedConfigIsValidJs` and `TestTailwindConfigGenerator`) actually correct?**
   _`TailwindConfigGenerator` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `PackageDescription`, `npx`, `contacts Supabase Table` to the rest of the system?**
   _42 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Admin Finance Page` be split into smaller, more focused modules?**
   _Cohesion score 0.009655416777393924 - nodes in this community are weakly interconnected._
-- **Why does `@ionic/vue` connect `@ionic/vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `AdminDetailKavling.vue`, `Client Lot Detail`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ProgressPage.vue`, `BerandaMarketingPage.vue`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `vue`, `Marketing SPK Submission`, `Siteplan Search Box`, `Capacitor Dependencies`, `LocationPicker.vue`, `KavlingMarketingPage.vue`, `Dev Tooling Deps`, `StatusIllustration.vue`, `RegisterPage.vue`, `App Modal Component`, `ClientProfileGateModal.vue`, `Client SPK Modal`, `LoginPage.vue`, `ProfilePage.vue`, `DocumentViewer.vue`, `ClientDetailView.vue`, `AvatarCropModal.vue`, `SiteplanPage.vue`, `CmsHomePanel.vue`, `MobileTabBar.vue`, `SpkProcessTimeline.vue`, `SlideToConfirm.vue`, `contactService.ts`, `FAQSection.vue`, `AdminContentPage.vue`, `GalleryPreview.vue`, `HomePage.vue`, `ContactPage.vue`, `WelcomePage.vue`, `HeadDashboardPage.vue`, `AdminGabungDataPage.vue`, `App.vue`, `AdminSurveyRequestsPage.vue`, `GalleryPage.vue`, `surveyService.ts`, `modalAnimation.ts`, `AdminReviewsPage.vue`, `PanoramaPage.vue`, `LoginPageCanvasTest.vue`, `AppInput.vue`, `BerandaClientPage.vue`, `PageBackButton.vue`, `ProgressDetailPage.vue`, `marketingStatus.ts`, `ReviewForm.vue`, `ClientListView.vue`, `roleNotificationService.ts`, `AppPagination.vue`, `GallerySkeleton.vue`, `supabase.ts`, `ReviewSummaryCard.vue`, `GlobalMobileHeader.vue`, `ReviewCard.vue`, `SplashVideoPage.vue`, `UserMenu.vue`, `siteplanBlocks.ts`?**
-  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+- **Why does `@ionic/vue` connect `@ionic/vue` to `Admin Finance Page`, `Bank & Payment Instructions`, `Admin SPK Page`, `Client Lot Browser`, `Admin Lot Browser`, `Client Payment Page`, `AdminDetailKavling.vue`, `Client Lot Detail`, `SiteplanMap.vue`, `Client SPK Page`, `Finance Calc & Customers`, `Address & Client Account`, `Siteplan Detail Panel`, `SPK Review & Notary`, `Team Access & Roles`, `Admin Buyers List`, `ProgressDetailPage.vue`, `BerandaMarketingPage.vue`, `Customer Notes`, `Marketing Follow-ups`, `Admin Buyer Detail`, `Admin Dashboard`, `router/index.ts`, `Marketing SPK Submission`, `Siteplan Search Box`, `Capacitor Dependencies`, `LocationPicker.vue`, `KavlingMarketingPage.vue`, `Dev Tooling Deps`, `StatusIllustration.vue`, `RegisterPage.vue`, `App Modal Component`, `ClientProfileGateModal.vue`, `Client SPK Modal`, `LoginPage.vue`, `DocumentViewer.vue`, `ClientDetailView.vue`, `AvatarCropModal.vue`, `SiteplanPage.vue`, `CmsHomePanel.vue`, `MobileTabBar.vue`, `SpkProcessTimeline.vue`, `SlideToConfirm.vue`, `contactService.ts`, `FAQSection.vue`, `AdminContentPage.vue`, `GalleryPreview.vue`, `HomePage.vue`, `vue`, `ContactPage.vue`, `WelcomePage.vue`, `HeadDashboardPage.vue`, `AdminGabungDataPage.vue`, `App.vue`, `AboutSection.vue`, `AdminSurveyRequestsPage.vue`, `GalleryPage.vue`, `surveyService.ts`, `modalAnimation.ts`, `AdminReviewsPage.vue`, `PanoramaPage.vue`, `LoginPageCanvasTest.vue`, `ProgressPage.vue`, `AppInput.vue`, `HeadCrmPage.vue`, `BerandaClientPage.vue`, `getLotId`, `AppInput.vue`, `CmsItemFormModal.vue`, `marketingStatus.ts`, `ReviewForm.vue`, `ClientListView.vue`, `roleNotificationService.ts`, `homeData.ts`, `AppPagination.vue`, `SettingsPage.vue`, `GallerySkeleton.vue`, `supabase.ts`, `ReviewCard.vue`, `SplashVideoPage.vue`, `siteplanBlocks.ts`?**
+  _High betweenness centrality (0.050) - this node is a cross-community bridge._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._

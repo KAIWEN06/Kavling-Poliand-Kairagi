@@ -81,6 +81,13 @@
               </dd>
             </div>
           </dl>
+
+          <IdentityInfo
+            v-if="form.customerId"
+            :customer-id="form.customerId"
+            editable
+            @ready="identityReady = $event"
+          />
         </section>
       </Reveal>
 
@@ -398,6 +405,7 @@ import Reveal from '@/components/ui/Reveal.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
+import IdentityInfo from '@/components/identity/IdentityInfo.vue'
 import { useCelebration } from '@/composables/useCelebration'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
 
@@ -660,8 +668,11 @@ const currentStep = computed(() => {
 })
 
 
+const identityReady = ref(false)
+
+
 const canSubmit = computed(() => {
-  if (!form.customerId) return false
+  if (!form.customerId || !identityReady.value) return false
   if (form.paymentMethod === 'Installment' && downPaymentInvalid.value) return false
 
   const basicValid =

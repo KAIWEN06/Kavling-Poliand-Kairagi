@@ -91,6 +91,7 @@
         <div class="spk-detail-banner"><div><span>Nomor SPK</span><strong>{{ selectedRequest.spk_number }}</strong></div><span :class="['spk-status', `status-${selectedRequest.status.toLowerCase().replaceAll(' ', '-')}`]">{{ statusLabel(selectedRequest.status) }}</span></div>
         <section class="spk-detail-section"><h3>Informasi pembeli</h3>
           <dl><div><dt>Nama lengkap</dt><dd>{{ selectedRequest.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ selectedRequest.customer_phone }}</dd></div><div><dt>Email</dt><dd>{{ selectedRequest.customer_email || '-' }}</dd></div><div><dt>Alamat</dt><dd>{{ selectedRequest.customer_address || '-' }}</dd></div><div><dt>Pemasar</dt><dd>{{ selectedRequest.marketing_name }}</dd></div></dl>
+          <IdentityInfo :customer-id="selectedRequest.customer_id" editable />
         </section>
         <section class="spk-detail-section"><h3>Informasi kaveling & pembayaran</h3>
           <dl><div><dt>Nomor kaveling</dt><dd>{{ selectedRequest.lot_number }} · {{ selectedRequest.block_name }}</dd></div><div><dt>Harga tercatat</dt><dd>{{ formatCurrency(selectedRequest.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ selectedRequest.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div v-if="selectedRequest.months"><dt>Tenor</dt><dd>{{ selectedRequest.months }} bulan</dd></div><div v-if="selectedRequest.monthly_payment"><dt>Cicilan per bulan</dt><dd>{{ formatCurrency(selectedRequest.monthly_payment) }}</dd></div><div><dt>Catatan pemasar</dt><dd>{{ selectedRequest.notes || '-' }}</dd></div></dl>
@@ -303,6 +304,7 @@
                 <span>Email: {{ selectedCustomer.email || 'Tidak tersedia' }}</span>
                 <span>Alamat: {{ selectedCustomer.address || 'Tidak tersedia' }}</span>
               </div>
+              <IdentityInfo :customer-id="selectedCustomer.id" editable @ready="identityReady = $event" />
               <button type="button" class="spk-cancel-customer" @click="clearSelectedCustomer">Batal pilih</button>
             </template>
             <template v-else>
@@ -495,6 +497,7 @@ import { getRegions } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import IdentityInfo from '@/components/identity/IdentityInfo.vue'
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import { currentMakassarDateTimeLocal, makassarDateTimeLocalToIso } from '@/utils/financialCashflow'
@@ -685,8 +688,9 @@ const filteredAvailableLots = computed(() => {
     return compareLotNumber(a.lot_number, b.lot_number)
   })
 })
+const identityReady = ref(false)
 const canSubmitCreate = computed(() => Boolean(
-  selectedCustomerId.value && selectedLotIds.value.length > 0 &&
+  selectedCustomerId.value && identityReady.value && selectedLotIds.value.length > 0 &&
   createFiles.KTP && createFiles.KK &&
   createFiles['Payment Proof'] &&
   (createForm.payment_method === 'Cash' || selectedCreateLots.value.every(lot =>
@@ -697,6 +701,7 @@ const canSubmitCreate = computed(() => Boolean(
 const createBlocker = computed(() => {
   if (canSubmitCreate.value) return ''
   if (!selectedCustomerId.value) return 'Pilih klien terlebih dahulu.'
+  if (!identityReady.value) return 'Lengkapi NIK, tempat lahir, dan tanggal lahir klien.'
   if (!selectedLotIds.value.length) return 'Pilih minimal satu kaveling.'
   if (createForm.payment_method === 'Installment') {
     const lot = selectedCreateLots.value.find(item => lotDpInvalid(item))

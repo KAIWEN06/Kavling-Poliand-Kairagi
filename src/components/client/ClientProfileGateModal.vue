@@ -42,7 +42,7 @@ function goToAccount() { void router.push('/client/akun') }
   >
     <div class="gate-body">
       <IonIcon :icon="personCircleOutline" class="gate-icon" aria-hidden="true" />
-      <p>Data diri Anda belum lengkap. Lengkapi dulu agar saat membuat SPK, data pembeli terisi otomatis.</p>
+      <p>Data diri Anda belum lengkap, termasuk NIK serta tempat dan tanggal lahir. Data ini dipakai untuk administrasi SPK.</p>
     </div>
   </AppModal>
 </template>

@@ -1,5 +1,6 @@
 import { ref, readonly } from 'vue'
 import { supabase } from '@/services/config/supabase'
+import { getCustomerIdentity } from '@/services/customerIdentityService'
 
 /**
  * Status kelengkapan data diri Client (singleton). Dipakai popup wajib
@@ -30,7 +31,7 @@ async function check(): Promise<void> {
         return
       }
 
-      const columns = 'full_name, phone, whatsapp_phone, address, street_address'
+      const columns = 'id, full_name, phone, whatsapp_phone, address, street_address'
       let { data: customer } = await supabase.from('customers').select(columns).eq('user_id', user.id).maybeSingle()
       if (!customer && user.email) {
         const { data: byEmail } = await supabase
@@ -50,6 +51,11 @@ async function check(): Promise<void> {
         filled(customer.whatsapp_phone) &&
         (filled(customer.street_address) || filled(customer.address))
       )
+
+      if (!needsCompletion.value && customer) {
+        const result = await getCustomerIdentity(Number(customer.id))
+        needsCompletion.value = result.available && !result.identity
+      }
     } catch (error) {
       // Gagal cek tidak boleh memblokir pengguna.
       console.error('[Profil] Gagal memeriksa kelengkapan data diri:', error)

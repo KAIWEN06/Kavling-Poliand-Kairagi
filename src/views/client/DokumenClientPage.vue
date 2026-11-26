@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
+import IdentityFields from '@/components/identity/IdentityFields.vue'
+import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
+import IdentityInfo from '@/components/identity/IdentityInfo.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
@@ -247,8 +250,11 @@ const installmentEstimate = computed(() => {
   return { monthly: Math.floor(total / plan.months), total }
 })
 const termsAccepted = ref(false)
+const identityForm = useMyIdentityForm()
+const { identity, available: identityAvailable, loading: identityLoading, loadError: identityLoadError, problem: identityProblem } = identityForm
 const canSubmitCreate = computed(() => Boolean(
   termsAccepted.value &&
+  !identityProblem.value &&
   !reuseFeesLoading.value &&
   !reuseFeesError.value &&
   selectedCreateLot.value &&
@@ -336,6 +342,7 @@ async function openCreateForm(preferredLotId: number | null = null) {
   createOpen.value = true
   createError.value = ''
   termsAccepted.value = false
+  void identityForm.load()
   selectedReusePaymentId.value = null
   availableBookingFees.value = []
   reuseFeesLoading.value = true
@@ -580,6 +587,7 @@ async function submitCreateSPK() {
   creating.value = true
   createError.value = ''
   try {
+    await identityForm.save()
     await createClientSpk({
       lot: { id: selectedCreateLot.value.id, price: selectedCreateLotPrice.value },
       buyer: {
@@ -895,6 +903,13 @@ watch(() => route.query.nt, (stamp) => {
           <label>Nomor WhatsApp<input v-model.trim="createBuyer.whatsappPhone" inputmode="tel" placeholder="Nomor WhatsApp" /></label>
           <label>Email<input v-model.trim="createBuyer.email" type="email" placeholder="email@contoh.com" /></label>
           <label>Alamat <b>*</b><textarea v-model.trim="createBuyer.address" rows="2" required placeholder="Alamat lengkap" /></label>
+          <template v-if="identityAvailable">
+            <p v-if="identityLoading" class="spk-lot-empty" role="status">Memuat data identitas...</p>
+            <div v-else-if="identityLoadError" class="spk-reuse-error" role="alert">
+              {{ identityLoadError }} Tutup lalu buka kembali formulir ini.
+            </div>
+            <IdentityFields v-else v-model="identity" />
+          </template>
         </section>
 
         <section class="spk-form-section">
@@ -1055,6 +1070,7 @@ watch(() => route.query.nt, (stamp) => {
             <div><dt>Email</dt><dd>{{ selectedRecord.buyer.email || '-' }}</dd></div>
             <div><dt>Alamat</dt><dd>{{ selectedRecord.buyer.address || '-' }}</dd></div>
           </dl>
+          <IdentityInfo self />
         </section>
 
         <section class="spk-detail-section">

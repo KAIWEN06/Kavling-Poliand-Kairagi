@@ -14,7 +14,9 @@
           </section>
           <section class="review-panel"><h2>Informasi SPK</h2><dl class="info-grid">
             <div><dt>Pembeli</dt><dd>{{ data.request.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ data.request.customer_phone }}</dd></div><div><dt>Kaveling</dt><dd>{{ data.request.lots?.lot_number || data.request.lot_id }}</dd></div><div><dt>Harga transaksi</dt><dd>{{ money(data.request.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ data.request.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div><dt>Tanda jadi</dt><dd>{{ money(data.request.booking_fee_snapshot) }}</dd></div><div><dt>Tanggal persetujuan</dt><dd>{{ date(data.request.approved_at) }}</dd></div><div><dt>Pemasar</dt><dd>{{ data.request.profiles?.full_name || 'Tidak ada' }}</dd></div><div><dt>Sumber pengajuan</dt><dd>{{ data.request.submission_source }}</dd></div>
-          </dl></section>
+          </dl>
+            <IdentityInfo :customer-id="data.request.customer_id" editable title="Identitas pembeli sesuai KTP" />
+          </section>
           <section v-if="data.request.payment_method === 'Installment'" class="review-panel">
             <div class="section-head">
               <div>
@@ -106,6 +108,7 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
+import IdentityInfo from '@/components/identity/IdentityInfo.vue'
 import {
   getSPKReview,
   payMarketingCommission,
