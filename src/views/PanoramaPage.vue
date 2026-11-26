@@ -9,6 +9,7 @@
       :status="lotStatus"
       :status-color="statusColor"
       @ready="viewerReady = true"
+      @progress="loadPercent = $event"
       @back="goBack"
     />
 
@@ -28,7 +29,7 @@
         v-if="!errorMessage && (loading || !viewerReady)"
         class="panorama-cover"
         busy
-        title="Memuat panorama"
+        :title="loadPercent > 0 && loadPercent < 100 ? `Memuat panorama ${loadPercent}%` : 'Memuat panorama'"
       />
     </Transition>
 
@@ -37,19 +38,20 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { IonPage } from '@ionic/vue'
 
 import PanoramaViewer from '@/components/siteplan/PanoramaViewer.vue'
 import PublicStateScreen from '@/components/ui/PublicStateScreen.vue'
+import { useSmartBack } from '@/composables/useSmartBack'
 import { supabase } from '@/services/config/supabase'
 import { getLotStatusColor, getStatusLabel } from '@/utils/siteplan'
 
 const route = useRoute()
-const router = useRouter()
 
 const loading = ref(true)
 const viewerReady = ref(false)
+const loadPercent = ref(0)
 const errorMessage = ref('')
 
 const panoramaUrl = ref('')
@@ -60,6 +62,7 @@ const statusColor = ref('#22c55e')
 async function loadPanorama() {
   loading.value = true
   viewerReady.value = false
+  loadPercent.value = 0
   errorMessage.value = ''
   panoramaUrl.value = ''
 
@@ -207,9 +210,8 @@ async function loadPanorama() {
  * =========================================================
  */
 
-function goBack() {
-  router.back()
-}
+/* Tautan langsung tanpa riwayat tetap punya jalan kembali. */
+const { goBack } = useSmartBack(() => '/siteplan')
 
 onMounted(() => {
   loadPanorama()

@@ -17,22 +17,27 @@
           <SiteplanMap
             :lots="lots"
             :selected-lot="selectedLot ?? undefined"
-            :pending-lot="pendingLot ?? undefined"
+            :blocks="blocks"
+            :active-block="activeBlock"
             :hovered-lot="hoveredLot ?? undefined"
             :background="backgroundImage"
             :svg-raw="svgRaw"
             :rotation="currentRotation"
             :scale="1.25"
             @select="handleLotSelection"
+            @search-select="openLot"
             @hover="hoverLot"
             @leave="clearHover"
             @rotate="handleRotate"
             @map-click="handleMapClick"
+            @select-block="openBlock"
+            @overview="showOverview"
+            @zoomed-out="showOverview"
           />
         </div>
 
         <button
-          v-if="isStandalone && !showLoading"
+          v-if="isStandalone && !showLoading && level === 'overview'"
           class="siteplan-back"
           type="button"
           aria-label="Kembali"
@@ -41,14 +46,18 @@
           <IonIcon :icon="chevronBackOutline" aria-hidden="true" />
         </button>
 
-        <DetailPanel
-          v-if="selectedLot"
-          :lot="selectedLot"
-          :variant="variant"
-          :client-mode="isClientRoute"
-          @close="selectedLot = null"
-          @purchase="startPurchase"
-        />
+        <Transition name="sheet">
+          <DetailPanel
+            v-if="selectedLot"
+            :lot="selectedLot"
+            :block-name="activeBlock?.name"
+            :variant="variant"
+            :client-mode="isClientRoute"
+            @close="back"
+            @home="showOverview"
+            @purchase="startPurchase"
+          />
+        </Transition>
 
         <!-- Layar muat bergaya Welcome: matahari, bukit, judul naik per kata, progres emas -->
         <Transition name="skeleton-fade">
@@ -145,6 +154,8 @@ import {
   useSiteplan
 } from '../composables/useSiteplant'
 
+import { useSiteplanNavigation } from '../composables/useSiteplanNavigation'
+
 import type {
   SiteplanLot
 } from '../services/siteplanService'
@@ -202,7 +213,6 @@ const {
   error,
   selectedLot,
   hoveredLot,
-  selectLot,
   hoverLot,
   clearHover,
   reload
@@ -216,37 +226,23 @@ const {
 const currentRotation =
   ref(0)
 
-const pendingLot =
-  ref<SiteplanLot | null>(null)
-
-let selectionTimer:
-  ReturnType<typeof setTimeout> | undefined
-
-const LOT_SELECTION_FEEDBACK_MS = 550
+const {
+  blocks,
+  activeBlock,
+  level,
+  openBlock,
+  openLot,
+  tapLot,
+  showOverview,
+  back
+} = useSiteplanNavigation(lots, selectedLot)
 
 function handleLotSelection(
   lot: SiteplanLot | null
 ): void {
-  if (
-    !lot ||
-    pendingLot.value ||
-    loading.value
-  ) {
-    return
+  if (lot && !loading.value) {
+    tapLot(lot)
   }
-
-  pendingLot.value = lot
-
-  selectionTimer = setTimeout(() => {
-    selectionTimer = undefined
-
-    if (pendingLot.value !== lot) {
-      return
-    }
-
-    pendingLot.value = null
-    selectLot(lot)
-  }, LOT_SELECTION_FEEDBACK_MS)
 }
 
 
@@ -619,11 +615,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
 
-  if (selectionTimer) {
-    clearTimeout(selectionTimer)
-    selectionTimer = undefined
-  }
-
   window.removeEventListener(
     'poliland:refresh',
     handleRefresh
@@ -791,12 +782,17 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-/* Geser kotak pencarian agar tidak tertutup tombol kembali */
-.siteplan-page--standalone .siteplan-container :deep(.control-search) {
+/* Geser kotak pencarian agar tidak tertutup tombol kembali (hanya ada di level keseluruhan) */
+.siteplan-page--standalone .siteplan-container :deep(.siteplan-map:not(.focused) .control-search) {
   left: calc(max(12px, env(safe-area-inset-left, 0px)) + 56px);
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
+  /* Halaman dengan tab bar bawah: tingginya tetap, juga saat mendatar. */
+  .siteplan-page:not(.siteplan-page--standalone) .siteplan-container :deep(.right-controls-stack) {
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  }
+
   .siteplan-back {
     top: calc(env(safe-area-inset-top, 0px) + 8px);
   }

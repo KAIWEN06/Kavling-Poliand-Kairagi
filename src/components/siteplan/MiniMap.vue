@@ -39,6 +39,7 @@ import {
   ref,
   computed,
   nextTick,
+  onMounted,
   watch,
 } from 'vue'
 
@@ -322,6 +323,9 @@ watch(
     immediate: true,
   },
 )
+
+/* Peta mini dipasang ulang setiap kembali dari blok: warnai setelah SVG ada. */
+onMounted(updateColors)
 </script>
 
 <style scoped>

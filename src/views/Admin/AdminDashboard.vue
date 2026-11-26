@@ -8,6 +8,7 @@ import {
   IonContent,
   IonIcon,
   IonPage,
+  onIonViewWillEnter,
 } from '@ionic/vue'
 import {
   checkmarkCircleOutline,
@@ -37,6 +38,9 @@ import { getLots, type SiteplanLot } from '@/services/siteplanService'
 import { normalizeLotStatus } from '@/utils/siteplan'
 import { authService } from '@/services/auth/authService'
 import { customerService } from '@/services/marketing/customerService'
+import { getAdminSPKRequests, type AdminSPKRequest } from '@/services/Admin/spkAdminService'
+import { loadPaymentInstallmentInfo, type PaymentInstallmentInfo } from '@/services/Finance/paymentInstallmentInfo'
+import { formatInstallmentRange } from '@/utils/installmentFormat'
 
 type LoadState = 'loading' | 'success' | 'empty' | 'error'
 type InventoryStatus = {
@@ -63,6 +67,9 @@ const refreshing = ref(false)
 const buyerDataLoading = ref(true)
 const buyerDataError = ref('')
 const dashboardCustomers = ref<any[]>([])
+const pendingSpks = ref<AdminSPKRequest[]>([])
+const spkError = ref('')
+const installmentInfo = ref(new Map<number, PaymentInstallmentInfo>())
 let requestSequence = 0
 let isUnmounted = false
 
@@ -166,26 +173,70 @@ const buyerStats = computed(() => ({
   followUps: dashboardCustomers.value.filter((customer) => !customer.lot_transactions?.some((transaction: any) => transaction.status === 'Sold') && ((customer.customer_notes?.length ?? 0) > 0 || (customer.customer_interests?.length ?? 0) > 0)).length,
 }))
 
-const pendingFinanceTasks = computed(() => dashboardCustomers.value.flatMap((customer) =>
+type ActionTask = {
+  id: string
+  type: 'payment' | 'spk'
+  title: string
+  detail: string
+  customerName: string
+  isLate: boolean
+  targetId: number
+}
+
+const LATE_AFTER_MS = 1000 * 60 * 60 * 24 * 30
+
+const pendingPayments = computed(() => dashboardCustomers.value.flatMap((customer) =>
   (customer.payments ?? [])
-    .map((payment: any) => {
-      const transaction = (customer.lot_transactions ?? []).find((item: any) => item.lot_id === payment.lot_id)
-      return {
-        id: payment.id,
-        customerName: customer.full_name,
-        lotCode: transaction?.lots?.lot_number ?? `Kavling #${payment.lot_id}`,
-        amount: Number(payment.amount ?? 0),
-        isOverdue: new Date(payment.payment_date ?? payment.created_at).getTime() < Date.now() - 1000 * 60 * 60 * 24 * 30,
-        isSold: transaction?.status === 'Sold',
-      }
-    })
-    .filter((task: any) => !task.isSold),
+    .filter((payment: any) => payment.status === 'Pending')
+    .map((payment: any) => ({ customer, payment })),
 ))
 
-const actionTasks = computed(() => [
-  ...pendingFinanceTasks.value.map((task) => ({ ...task, type: 'payment' as const })),
-  { id: 'spk-placeholder', customerName: 'Konfirmasi SPK Konsumen', lotCode: '2 berkas pemesanan unit kaveling baru', amount: 0, isOverdue: false, isSold: false, type: 'spk' as const },
+function paymentTaskTitle(payment: any) {
+  switch (payment.payment_category) {
+    case 'Booking':
+      return 'Verifikasi tanda jadi SPK'
+    case 'Down Payment':
+      return 'Verifikasi uang muka'
+    case 'Installment': {
+      const info = installmentInfo.value.get(Number(payment.id))
+      const range = info ? formatInstallmentRange(info.numbers, info.total) : ''
+      return range ? `Verifikasi ${range.charAt(0).toLowerCase()}${range.slice(1)}` : 'Verifikasi cicilan'
+    }
+    case 'Cash Purchase':
+      return 'Verifikasi pelunasan tunai'
+    default:
+      return 'Verifikasi pembayaran lainnya'
+  }
+}
+
+function lotLabel(customer: any, payment: any) {
+  const lot = Array.isArray(payment.lots) ? payment.lots[0] : payment.lots
+  const transaction = (customer.lot_transactions ?? []).find((item: any) => item.lot_id === payment.lot_id)
+  const number = lot?.lot_number ?? transaction?.lots?.lot_number
+  return number ? `Kaveling ${number}` : 'Kaveling belum tercatat'
+}
+
+const actionTasks = computed<ActionTask[]>(() => [
+  ...pendingPayments.value.map(({ customer, payment }) => ({
+    id: `payment-${payment.id}`,
+    type: 'payment' as const,
+    title: paymentTaskTitle(payment),
+    detail: `${formatCurrency(Number(payment.amount ?? 0))} · ${lotLabel(customer, payment)}`,
+    customerName: customer.full_name,
+    isLate: new Date(payment.created_at ?? payment.payment_date).getTime() < Date.now() - LATE_AFTER_MS,
+    targetId: Number(payment.id),
+  })),
+  ...pendingSpks.value.map((spk) => ({
+    id: `spk-${spk.id}`,
+    type: 'spk' as const,
+    title: 'Proses pengajuan SPK',
+    detail: `Kaveling ${spk.lot_number} · ${spk.spk_number}`,
+    customerName: spk.customer_full_name,
+    isLate: false,
+    targetId: spk.id,
+  })),
 ])
+const taskPager = usePagination(actionTasks, { pageSize: 5 })
 
 const selectedActivityDate = ref('')
 
@@ -239,13 +290,14 @@ function openActivity(activity: { route: string }) {
   void router.push(activity.route)
 }
 
-function openTask(task: any) {
+function openTask(task: ActionTask) {
+  // nt memicu halaman tujuan yang masih tersimpan di tumpukan Ionic untuk membuka ulang targetnya.
+  const nt = String(Date.now())
   if (task.type === 'spk') {
-    buyerDataError.value = ''
-    window.dispatchEvent(new CustomEvent('poliland-dashboard-message', { detail: { message: 'Halaman SPK belum tersedia.' } }))
+    void router.push({ path: '/admin/spk', query: { spkId: String(task.targetId), nt } })
     return
   }
-  void router.push({ path: '/admin/keuangan', query: { status: task.isOverdue ? 'overdue' : 'pending', payment: String(task.id) } })
+  void router.push({ path: '/admin/keuangan', query: { tab: 'verification', status: 'pending', paymentId: String(task.targetId), nt } })
 }
 
 function formatCurrency(value: number) {
@@ -258,15 +310,34 @@ function formatActivityDate(value: string) {
   return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
-async function loadBuyerData() {
-  buyerDataLoading.value = true
+async function loadBuyerData(silent = false) {
+  if (!silent) buyerDataLoading.value = true
   buyerDataError.value = ''
+  spkError.value = ''
   try {
-    dashboardCustomers.value = await customerService.getAdminCustomers()
+    const [customers] = await Promise.all([
+      customerService.getAdminCustomers(),
+      loadPendingSpks(),
+    ])
+    dashboardCustomers.value = customers
+    installmentInfo.value = await loadPaymentInstallmentInfo(
+      pendingPayments.value
+        .filter(({ payment }) => payment.payment_category === 'Installment')
+        .map(({ payment }) => Number(payment.id)),
+    )
   } catch (error) {
     buyerDataError.value = error instanceof Error ? error.message : 'Data pembeli belum dapat dimuat.'
   } finally {
     buyerDataLoading.value = false
+  }
+}
+
+async function loadPendingSpks() {
+  try {
+    const requests = await getAdminSPKRequests()
+    pendingSpks.value = requests.filter((spk) => spk.status === 'Submitted' || spk.status === 'Under Review')
+  } catch (error) {
+    spkError.value = error instanceof Error ? error.message : 'Pengajuan SPK belum dapat dimuat.'
   }
 }
 
@@ -330,6 +401,11 @@ async function logout() {
 onMounted(() => {
   void loadInventory()
   void loadBuyerData()
+})
+
+// Tugas yang sudah diselesaikan di halaman lain hilang saat admin kembali ke sini.
+onIonViewWillEnter(() => {
+  if (!buyerDataLoading.value) void loadBuyerData(true)
 })
 
 onBeforeUnmount(() => {
@@ -446,7 +522,7 @@ onBeforeUnmount(() => {
               </div>
               <AppNotice v-else-if="buyerDataError" tone="error" title="Statistik belum dapat dimuat">
                 <p>{{ buyerDataError }}</p>
-<AppButton size="small" @click="loadBuyerData">Coba lagi</AppButton>
+<AppButton size="small" @click="loadBuyerData()">Coba lagi</AppButton>
               </AppNotice>
               <div v-else class="stat-grid">
                 <StatCard label="Prospek aktif" :value="buyerStats.prospects" hint="Belum melakukan pembelian" />
@@ -468,34 +544,40 @@ onBeforeUnmount(() => {
                 <Skeleton v-for="n in 3" :key="n" height="60px" border-radius="14px" />
               </div>
 
-              <ul v-else-if="actionTasks.length" class="rows">
-                <li v-for="task in actionTasks.slice(0, 5)" :key="task.id">
-                  <button type="button" class="row" @click="openTask(task)">
-                    <span class="row__icon" :class="{ 'row__icon--danger': task.isOverdue }">
-                      <IonIcon :icon="task.type === 'spk' ? documentTextOutline : (task.isOverdue ? timeOutline : walletOutline)" aria-hidden="true" />
-                    </span>
-                    <span class="row__copy">
-                      <strong>{{ task.type === 'spk' ? 'Konfirmasi SPK Konsumen' : (task.isOverdue ? 'Pembayaran terlambat' : 'Verifikasi pembayaran') }}</strong>
-                      <small>{{ task.type === 'spk' ? task.lotCode : `${task.customerName} · ${task.lotCode} · ${formatCurrency(task.amount)}` }}</small>
-                    </span>
-                    <StatusBadge
-                      size="sm"
-                      :tone="task.type === 'spk' ? 'info' : (task.isOverdue ? 'danger' : 'warning')"
-                      :label="task.type === 'spk' ? 'SPK' : (task.isOverdue ? 'Terlambat' : 'Menunggu')"
-                    />
-                    <IonIcon class="row__chev" :icon="arrowForwardOutline" aria-hidden="true" />
-                  </button>
-                </li>
-                <li v-if="actionTasks.length > 5" class="rows__more">+{{ actionTasks.length - 5 }} tugas lainnya</li>
-              </ul>
+              <template v-else>
+                <AppNotice v-if="buyerDataError || spkError" tone="error" title="Daftar tugas belum lengkap">
+                  <p>{{ buyerDataError || spkError }}</p>
+                  <AppButton size="small" @click="loadBuyerData()">Coba lagi</AppButton>
+                </AppNotice>
 
-              <EmptyState
-                v-else
-                kind="transactions"
-                compact
-                title="Tidak ada tugas saat ini"
-                description="Tugas baru muncul ketika ada pembayaran atau aktivitas yang perlu ditindaklanjuti."
-              />
+                <div v-if="actionTasks.length" class="task-list">
+                  <ul class="rows">
+                    <li v-for="task in taskPager.items" :key="task.id">
+                      <button type="button" class="row" @click="openTask(task)">
+                        <span class="row__icon" :class="{ 'row__icon--danger': task.isLate, 'row__icon--gold': task.type === 'spk' }">
+                          <IonIcon :icon="task.type === 'spk' ? documentTextOutline : (task.isLate ? timeOutline : walletOutline)" aria-hidden="true" />
+                        </span>
+                        <span class="row__copy row__copy--wrap">
+                          <strong>{{ task.title }}</strong>
+                          <small>{{ task.detail }}</small>
+                          <small>{{ task.customerName }}</small>
+                        </span>
+                        <StatusBadge v-if="task.isLate" size="sm" tone="danger" label="Lewat 30 hari" />
+                        <IonIcon class="row__chev" :icon="arrowForwardOutline" aria-hidden="true" />
+                      </button>
+                    </li>
+                  </ul>
+                  <AppPagination v-model:page="taskPager.page" :total-pages="taskPager.totalPages" :total="taskPager.total" :page-size="taskPager.pageSize" scroll-to=".task-list" label="Halaman tugas" />
+                </div>
+
+                <EmptyState
+                  v-else-if="!buyerDataError && !spkError"
+                  kind="transactions"
+                  compact
+                  title="Tidak ada tugas saat ini"
+                  description="Tugas baru muncul ketika ada pembayaran atau pengajuan SPK yang menunggu."
+                />
+              </template>
             </section>
           </Reveal>
 
@@ -545,7 +627,7 @@ onBeforeUnmount(() => {
               </div>
               <AppNotice v-else-if="buyerDataError" tone="error" title="Aktivitas belum dapat dimuat">
                 <p>{{ buyerDataError }}</p>
-<AppButton size="small" @click="loadBuyerData">Coba lagi</AppButton>
+<AppButton size="small" @click="loadBuyerData()">Coba lagi</AppButton>
               </AppNotice>
               <div v-else-if="filteredActivities.length" class="activity-list">
                 <ul class="rows">
@@ -762,7 +844,6 @@ onBeforeUnmount(() => {
 
 /* ---------- rows (tugas, aktivitas) ---------- */
 .rows { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-.rows__more { padding: var(--space-2) 0 0; color: var(--text-secondary); font-size: var(--text-sm); text-align: center; }
 .row {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) auto auto;
@@ -805,6 +886,7 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.row__copy--wrap small { white-space: normal; overflow-wrap: anywhere; }
 .row__time { color: var(--text-secondary); font-size: var(--text-xs); white-space: nowrap; }
 .row__chev { color: var(--text-tertiary); font-size: 16px; transition: transform var(--dur-fast) var(--ease-out); }
 @media (hover: hover) and (pointer: fine) {

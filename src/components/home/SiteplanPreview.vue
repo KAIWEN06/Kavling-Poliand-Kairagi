@@ -25,7 +25,7 @@
     </ul>
 
     <button class="primary-btn" type="button" @click="$emit('goToSiteplan')">
-      Lihat denah kaveling
+      Lihat denah
       <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
     </button>
   </div>

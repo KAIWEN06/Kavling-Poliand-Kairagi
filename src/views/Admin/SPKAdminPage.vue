@@ -62,7 +62,7 @@
                 <strong>Alasan penolakan:</strong> {{ request.rejection_reason }}
               </p>
               <div class="spk-card-actions">
-                <button v-if="request.status === 'Approved'" class="spk-detail-btn spk-review-btn" type="button" @click="goToReview(request)">Tinjau SPK <ion-icon :icon="chevronForwardOutline" /></button>
+                <button v-if="request.status === 'Approved'" class="spk-detail-btn spk-review-btn" type="button" @click="goToReview(request)">Proses SPK <ion-icon :icon="chevronForwardOutline" /></button>
                 <button class="spk-detail-btn" type="button" @click="openDetail(request)">Lihat detail <ion-icon :icon="chevronForwardOutline" /></button>
                 <template v-if="isPending(request)">
                   <button class="spk-reject-btn" type="button" @click="openReject(request)">Tolak</button>
@@ -498,6 +498,7 @@ import AppModal from '@/components/ui/AppModal.vue'
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import { currentMakassarDateTimeLocal, makassarDateTimeLocalToIso } from '@/utils/financialCashflow'
+import { compareLotNumber } from '@/utils/lotNumber'
 import {
   approveSPKRequest, getAdminSPKRequests, getAdminSPKStats,
   getSPKDocumentUrl, rejectSPKRequest,
@@ -681,7 +682,7 @@ const filteredAvailableLots = computed(() => {
     const aInterested = interestedIds.has(a.id)
     const bInterested = interestedIds.has(b.id)
     if (aInterested !== bInterested) return aInterested ? -1 : 1
-    return a.lot_number.localeCompare(b.lot_number)
+    return compareLotNumber(a.lot_number, b.lot_number)
   })
 })
 const canSubmitCreate = computed(() => Boolean(

@@ -3,8 +3,8 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, watch, onBeforeUnmount } from 'vue'
-import { getLotId, getLotStatusColor } from '../../utils/siteplan'
+import { nextTick, watch, onBeforeUnmount, type PropType } from 'vue'
+import { getLotId, getLotStatusColor, getStatusLabel } from '../../utils/siteplan'
 
 const props = defineProps({
   container: {
@@ -22,11 +22,6 @@ const props = defineProps({
     default: null
   },
 
-  pendingLot: {
-    type: Object,
-    default: null
-  },
-
   hoveredLot: {
     type: Object,
     default: null
@@ -37,13 +32,10 @@ const props = defineProps({
     default: 0
   },
 
-  deviceTilt: {
-    type: Object,
-    default: () => ({
-      x: 0,
-      y: 0,
-      rotation: 0
-    })
+  /** Kavling pada blok aktif; hanya ini yang bisa difokus keyboard. */
+  focusIds: {
+    type: Array as PropType<string[] | null>,
+    default: null
   }
 })
 
@@ -103,6 +95,11 @@ function getPolygon(
   )
 }
 
+/* Ukuran yang tetap sama di layar pada tingkat zoom apa pun (--cam-scale dari SiteplanMap). */
+function screenPx(value: number) {
+  return `calc(${value}px / var(--cam-scale, 1))`
+}
+
 /**
  * Apply warna/status ke polygon kavling.
  */
@@ -137,7 +134,7 @@ function applyStyles() {
 
     // Disesuaikan dengan warna Gray (#6B6B6B) dari palette
     polygon.style.stroke = '#6B6B6B'
-    polygon.style.strokeWidth = '1.2'
+    polygon.style.strokeWidth = screenPx(1.4)
     polygon.style.strokeLinejoin = 'round'
     polygon.style.strokeLinecap = 'round'
     polygon.style.vectorEffect = 'non-scaling-stroke'
@@ -150,20 +147,67 @@ function applyStyles() {
 
     polygon.style.cursor = 'pointer'
 
-    const hovered =
-      props.hoveredLot &&
-      getLotId(props.hoveredLot) ===
-        getLotId(lot)
-
-    polygon.style.filter = hovered
-      ? 'brightness(1.05)'
-      : 'none'
   })
 
   renderLotLabels()
+  applyFocus()
+  renderOverlays()
+}
+
+function renderOverlays() {
+  applyHover()
   renderSelectionLayer()
-  renderPendingLayer()
   renderHoverLayer()
+  raiseLabels()
+}
+
+/* Nomor kavling selalu di atas lapisan sorotan. */
+function raiseLabels() {
+  const svg = getSvg()
+  const labels = svg?.querySelector('#lot-label-layer')
+  if (labels && labels !== svg.lastElementChild) svg.appendChild(labels)
+}
+
+let brightened: SVGElement | null = null
+
+function applyHover() {
+  if (brightened) brightened.style.filter = 'none'
+  brightened = getPolygon(getSvg(), props.hoveredLot) as SVGElement | null
+  if (brightened) brightened.style.filter = 'brightness(1.08)'
+}
+
+/**
+ * Membuat kavling pada blok aktif bisa difokus dan dibuka dengan keyboard.
+ * Peredupan ditangani FocusSpotlight, supaya SVG peta tidak digambar ulang.
+ */
+function applyFocus() {
+  const svg = getSvg()
+
+  if (!svg) return
+
+  const focus = props.focusIds ? new Set(props.focusIds as string[]) : null
+
+  props.lots.forEach((lot: any) => {
+    const polygon = getPolygon(svg, lot) as SVGElement | null
+
+    if (!polygon) return
+
+    const id = getLotId(lot)
+    if (focus?.has(id)) {
+      polygon.setAttribute('tabindex', '0')
+      polygon.setAttribute('role', 'button')
+      polygon.setAttribute(
+        'aria-label',
+        `Kavling ${lot.lot_number || id}, ${getStatusLabel(lot.status)}`
+      )
+    } else {
+      /* Fokus tidak lepas sendiri saat tabindex dibuang; garis fokusnya tertinggal. */
+      if (document.activeElement === polygon) (polygon as SVGElement).blur()
+      polygon.removeAttribute('tabindex')
+      polygon.removeAttribute('role')
+      polygon.removeAttribute('aria-label')
+    }
+  })
 }
 
 function renderLotLabels() {
@@ -250,13 +294,8 @@ function renderLotLabels() {
       String(centerY)
     )
 
-    const tiltRotation =
-      Number.isFinite(props.deviceTilt?.rotation)
-        ? Number(props.deviceTilt.rotation)
-        : 0
-
     const labelRotation =
-      normalizeAngle(-props.rotation + tiltRotation)
+      normalizeAngle(-props.rotation)
 
     text.setAttribute(
       'transform',
@@ -310,52 +349,6 @@ function renderLotLabels() {
   })
 }
 
-function renderPendingLayer() {
-  const svg = getSvg()
-
-  if (!svg) return
-
-  let layer = svg.querySelector('#pending-layer')
-
-  if (!layer) {
-    layer = document.createElementNS(
-      'http://www.w3.org/2000/svg',
-      'g'
-    )
-
-    layer.setAttribute('id', 'pending-layer')
-    layer.setAttribute('pointer-events', 'none')
-    svg.appendChild(layer)
-  }
-
-  while (layer.firstChild) {
-    layer.removeChild(layer.firstChild)
-  }
-
-  if (!props.pendingLot) return
-
-  const original = getPolygon(
-    svg,
-    props.pendingLot
-  ) as SVGElement | null
-
-  if (!original) return
-
-  const clone = original.cloneNode(true) as SVGElement
-  clone.removeAttribute('id')
-  clone.removeAttribute('style')
-  clone.setAttribute('class', 'siteplan-pending-lot')
-  clone.setAttribute('fill', '#2F6FEB')
-  clone.setAttribute('fill-opacity', '0.38')
-  clone.setAttribute('stroke', '#2F6FEB')
-  clone.setAttribute('stroke-width', '3')
-  clone.setAttribute('stroke-dasharray', '6 4')
-  clone.setAttribute('vector-effect', 'non-scaling-stroke')
-  clone.setAttribute('pointer-events', 'none')
-
-  layer.appendChild(clone)
-}
-
 /**
  * Layer untuk kavling yang sedang dipilih.
  */
@@ -363,8 +356,8 @@ function renderSelectionLayer() {
   renderOverlay(
     'selection-layer',
     props.selectedLot,
-    '#8CA072', // Disesuaikan dengan warna Sage (#8CA072) dari palette
-    '3',
+    '#1F3519', // Hijau tua: tegas di atas semua warna status
+    4,
     true
   )
 }
@@ -377,7 +370,7 @@ function renderHoverLayer() {
     'hover-layer',
     props.hoveredLot,
     '#2D2D2D', // Disesuaikan dengan warna Slate (#2D2D2D) dari palette
-    '2.5',
+    2.5,
     false
   )
 }
@@ -389,7 +382,7 @@ function renderOverlay(
   layerId: string,
   lot: any,
   stroke: string,
-  strokeWidth: string,
+  strokeWidth: number,
   glow: boolean
 ) {
   const svg = getSvg()
@@ -432,7 +425,10 @@ function renderOverlay(
   const clone =
     original.cloneNode(true) as SVGElement
 
-  clone.removeAttribute('id')
+  // Salinan hanya garis tepi: isi bawaan dan atribut interaksi dibuang.
+  for (const name of ['id', 'style', 'tabindex', 'role', 'aria-label', 'data-siteplan-lot', 'data-siteplan-lot-id']) {
+    clone.removeAttribute(name)
+  }
 
   clone.setAttribute(
     'fill',
@@ -444,10 +440,7 @@ function renderOverlay(
     stroke
   )
 
-  clone.setAttribute(
-    'stroke-width',
-    strokeWidth
-  )
+  clone.style.strokeWidth = screenPx(strokeWidth)
 
   clone.setAttribute(
     'vector-effect',
@@ -466,7 +459,7 @@ function renderOverlay(
 
   if (glow) {
     clone.style.filter =
-      'drop-shadow(0 0 6px rgba(140,160,114,.6))' // Disesuaikan dengan Sage glow
+      `drop-shadow(0 0 ${screenPx(8)} rgba(203,160,68,.95))`
   }
 
   layer.appendChild(clone)
@@ -522,6 +515,17 @@ function bindEvents() {
         emit('leave')
       }
 
+      const keydown = (event: Event) => {
+        const key = (event as KeyboardEvent).key
+        if (key !== 'Enter' && key !== ' ') return
+        event.preventDefault()
+        emit('select', lot)
+      }
+
+      element.addEventListener('keydown', keydown)
+      element.addEventListener('focus', enter)
+      element.addEventListener('blur', leave)
+
       element.addEventListener(
         'mouseenter',
         enter
@@ -533,6 +537,10 @@ function bindEvents() {
       )
 
       cleanupFunctions.push(() => {
+        element.removeEventListener('keydown', keydown)
+        element.removeEventListener('focus', enter)
+        element.removeEventListener('blur', leave)
+
         element.removeEventListener(
           'mouseenter',
           enter
@@ -558,23 +566,20 @@ async function refresh() {
   bindEvents()
 }
 
+/* Gambar penuh hanya saat data atau rotasi berubah; hover dan pilihan cukup lapisan atas. */
 watch(
-  () => [
-    props.container,
-    props.lots,
-    props.selectedLot,
-    props.pendingLot,
-    props.hoveredLot,
-    props.rotation
-  ],
-
+  () => [props.container, props.lots, props.rotation],
   refresh,
-
-  {
-    deep: true,
-    immediate: true
-  }
+  { deep: true, immediate: true }
 )
+
+watch(
+  () => [props.selectedLot, props.hoveredLot],
+  renderOverlays,
+  { flush: 'post' }
+)
+
+watch(() => props.focusIds, applyFocus, { flush: 'post' })
 
 onBeforeUnmount(() => {
   cleanupFunctions.forEach(
@@ -587,22 +592,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-:deep(.siteplan-pending-lot) {
-  animation: pending-lot-pulse 0.65s ease-in-out infinite alternate;
-}
-
-@keyframes pending-lot-pulse {
-  from {
-    fill-opacity: 0.18;
-    stroke-dashoffset: 0;
-  }
-
-  to {
-    fill-opacity: 0.62;
-    stroke-dashoffset: 10;
-  }
-}
-
 .polygon-layer {
   position: absolute;
   inset: 0;

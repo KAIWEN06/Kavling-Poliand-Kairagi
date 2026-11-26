@@ -2,7 +2,6 @@
   <div
     v-if="lot"
     class="detail-backdrop"
-    :class="{ open: visible }"
     @click.self="close"
   >
     <aside
@@ -14,20 +13,31 @@
     >
       <!-- HEADER -->
       <header class="detail-header">
-        <div>
-          <div class="detail-label">Kaveling</div>
-          <h2>{{ lot.lot_number || lot.polygon_id || '-' }}</h2>
-        </div>
-
-        <ion-button
-          class="close-button"
+        <button
           type="button"
-          fill="clear"
-          aria-label="Tutup detail kaveling"
+          class="nav-button nav-button--back"
+          :aria-label="blockName ? `Kembali ke ${blockName}` : 'Kembali ke Denah'"
           @click="close"
         >
-          <ion-icon :icon="closeOutline" aria-hidden="true"></ion-icon>
-        </ion-button>
+          <ion-icon :icon="chevronBackOutline" aria-hidden="true"></ion-icon>
+          <span>{{ blockName || 'Denah' }}</span>
+        </button>
+
+        <h2>
+          <small>Kaveling</small>
+          {{ lot.lot_number || lot.polygon_id || '-' }}
+        </h2>
+
+        <button
+          v-if="blockName"
+          type="button"
+          class="nav-button nav-button--home"
+          aria-label="Kembali ke Denah"
+          @click="goHome"
+        >
+          <ion-icon :icon="mapOutline" aria-hidden="true"></ion-icon>
+          <span>Denah</span>
+        </button>
       </header>
 
       <!-- BODY -->
@@ -61,6 +71,8 @@
           <img
             :src="lot.panorama_thumb || lot.panorama_url || defaultThumb"
             class="panorama-preview-image"
+            loading="lazy"
+            decoding="async"
             alt="Panorama kaveling"
           />
 
@@ -93,11 +105,6 @@
             <strong :class="statusClass(lot.status)">
               {{ getStatusLabel(lot.status) }}
             </strong>
-          </div>
-
-          <div>
-            <span>Blok</span>
-            <strong>{{ getBlockCode(lot) }}</strong>
           </div>
         </div>
 
@@ -451,16 +458,18 @@ import { modalEnterAnimation, modalLeaveAnimation } from '@/utils/modalAnimation
 import {
   computed,
   onBeforeUnmount,
+  onMounted,
   ref,
   watch,
 } from 'vue'
 import { useRouter } from 'vue-router'
+import { panoramaTransition } from '@/utils/panoramaTransition'
 import { setPostLoginRedirect } from '@/services/auth/postLoginRedirect'
 import AppButton from '../ui/AppButton.vue'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 
 import {
-  IonButton,
+  useIonRouter,
   IonIcon,
   IonModal,
   IonHeader,
@@ -470,7 +479,7 @@ import {
   IonContent,
 } from '@ionic/vue'
 
-import { closeOutline, compassOutline } from 'ionicons/icons'
+import { chevronBackOutline, compassOutline, mapOutline } from 'ionicons/icons'
 
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.webp'
@@ -559,6 +568,10 @@ const props = defineProps({
     type: Object,
     default: null, 
   },
+  blockName: {
+    type: String,
+    default: '',
+  },
   clientMode: {
     type: Boolean,
     default: false,
@@ -575,6 +588,7 @@ const props = defineProps({
 
 const emit = defineEmits<{
   close: []
+  home: []
   purchase: [lotId: number]
 }>()
 
@@ -583,12 +597,11 @@ const emit = defineEmits<{
 /* ===================================================== */
 
 const router = useRouter()
+const ionRouter = useIonRouter()
 
 /* ===================================================== */
 /* STATE */
 /* ===================================================== */
-
-const visible = ref(false)
 
 const activeTab = ref<'cash' | 'installment'>('cash')
 
@@ -700,8 +713,12 @@ const dealMethodLabel = computed(() => {
     : 'Tunai'
 })
 
-/* Data pembeli dan metode pembayaran hanya untuk pihak berhak. */
+/*
+ * Data pembeli dan metode pembayaran hanya untuk pihak berhak, dan hanya pada kavling
+ * yang dipesan atau terjual: lots.payment_type berisi 'Cash' bawaan walau belum ada pembeli.
+ */
 const showBuyerInfo = computed(() =>
+  (isSold.value || isBooked.value) &&
   (isAdminView.value || hasPrivateData.value) &&
   Boolean(
     props.lot?.customers?.full_name ||
@@ -760,17 +777,7 @@ watch(
   () => props.lot,
 
   async (lot) => {
-    if (!lot) {
-      visible.value = false
-      return
-    }
-
-    window.dispatchEvent(
-      new CustomEvent('poliland-detail-mode', {
-        detail: { active: true },
-      })
-    )
-    visible.value = true
+    if (!lot) return
 
     // Reset DP setiap kali pengguna memilih kavling yang berbeda.
     downPayment.value = 0
@@ -783,25 +790,24 @@ watch(
   }
 )
 
-watch(
-  visible,
-  (isVisible) => {
-    window.dispatchEvent(
-      new CustomEvent('poliland-detail-mode', {
-        detail: { active: isVisible },
-      })
-    )
-  },
-  { immediate: true }
-)
-
-onBeforeUnmount(() => {
+function setDetailMode(active: boolean) {
   window.dispatchEvent(
     new CustomEvent('poliland-detail-mode', {
-      detail: { active: false },
+      detail: { active },
     })
   )
+}
+
+onMounted(() => {
+  setDetailMode(true)
+
+  // Kode layar 360° diunduh lebih awal agar transisinya tidak tertahan.
+  if (props.lot?.panorama_url) {
+    void import('@/views/PanoramaPage.vue')
+  }
 })
+
+onBeforeUnmount(() => setDetailMode(false))
 
 /* ===================================================== */
 /* LOAD INSTALLMENTS */
@@ -899,16 +905,13 @@ function calculateMonthlyPayment(item: any): number {
 /* CLOSE DETAIL */
 /* ===================================================== */
 
+/* Tab bar muncul lagi saat panel selesai keluar (onBeforeUnmount). */
 function close() {
-  visible.value = false
-
-  window.dispatchEvent(
-    new CustomEvent('poliland-detail-mode', {
-      detail: { active: false },
-    })
-  )
-
   emit('close')
+}
+
+function goHome() {
+  emit('home')
 }
 
 function openAdminDetail() {
@@ -931,8 +934,9 @@ function open360() {
     props.lot?.id ||
     props.lot?.polygon_id
 
-  router.push(
-    `/panorama/${identifier}`
+  ionRouter.push(
+    `/panorama/${identifier}`,
+    panoramaTransition
   )
 }
 
@@ -1103,7 +1107,6 @@ function getBlockCode(
   return (
     block?.code ||
     lot?.block_code ||
-    lot?.block_id ||
     '-'
   )
 }
@@ -1122,18 +1125,6 @@ function getBlockCode(
   display: flex;
   align-items: flex-end;
   justify-content: center;
-
-  background: rgba(27, 40, 22, 0.5);
-
-  opacity: 0;
-  visibility: hidden;
-
-  transition: opacity var(--dur-base) var(--ease-out), visibility var(--dur-base) var(--ease-out);
-}
-
-.detail-backdrop.open {
-  opacity: 1;
-  visibility: visible;
 }
 
 /* ===================================================== */
@@ -1159,80 +1150,11 @@ function getBlockCode(
   display: flex;
   flex-direction: column;
 
-  transform: translateY(100%);
-
-  transition:
-    transform 380ms var(--ease-drawer);
-}
-
-.detail-backdrop.open
-.detail-panel {
-  transform: translateY(0);
 }
 
 /* ===================================================== */
 /* HEADER */
 /* ===================================================== */
-
-.detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 12px;
-
-  padding: 18px 18px 10px;
-
-  border-bottom:
-    1px solid var(--border-default, #eae7e0);
-}
-
-.detail-label {
-  font-size: 13px;
-  font-weight: 800;
-
-  letter-spacing: 0.14em;
-
-  text-transform: uppercase;
-
-  color: var(--poliland-gold-text, #966a12);
-}
-
-.detail-header h2 {
-  margin: 4px 0 0;
-
-  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
-  font-size: 30px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-
-  color: var(--text-primary, #252525);
-}
-
-/* ===================================================== */
-/* CLOSE BUTTON */
-/* ===================================================== */
-
-.close-button {
-  --background: #fafaf7;
-  --background-hover: #f1f0ea;
-
-  --color: #556b2f;
-
-  --border-radius: 50%;
-
-  --padding-start: 0;
-  --padding-end: 0;
-  --padding-top: 0;
-  --padding-bottom: 0;
-
-  width: 36px;
-  height: 36px;
-
-  margin: -4px 0 0;
-
-  flex: 0 0 36px;
-}
 
 /* ===================================================== */
 /* BODY */
@@ -1466,9 +1388,6 @@ function getBlockCode(
 
 .status-box {
   display: grid;
-
-  grid-template-columns:
-    1fr 1fr;
 
   gap: 12px;
 
@@ -2219,8 +2138,9 @@ function getBlockCode(
 /* Tampilan mengikuti WelcomePage: krem hangat, hijau hutan, emas */
 /* ===================================================== */
 
+/* Latar bening: peta yang sudah di-zoom tetap terlihat di atas panel. */
 .detail-backdrop {
-  background: rgba(37, 37, 37, 0.5);
+  background: linear-gradient(180deg, transparent 55%, rgba(31, 53, 25, 0.18));
 }
 
 .detail-panel {
@@ -2230,34 +2150,87 @@ function getBlockCode(
 }
 
 .detail-header {
-  min-height: 68px;
-  padding: 14px 20px;
-  background: transparent;
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(53, 90, 44, 0.14);
 }
 
-.detail-label {
-  color: #805708;
-}
-
 .detail-header h2 {
+  grid-column: 2;
+  margin: 0;
+  text-align: center;
   font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
-  font-size: 26px;
+  font-size: 24px;
+  line-height: 1.1;
   font-weight: 650;
   letter-spacing: -0.02em;
   color: var(--text-primary, #252525);
 }
 
-.close-button {
-  --background: #ffffff;
-  --background-hover: #ebe7dc;
-  --background-activated: #ebe7dc;
-  --color: var(--poliland-green, #355a2c);
-  --box-shadow: 0 0 0 1px rgba(53, 90, 44, 0.2);
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  margin: 0;
+.detail-header h2 small {
+  display: block;
+  font: 800 11px/1.4 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #805708;
+}
+
+.nav-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--poliland-green, #355a2c);
+  font: 700 13px/1.2 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  box-shadow: 0 0 0 1px rgba(53, 90, 44, 0.2);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+
+.nav-button ion-icon {
+  flex: none;
+  font-size: 17px;
+}
+
+.nav-button span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.nav-button--back {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  padding-left: 8px;
+}
+
+.nav-button--home {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.nav-button:active {
+  transform: scale(0.97);
+}
+
+.nav-button:focus-visible {
+  outline: 3px solid var(--poliland-gold, #cba044);
+  outline-offset: 2px;
 }
 
 .detail-body {
@@ -2501,6 +2474,7 @@ function getBlockCode(
 
 /* Footer dan tombol aksi */
 .detail-footer {
+  flex: none;
   padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
   background: rgba(245, 243, 238, 0.97);
   border-top: 1px solid rgba(53, 90, 44, 0.14);
@@ -2587,67 +2561,6 @@ function getBlockCode(
   border-color: #e5e1d6;
 }
 
-@media (min-width: 900px) {
-  .detail-backdrop {
-    align-items: center;
-    padding: 32px;
-  }
-
-  .detail-panel {
-    width: min(1180px, calc(100vw - 64px));
-    max-width: none;
-    height: min(840px, calc(100vh - 64px));
-    border-radius: 24px;
-    transform: translateY(24px) scale(0.985);
-    box-shadow: 0 24px 80px rgba(37, 37, 37, 0.25);
-  }
-
-  .detail-backdrop.open .detail-panel {
-    transform: translateY(0) scale(1);
-  }
-
-  .detail-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
-    align-items: start;
-    gap: 20px;
-    padding: 24px;
-  }
-
-  .media-preview,
-  .no-panorama,
-  .status-box,
-  .detail-section:nth-of-type(1),
-  .detail-description {
-    grid-column: 1;
-  }
-
-  .detail-section:nth-of-type(2) {
-    grid-column: 2;
-    grid-row: 1 / span 5;
-    position: sticky;
-    top: 0;
-  }
-
-  .detail-section:nth-of-type(3) {
-    grid-column: 1;
-  }
-
-  .detail-section:nth-of-type(1) {
-    margin-top: 0;
-  }
-
-  .detail-footer {
-    display: grid;
-    grid-template-columns: 1fr 240px;
-    gap: 10px;
-  }
-
-  .action-grid {
-    margin-bottom: 0;
-  }
-}
-
 @media (max-width: 899px) {
   .detail-panel {
     max-width: 560px;
@@ -2689,11 +2602,139 @@ function getBlockCode(
   }
 }
 
+/* ===================================================== */
+/* UKURAN, PANEL SAMPING, DAN TRANSISI */
+/* ===================================================== */
+
+/* Tinggi sheet dicerminkan di focusInsets() pada SiteplanMap.vue. */
+.detail-panel {
+  height: min(66dvh, 640px);
+}
+
+/*
+ * Panel menyusul setelah kamera berjalan. Vue hanya mengukur durasi elemen akar,
+ * jadi durasi + jeda backdrop tidak boleh lebih pendek daripada panel.
+ */
+.detail-backdrop.sheet-enter-active {
+  transition: opacity 460ms var(--ease-out) 320ms;
+}
+
+.sheet-enter-active .detail-panel {
+  transition: transform 460ms var(--ease-drawer) 320ms;
+}
+
+.detail-backdrop.sheet-leave-active {
+  transition: opacity 280ms var(--ease-modal-out);
+}
+
+.sheet-leave-active .detail-panel {
+  transition: transform 280ms var(--ease-modal-out);
+}
+
+.detail-backdrop.sheet-leave-active {
+  pointer-events: none;
+}
+
+.detail-backdrop.sheet-enter-from,
+.detail-backdrop.sheet-leave-to {
+  opacity: 0;
+}
+
+.sheet-enter-from .detail-panel,
+.sheet-leave-to .detail-panel {
+  transform: translateY(100%);
+}
+
+/* Layar lebar dan HP mendatar: panel di kanan, peta di kiri. */
+@media (min-width: 900px), (orientation: landscape) and (max-height: 520px) {
+  .detail-backdrop {
+    align-items: stretch;
+    justify-content: flex-end;
+    background: transparent;
+  }
+
+  .detail-panel {
+    width: min(420px, 52vw);
+    max-width: none;
+    height: 100%;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    border-radius: 24px 0 0 24px;
+    box-shadow: -18px 0 48px -18px rgba(31, 53, 25, 0.4);
+  }
+
+  .sheet-enter-from .detail-panel,
+  .sheet-leave-to .detail-panel {
+    transform: translateX(100%);
+  }
+}
+
+/* HP mendatar: header dan footer diringkas agar isi panel tetap terbaca. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .detail-header {
+    padding: 6px 10px;
+  }
+
+  .detail-body {
+    padding: 10px;
+  }
+
+  .media-preview {
+    height: 130px;
+  }
+
+  .detail-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .action-grid {
+    flex: 2;
+    margin: 0;
+    gap: 8px;
+  }
+
+  .detail-footer .survey-button.app-button.app-button,
+  .detail-footer .buy-button.app-button.app-button {
+    --min-height: 44px;
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .detail-footer .ask-button.app-button.app-button {
+    flex: 1;
+    width: auto;
+    --min-height: 44px;
+    min-height: 44px;
+    font-size: 12px;
+  }
+
+  .detail-footer--admin {
+    display: block;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .detail-backdrop,
-  .detail-panel,
-  .payment-tabs button {
+  .payment-tabs button,
+  .nav-button {
     transition: none;
+  }
+
+  .detail-backdrop.sheet-enter-active,
+  .detail-backdrop.sheet-leave-active {
+    transition: opacity 140ms linear;
+  }
+
+  .sheet-enter-active .detail-panel,
+  .sheet-leave-active .detail-panel {
+    transition: none;
+  }
+
+  .sheet-enter-from .detail-panel,
+  .sheet-leave-to .detail-panel {
+    transform: none;
   }
 }
 </style>

@@ -8,6 +8,8 @@
 </template>
 
 <script setup lang="ts">
+
+import { runBackHandlers } from '@/composables/useBackStack'
 import {
   IonApp,
   IonRouterOutlet,
@@ -261,7 +263,9 @@ async function dismissTopOverlay(): Promise<boolean> {
       return true
     }
   }
-  return false
+
+  // Level di dalam halaman (mis. denah: kavling -> blok -> siteplan).
+  return runBackHandlers()
 }
 
 async function handleAndroidBackButton(): Promise<void> {

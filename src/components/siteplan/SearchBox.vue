@@ -974,9 +974,9 @@ const filteredLots = computed(() => {
             lot?.polygon_id ?? ''
           ).toLowerCase()
 
-        const blockId =
+        const blockCode =
           String(
-            lot?.block_id ?? ''
+            lot?.blocks?.code ?? ''
           ).toLowerCase()
 
         /*
@@ -1000,7 +1000,7 @@ const filteredLots = computed(() => {
         return (
           lotNumber.includes(searchValue) ||
           polygonId.includes(searchValue) ||
-          blockId.includes(searchValue) ||
+          blockCode === searchValue.replace(/^blok\s*/, '') ||
           numericLot === numericQuery ||
           numericLot.includes(numericQuery)
         )

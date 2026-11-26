@@ -1,7 +1,7 @@
 <template>
   <div
     ref="mapRoot"
-    :class="['siteplan-map', { 'detail-open': !!selectedLot, 'search-active': isSearchActive }]"
+    :class="['siteplan-map', { 'detail-open': !!selectedLot, 'search-active': isSearchActive, focused: !!activeBlock }]"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -20,8 +20,8 @@
       class="map-viewport"
     >
       <div
-        class="map-world"
-        :style="worldStyle"
+        ref="world"
+        :class="['map-world', { 'is-moving': isFlying || isDragging }]"
       >
         <img
           :src="background"
@@ -29,21 +29,35 @@
           draggable="false"
         />
 
-        <SiteplanScenery :paused="isDragging || !!dragState" />
+        <SiteplanScenery :paused="isFlying || isDragging || !!dragState" />
 
         <div
+          ref="lineLayer"
           class="map-svg"
           v-html="svgRaw"
+        />
+
+        <!-- Peredup di luar blok aktif, lalu di sekitar kavling terpilih -->
+        <FocusSpotlight
+          :container="mapRoot"
+          :ids="activeBlock?.lotIds ?? null"
+          :view-box="mapViewBox"
+          :strength="0.42"
+        />
+        <FocusSpotlight
+          :container="mapRoot"
+          :ids="selectedLotIds"
+          :view-box="mapViewBox"
+          :strength="0.22"
         />
 
         <PolygonLayer
           :container="mapRoot ?? null"
           :lots="lots"
           :selected-lot="selectedLot"
-          :pending-lot="pendingLot"
           :hovered-lot="hoveredLot"
+          :focus-ids="activeBlock?.lotIds ?? null"
           :rotation="currentRotation"
-          :device-tilt="deviceTilt"
           @select="$emit('select', $event)"
           @hover="$emit('hover', $event)"
           @leave="$emit('leave')"
@@ -56,11 +70,16 @@
          ================================================= -->
     <div class="siteplan-controls">
 
+      <BlockMarkers
+        :markers="blockMarkers"
+        @select="$emit('select-block', $event)"
+      />
+
       <!-- SEARCH (Kiri/Atas) -->
       <div class="control-search">
         <SearchBox
           :lots="lots"
-          @select="$emit('select', $event)"
+          @select="$emit('search-select', $event)"
         />
       </div>
 
@@ -95,7 +114,14 @@
       </div>
 
       <!-- MINI MAP (Kiri Bawah) -->
-      <div class="control-minimap">
+      <Transition name="level-swap" mode="out-in">
+      <div v-if="activeBlock" key="level" class="control-level">
+        <SiteplanLevelBar
+          :block="activeBlock"
+          @back="$emit('overview')"
+        />
+      </div>
+      <div v-else key="minimap" class="control-minimap">
         <MiniMap
           :lots="lots"
           :background="background"
@@ -109,6 +135,7 @@
           @map-click="handleMiniMapClick"
         />
       </div>
+      </Transition>
 
     </div>
   </div>
@@ -119,8 +146,24 @@ import {
   ref,
   watch,
   onMounted,
-  onBeforeUnmount
+  onBeforeUnmount,
+  type PropType
 } from 'vue'
+
+import BlockMarkers from './BlockMarkers.vue'
+import FocusSpotlight from './FocusSpotlight.vue'
+import SiteplanLevelBar from './SiteplanLevelBar.vue'
+import {
+  advanceClock,
+  createFlight,
+  frameRect,
+  worldToScreen,
+  zoomAround,
+  type Camera,
+  type Rect
+} from '../../utils/siteplanCamera'
+import { getLotId } from '../../utils/siteplan'
+import type { SiteplanBlock } from '../../utils/siteplanBlocks'
 
 import SiteplanLegend from './SiteplanLegend.vue'
 import PolygonLayer from './PolygonLayer.vue'
@@ -147,8 +190,13 @@ const props = defineProps({
     default: null
   },
 
-  pendingLot: {
-    type: Object,
+  blocks: {
+    type: Array as PropType<SiteplanBlock[]>,
+    default: () => []
+  },
+
+  activeBlock: {
+    type: Object as PropType<SiteplanBlock | null>,
     default: null
   },
 
@@ -194,7 +242,11 @@ const emit = defineEmits([
   'hover',
   'leave',
   'rotate',
-  'map-click'
+  'map-click',
+  'select-block',
+  'overview',
+  'zoomed-out',
+  'search-select'
 ])
 
 
@@ -254,22 +306,6 @@ function handleSearchMode(event: Event) {
 }
 
 /* =========================================================
-   DEVICE TILT
-   ========================================================= */
-
-const deviceTilt = ref({
-  x: 0,
-  y: 0,
-  rotation: 0
-})
-
-const orientationPermissionRequired =
-  ref(false)
-
-let orientationListening = false
-
-
-/* =========================================================
    SCALE
    ========================================================= */
 
@@ -280,47 +316,6 @@ const isMaxScale = computed(() => {
 const isMinScale = computed(() => {
   return currentScale.value <= props.minScale
 })
-
-
-/* =========================================================
-   ROTATION
-   ========================================================= */
-
-function snapRotation(
-  value: number,
-  step = 30
-) {
-  const normalized =
-    normalizeAngle(value)
-
-  const snapped =
-    Math.round(normalized / step) * step
-
-  return normalizeAngle(snapped)
-}
-
-
-/* =========================================================
-   WORLD STYLE
-   ========================================================= */
-
-const worldStyle = computed(() => ({
-  transform: `
-    translate(
-      ${pan.value.x}px,
-      ${pan.value.y}px
-    )
-    scale(${currentScale.value})
-    rotate(${currentRotation.value}deg)
-  `,
-
-  transformOrigin:
-    'center center',
-
-  transition: dragState.value
-    ? 'none'
-    : 'transform 0.15s ease'
-}))
 
 
 /* =========================================================
@@ -364,157 +359,312 @@ function clamp(
 }
 
 
-function normalizeAngle(
-  angle: number
-) {
-  let result = angle % 360
-
-  if (result > 180) {
-    result -= 360
-  }
-
-  if (result < -180) {
-    result += 360
-  }
-
-  return result
-}
-
-
 /* =========================================================
-   DEVICE ORIENTATION
+   CAMERA
    ========================================================= */
 
-function handleDeviceOrientation(
-  event: DeviceOrientationEvent
-) {
-  const beta =
-    Number.isFinite(event.beta)
-      ? Number(event.beta)
-      : 0
+const world = ref<HTMLElement | null>(null)
+const isFlying = ref(false)
+const mapReady = ref(false)
 
-  const gamma =
-    Number.isFinite(event.gamma)
-      ? Number(event.gamma)
-      : 0
+let flightFrame = 0
+let flightCamera: Camera | null = null
 
-  const screenAngle =
-    typeof window !== 'undefined' &&
-    window.screen?.orientation
-      ? Number(
-          window.screen.orientation.angle || 0
-        )
-      : 0
+/* Tujuan animasi yang sedang berjalan, agar ketukan zoom beruntun menumpuk. */
+let flightTarget: Camera | null = null
 
-  let rotation = gamma
-
-  if (
-    Math.abs(screenAngle) === 90
-  ) {
-    rotation = beta
-  }
-
-  const snappedRotation =
-    snapRotation(rotation, 30)
-
-  deviceTilt.value = {
-    x: beta,
-    y: gamma,
-    rotation: snappedRotation
-  }
+function toTransform(camera: Camera) {
+  return `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale}) rotate(${camera.rotation}deg)`
 }
 
+const camera = computed<Camera>(() => ({
+  panX: pan.value.x,
+  panY: pan.value.y,
+  scale: currentScale.value,
+  rotation: currentRotation.value
+}))
 
-async function enableDeviceOrientation() {
-  if (
-    typeof window === 'undefined' ||
-    typeof DeviceOrientationEvent === 'undefined'
-  ) {
-    orientationPermissionRequired.value =
-      false
+const selectedLotIds = computed(() => {
+  const id = props.selectedLot ? getLotId(props.selectedLot as any) : ''
+  return id ? [id] : null
+})
 
+const lineLayer = ref<HTMLElement | null>(null)
+
+/*
+ * Satu-satunya penulis transform peta. Sengaja tanpa :style di template: render
+ * ulang Vue di tengah animasi akan menimpa posisi dengan posisi awal.
+ */
+function renderTransform(next: Camera) {
+  if (world.value) world.value.style.transform = toTransform(next)
+}
+
+/* Dipakai tebal garis agar tidak ikut membesar saat di-zoom. Mahal: jangan per frame. */
+function renderLineScale(scale: number) {
+  lineLayer.value?.style.setProperty('--cam-scale', String(scale))
+}
+
+function renderCamera(next: Camera) {
+  renderTransform(next)
+  renderLineScale(next.scale)
+}
+
+/* Untuk gestur dan perubahan langsung; selama penerbangan, loop animasi yang menulis. */
+watch(
+  camera,
+  (next) => {
+    if (!flightFrame) renderCamera(next)
+  },
+  { flush: 'post' }
+)
+
+function commitCamera(next: Camera) {
+  pan.value = { x: next.panX, y: next.panY }
+  currentScale.value = next.scale
+  currentRotation.value = next.rotation
+}
+
+/** Menghentikan animasi dan menetapkan posisi yang sedang terlihat. */
+function stopFlight() {
+  if (!flightFrame) return
+  cancelAnimationFrame(flightFrame)
+  flightFrame = 0
+  if (flightCamera) commitCamera(flightCamera)
+  flightCamera = null
+  flightTarget = null
+  isFlying.value = false
+}
+
+/**
+ * Selama animasi, transform ditulis langsung ke DOM (tanpa render ulang Vue
+ * tiap frame). State reaktif baru diperbarui setelah selesai.
+ */
+function flyTo(target: Camera, maxDuration = Infinity) {
+  stopFlight()
+
+  const reduceMotion =
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+  if (reduceMotion || !world.value) {
+    commitCamera(target)
+    renderCamera(target)
     return
   }
 
-  try {
-    const DeviceOrientationConstructor =
-      DeviceOrientationEvent as
-        typeof DeviceOrientationEvent & {
-          requestPermission?: () =>
-            Promise<
-              'granted' | 'denied'
-            >
-        }
+  const flight = createFlight(camera.value, target, {
+    width: mapWidth.value,
+    height: mapHeight.value
+  })
+  const duration = Math.min(flight.duration, maxDuration)
 
-    if (
-      typeof DeviceOrientationConstructor
-        .requestPermission === 'function'
-    ) {
-      const permission =
-        await DeviceOrientationConstructor
-          .requestPermission()
+  isFlying.value = true
+  flightTarget = target
 
-      if (permission !== 'granted') {
-        orientationPermissionRequired.value =
-          true
+  /*
+   * Tebal garis ditetapkan sekali di awal memakai skala terbesar, sehingga
+   * garis tidak pernah menebal berlipat lalu menyusut mendadak saat berhenti.
+   */
+  renderLineScale(Math.max(camera.value.scale, target.scale))
 
-        return
-      }
+  let elapsed = 0
+  let previous = 0
+
+  const step = (now: number) => {
+    if (previous) elapsed = advanceClock(elapsed, now - previous)
+    previous = now
+    const progress = Math.min(1, elapsed / duration)
+    flightCamera = flight.at(progress)
+    renderTransform(flightCamera)
+
+    if (progress < 1) {
+      flightFrame = requestAnimationFrame(step)
+      return
     }
 
-    if (!orientationListening) {
-      window.addEventListener(
-        'deviceorientation',
-        handleDeviceOrientation,
-        true
-      )
+    flightFrame = 0
+    flightCamera = null
+    flightTarget = null
+    commitCamera(target)
+    renderCamera(target)
+    isFlying.value = false
+  }
 
-      window.addEventListener(
-        'deviceorientationabsolute',
-        handleDeviceOrientation,
-        true
-      )
+  flightFrame = requestAnimationFrame(step)
+}
 
-      orientationListening = true
+/* Kotak pembatas gabungan bentuk SVG, dalam koordinat viewBox. */
+function boundsOf(ids: string[]): Rect | null {
+  const svg = mapRoot.value?.querySelector<SVGSVGElement>('.map-svg svg')
+  if (!svg) return null
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+
+  for (const id of ids) {
+    const shape = svg.querySelector<SVGGraphicsElement>(`#${CSS.escape(id)}`)
+    if (!shape?.getBBox) continue
+    const box = shape.getBBox()
+    if (!box.width) continue
+    minX = Math.min(minX, box.x)
+    minY = Math.min(minY, box.y)
+    maxX = Math.max(maxX, box.x + box.width)
+    maxY = Math.max(maxY, box.y + box.height)
+  }
+
+  return Number.isFinite(minX)
+    ? { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+    : null
+}
+
+/* Harus sama dengan media query panel samping di DetailPanel.vue. */
+const SIDE_PANEL_QUERY =
+  '(min-width: 900px), (orientation: landscape) and (max-height: 520px)'
+
+/* Area peta yang tidak tertutup pencarian, bilah level, atau panel detail. */
+function focusInsets(hasLot: boolean) {
+  const width = mapWidth.value
+  const height = mapHeight.value
+  const short = height < 520
+
+  if (!hasLot) {
+    return {
+      top: short ? 80 : 96,
+      right: short ? 72 : 20,
+      bottom: short ? 92 : 190,
+      left: 20
+    }
+  }
+
+  if (window.matchMedia?.(SIDE_PANEL_QUERY).matches) {
+    return {
+      top: 24,
+      right: Math.min(420, width * 0.52),
+      bottom: 24,
+      left: 24
+    }
+  }
+
+  /* Sheet menempel di dasar layar, sedangkan peta mulai di bawah header aplikasi. */
+  const screenHeight = window.innerHeight
+  const sheetTop = screenHeight - Math.min(screenHeight * 0.66, 640)
+  const mapBottom = viewport.value?.getBoundingClientRect().bottom ?? screenHeight
+
+  return {
+    top: 16,
+    right: 24,
+    bottom: Math.max(0, Math.min(mapBottom - sheetTop, height - 120)),
+    left: 24
+  }
+}
+
+function focusCamera(rotation = currentRotation.value): Camera | null {
+  const lotId = props.selectedLot ? getLotId(props.selectedLot as any) : ''
+  const ids = lotId ? [lotId] : props.activeBlock?.lotIds ?? []
+  if (!ids.length) return null
+
+  const bounds = boundsOf(ids)
+  if (!bounds) return null
+
+  /* Kavling tunggal diberi ruang agar tetangganya tetap terlihat. */
+  const grow = lotId ? 0.45 : 0.04
+
+  return frameRect(
+    {
+      x: bounds.x - bounds.width * grow,
+      y: bounds.y - bounds.height * grow,
+      width: bounds.width * (1 + grow * 2),
+      height: bounds.height * (1 + grow * 2)
+    },
+    {
+      size: { width: mapWidth.value, height: mapHeight.value },
+      viewBox: mapViewBox.value,
+      rotation,
+      insets: focusInsets(!!lotId),
+      minScale: props.minScale,
+      maxScale: props.maxScale
+    }
+  )
+}
+
+function homeCamera(): Camera {
+  return {
+    panX: 0,
+    panY: 0,
+    scale: props.scale,
+    rotation: currentRotation.value
+  }
+}
+
+/* Skala saat blok dibingkai; zoom keluar jauh di bawahnya berarti keluar dari blok. */
+let blockScale = 0
+
+/* Dipakai saat pengguna sendiri yang zoom keluar: posisinya tidak ditimpa animasi. */
+let keepCameraOnce = false
+
+watch(
+  () => [
+    props.activeBlock?.key ?? '',
+    props.selectedLot ? getLotId(props.selectedLot as any) : ''
+  ].join('|'),
+  () => {
+    if (keepCameraOnce) {
+      keepCameraOnce = false
+      return
     }
 
-    orientationPermissionRequired.value =
-      false
+    const target = focusCamera()
+    if (!target) blockScale = 0
+    else if (!props.selectedLot) blockScale = target.scale
+    flyTo(target ?? homeCamera())
+  },
+  { flush: 'post' }
+)
 
-  } catch (error) {
-    console.warn(
-      'Device orientation permission failed:',
-      error
+function exitBlockIfZoomedOut() {
+  if (
+    props.activeBlock &&
+    !props.selectedLot &&
+    blockScale > 0 &&
+    currentScale.value < blockScale * 0.55
+  ) {
+    blockScale = 0
+    keepCameraOnce = true
+    emit('zoomed-out')
+  }
+}
+
+/* Penanda blok hanya ada di level keseluruhan dan saat peta diam. */
+const blockMarkers = computed(() => {
+  if (
+    !mapReady.value ||
+    props.activeBlock ||
+    props.selectedLot ||
+    isFlying.value ||
+    isDragging.value ||
+    isSearchActive.value
+  ) {
+    return []
+  }
+
+  const size = { width: mapWidth.value, height: mapHeight.value }
+
+  return props.blocks.flatMap((block) => {
+    const bounds = boundsOf(block.lotIds)
+    if (!bounds) return []
+
+    const point = worldToScreen(
+      bounds.x + bounds.width / 2,
+      bounds.y + bounds.height / 2,
+      camera.value,
+      size,
+      mapViewBox.value
     )
 
-    orientationPermissionRequired.value =
-      true
-  }
-}
-
-
-function disableDeviceOrientation() {
-  if (
-    typeof window === 'undefined' ||
-    !orientationListening
-  ) {
-    return
-  }
-
-  window.removeEventListener(
-    'deviceorientation',
-    handleDeviceOrientation,
-    true
-  )
-
-  window.removeEventListener(
-    'deviceorientationabsolute',
-    handleDeviceOrientation,
-    true
-  )
-
-  orientationListening = false
-}
+    return [{ ...block, ...point }]
+  })
+})
 
 
 /* =========================================================
@@ -560,45 +710,33 @@ onMounted(() => {
     }
 
     updateMapSize()
+    renderCamera(camera.value)
+    mapReady.value = true
 
     mapResizeObserver =
-      new ResizeObserver(
-        updateMapSize
-      )
+      new ResizeObserver(() => {
+        /* Halaman tersembunyi (tab lain, panorama) berukuran 0: abaikan. */
+        if ((viewport.value?.clientWidth ?? 0) < 2) return
+
+        const width = mapWidth.value
+        const height = mapHeight.value
+        updateMapSize()
+        if (width === mapWidth.value && height === mapHeight.value) return
+
+        /* Rotasi layar: bingkai ulang fokus. */
+        const target = focusCamera()
+        if (!target) return
+
+        /* Ukuran berubah di tengah penerbangan: belokkan, jangan loncat. */
+        if (flightFrame) flyTo(target)
+        else commitCamera(target)
+      })
 
     mapResizeObserver.observe(
       viewport.value
     )
   }
 
-
-  if (
-    typeof DeviceOrientationEvent !==
-    'undefined'
-  ) {
-
-    const DeviceOrientationConstructor =
-      DeviceOrientationEvent as
-        typeof DeviceOrientationEvent & {
-          requestPermission?: () =>
-            Promise<
-              'granted' | 'denied'
-            >
-        }
-
-    if (
-      typeof DeviceOrientationConstructor
-        .requestPermission === 'function'
-    ) {
-
-      orientationPermissionRequired.value =
-        true
-
-    } else {
-
-      enableDeviceOrientation()
-    }
-  }
 })
 
 
@@ -834,13 +972,11 @@ function onPointerDown(
   event: PointerEvent
 ) {
 
-  if (props.pendingLot) {
-    return
-  }
-
   if (isFromControls(event.target)) {
     return
   }
+
+  stopFlight()
 
   activePointers.set(
     event.pointerId,
@@ -1022,40 +1158,33 @@ function onPointerMove(
       )
 
 
-    pan.value = {
-      x:
-        pan.value.x +
-        (
-          center.x -
-          pinchState.value.centerX
-        ),
-
-      y:
-        pan.value.y +
-        (
-          center.y -
-          pinchState.value.centerY
-        )
-    }
-
-
     const ratio =
       distance /
       pinchState.value.distance
 
+    const nextScale =
+      Number.isFinite(ratio) && ratio > 0
+        ? clamp(
+            currentScale.value * ratio,
+            props.minScale,
+            props.maxScale
+          )
+        : currentScale.value
 
-    if (
-      Number.isFinite(ratio) &&
-      ratio > 0
-    ) {
+    const point = toViewportPoint(center.x, center.y)
 
-      currentScale.value =
-        clamp(
-          currentScale.value * ratio,
-          props.minScale,
-          props.maxScale
-        )
-    }
+    commitCamera(
+      zoomAround(
+        {
+          ...camera.value,
+          panX: pan.value.x + (center.x - pinchState.value.centerX),
+          panY: pan.value.y + (center.y - pinchState.value.centerY)
+        },
+        nextScale,
+        point.x,
+        point.y
+      )
+    )
 
 
     pinchState.value = {
@@ -1158,6 +1287,7 @@ function onPointerUp(
   ) {
 
     resetGestureState()
+    exitBlockIfZoomedOut()
 
     return
   }
@@ -1285,6 +1415,8 @@ function handleMiniMapClick(
     return
   }
 
+  stopFlight()
+
   const fitScale = Math.min(
     mapWidth.value / mapViewBox.value.width,
     mapHeight.value / mapViewBox.value.height
@@ -1320,65 +1452,54 @@ function handleMiniMapClick(
    ZOOM
    ========================================================= */
 
-function zoomIn() {
+const BUTTON_ZOOM_MS = 260
+const BUTTON_ZOOM_FACTOR = 1.35
 
-  currentScale.value =
-    clamp(
-      Number(
-        (
-          currentScale.value +
-          0.2
-        ).toFixed(2)
-      ),
-
-      props.minScale,
-
-      props.maxScale
-    )
+function toViewportPoint(clientX: number, clientY: number) {
+  const box = viewport.value?.getBoundingClientRect()
+  return box
+    ? {
+        x: clientX - box.left - box.width / 2,
+        y: clientY - box.top - box.height / 2
+      }
+    : { x: 0, y: 0 }
 }
 
+let exitTimer = 0
+
+function zoomBy(factor: number) {
+  const base = flightTarget ?? camera.value
+  const next = clamp(base.scale * factor, props.minScale, props.maxScale)
+  flyTo(zoomAround(base, next, 0, 0), BUTTON_ZOOM_MS)
+  window.clearTimeout(exitTimer)
+  exitTimer = window.setTimeout(exitBlockIfZoomedOut, BUTTON_ZOOM_MS + 60)
+}
+
+function zoomIn() {
+  zoomBy(BUTTON_ZOOM_FACTOR)
+}
 
 function zoomOut() {
-
-  currentScale.value =
-    clamp(
-      Number(
-        (
-          currentScale.value -
-          0.2
-        ).toFixed(2)
-      ),
-
-      props.minScale,
-
-      props.maxScale
-    )
+  zoomBy(1 / BUTTON_ZOOM_FACTOR)
 }
 
+/* "Pas layar" dan "reset" juga mengembalikan level ke siteplan keseluruhan. */
+function showWholeMap(target: Camera) {
+  if (props.activeBlock) {
+    blockScale = 0
+    keepCameraOnce = true
+    emit('overview')
+  }
+
+  flyTo(target)
+}
 
 function fitToView() {
-
-  currentScale.value = 1
-
-  pan.value = {
-    x: 0,
-    y: 0
-  }
+  showWholeMap({ ...homeCamera(), scale: 1 })
 }
 
-
 function resetView() {
-
-  currentScale.value =
-    props.scale
-
-  pan.value = {
-    x: 0,
-    y: 0
-  }
-
-  currentRotation.value =
-    props.rotation
+  showWholeMap({ ...homeCamera(), rotation: props.rotation })
 }
 
 
@@ -1387,17 +1508,20 @@ function resetView() {
    ========================================================= */
 
 function rotate() {
+  const base = flightTarget ?? camera.value
+  const rotation = (base.rotation + 90) % 360
 
-  currentRotation.value =
-    (
-      currentRotation.value +
-      90
-    ) % 360
+  /* Putar di sekitar tengah layar; saat terfokus, bingkai ulang fokusnya. */
+  const turned: Camera = {
+    ...base,
+    rotation,
+    panX: -base.panY,
+    panY: base.panX
+  }
 
-  emit(
-    'rotate',
-    currentRotation.value
-  )
+  flyTo(focusCamera(rotation) ?? turned, 480)
+
+  emit('rotate', rotation)
 }
 
 
@@ -1405,31 +1529,21 @@ function rotate() {
    WHEEL
    ========================================================= */
 
-function handleWheel(
-  event: WheelEvent
-) {
+function handleWheel(event: WheelEvent) {
+  if (isFromControls(event.target)) return
 
   event.preventDefault()
+  stopFlight()
 
-  const delta =
-    event.deltaY > 0
-      ? -0.15
-      : 0.15
+  const next = clamp(
+    currentScale.value * (event.deltaY > 0 ? 0.88 : 1.14),
+    props.minScale,
+    props.maxScale
+  )
 
-
-  currentScale.value =
-    clamp(
-      Number(
-        (
-          currentScale.value +
-          delta
-        ).toFixed(2)
-      ),
-
-      props.minScale,
-
-      props.maxScale
-    )
+  const point = toViewportPoint(event.clientX, event.clientY)
+  commitCamera(zoomAround(camera.value, next, point.x, point.y))
+  exitBlockIfZoomedOut()
 }
 
 
@@ -1448,7 +1562,8 @@ onBeforeUnmount(() => {
 
   mapResizeObserver = null
 
-  disableDeviceOrientation()
+  cancelAnimationFrame(flightFrame)
+  window.clearTimeout(exitTimer)
 
   for (
     const pointerId
@@ -1511,6 +1626,10 @@ onBeforeUnmount(() => {
   transform-origin: center center;
   touch-action: none;
   overscroll-behavior: none;
+}
+
+/* Hanya selama bergerak; setelah diam, browser merender ulang agar peta tajam. */
+.map-world.is-moving {
   will-change: transform;
 }
 
@@ -1535,6 +1654,16 @@ onBeforeUnmount(() => {
   justify-content: center;
   pointer-events: none;
   touch-action: none;
+}
+
+.map-svg :deep([data-siteplan-lot]:focus) {
+  outline: none;
+}
+
+.map-svg :deep([data-siteplan-lot]:focus-visible) {
+  stroke: #1f3519 !important;
+  stroke-width: calc(4px / var(--cam-scale, 1)) !important;
+  stroke-dasharray: calc(6px / var(--cam-scale, 1));
 }
 
 .map-svg :deep(svg) {
@@ -1661,22 +1790,44 @@ onBeforeUnmount(() => {
 }
 
 
-/* =========================================
-   ORIENTATION
-   ========================================= */
-
-.orientation-button {
+/* Bilah level menggantikan minimap saat sebuah blok dibuka. */
+.control-level {
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 20;
-  padding: 3px 8px;
-  border: 0;
-  border-radius: 0 0 4px 4px;
-  background: rgba(0, 0, 0, 0.55);
-  color: white;
-  font-size: 11px;
+  left: var(--map-edge);
+  right: calc(var(--map-edge) + 60px);
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 8px);
+  z-index: 110;
+  pointer-events: auto;
+}
+
+.siteplan-map.search-active .control-level {
+  display: none;
+}
+
+/* Bilah level menyusul setelah kamera mulai bergerak. */
+.level-swap-enter-active {
+  transition:
+    opacity var(--dur-base) var(--ease-out) 200ms,
+    translate var(--dur-slow) var(--ease-out) 200ms;
+}
+
+.level-swap-leave-active {
+  transition: opacity var(--dur-instant) linear;
+}
+
+.level-swap-enter-from,
+.level-swap-leave-to {
+  opacity: 0;
+}
+
+.level-swap-enter-from {
+  translate: 0 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-swap-enter-from {
+    translate: 0 0;
+  }
 }
 
 
@@ -1703,6 +1854,15 @@ onBeforeUnmount(() => {
 @media (max-height: 520px) and (orientation: landscape) {
   .siteplan-map {
     --tabbar-height: clamp(40px, 10vh, 56px);
+  }
+
+  /* Layar pendek: bilah level pindah ke atas, di samping tombol cari. */
+  .control-level {
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: auto;
+    bottom: auto;
+    left: calc(var(--map-edge) + 60px);
+    width: min(340px, 60vw);
   }
 
   .right-controls-stack {

@@ -1,6 +1,7 @@
 import { assertCustomerFields } from '@/utils/inputValidation'
 import { loadPaymentInstallmentInfo } from '@/services/Finance/paymentInstallmentInfo'
 import { supabase } from '@/services/config/supabase'
+import { compareLotNumber } from '@/utils/lotNumber'
 import type { FinanceAdminPaymentRecord, FinanceLotRecord, FinancePaymentRecord } from '@/types/finance'
 import type { FinanceCustomerRecord } from '@/types/finance'
 
@@ -550,7 +551,7 @@ export const customerService = {
       .order('lot_number', { ascending: true })
 
     if (error) throw error
-    return data
+    return [...(data ?? [])].sort((a, b) => compareLotNumber(a.lot_number, b.lot_number))
   },
 
   async getPaymentPlans() {

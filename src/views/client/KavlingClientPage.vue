@@ -541,11 +541,12 @@ function mapLot(row: LotRecord): Lot {
   }
 
   const lotNumber = row.lot_number.trim()
-  const digits = lotNumber.match(/(\d+)\s*$/)?.[1]
+  // 12A adalah nomor kaveling pengganti 13, jadi akhiran huruf ikut dianggap nomor.
+  const digits = lotNumber.match(/(\d+[A-Z]?)$/i)?.[1]
 
   return {
     id: row.id,
-    code: /^\d+$/.test(lotNumber) ? `Kaveling ${lotNumber}` : lotNumber,
+    code: /^\d+[A-Z]?$/i.test(lotNumber) ? `Kaveling ${lotNumber}` : lotNumber,
     number: digits ?? lotNumber.slice(0, 4),
     blockName,
     meta: metaParts.join(' · ') || 'Data ukuran belum diisi',
