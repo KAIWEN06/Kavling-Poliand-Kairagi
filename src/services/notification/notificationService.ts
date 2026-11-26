@@ -1,5 +1,6 @@
 import { supabase } from '@/services/config/supabase'
 import type { UserRole } from '@/services/auth/authService'
+import type { ToastTone } from '@/composables/useToast'
 
 export type NotificationCategory = 'spk' | 'payment' | 'client' | 'transaction' | 'commission' | 'reminder' | 'survey' | 'system'
 export type NotificationPriority = 'low' | 'normal' | 'high'
@@ -139,16 +140,28 @@ export function resolveNotificationRoute(role: UserRole | null, n: AppNotificati
       return customerId ? `${base}/clients/${customerId}` : `${base}/clients`
     }
     case 'client':
-      if (n.type.startsWith('favorite_')) return lotId ? `/client/kavling/${lotId}` : '/client/favorit'
+      if (n.type.startsWith('favorite_') || n.type.startsWith('match_')) return lotId ? `/client/kavling/${lotId}` : '/client/favorit'
       if (n.category === 'survey') return lotId ? `/client/kavling/${lotId}?survei=1` : '/client/kavling'
       // Tanda jadi diunggah dan dipantau dari detail SPK, bukan halaman pembayaran.
       if (n.category === 'spk' || (!paymentId && spkId && n.type.startsWith('booking_fee'))) {
         return withQuery('/client/dokumen', { spk_id: spkId })
       }
-      return withQuery('/client/pembayaran', { paymentId, transactionId, spkId })
+      return withQuery('/client/pembayaran', {
+        paymentId,
+        transactionId,
+        spkId,
+        bagian: n.type.startsWith('cancellation_') ? 'pembatalan' : '',
+      })
     default:
       return null
   }
+}
+
+/** Nada warna notifikasi, sama untuk toast dan ikon di pusat notifikasi. */
+export function notificationTone(n: Pick<AppNotification, 'category' | 'priority'>): ToastTone {
+  if (n.priority === 'high' || n.category === 'reminder') return 'warning'
+  if (n.category === 'payment' || n.category === 'commission') return 'success'
+  return 'info'
 }
 
 function withQuery(path: string, params: Record<string, string>) {

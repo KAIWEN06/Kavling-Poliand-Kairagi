@@ -171,9 +171,9 @@ async function sendResetLink() {
   align-items: center;
   justify-content: center;
   padding:
-    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, var(--safe-top))
     14px
-    max(16px, env(safe-area-inset-bottom, 0px));
+    max(16px, var(--safe-bottom));
   overflow: hidden;
   background:
     radial-gradient(ellipse at 50% 0%, rgb(231 222 202 / 72%) 0%, rgb(250 247 242 / 0%) 48%),

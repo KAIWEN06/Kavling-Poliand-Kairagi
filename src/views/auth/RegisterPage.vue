@@ -285,7 +285,7 @@ async function registerWithGoogle() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: env(safe-area-inset-top, 0px) 14px max(12px, env(safe-area-inset-bottom, 0px));
+  padding: var(--safe-top) 14px max(12px, var(--safe-bottom));
   overflow-x: hidden;
   background: #f7f3ea;
 }

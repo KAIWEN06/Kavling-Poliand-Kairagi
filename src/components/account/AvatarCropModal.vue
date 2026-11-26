@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
   z-index: 30000;
   display: grid;
   place-items: end center;
-  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  padding: 0 0 var(--safe-bottom);
   background: rgba(20, 32, 17, 0.72);
   overscroll-behavior: contain;
 }
@@ -276,7 +276,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding: 24px 20px calc(20px + var(--safe-bottom));
   border-radius: 24px 24px 0 0;
   background: var(--surface-forest, #243d1e);
   color: var(--on-forest, #f4f1e8);

@@ -6,7 +6,10 @@
       <div class="nt__msg"><slot>{{ message }}</slot></div>
       <div v-if="actionLabel || $slots.actions" class="nt__actions">
         <slot name="actions">
-          <button type="button" class="nt__action" @click="emit('action')">{{ actionLabel }}</button>
+          <button type="button" class="nt__action" @click="emit('action')">
+            {{ actionLabel }}
+            <svg v-if="floating" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7.5 4.5l5.5 5.5-5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
         </slot>
       </div>
     </div>
@@ -109,6 +112,12 @@ const emit = defineEmits<{ dismiss: []; action: [] }>()
   font-weight: 700;
   cursor: pointer;
 }
+.nt--floating .nt__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.nt__action svg { width: 14px; height: 14px; }
 .nt__close {
   display: grid;
   place-items: center;

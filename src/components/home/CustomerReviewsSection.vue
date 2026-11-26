@@ -249,7 +249,10 @@ async function toggleHelpful(review: PublicReview) {
   // Helpful dihitung per akun agar tidak bisa dimanipulasi.
   const { loggedIn } = await reviewService.getWriterState()
   if (!loggedIn) {
-    toast.info('Masuk terlebih dahulu untuk menandai ulasan ini membantu.')
+    toast.info('Masuk terlebih dahulu untuk menandai ulasan ini membantu.', {
+      to: '/login?redirect=/home',
+      actionLabel: 'Masuk',
+    })
     return
   }
   votingId.value = review.id

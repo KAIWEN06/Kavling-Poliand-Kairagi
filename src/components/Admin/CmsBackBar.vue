@@ -26,7 +26,7 @@ const visible = computed(() => fromCms.value && isAdmin.value)
   z-index: 10500; /* di atas tab bar (10000), di bawah modal (11000) */
   left: 12px;
   right: 12px;
-  bottom: calc(86px + env(safe-area-inset-bottom));
+  bottom: calc(86px + var(--safe-bottom));
   display: flex;
   justify-content: center;
   pointer-events: none;

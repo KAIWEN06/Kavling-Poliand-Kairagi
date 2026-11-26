@@ -77,10 +77,11 @@ describe('financial cashflow reports', () => {
     expect(rows.slice(0, 5)).toEqual([
       ['Ringkasan', 'Nominal'],
       ['Pemasukan bruto', '1000000'],
-      ['Pengeluaran refund', '1000000'],
+      ['Pengembalian dana', '1000000'],
       ['Total pengeluaran', '1000000'],
       ['Arus kas bersih', '0'],
     ])
-    expect(rows.slice(7).map((row) => row[4])).toEqual(['1', '1'])
+    const sourceIdColumn = rows[6].indexOf('ID sumber')
+    expect(rows.slice(7).map((row) => row[sourceIdColumn])).toEqual(['1', '1'])
   })
 })

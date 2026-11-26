@@ -27,6 +27,7 @@ describe('rute notifikasi membawa data terkait', () => {
     ['admin', 'survey', 'survey_requested', { survey_id: 'abc' }, '/admin/survei?surveyId=abc'],
     ['client', 'system', 'favorite_unavailable', { lot_id: 9 }, '/client/kavling/9'],
     ['client', 'system', 'favorite_available', {}, '/client/favorit'],
+    ['client', 'system', 'match_price_drop', { lot_id: 9 }, '/client/kavling/9'],
     ['marketing', 'spk', 'spk_approved', { spk_id: 7 }, '/marketing/pengajuan?spkId=7'],
     ['marketing', 'payment', 'payment_confirmed', { payment_id: 3 }, '/marketing/pembayaran?paymentId=3'],
     ['marketing', 'payment', 'booking_fee_reminder_client', { spk_id: 7 }, '/marketing/pengajuan?spkId=7'],
@@ -39,6 +40,7 @@ describe('rute notifikasi membawa data terkait', () => {
     ['client', 'payment', 'payment_rejected', { payment_id: 3, spk_id: 7 }, '/client/pembayaran?paymentId=3&spkId=7'],
     ['client', 'reminder', 'installment_due_today', { transaction_id: 2 }, '/client/pembayaran?transactionId=2'],
     ['client', 'survey', 'survey_rescheduled', { lot_id: 9 }, '/client/kavling/9?survei=1'],
+    ['client', 'transaction', 'cancellation_approved', { transaction_id: 2 }, '/client/pembayaran?transactionId=2&bagian=pembatalan'],
   ])('%s %s/%s', (role, category, type, data, expected) => {
     expect(route(role, category, type, data)).toBe(expected)
   })

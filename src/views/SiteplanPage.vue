@@ -114,7 +114,8 @@ import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import {
   onBeforeUnmount,
   onMounted,
-  ref
+  ref,
+  watch
 } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -270,6 +271,21 @@ let progressTimer:
 
 let progressTarget =
   0
+
+
+/* Tautan yang dibagikan (?kavling=<id>) langsung membuka kavlingnya, sekali saja. */
+let sharedLotOpened = false
+
+watch(
+  [showLoading, lots],
+  () => {
+    if (sharedLotOpened || showLoading.value || !lots.value.length) return
+    sharedLotOpened = true
+    const id = String(route.query.kavling ?? '')
+    const lot = id ? lots.value.find((item) => String(item.id) === id) : undefined
+    if (lot) openLot(lot)
+  }
+)
 
 
 /* =========================================================
@@ -755,8 +771,8 @@ useRealtimeRefresh(
 
 .siteplan-back {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 12px) + 12px);
-  left: max(12px, env(safe-area-inset-left, 0px));
+  top: calc(var(--safe-top) + 12px);
+  left: max(12px, var(--safe-left));
   z-index: 101;
   display: grid;
   place-items: center;
@@ -789,17 +805,17 @@ useRealtimeRefresh(
 
 /* Geser kotak pencarian agar tidak tertutup tombol kembali (hanya ada di level keseluruhan) */
 .siteplan-page--standalone .siteplan-container :deep(.siteplan-map:not(.focused) .control-search) {
-  left: calc(max(12px, env(safe-area-inset-left, 0px)) + 56px);
+  left: calc(max(12px, var(--safe-left)) + 56px);
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
   /* Halaman dengan tab bar bawah: tingginya tetap, juga saat mendatar. */
   .siteplan-page:not(.siteplan-page--standalone) .siteplan-container :deep(.right-controls-stack) {
-    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(82px + var(--safe-bottom));
   }
 
   .siteplan-back {
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    top: calc(var(--safe-top) + 8px);
   }
 }
 
@@ -846,7 +862,7 @@ useRealtimeRefresh(
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: calc(env(safe-area-inset-top, 0px) + 24px) 28px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  padding: calc(var(--safe-top) + 24px) 28px calc(var(--safe-bottom) + 24px);
   overflow: hidden;
   background: linear-gradient(180deg, #fbf5e6 0%, var(--pl-paper, #f9f5ec) 55%, var(--pl-paper-deep, #f1e8d4) 100%);
 }
@@ -1078,7 +1094,7 @@ useRealtimeRefresh(
    ========================================================= */
 
 @supports (
-  padding-bottom: env(safe-area-inset-bottom)
+  padding-bottom: var(--safe-bottom)
 ) {
 
   .siteplan-content {

@@ -78,7 +78,7 @@ import SectionHeader from '@/components/ui/SectionHeader.vue'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
 import { contactsService, type ContactRecord } from '@/services/contactService'
-import { toWaNumber } from '@/utils/homeContent'
+import { waLink } from '@/utils/homeContent'
 import { useCmsAdmin } from '@/composables/useCmsAdmin'
 
 const contacts = ref<ContactRecord[]>([])
@@ -91,10 +91,7 @@ const valueOf = (...keys: string[]) => contacts.value.find((row) => keys.include
 const router = useRouter()
 
 /** Tombol aksi memakai nomor dari Kontak yang diatur Admin; tombol disembunyikan bila nomornya kosong. */
-const whatsappHref = computed(() => {
-  const number = toWaNumber(valueOf('whatsapp'))
-  return number ? `https://wa.me/${number}` : ''
-})
+const whatsappHref = computed(() => waLink(valueOf('whatsapp')))
 const phoneHref = computed(() => {
   const digits = valueOf('phone', 'telepon').replace(/[^\d+]/g, '')
   return digits ? `tel:${digits}` : ''
@@ -102,12 +99,11 @@ const phoneHref = computed(() => {
 
 /** Semua isi kartu berasal dari database. Kartu yang datanya kosong disembunyikan dari pengunjung, tetapi tetap tampil bagi Admin sebagai pengingat. */
 const cards = computed(() => {
-  const whatsapp = toWaNumber(valueOf('whatsapp'))
   const phone = valueOf('phone', 'telepon')
   const email = valueOf('email')
   const all = [
     { key: 'address', label: 'Alamat Lokasi', value: valueOf('address', 'alamat'), icon: locationOutline, tone: 'stone-bg', href: '', external: false },
-    { key: 'phone', label: 'Telepon / WhatsApp', value: phone || valueOf('whatsapp'), icon: logoWhatsapp, tone: 'success-bg', href: whatsapp ? `https://wa.me/${whatsapp}` : '', external: true },
+    { key: 'phone', label: 'Telepon / WhatsApp', value: phone || valueOf('whatsapp'), icon: logoWhatsapp, tone: 'success-bg', href: whatsappHref.value, external: true },
     { key: 'email', label: 'Email Resmi', value: email, icon: mailOutline, tone: 'info-bg', href: email ? `mailto:${email}` : '', external: false },
     { key: 'hours', label: 'Jam Operasional', value: valueOf('operational_hours'), icon: timeOutline, tone: 'warning-bg', href: '', external: false },
   ]

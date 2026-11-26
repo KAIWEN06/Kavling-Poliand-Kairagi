@@ -46,6 +46,8 @@
           <ion-icon :icon="chevronForwardOutline" class="kv-favorites__go" aria-hidden="true" />
         </router-link>
 
+        <RecommendedLots ref="recommendations" class="kv-reco" />
+
         <!-- SEARCH -->
         <div class="kv-searchbox" @keydown.esc="panelOpen = false">
           <div class="kv-search">
@@ -269,13 +271,23 @@
                   <!-- AKSI: baris sendiri di bawah harga -->
                   <div class="kv-actions">
                     <button
-                      v-if="lot.status === 'available'"
+                      v-if="lot.status !== 'sold'"
                       type="button"
                       class="kv-icon-btn"
                       :aria-label="`Bagikan ${lot.code}`"
-                      @click="shareLot(lot)"
+                      @click="share(lotContent(lot))"
                     >
-                      <ion-icon :icon="shareSocialOutline" />
+                      <ion-icon :icon="shareSocialOutline" aria-hidden="true" />
+                    </button>
+
+                    <button
+                      v-if="lot.status !== 'sold'"
+                      type="button"
+                      class="kv-icon-btn"
+                      :aria-label="`${hasShareLink ? 'Salin link' : 'Salin info'} ${lot.code}`"
+                      @click="copy(lotContent(lot))"
+                    >
+                      <ion-icon :icon="hasShareLink ? linkOutline : copyOutline" aria-hidden="true" />
                     </button>
 
                     <button type="button" class="kv-detail" @click="openDetail(lot.id)">
@@ -328,6 +340,8 @@ import {
   swapVerticalOutline,
   chevronDownOutline,
   shareSocialOutline,
+  linkOutline,
+  copyOutline,
   callOutline,
   personOutline,
   chevronForwardOutline,
@@ -343,6 +357,7 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { useFavorites } from '@/composables/useFavorites'
+import RecommendedLots from '@/components/client/RecommendedLots.vue'
 import { formatDistance, lotHighlightService, type LotHighlight } from '@/services/lotHighlightService'
 import siteplanImage from '@/assets/siteplan/Siteplan.webp'
 import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
@@ -356,6 +371,8 @@ import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
 import { pinSurveyLots, surveyService, type LotSurveyInfo } from '@/services/surveyService'
 import { dimensionDistance, parseDimension, parseNumber, parsePrice } from '@/services/Admin/LotsearchService'
 import { getLotId, getLotStatusColor } from '@/utils/siteplan'
+import { lotShareContent, lotShareUrl } from '@/utils/shareLot'
+import { useShareLot } from '@/composables/useShareLot'
 
 type LotStatus = 'available' | 'booked' | 'sold'
 type StatusFilter = 'all' | LotStatus
@@ -395,6 +412,8 @@ interface Lot {
 const ionRouter = useIonRouter()
 const { ids: favoriteIds, status: favoritesStatus, load: loadFavorites } = useFavorites()
 onIonViewWillEnter(() => void loadFavorites())
+const recommendations = ref<InstanceType<typeof RecommendedLots> | null>(null)
+onIonViewWillEnter(() => void recommendations.value?.refresh())
 
 const nearby = ref<LotHighlight[]>([])
 const nearOnly = ref(false)
@@ -645,6 +664,7 @@ function refreshAll() {
   return withRefreshSkeleton(refreshing, () =>
     Promise.all([
       load(false),
+      recommendations.value?.refresh(),
       Promise.resolve(reloadSiteplan()).catch((error: unknown) => {
         console.error('Gagal refresh siteplan:', error)
       }),
@@ -901,25 +921,24 @@ const pager = usePagination(filtered, {
 
 /* ---------- helpers ---------- */
 
+const { share, copy } = useShareLot()
+// Tanpa alamat web publik, tombol salin menyalin info kavling.
+const hasShareLink = Boolean(lotShareUrl(1))
+
 function formatRupiah(value: number) {
   return 'Rp ' + value.toLocaleString('id-ID')
 }
 
 /* ---------- actions ---------- */
 
-async function shareLot(lot: Lot) {
-  const text = [lot.code, lot.meta, lot.price !== null ? formatRupiah(lot.price) : null]
-    .filter(Boolean)
-    .join(' · ')
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: `PoliLand Kairagi ${lot.code}`, text })
-    } else {
-      await navigator.clipboard.writeText(text)
-    }
-  } catch {
-    /* dibatalkan pengguna */
-  }
+function lotContent(lot: Lot) {
+  return lotShareContent({
+    id: lot.id,
+    name: lot.code,
+    details: lot.meta === 'Data ukuran belum diisi' ? '' : lot.meta,
+    price: lot.status === 'available' && lot.price !== null ? formatRupiah(lot.price) : '',
+    status: statusLabel[lot.status],
+  })
 }
 
 function openFullMap() {
@@ -939,7 +958,7 @@ useRealtimeRefresh(
 
 <style scoped>
 .kv-page {
-  padding: 16px 16px calc(112px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(112px + var(--safe-bottom));
   background: var(--app-background);
   font-family: var(--font-primary);
   color: var(--text-primary);
@@ -1365,6 +1384,10 @@ h2 {
 .kv-siteplan-legend .available { background: var(--poliland-green); }
 .kv-siteplan-legend .booking { background: var(--poliland-gold); }
 .kv-siteplan-legend .sold { background: var(--status-danger); }
+
+.kv-reco {
+  margin-bottom: 14px;
+}
 
 .kv-favorites {
   display: flex;

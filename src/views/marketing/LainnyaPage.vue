@@ -41,7 +41,7 @@ const actions: QuickAction[] = [
 
 <style scoped>
 .mk-more-page { color: var(--text-primary); font-family: var(--font-primary); }
-.more-shell { min-height: 100%; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); background: var(--app-background); }
+.more-shell { min-height: 100%; padding: 22px 16px calc(112px + var(--safe-bottom)); background: var(--app-background); }
 .quick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .quick-card { position: relative; display: flex; min-height: 142px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 13px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) {

@@ -694,6 +694,10 @@ function openEdit() {
 }
 async function saveEdit() {
   formError.value = ''
+  if (c.value.email && !editForm.email.trim()) {
+    formError.value = 'Email tidak bisa dihapus. Isi email baru bila ingin menggantinya.'
+    return
+  }
   if (editForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email.trim())) {
     formError.value = 'Format email tidak valid.'
     return

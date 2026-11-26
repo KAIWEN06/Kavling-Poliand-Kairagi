@@ -100,7 +100,7 @@ async function confirmLogout() {
   gap: 16px;
   max-width: 640px;
   margin: 0 auto;
-  padding: 16px 16px calc(32px + env(safe-area-inset-bottom, 0px));
+  padding: 16px 16px calc(32px + var(--safe-bottom));
 }
 
 .st-card {

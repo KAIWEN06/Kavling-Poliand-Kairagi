@@ -86,6 +86,8 @@ watch(selectedReusePaymentId, (paymentId) => {
   if (paymentId) documents.paymentProof = null
 })
 
+/** Email akun yang sedang masuk; kolom email dikunci ke nilai ini. */
+const accountEmail = ref('')
 const form = reactive({
   fullName: '',
   phone: '',
@@ -283,7 +285,8 @@ async function loadBuyerProfile() {
     form.fullName ||= firstText(metadata.full_name, metadata.name)
     form.phone ||= firstText(metadata.phone, metadata.whatsapp_phone, metadata.phone_number, user.phone)
     form.whatsappPhone ||= firstText(metadata.whatsapp_phone, metadata.whatsapp)
-    form.email ||= firstText(user.email)
+    accountEmail.value = firstText(user.email)
+    form.email ||= accountEmail.value
     form.address ||= firstText(metadata.address)
 
     const { data: customer, error: customerError } = await supabase
@@ -296,7 +299,7 @@ async function loadBuyerProfile() {
       form.fullName = customer.full_name || form.fullName
       form.phone = customer.phone || customer.whatsapp_phone || form.phone
       form.whatsappPhone = customer.whatsapp_phone || customer.phone || ''
-      form.email = customer.email || user.email || ''
+      form.email = user.email || customer.email || ''
       form.address = customer.address || ''
     }
   } catch (error) {
@@ -434,11 +437,11 @@ async function saveSpk() {
 
   const scheme = paymentScheme.value
   const method = paymentMethod.value
-  if (!form.fullName || !form.phone || !form.address || !scheme
+  if (!form.fullName || !form.phone || !form.email || !form.address || !scheme
     || !documents.ktp || !documents.kk
     || (!selectedReusePaymentId.value && !documents.paymentProof)) {
     saveError.value =
-      'Lengkapi nama, nomor kontak, alamat, pembayaran, KTP, KK, serta bukti pembayaran jika tidak menggunakan tanda jadi sebelumnya.'
+      'Lengkapi nama, nomor kontak, email, alamat, pembayaran, KTP, KK, serta bukti pembayaran jika tidak menggunakan tanda jadi sebelumnya.'
     return
   }
 
@@ -637,8 +640,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
               </div>
 
               <div class="spk-field">
-                <label for="spk-email">Email <small>(Opsional)</small></label>
-                <div class="spk-input-wrap">
+                <label for="spk-email">Email <span>*</span></label>
+                <div class="spk-input-wrap" :class="{ 'spk-readonly-field': accountEmail }">
                   <ion-icon :icon="mailOutline" aria-hidden="true" />
                   <input
                     id="spk-email"
@@ -646,6 +649,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
                     type="email"
                     autocomplete="email"
                     placeholder="contoh@email.com"
+                    :readonly="Boolean(accountEmail)"
+                    required
                   />
                 </div>
               </div>
@@ -1086,7 +1091,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
   width: min(100%, 760px);
   gap: 16px;
   margin: 0 auto;
-  padding: 18px 16px calc(106px + env(safe-area-inset-bottom, 0px));
+  padding: 18px 16px calc(106px + var(--safe-bottom));
 }
 
 .spk-page-heading {
@@ -1978,7 +1983,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 @media (max-width: 560px) {
   .spk-shell {
     gap: 14px;
-    padding: 14px 12px calc(106px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 12px calc(106px + var(--safe-bottom));
   }
 
   .spk-card-body {

@@ -27,12 +27,14 @@ import {
 } from 'vue'
 
 import router from './router'
+import { useClientProfileReminder } from '@/composables/useClientProfileReminder'
 import ToastHost from '@/components/ui/ToastHost.vue'
 import CelebrationHost from '@/components/ui/CelebrationHost.vue'
 import ConfirmHost from '@/components/ui/ConfirmHost.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { App as CapacitorApp } from '@capacitor/app'
 const ionRouter = useIonRouter()
+useClientProfileReminder()
 
 import {
   preloadLots

@@ -153,7 +153,7 @@ watch(key, () => { imageFailed.value = false })
 /* Di tengah ruang konten yang tersedia (aman di layar kecil & keyboard) */
 .status-state--fill {
   min-height: var(--status-state-min-height, 60dvh);
-  padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--space-8) + var(--safe-bottom));
 }
 
 .status-state--framed {

@@ -254,13 +254,21 @@
                   <!-- AKSI: baris sendiri di bawah harga -->
                   <div class="kv-actions">
                     <button
-                      v-if="lot.status === 'available'"
                       type="button"
                       class="kv-icon-btn"
                       :aria-label="`Bagikan ${lot.code}`"
-                      @click="shareLot(lot)"
+                      @click="share(lotContent(lot))"
                     >
-                      <ion-icon :icon="shareSocialOutline" />
+                      <ion-icon :icon="shareSocialOutline" aria-hidden="true" />
+                    </button>
+
+                    <button
+                      type="button"
+                      class="kv-icon-btn"
+                      :aria-label="`${hasShareLink ? 'Salin link' : 'Salin info'} ${lot.code}`"
+                      @click="copy(lotContent(lot))"
+                    >
+                      <ion-icon :icon="hasShareLink ? linkOutline : copyOutline" aria-hidden="true" />
                     </button>
 
                     <a
@@ -322,6 +330,8 @@ import {
   swapVerticalOutline,
   chevronDownOutline,
   shareSocialOutline,
+  linkOutline,
+  copyOutline,
   callOutline,
   personOutline,
   chevronForwardOutline,
@@ -345,6 +355,8 @@ import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
 import { pinSurveyLots, surveyService, type LotSurveyInfo } from '@/services/surveyService'
 import { dimensionDistance, parseDimension, parseNumber, parsePrice } from '@/services/Admin/LotsearchService'
 import { getLotId, getLotStatusColor } from '@/utils/siteplan'
+import { lotShareContent, lotShareUrl } from '@/utils/shareLot'
+import { useShareLot } from '@/composables/useShareLot'
 
 type LotStatus = 'available' | 'booked' | 'sold'
 type StatusFilter = 'all' | LotStatus
@@ -864,25 +876,24 @@ const pager = usePagination(filtered, {
 
 /* ---------- helpers ---------- */
 
+const { share, copy } = useShareLot()
+// Tanpa alamat web publik, tombol salin menyalin info kavling.
+const hasShareLink = Boolean(lotShareUrl(1))
+
 function formatRupiah(value: number) {
   return 'Rp ' + value.toLocaleString('id-ID')
 }
 
 /* ---------- actions ---------- */
 
-async function shareLot(lot: Lot) {
-  const text = [lot.code, lot.meta, lot.price !== null ? formatRupiah(lot.price) : null]
-    .filter(Boolean)
-    .join(' · ')
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: `PoliLand Kairagi ${lot.code}`, text })
-    } else {
-      await navigator.clipboard.writeText(text)
-    }
-  } catch {
-    /* dibatalkan pengguna */
-  }
+function lotContent(lot: Lot) {
+  return lotShareContent({
+    id: lot.id,
+    name: lot.code,
+    details: lot.meta === 'Data ukuran belum diisi' ? '' : lot.meta,
+    price: lot.status === 'available' && lot.price !== null ? formatRupiah(lot.price) : '',
+    status: statusLabel[lot.status],
+  })
 }
 
 function openFullMap() {
@@ -906,7 +917,7 @@ useRealtimeRefresh(
 
 <style scoped>
 .kv-page {
-  padding: 16px 16px calc(112px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(112px + var(--safe-bottom));
   background: var(--app-background);
   font-family: var(--font-primary);
   color: var(--text-primary);

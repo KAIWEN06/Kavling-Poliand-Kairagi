@@ -108,12 +108,13 @@
           </div>
         </div>
 
-        <FavoriteButton
-          v-if="props.clientMode && showLotInfo"
-          :key="lot.id"
-          class="detail-favorite"
-          :lot-id="Number(lot.id)"
-        />
+        <LotShareActions v-if="showLotInfo" :content="shareData" class="detail-actions">
+          <FavoriteButton
+            v-if="props.clientMode"
+            :key="lot.id"
+            :lot-id="Number(lot.id)"
+          />
+        </LotShareActions>
 
         <LegalAssurance v-if="showLotInfo" class="detail-legal" />
         <NearbyFacilities v-if="showLotInfo" :key="lot.id" :lot-id="Number(lot.id)" class="detail-legal" />
@@ -258,6 +259,7 @@
 
         <!-- TANYA -->
         <AppButton
+          v-if="showAskButton"
           type="button"
           class="ask-button"
           @click="askMoreAboutLot"
@@ -375,10 +377,16 @@ import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing P
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.webp'
 import soldMascot from '@/assets/mascot/Sold_Lot_Mascot.webp'
 import FavoriteButton from '@/components/client/FavoriteButton.vue'
+import LotShareActions from '@/components/siteplan/LotShareActions.vue'
+import { lotShareContent } from '@/utils/shareLot'
 import NearbyFacilities from '@/components/client/NearbyFacilities.vue'
 import { trackFunnel } from '@/services/funnelService'
+import { recordLotView } from '@/services/recommendationService'
 import LegalAssurance from '@/components/payment/LegalAssurance.vue'
 import PaymentSimulation from '@/components/payment/PaymentSimulation.vue'
+import { contactsService } from '@/services/contactService'
+import { useToast } from '@/composables/useToast'
+import { waLink } from '@/utils/homeContent'
 
 import {
   formatCurrency,
@@ -511,6 +519,7 @@ const effectivePrice = computed(() => {
 })
 
 const { profile } = useCurrentUser()
+const toast = useToast()
 
 const isAdminView = computed(() => props.variant === 'admin')
 
@@ -546,9 +555,9 @@ const showLotInfo = computed(() =>
  * informasi di panel tidak saling bertentangan.
  */
 const STATUS_WORDS: Record<string, RegExp> = {
-  available: /(tersedia|available|ready)/i,
-  booking: /(dipesan|dibooking|booking|booked|reserved)/i,
-  sold: /(terjual|sold)/i,
+  available: /\b(tersedia|available|ready)\b/i,
+  booking: /\b(dipesan|dibooking|booking|booked|reserved)\b/i,
+  sold: /\b(terjual|sold)\b/i,
 }
 
 const lotDescription = computed(() => {
@@ -627,20 +636,44 @@ const buyLabel = computed(() => {
 })
 
 /* ===================================================== */
+/* BAGIKAN */
+/* ===================================================== */
+
+/* Harga disertakan selama kaveling masih tersedia. */
+const shareData = computed(() => lotShareContent({
+  id: props.lot?.id,
+  name: `Kaveling ${getLotName()}`,
+  block: props.blockName,
+  details: props.lot?.area ? `Luas ${props.lot.area} m²` : '',
+  price: clientLotAvailable.value && effectivePrice.value > 0
+    ? formatCurrency(effectivePrice.value)
+    : '',
+  status: getStatusLabel(props.lot?.status),
+}))
+
+/* ===================================================== */
 /* WHATSAPP */
 /* ===================================================== */
 
 /*
- * GANTI NOMOR INI DENGAN NOMOR WHATSAPP POLILAND
- *
- * Contoh:
- * 081234567890
- *
- * menjadi:
- * 6281234567890
+ * Nomor diambil dari data Kontak yang dikelola Admin, sama seperti detail kavling Client.
+ * Dimuat saat panel dibuka agar window.open tetap berjalan langsung dari ketukan.
  */
+const whatsappNumber = ref('')
+const contactLoaded = ref(false)
 
-const WHATSAPP_NUMBER = '6281356960253'
+/** Disembunyikan hanya bila data Kontak terbaca dan nomornya memang kosong. */
+const showAskButton = computed(() => !contactLoaded.value || Boolean(whatsappNumber.value))
+
+async function loadWhatsappNumber() {
+  try {
+    const { whatsapp } = await contactsService.getClientContactSettings()
+    whatsappNumber.value = whatsapp
+    contactLoaded.value = true
+  } catch (error) {
+    console.warn('Nomor WhatsApp belum dapat dimuat:', error)
+  }
+}
 
 /* ===================================================== */
 /* WATCH LOT */
@@ -656,7 +689,11 @@ function setDetailMode(active: boolean) {
 
 onMounted(() => {
   setDetailMode(true)
-  if (props.clientMode) trackFunnel('lot_view', props.lot?.id)
+  if (props.clientMode) {
+    trackFunnel('lot_view', props.lot?.id)
+    recordLotView(props.lot?.id)
+  }
+  if (props.variant !== 'admin') void loadWhatsappNumber()
 
   // Kode layar 360° diunduh lebih awal agar transisinya tidak tertahan.
   if (props.lot?.panorama_url) {
@@ -781,9 +818,13 @@ function getLotName() {
 function openWhatsApp(
   message: string
 ) {
-  const url =
-    `https://wa.me/${WHATSAPP_NUMBER}` +
-    `?text=${encodeURIComponent(message)}`
+  const url = waLink(whatsappNumber.value, message)
+
+  if (!url) {
+    toast.info('Nomor WhatsApp belum bisa dimuat. Coba lagi sebentar.')
+    void loadWhatsappNumber()
+    return
+  }
 
   window.open(
     url,
@@ -1210,13 +1251,12 @@ function getBlockCode(
 /* SECTION */
 /* ===================================================== */
 
-.detail-favorite {
-  align-self: flex-end;
-  margin: 12px 16px 0 auto;
+.detail-actions {
+  margin-top: 12px;
 }
 
 .detail-legal {
-  margin: 12px 16px 0;
+  margin-top: 12px;
 }
 
 .detail-section {
@@ -1535,7 +1575,7 @@ function getBlockCode(
 }
 
 .purchase-modal-content {
-  padding: 28px 22px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding: 28px 22px calc(20px + var(--safe-bottom));
   background: var(--pl-paper, #F9F5EC);
   animation: purchase-rise 420ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
@@ -1938,7 +1978,7 @@ function getBlockCode(
 /* Footer dan tombol aksi */
 .detail-footer {
   flex: none;
-  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  padding: 14px 20px calc(14px + var(--safe-bottom));
   background: rgba(245, 243, 238, 0.97);
   border-top: 1px solid rgba(53, 90, 44, 0.14);
 }
@@ -2120,8 +2160,8 @@ function getBlockCode(
     width: min(420px, 52vw);
     max-width: none;
     height: 100%;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
+    padding-top: var(--safe-top);
+    padding-right: var(--safe-right);
     border-radius: 24px 0 0 24px;
     box-shadow: -18px 0 48px -18px rgba(31, 53, 25, 0.4);
   }
@@ -2150,7 +2190,7 @@ function getBlockCode(
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 10px calc(8px + var(--safe-bottom));
   }
 
   .action-grid {

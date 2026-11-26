@@ -1,5 +1,5 @@
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { supabase } from '@/services/config/supabase'
 import type { LoadOptions } from '@/composables/useRealtimeRefresh'
 
@@ -33,6 +33,7 @@ export interface PurchaseOverview {
   lotLabel: string
   area: number | null
   bookingDate: string | null
+  createdAt: string
   transactionStatus: string
   paymentType: 'Cash' | 'Installment'
   months: number | null
@@ -51,29 +52,61 @@ const CATEGORY_LABEL: Record<string, string> = {
   Other: 'Lainnya',
 }
 
+function toOverview(tx: any, paymentRows: any[], scheduleRows: any[]): PurchaseOverview {
+  const ownPayments = paymentRows.filter((row) => Number(row.transaction_id) === Number(tx.id))
+
+  const schedules: OverviewSchedule[] = scheduleRows
+    .filter((row) => Number(row.transaction_id) === Number(tx.id))
+    .map((row) => ({
+      id: Number(row.id),
+      installmentNumber: Number(row.installment_number),
+      dueDate: row.due_date,
+      amount: Number(row.amount ?? 0),
+      status: row.status,
+    }))
+
+  const payments: OverviewPayment[] = ownPayments.map((row) => ({
+    id: Number(row.id),
+    date: row.payment_date,
+    amount: Number(row.amount ?? 0),
+    method: row.payment_method || 'Tidak dicantumkan',
+    category: CATEGORY_LABEL[row.payment_category] ?? row.payment_category ?? 'Pembayaran',
+    status: row.status,
+    installmentNumbers: (row.payment_allocations ?? [])
+      .map((a: any) => a.installment_schedules?.installment_number)
+      .filter((n: any) => n != null)
+      .sort((a: number, b: number) => a - b),
+  }))
+
+  const lot = tx.lots
+  const blockName = lot?.blocks?.name ?? lot?.blocks?.code
+
+  return {
+    transactionId: Number(tx.id),
+    lotId: Number(tx.lot_id),
+    lotLabel: [blockName, lot?.lot_number].filter(Boolean).join(' - ') || lot?.lot_number || 'Kavling',
+    area: lot?.area == null ? null : Number(lot.area),
+    bookingDate: tx.booking_date ?? null,
+    createdAt: tx.created_at,
+    transactionStatus: tx.status,
+    paymentType: tx.payment_type,
+    months: tx.months == null ? null : Number(tx.months),
+    finalPrice: Number(tx.final_price ?? 0),
+    // Sama dengan Keuangan dan Pembeli: booking fee dilaporkan terpisah dan tidak mengurangi harga.
+    paidTotal: calculateFinanceBalance(
+      tx,
+      ownPayments.map((row) => ({ amount: Number(row.amount ?? 0), status: row.status, payment_category: row.payment_category })),
+    ).principalPaid,
+    pendingCount: payments.filter((p) => p.status === 'Pending' || p.status === 'Needs Reupload').length,
+    schedules,
+    payments,
+  }
+}
+
 export function useClientPurchaseOverview() {
   const loading = ref(true)
   const error = ref('')
-  const overview = ref<PurchaseOverview | null>(null)
-  const otherLotCount = ref(0)
-
-  const remaining = computed(() =>
-    overview.value ? Math.max(0, overview.value.finalPrice - overview.value.paidTotal) : 0,
-  )
-
-  const progressPercent = computed(() => {
-    const o = overview.value
-    if (!o || o.finalPrice <= 0) return 0
-    return Math.min(100, Math.round((o.paidTotal / o.finalPrice) * 100))
-  })
-
-  const paidInstallments = computed(() =>
-    overview.value?.schedules.filter((s) => s.status === 'Paid').length ?? 0,
-  )
-
-  const nextSchedule = computed(() =>
-    overview.value?.schedules.find((s) => s.status !== 'Paid') ?? null,
-  )
+  const purchases = ref<PurchaseOverview[]>([])
 
   async function load({ silent = false }: LoadOptions = {}) {
     if (!silent) {
@@ -94,8 +127,7 @@ export function useClientPurchaseOverview() {
       if (customerError) throw customerError
       if (!customer) {
         error.value = ''
-        overview.value = null
-        otherLotCount.value = 0
+        purchases.value = []
         return
       }
 
@@ -103,7 +135,7 @@ export function useClientPurchaseOverview() {
         supabase
           .from('lot_transactions')
           .select(`
-            id, lot_id, status, payment_type, final_price, months, booking_date,
+            id, lot_id, status, payment_type, final_price, months, booking_date, created_at,
             lots(lot_number, area, blocks(name, code))
           `)
           .eq('customer_id', customer.id)
@@ -122,79 +154,33 @@ export function useClientPurchaseOverview() {
       if (transactionResult.error) throw transactionResult.error
       if (paymentResult.error) throw paymentResult.error
 
-      error.value = ''
-      const transactions = transactionResult.data ?? []
-      otherLotCount.value = Math.max(0, transactions.length - 1)
-      const tx: any = transactions[0]
-      if (!tx) {
-        overview.value = null
-        return
-      }
+      const transactions: any[] = transactionResult.data ?? []
+      const installmentIds = transactions
+        .filter((tx) => tx.payment_type === 'Installment')
+        .map((tx) => tx.id)
 
-      let schedules: OverviewSchedule[] = []
-      if (tx.payment_type === 'Installment') {
+      let scheduleRows: any[] = []
+      if (installmentIds.length) {
         const { data, error: scheduleError } = await supabase
           .from('installment_schedules')
-          .select('id, installment_number, due_date, amount, status')
-          .eq('transaction_id', tx.id)
+          .select('id, transaction_id, installment_number, due_date, amount, status')
+          .in('transaction_id', installmentIds)
           .order('installment_number', { ascending: true })
         if (scheduleError) throw scheduleError
-        schedules = (data ?? []).map((row: any) => ({
-          id: Number(row.id),
-          installmentNumber: Number(row.installment_number),
-          dueDate: row.due_date,
-          amount: Number(row.amount ?? 0),
-          status: row.status,
-        }))
+        scheduleRows = data ?? []
       }
 
-      const payments: OverviewPayment[] = (paymentResult.data ?? [])
-        .filter((row: any) => Number(row.transaction_id) === Number(tx.id))
-        .map((row: any) => ({
-          id: Number(row.id),
-          date: row.payment_date,
-          amount: Number(row.amount ?? 0),
-          method: row.payment_method || 'Tidak dicantumkan',
-          category: CATEGORY_LABEL[row.payment_category] ?? row.payment_category ?? 'Pembayaran',
-          status: row.status,
-          installmentNumbers: (row.payment_allocations ?? [])
-            .map((a: any) => a.installment_schedules?.installment_number)
-            .filter((n: any) => n != null)
-            .sort((a: number, b: number) => a - b),
-        }))
-
-      const lot = tx.lots
-      const blockName = lot?.blocks?.name ?? lot?.blocks?.code
-      overview.value = {
-        transactionId: Number(tx.id),
-        lotId: Number(tx.lot_id),
-        lotLabel: [blockName, lot?.lot_number].filter(Boolean).join(' - ') || lot?.lot_number || 'Kavling',
-        area: lot?.area == null ? null : Number(lot.area),
-        bookingDate: tx.booking_date ?? null,
-        transactionStatus: tx.status,
-        paymentType: tx.payment_type,
-        months: tx.months == null ? null : Number(tx.months),
-        finalPrice: Number(tx.final_price ?? 0),
-        // Sama dengan Keuangan dan Pembeli: booking fee dilaporkan terpisah dan tidak mengurangi harga.
-        paidTotal: calculateFinanceBalance(
-          tx,
-          (paymentResult.data ?? [])
-            .filter((row: any) => Number(row.transaction_id) === Number(tx.id))
-            .map((row: any) => ({ amount: Number(row.amount ?? 0), status: row.status, payment_category: row.payment_category })),
-        ).principalPaid,
-        pendingCount: payments.filter((p) => p.status === 'Pending' || p.status === 'Needs Reupload').length,
-        schedules,
-        payments,
-      }
+      error.value = ''
+      purchases.value = transactions.map((tx) => toOverview(tx, paymentResult.data ?? [], scheduleRows))
     } catch (cause: any) {
       console.error('[Beranda Klien] Gagal memuat ringkasan pembelian:', cause)
       if (silent) return
       error.value = cause?.message || 'Ringkasan pembelian belum dapat dimuat.'
-      overview.value = null
+      purchases.value = []
     } finally {
       loading.value = false
     }
   }
 
-  return { loading, error, overview, otherLotCount, remaining, progressPercent, paidInstallments, nextSchedule, load }
+  return { loading, error, purchases, load }
 }

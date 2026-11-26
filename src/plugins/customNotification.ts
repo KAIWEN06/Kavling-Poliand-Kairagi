@@ -80,8 +80,22 @@ class CustomNotificationWeb extends WebPlugin implements Omit<CustomNotification
     if (!this.role || !this.userId) throw this.unavailable('Tidak ada user aktif.')
     if (options.targetRole && options.targetRole !== this.role) throw this.unavailable('Peran tidak sesuai.')
     if (options.recipientId && options.recipientId !== this.userId) throw this.unavailable('Penerima tidak sesuai.')
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      new Notification(options.title, { body: options.message, tag: id })
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      throw this.unavailable('Izin notifikasi browser belum diberikan.')
+    }
+    const notification = new Notification(options.title, { body: options.message, tag: id })
+    notification.onclick = () => {
+      window.focus()
+      notification.close()
+      const event: NotificationClickEvent = {
+        id,
+        targetRole: options.targetRole ?? '',
+        recipientId: options.recipientId ?? '',
+        route: options.route ?? '',
+        payload: options.payload ?? {},
+        clickedAt: Date.now(),
+      }
+      this.notifyListeners('notificationClicked', event, true)
     }
     return { id, channelId: 'web' }
   }

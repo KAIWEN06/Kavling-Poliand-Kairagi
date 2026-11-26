@@ -3,7 +3,7 @@ import { supabase } from '@/services/config/supabase'
 import { getCustomerIdentity } from '@/services/customerIdentityService'
 
 /**
- * Status kelengkapan data diri Client (singleton). Dipakai popup wajib
+ * Status kelengkapan data diri Client (singleton). Dipakai toast pengingat
  * lengkapi data diri agar form SPK dapat terisi otomatis.
  */
 const needsCompletion = ref(false)

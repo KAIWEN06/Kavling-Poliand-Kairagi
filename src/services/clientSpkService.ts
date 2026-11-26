@@ -36,6 +36,7 @@ export interface ClientInstallmentSchedule {
 
 export interface ClientSpkRecord {
   id: number
+  transactionId: number | null
   spkNumber: string
   createdAt: string
   status: ClientSpkStatus
@@ -550,6 +551,7 @@ function toClientRecord(
 
   return {
     id: row.id,
+    transactionId: row.transaction_id == null ? null : Number(row.transaction_id),
     spkNumber: row.spk_number,
     createdAt: row.submitted_at,
     status: row.status,

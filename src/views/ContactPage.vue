@@ -49,9 +49,11 @@
             </div>
           </div>
 
-          <div v-else-if="loadError" class="contact-state contact-state-error" role="alert">
-            Informasi kontak belum dapat dimuat. Muat ulang halaman ini.
-          </div>
+          <StatusIllustration
+            v-else-if="loadError"
+            :variant="resolveErrorVariant()"
+            :on-action="() => loadContacts()"
+          />
 
           <div v-else-if="contactItems.length === 0" class="contact-state">
             Informasi kontak belum tersedia.
@@ -142,6 +144,9 @@ import Skeleton from '@/components/ui/Skeleton.vue'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { MOTION_EASE_OUT } from '@/utils/motionTokens'
 import { contactsService } from '@/services/contactService'
+import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
+import { waLink } from '@/utils/homeContent'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
 import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
@@ -234,7 +239,7 @@ const contactItems = computed<ContactItem[]>(() => {
       label: 'WHATSAPP',
       title: whatsapp.value,
       description: 'Tanyakan informasi kaveling secara langsung.',
-      href: `https://wa.me/${whatsappDigits}`,
+      href: waLink(whatsappDigits),
       icon: logoWhatsapp,
       variant: 'whatsapp',
     })
@@ -319,7 +324,7 @@ useRealtimeRefresh(['contacts'], () => loadContacts(true))
 
 <style scoped>
 .contact-content { --background: var(--pl-paper, #f9f5ec); }
-.contact-page { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+.contact-page { padding-bottom: calc(110px + var(--safe-bottom)); }
 
 /* ---------- Hero ---------- */
 .contact-hero {
@@ -328,7 +333,7 @@ useRealtimeRefresh(['contacts'], () => loadContacts(true))
   flex-direction: column;
   justify-content: flex-end;
   min-height: clamp(420px, 66dvh, 540px);
-  padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px 0;
+  padding: calc(var(--safe-top) + 24px) 24px 0;
   overflow: hidden;
   background:
     radial-gradient(110% 60% at 100% 0%, rgba(244, 214, 154, 0.26) 0%, rgba(244, 214, 154, 0) 62%),
@@ -467,7 +472,6 @@ useRealtimeRefresh(['contacts'], () => loadContacts(true))
   line-height: 1.6;
   text-align: center;
 }
-.contact-state-error { border-color: var(--status-danger); color: var(--status-danger); }
 
 /* Sosial */
 /* minmax(0, 1fr): tanpa ini URL nowrap melebarkan kolom dan mendorong panah keluar layar. */

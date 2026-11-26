@@ -21,6 +21,8 @@ const selectedPlanId = ref<number | null>(null)
 const paymentScheme = ref<'Cash' | 'Installment'>('Cash')
 const downPayment = ref('')
 const files = reactive<Record<'ktp' | 'kk' | 'npwp' | 'paymentProof', File | null>>({ ktp: null, kk: null, npwp: null, paymentProof: null })
+/** Email akun yang sedang masuk; kolom email dikunci ke nilai ini. */
+const accountEmail = ref('')
 const buyer = reactive({ fullName: '', phone: '', whatsappPhone: '', email: '', address: '' })
 
 const price = computed(() => {
@@ -35,7 +37,7 @@ const estimate = computed(() => {
   const total = Math.round((price.value - dpAmount.value) * (1 + Number(selectedPlan.value.margin_percent || 0) / 100))
   return Math.floor(total / selectedPlan.value.months)
 })
-const canSubmit = computed(() => Boolean(props.lot && price.value && buyer.fullName.trim() && buyer.phone.trim() && buyer.address.trim() && files.ktp && files.kk && (reusePaymentId.value !== null || files.paymentProof) && (paymentScheme.value === 'Cash' || (selectedPlanId.value && estimate.value))))
+const canSubmit = computed(() => Boolean(props.lot && price.value && buyer.fullName.trim() && buyer.phone.trim() && buyer.email.trim() && buyer.address.trim() && files.ktp && files.kk && (reusePaymentId.value !== null || files.paymentProof) && (paymentScheme.value === 'Cash' || (selectedPlanId.value && estimate.value))))
 
 function currency(value: number | null) { return value ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value) : 'Belum tersedia' }
 function onFile(key: keyof typeof files, event: Event) {
@@ -52,11 +54,12 @@ async function open() {
     buyer.fullName = String(metadata.full_name || metadata.name || '')
     buyer.phone = String(metadata.phone || metadata.phone_number || user?.phone || '')
     buyer.whatsappPhone = String(metadata.whatsapp_phone || '')
-    buyer.email = String(user?.email || '')
+    accountEmail.value = String(user?.email || '')
+    buyer.email = accountEmail.value
     buyer.address = String(metadata.address || '')
     if (user) {
       const { data } = await supabase.from('customers').select('full_name, phone, whatsapp_phone, email, address').eq('user_id', user.id).maybeSingle()
-      if (data) Object.assign(buyer, { fullName: data.full_name || buyer.fullName, phone: data.phone || data.whatsapp_phone || buyer.phone, whatsappPhone: data.whatsapp_phone || buyer.whatsappPhone, email: data.email || buyer.email, address: data.address || buyer.address })
+      if (data) Object.assign(buyer, { fullName: data.full_name || buyer.fullName, phone: data.phone || data.whatsapp_phone || buyer.phone, whatsappPhone: data.whatsapp_phone || buyer.whatsappPhone, email: buyer.email || data.email || '', address: data.address || buyer.address })
     }
     fees.value = await getAvailableClientSpkBookingFees()
   } catch (cause) { error.value = getClientSpkErrorMessage(cause, 'Profil atau tanda jadi belum dapat dimuat.') } finally { loading.value = false }
@@ -79,7 +82,7 @@ async function submit() {
       <p v-if="lot" class="selected-lot">Kaveling {{ lot.lot_number }} · {{ currency(price) }}</p>
       <div v-if="loading" class="form-state"><IonSpinner name="crescent" /> Memuat profil pembeli...</div>
       <form v-else @submit.prevent="submit">
-        <fieldset><legend>Data pembeli</legend><label>Nama lengkap<input v-model="buyer.fullName" data-input="name" required /></label><label>Nomor HP<input v-model="buyer.phone" required inputmode="tel" /></label><label>Email<input v-model="buyer.email" type="email" /></label><label>Alamat<input v-model="buyer.address" required /></label></fieldset>
+        <fieldset><legend>Data pembeli</legend><label>Nama lengkap<input v-model="buyer.fullName" data-input="name" required /></label><label>Nomor HP<input v-model="buyer.phone" required inputmode="tel" /></label><label>Email<input v-model="buyer.email" type="email" :readonly="Boolean(accountEmail)" required /></label><label>Alamat<input v-model="buyer.address" required /></label></fieldset>
         <fieldset><legend>Pembayaran</legend><div class="scheme"><button type="button" :class="{active: paymentScheme === 'Cash'}" @click="paymentScheme = 'Cash'">Tunai</button><button type="button" :class="{active: paymentScheme === 'Installment'}" @click="paymentScheme = 'Installment'; void loadPlans()">Cicilan</button></div><template v-if="paymentScheme === 'Installment'"><label>Skema cicilan<select v-model.number="selectedPlanId"><option :value="null">Pilih tenor</option><option v-for="plan in plans" :key="plan.plan_id" :value="plan.plan_id">{{ plan.plan_name }} · {{ plan.months }} bulan</option></select></label><label>Uang muka<input v-model="downPayment" inputmode="numeric" placeholder="Rp" /></label><p v-if="estimate">Estimasi cicilan: <strong>{{ currency(estimate) }}/bulan</strong></p></template></fieldset>
         <fieldset><legend>Dokumen wajib</legend><label>KTP *<input type="file" accept="image/*,.pdf" required @change="onFile('ktp', $event)" /><small>{{ files.ktp?.name || 'Pilih file maksimal 5 MB' }}</small></label><label>KK *<input type="file" accept="image/*,.pdf" required @change="onFile('kk', $event)" /><small>{{ files.kk?.name || 'Pilih file maksimal 5 MB' }}</small></label><label v-if="reusePaymentId === null">Bukti tanda jadi *<input type="file" accept="image/*,.pdf" required @change="onFile('paymentProof', $event)" /><small>{{ files.paymentProof?.name || 'Pilih file maksimal 5 MB' }}</small></label><label v-else>Tanda jadi<input disabled value="Menggunakan pembayaran terverifikasi sebelumnya" /></label><label>NPWP (opsional)<input type="file" accept="image/*,.pdf" @change="onFile('npwp', $event)" /><small>{{ files.npwp?.name || 'Opsional' }}</small></label><label v-if="fees.length">Tanda jadi tersedia<select v-model.number="reusePaymentId"><option :value="null">Bayar tanda jadi baru</option><option v-for="fee in fees" :key="fee.paymentId" :value="fee.paymentId">{{ fee.sourceSpkNumber }} · {{ currency(fee.amount) }}</option></select></label></fieldset>
         <AppNotice v-if="error" tone="error">
@@ -91,6 +94,7 @@ async function submit() {
 </template>
 
 <style scoped>
+input[type='email']:read-only { border-style: dashed; }
 .client-spk-create-modal { --width: min(680px, 100%); --height: min(94vh, 900px); --border-radius: 18px; }
 .client-spk-form { padding: 20px; color: var(--text-primary, #25302a); background: var(--app-background, #faf9f6); height: 100%; overflow: auto; }
 header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; } header span { color:#68756d; font-size:.8rem; } h2 { margin:4px 0 0; } header button { min-width:44px; min-height:44px; border:0; background:transparent; color:inherit; } .selected-lot { padding:12px; background:#e9f3eb; border-radius:10px; font-weight:700; }

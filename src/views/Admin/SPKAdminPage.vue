@@ -1288,7 +1288,7 @@ useRealtimeRefresh(
 
 <style scoped>
 .admin-spk-page { --background: var(--ion-background-color, #f7f8f5); }
-.spk-shell { width: min(100%, 900px); margin: 0 auto; padding: 24px 18px calc(110px + env(safe-area-inset-bottom)); color: var(--ion-text-color, #243126); }
+.spk-shell { width: min(100%, 900px); margin: 0 auto; padding: 24px 18px calc(110px + var(--safe-bottom)); color: var(--ion-text-color, #243126); }
 .spk-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:22px; }
 .spk-eyebrow { margin:0 0 6px; color:var(--poliland-gold-text, #966a12); font-size:10px; font-weight:800; letter-spacing:.13em; }
 .spk-heading h1 { margin:0; font-size:26px; font-weight:800; letter-spacing:-.04em; }
@@ -1391,7 +1391,7 @@ useRealtimeRefresh(
 
 .spk-heading-actions { display:flex; align-items:center; gap:7px; }
 .spk-create-btn { display:flex; align-items:center; gap:6px; border:1px solid #355a2c; background:#355a2c; color:#fff; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; white-space:nowrap; }
-.spk-create-fab { position:fixed; z-index:20; right:calc(18px + env(safe-area-inset-right)); bottom:calc(88px + env(safe-area-inset-bottom)); display:grid; place-items:center; width:56px; height:56px; padding:0; border:0; border-radius:50%; box-shadow:0 5px 16px #24312640; }
+.spk-create-fab { position:fixed; z-index:20; right:calc(18px + var(--safe-right)); bottom:calc(88px + var(--safe-bottom)); display:grid; place-items:center; width:56px; height:56px; padding:0; border:0; border-radius:50%; box-shadow:0 5px 16px #24312640; }
 .spk-create-fab ion-icon { font-size:27px; }
 .spk-source-filters { display:flex; align-items:center; flex-wrap:wrap; gap:6px; color:#899188; font-size:10px; }
 .spk-source-filters button { border:1px solid #e5e9e2; border-radius:999px; background:#fff; color:#6e786e; padding:7px 11px; font-size:10px; font-weight:700; }
@@ -1439,7 +1439,7 @@ useRealtimeRefresh(
 .spk-upload-field input { width:100%; font-size:10px; }
 .spk-upload-field small { color:#8a9488; font-weight:400; }
 
-@media (max-width:390px) { .spk-refresh { justify-content:center; } .spk-create-fab { right:calc(14px + env(safe-area-inset-right)); bottom:calc(84px + env(safe-area-inset-bottom)); }}
+@media (max-width:390px) { .spk-refresh { justify-content:center; } .spk-create-fab { right:calc(14px + var(--safe-right)); bottom:calc(84px + var(--safe-bottom)); }}
 
 .spk-price-summary,.spk-dp-panel,.spk-payment-result { display:grid; gap:10px; border:1px solid #e7ece3; border-radius:12px; background:#fbfcfa; padding:12px; }
 .spk-price-summary>div,.spk-summary-row,.spk-payment-result>div { display:flex; justify-content:space-between; align-items:center; gap:12px; }

@@ -6,9 +6,10 @@ const config: CapacitorConfig = {
   "webDir": "dist",
   "plugins": {
     "SystemBars": {
-      "insetsHandling": "css",
-      "style": "DEFAULT",
-      "initialViewportFitValueHint": "cover"
+      // Inset Android ditangani MainActivity.java; jangan aktifkan lagi (padding ganda).
+      "insetsHandling": "disable",
+      // LIGHT = ikon gelap, juga saat HP memakai mode gelap.
+      "style": "LIGHT"
     },
     "Keyboard": {
       "resize": "none",

@@ -93,7 +93,7 @@ async function logout() {
 .user-menu {
   display: grid;
   gap: 8px;
-  padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 20px 16px calc(16px + var(--safe-bottom));
 }
 
 .user-menu__identity {

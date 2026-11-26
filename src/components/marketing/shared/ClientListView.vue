@@ -391,7 +391,7 @@ useRealtimeRefresh(
 .cl-chevron { color: var(--text-secondary); font-size: 18px; }
 
 .cl-fab {
-  position: fixed; right: 16px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 20; /* di bawah AppModal (11000) dan tab bar */
+  position: fixed; right: 16px; bottom: calc(92px + var(--safe-bottom)); z-index: 20; /* di bawah AppModal (11000) dan tab bar */
   display: grid; place-items: center; width: 52px; height: 52px; padding: 0;
   border: 0; border-radius: 50%; appearance: none;
   background: var(--poliland-green); color: #fff; font: inherit; cursor: pointer;

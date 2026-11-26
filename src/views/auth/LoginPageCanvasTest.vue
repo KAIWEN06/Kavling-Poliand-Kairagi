@@ -440,7 +440,7 @@ function togglePassword() {
 
   gap: 0;
 
-  padding: max(6px, env(safe-area-inset-top)) 14px max(6px, env(safe-area-inset-bottom));
+  padding: max(6px, var(--safe-top)) 14px max(6px, var(--safe-bottom));
 
   overflow: hidden;
 

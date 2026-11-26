@@ -2,7 +2,8 @@
 import AppNotice from '@/components/ui/AppNotice.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import { useRouter } from 'vue-router'
 import {
   IonButton,
@@ -19,9 +20,7 @@ import {
   IonSelectOption,
 } from '@ionic/vue'
 import {
-  alertCircleOutline,
   cameraOutline,
-  checkmarkCircleOutline,
   logOutOutline,
   personCircleOutline,
   saveOutline,
@@ -107,6 +106,7 @@ const missingFields = computed(() => {
   if (!form.full_name.trim()) missing.push('Nama lengkap')
   if (!form.phone.trim()) missing.push('Nomor HP')
   if (!form.whatsapp_phone.trim()) missing.push('Nomor WhatsApp')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) missing.push('Email')
   if (!form.street_address.trim()) missing.push('Detail alamat')
   if (isIndonesia.value) {
     if (!form.province_code) missing.push('Provinsi')
@@ -288,7 +288,7 @@ async function loadCustomerProfile() {
       form.full_name = customer.full_name ?? form.full_name
       form.phone = customer.phone ?? ''
       form.whatsapp_phone = customer.whatsapp_phone ?? customer.phone ?? ''
-      form.email = customer.email ?? user.email ?? ''
+      form.email = user.email || customer.email || ''
       form.country_code = customer.country_code ?? 'ID'
       form.country_name = customer.country_name ?? (countries.find((country) => country.code === form.country_code)?.name ?? '')
       form.province_code = customer.province_code ?? ''
@@ -346,7 +346,7 @@ async function saveCustomerProfile() {
       full_name: form.full_name.trim(),
       phone: normalizePhone(form.phone),
       whatsapp_phone: normalizePhone(form.whatsapp_phone),
-      email: form.email.trim() || authEmail.value || null,
+      email: authEmail.value || form.email.trim(),
       country_code: form.country_code,
       country_name: form.country_name,
       province_code: form.province_code || null,
@@ -486,7 +486,48 @@ async function logout() {
   }
 }
 
+/* Dari toast pengingat (?lengkapi=1): bawa langsung ke isian wajib pertama yang masih kosong. */
+const MISSING_FIELD_TARGETS: Record<string, string> = {
+  'Nama lengkap': '#client-full-name',
+  'Nomor HP': '#client-phone',
+  'Nomor WhatsApp': '#client-whatsapp',
+  Email: '#client-email',
+  'Detail alamat': '#client-address',
+  'NIK (16 digit)': '.idf [data-input="nik"]',
+  'Tempat lahir': '.idf input[maxlength="100"]',
+  'Tanggal lahir': '.idf input[type="date"]',
+}
+const routeQuery = useOwnRouteQuery()
+const pageRoot = () => document.querySelector('[aria-label="Formulir data diri"]')
+let handledStamp = ''
+let highlightTimer: number | undefined
+
+watch(
+  () => [routeQuery.value.nt, isLoading.value, identityLoading.value] as const,
+  async ([stamp, loading, loadingIdentity]) => {
+    if (routeQuery.value.lengkapi !== '1' || loading || loadingIdentity || handledStamp === String(stamp)) return
+    await nextTick()
+    const form = pageRoot()
+    if (!form) return
+    handledStamp = String(stamp)
+    // Provinsi sampai desa berada di bawah pilihan negara.
+    const fields = missingFields.value
+      .map((label) => form.querySelector(MISSING_FIELD_TARGETS[label] ?? '#client-country'))
+      .filter((element): element is Element => !!element)
+      .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+    const target = fields[0]?.closest('.form-field, .idf-field')
+    if (!target) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' })
+    target.classList.add('notif-target')
+    window.clearTimeout(highlightTimer)
+    highlightTimer = window.setTimeout(() => target.classList.remove('notif-target'), 4000)
+  },
+  { immediate: true },
+)
+
 onMounted(loadCustomerProfile)
+onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 </script>
 
 <template>
@@ -636,18 +677,22 @@ onMounted(loadCustomerProfile)
               </div>
 
               <div class="form-field">
-                <ion-label for="client-email" class="field-label">Email</ion-label>
-                <ion-item lines="none" class="input-item">
+                <ion-label for="client-email" class="field-label">
+                  Email <span class="req-mark" aria-hidden="true">*</span>
+                </ion-label>
+                <ion-item lines="none" class="input-item" :class="{ 'is-locked': authEmail }">
                   <ion-input
                     id="client-email"
                     v-model="form.email"
                     type="email"
                     placeholder="nama@email.com"
                     autocomplete="email"
+                    :readonly="Boolean(authEmail)"
+                    required
                   />
                 </ion-item>
                 <small v-if="authEmail" class="field-hint">
-                  Terhubung dengan akun Google: {{ authEmail }}
+                  Mengikuti email akun, jadi tidak bisa diubah atau dihapus.
                 </small>
               </div>
 
@@ -745,7 +790,7 @@ onMounted(loadCustomerProfile)
 .identity-retry { min-height: 44px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; }
 .account-content {
   --background: var(--app-background, #faf9f6);
-  --padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  --padding-bottom: calc(104px + var(--safe-bottom));
 }
 
 .account-page {
@@ -754,7 +799,7 @@ onMounted(loadCustomerProfile)
   gap: 16px;
   width: min(100%, 680px);
   margin: 0 auto;
-  padding: 16px 16px calc(120px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(120px + var(--safe-bottom));
   color: var(--text-primary, #252525);
   font-family: var(--font-primary, var(--ion-font-family, 'Plus Jakarta Sans', sans-serif));
 }
@@ -1014,6 +1059,10 @@ onMounted(loadCustomerProfile)
   border: 1px solid var(--border-default, #eae7e0);
   border-radius: var(--radius-control, 12px);
   transition: border-color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.input-item.is-locked {
+  border-style: dashed;
 }
 
 .input-item:focus-within {

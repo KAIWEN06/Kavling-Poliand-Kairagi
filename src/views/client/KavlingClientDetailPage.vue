@@ -305,8 +305,11 @@
                 <h1>{{ lot.lot_number }}</h1>
                 <p>{{ blockLabel }}</p>
               </div>
-              <FavoriteButton v-if="!hideSoldInfo" :key="lot.id" :lot-id="Number(lot.id)" />
             </div>
+
+            <LotShareActions v-if="!hideSoldInfo" :content="shareData" class="hero-share">
+              <FavoriteButton :key="lot.id" :lot-id="Number(lot.id)" />
+            </LotShareActions>
 
             <div :class="['spec-strip', { 'spec-strip--single': hideSoldInfo }]">
               <div v-if="!hideSoldInfo">
@@ -342,7 +345,7 @@
               Kaveling ini sudah terjual, jadi info harga tidak ditampilkan.
             </div>
 
-            <div :class="['client-contact-actions', { 'client-contact-actions--single': isSold }]">
+            <div class="client-contact-actions">
               <AppButton class="single-line-btn" variant="primary" expand="block" @click="contactAdmin">
                 <ion-icon :icon="callOutline" slot="start" />
                 <span>Hubungi Admin</span>
@@ -433,6 +436,8 @@
               </AppButton>
             </article>
           </section>
+
+          <RecommendedLots :key="lot.id" :lot-id="Number(lot.id)" class="similar-lots" />
         </template>
       </div>
     </ion-content>
@@ -463,8 +468,12 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import LegalAssurance from '@/components/payment/LegalAssurance.vue'
 import FavoriteButton from '@/components/client/FavoriteButton.vue'
+import LotShareActions from '@/components/siteplan/LotShareActions.vue'
+import { lotShareContent } from '@/utils/shareLot'
 import NearbyFacilities from '@/components/client/NearbyFacilities.vue'
 import { trackFunnel } from '@/services/funnelService'
+import RecommendedLots from '@/components/client/RecommendedLots.vue'
+import { recordLotView } from '@/services/recommendationService'
 import { askNotificationPermission } from '@/composables/useNotificationPrompt'
 import PaymentSimulation from '@/components/payment/PaymentSimulation.vue'
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
@@ -579,6 +588,16 @@ const orderLabel = computed(() => {
 const effectivePrice = computed(() => Number(
   (hasPromo.value ? lot.value?.promo_price : lot.value?.cash_price) || 0,
 ))
+const shareData = computed(() => lotShareContent({
+  id: lot.value?.id,
+  name: `Kaveling ${lot.value?.lot_number ?? ''}`,
+  block: blockLabel.value === 'Blok belum diatur' ? '' : blockLabel.value,
+  details: lot.value?.area ? `Luas ${formatArea(lot.value.area)}` : '',
+  price: !isSold.value && !isBooked.value && effectivePrice.value > 0
+    ? rupiah(effectivePrice.value)
+    : '',
+  status: statusLabel.value,
+}))
 /* Pemilik kavling sudah punya kesepakatan sendiri, jadi tidak diberi simulasi. */
 const showSimulation = computed(() => canOrder.value && !isOwnLot.value && effectivePrice.value > 0)
 /* Keterangan yang menyebut status lain disembunyikan agar tidak bertentangan dengan status. */
@@ -586,9 +605,9 @@ const lotDescription = computed(() => {
   const text = String(lot.value?.description || '').trim()
   if (!text) return ''
   const words: Record<string, RegExp> = {
-    available: /(tersedia|available|ready)/i,
-    booking: /(dipesan|dibooking|booking|booked|reserved)/i,
-    sold: /(terjual|sold)/i,
+    available: /\b(tersedia|available|ready)\b/i,
+    booking: /\b(dipesan|dibooking|booking|booked|reserved)\b/i,
+    sold: /\b(terjual|sold)\b/i,
   }
   const current = isSold.value ? 'sold' : isBooked.value ? 'booking' : 'available'
   return Object.entries(words).some(([status, pattern]) => status !== current && pattern.test(text)) ? '' : text
@@ -1043,6 +1062,7 @@ async function loadDetail({ silent = false }: LoadOptions = {}) {
     }
     if (!lot.value) throw new Error('Data kaveling tidak tersedia.')
     trackFunnel('lot_view', lot.value.id)
+    if (!silent) recordLotView(lot.value.id)
     isOwnLot.value = isSold.value
       ? await lotService.isLotOwnedByMe(lot.value.id).catch(() => false)
       : false
@@ -1074,10 +1094,14 @@ useRealtimeRefresh(
 </script>
 
 <style scoped>
+.similar-lots {
+  margin-top: 20px;
+}
+
 .detail-page {
   display: flex;
   flex-direction: column;
-  padding: 12px 16px calc(112px + env(safe-area-inset-bottom));
+  padding: 12px 16px calc(112px + var(--safe-bottom));
   background: var(--app-background, #faf9f6);
   color: var(--text-primary, #252525);
   font-family: var(--font-primary, var(--ion-font-family, 'Plus Jakarta Sans', sans-serif));
@@ -1097,6 +1121,10 @@ useRealtimeRefresh(
 
 .hero-legal {
   margin-top: 12px;
+}
+
+.hero-share {
+  margin-top: 8px;
 }
 
 .client-detail-page .detail-tabs {
@@ -1786,8 +1814,6 @@ textarea.form-control {
 
 .spec-strip--single { grid-template-columns: 1fr; }
 
-.client-contact-actions--single { grid-template-columns: 1fr; }
-
 .hero-image {
   display: block;
   width: 100%;
@@ -1983,11 +2009,18 @@ textarea.form-control {
   font-size: 17px;
 }
 
+/* Berdampingan bila kedua label muat, bertumpuk selebar card bila tidak. */
 .client-contact-actions {
-  display: grid;
-  grid-template-columns: 1.25fr 0.75fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 4px 0 10px;
+}
+
+.client-contact-actions > * {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-inline: 0;
 }
 
 .order-hold-note { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--poliland-gold) 14%, white); color: var(--poliland-gold-text-soft); font-size: 12px; font-weight: 700; line-height: 1.5; }

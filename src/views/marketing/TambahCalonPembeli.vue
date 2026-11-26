@@ -573,7 +573,7 @@ async function submit() {
       return
     }
 
-    await createProspectiveCustomer({
+    const customer = await createProspectiveCustomer({
       customer: {
         full_name: form.full_name,
         phone: form.phone,
@@ -592,7 +592,10 @@ async function submit() {
       })),
     })
 
-    useToast().success('Klien tersimpan.')
+    useToast().success('Klien tersimpan.', {
+      to: `${listPath.value}/${customer.id}`,
+      actionLabel: 'Lihat klien',
+    })
     // Formulir diganti (bukan ditumpuk) agar tombol kembali tidak membukanya lagi.
     ionRouter.navigate(listPath.value, 'back', 'replace')
   } catch (cause) {

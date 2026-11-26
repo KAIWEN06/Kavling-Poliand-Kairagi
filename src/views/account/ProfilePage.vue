@@ -332,7 +332,7 @@ async function saveAvatar(file: File) {
 <style scoped>
 .account-content {
   --background: var(--app-background, #faf9f6);
-  --padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  --padding-bottom: calc(104px + var(--safe-bottom));
 }
 
 .account-page {
@@ -341,7 +341,7 @@ async function saveAvatar(file: File) {
   gap: 16px;
   width: min(100%, 680px);
   margin: 0 auto;
-  padding: 16px 16px calc(120px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(120px + var(--safe-bottom));
   color: var(--text-primary, #252525);
   font-family: var(--font-primary, var(--ion-font-family, 'Plus Jakarta Sans', sans-serif));
 }

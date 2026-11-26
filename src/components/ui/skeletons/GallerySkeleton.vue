@@ -303,7 +303,7 @@ onBeforeUnmount(() => {
 .gallery-content {
   --background: var(--gallery-background);
   /* Diberi padding-bottom yang mencukupi tinggi tabbar (74px) + margin/safe area (~20px) + ekstra spasi agar lega */
-  --padding-bottom: calc(110px + env(safe-area-inset-bottom));
+  --padding-bottom: calc(110px + var(--safe-bottom));
 }
 
 .gallery-header {
@@ -682,7 +682,7 @@ onBeforeUnmount(() => {
 .lightbox-close {
   position: absolute;
   z-index: 5;
-  top: max(18px, env(safe-area-inset-top));
+  top: max(18px, var(--safe-top));
   right: 18px;
   width: 42px;
   height: 42px;

@@ -447,7 +447,7 @@ useRealtimeRefresh(['customer_reviews', 'review_reports'], () => load({ silent: 
 
 <style scoped>
 .reviews-admin { color: var(--text-primary); font-family: var(--font-primary); }
-.shell { min-height: 100%; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); background: var(--app-background); }
+.shell { min-height: 100%; padding: 22px 16px calc(112px + var(--safe-bottom)); background: var(--app-background); }
 .intro { margin-bottom: 16px; }
 .eyebrow { margin: 0 0 4px; color: var(--poliland-green); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: 0.08em; text-transform: uppercase; }
 .intro h1 { margin: 0; font-family: var(--font-display); font-size: var(--text-2xl); }

@@ -98,7 +98,7 @@
   width: 100%;
   max-width: 680px;
   margin: 0 auto;
-  padding: 20px 16px calc(90px + env(safe-area-inset-bottom));
+  padding: 20px 16px calc(90px + var(--safe-bottom));
 }
 
 .skeleton {

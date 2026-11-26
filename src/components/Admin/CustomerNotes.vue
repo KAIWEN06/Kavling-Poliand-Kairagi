@@ -948,7 +948,7 @@ useRealtimeRefresh(['customer_notes'], () => loadNotes({ silent: true }), {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 16px 12px calc(12px + env(safe-area-inset-bottom));
+  padding: 16px 12px calc(12px + var(--safe-bottom));
   background: rgb(37 37 37 / 42%);
 }
 
@@ -959,7 +959,7 @@ useRealtimeRefresh(['customer_notes'], () => loadNotes({ silent: true }), {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-panel) var(--radius-panel) 0 0;
   background: var(--surface-primary);
-  padding: 20px 18px calc(24px + env(safe-area-inset-bottom));
+  padding: 20px 18px calc(24px + var(--safe-bottom));
 }
 
 .sheet-head {
@@ -1113,7 +1113,7 @@ useRealtimeRefresh(['customer_notes'], () => loadNotes({ silent: true }), {
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  padding: 16px 16px calc(92px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(92px + var(--safe-bottom));
   background: rgb(37 37 37 / 18%);
 }
 

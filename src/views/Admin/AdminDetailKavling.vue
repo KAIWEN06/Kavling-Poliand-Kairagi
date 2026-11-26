@@ -76,6 +76,8 @@
               </div>
             </div>
 
+            <LotShareActions :content="shareData" class="hero-share" />
+
             <div class="hero-actions">
               <AppButton variant="primary" expand="block" @click="statusModalOpen = true">
                 <ion-icon :icon="syncOutline" slot="start" />
@@ -117,6 +119,8 @@
                 <div><dt>Keterangan</dt><dd>{{ lot.description || '-' }}</dd></div>
               </dl>
             </article>
+
+            <LotFacilities :key="lot.id" :lot-id="Number(lot.id)" />
           </section>
 
           <section v-else-if="activeTab === 'price'" class="tab-content">
@@ -387,7 +391,10 @@ import loadingMascot from '@/assets/mascot/Mascot Examining Transaction History.
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
 import emptyReceiptMascot from '@/assets/mascot/MascotwithEmptyReceiptandCoins.webp'
 import AppButton from '@/components/ui/AppButton.vue'
+import LotShareActions from '@/components/siteplan/LotShareActions.vue'
+import { lotShareContent } from '@/utils/shareLot'
 import AppModal from '@/components/ui/AppModal.vue'
+import LotFacilities from '@/components/Admin/LotFacilities.vue'
 import { supabase } from '@/services/config/supabase'
 import { lotService, BOOKING_FEE_FIXED, type LotRecord } from '@/services/lotService'
 import { formatPaymentPlanName } from '@/utils/paymentPlan'
@@ -499,6 +506,17 @@ const blockLabel = computed(() => {
   })
 })
 const hasPromo = computed(() => Number(lot.value?.promo_price || 0) > 0 && Number(lot.value?.promo_price) < Number(lot.value?.cash_price || 0))
+const shareData = computed(() => {
+  const price = Number((hasPromo.value ? lot.value?.promo_price : lot.value?.cash_price) || 0)
+  return lotShareContent({
+    id: lot.value?.id,
+    name: `Kaveling ${lot.value?.lot_number ?? ''}`,
+    block: blockLabel.value === '-' ? '' : blockLabel.value,
+    details: lot.value?.area ? `Luas ${formatArea(lot.value.area)}` : '',
+    price: statusClass.value === 'available' && price > 0 ? rupiah(price) : '',
+    status: statusLabel.value,
+  })
+})
 const paymentTypeLabel = computed(() => {
   const status = effectiveStatus.value.toLowerCase()
 
@@ -1095,7 +1113,7 @@ useRealtimeRefresh(
 }
 .panorama-empty-mascot{width:min(180px,60%);max-height:140px;object-fit:contain}
 .loading-mascot{width:min(180px,60%);height:auto;object-fit:contain}
-.detail-page{padding:12px 16px calc(112px + env(safe-area-inset-bottom));background:var(--app-background);color:var(--text-primary);font-family:var(--font-primary)}
+.detail-page{padding:12px 16px calc(112px + var(--safe-bottom));background:var(--app-background);color:var(--text-primary);font-family:var(--font-primary)}
 .detail-back-nav{display:flex;align-items:center;margin-bottom:12px}.back-action{margin:0}
 .hero-card,.panel{background:var(--surface-primary);border:1px solid var(--border-default);border-radius:var(--radius-card);padding:14px;margin-bottom:14px}
 .hero-image-wrap{position:relative;overflow:hidden;border-radius:var(--radius-control);aspect-ratio:16/9;background:var(--surface-muted)}
@@ -1117,6 +1135,7 @@ useRealtimeRefresh(
 .promo-price{text-align:right}
 .promo-price strong{font-size:20px;color:var(--poliland-gold-text)}
 .promo-label{align-self:flex-end;background:var(--poliland-gold-soft);color:var(--poliland-gold-text-soft);padding:4px 7px;border-radius:5px;font-size:10px;font-weight:700}
+.hero-share{margin-bottom:12px}
 .hero-actions{display:grid;gap:8px}
 .detail-tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface-primary);border-bottom:1px solid var(--border-default);margin:0 -16px 14px;padding:0 8px}
 .detail-tabs button{min-height:48px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--text-secondary);font:inherit;font-size:12px;font-weight:600;padding:0 3px}

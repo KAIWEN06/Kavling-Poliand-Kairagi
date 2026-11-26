@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warna area status bar dan navigation bar. Samakan dengan theme-color di index.html. -->
+    <color name="pl_window_background">#F5F3EE</color>
+</resources>

@@ -41,7 +41,7 @@
               :class="{ 'notif__item--unread': !n.read_at }"
               @click="open_(n)"
             >
-              <span class="notif__icon" :class="`nt-tone--${toneFor(n)}`">
+              <span class="notif__icon" :class="`nt-tone--${notificationTone(n)}`">
                 <ion-icon :icon="iconFor(n.category)" aria-hidden="true" />
               </span>
               <span class="notif__content">
@@ -77,11 +77,11 @@ import {
   walletOutline,
 } from 'ionicons/icons'
 
-import type { ToastTone } from '@/composables/useToast'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useNotifications } from '@/composables/useNotifications'
 import {
   formatRelativeTime,
+  notificationTone,
   resolveNotificationRoute,
   withTapStamp,
   type AppNotification,
@@ -108,13 +108,6 @@ const ICONS: Record<NotificationCategory, string> = {
 
 function iconFor(category: NotificationCategory) {
   return ICONS[category] ?? informationCircleOutline
-}
-
-/* Warna ikon memakai nada yang sama dengan toast dan pesan (theme/notify.css). */
-function toneFor(n: AppNotification): ToastTone {
-  if (n.priority === 'high' || n.category === 'reminder') return 'warning'
-  if (n.category === 'payment' || n.category === 'commission') return 'success'
-  return 'info'
 }
 
 async function open_(n: AppNotification) {
@@ -175,7 +168,7 @@ async function open_(n: AppNotification) {
 }
 
 .notif__body {
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(16px + var(--safe-bottom));
 }
 
 .notif__list {

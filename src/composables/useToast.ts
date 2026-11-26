@@ -6,6 +6,14 @@ export interface ToastOptions {
   title?: string
   /** Lama tampil dalam ms. 0 = menetap sampai ditutup. */
   duration?: number
+  /** Rute halaman atau data terkait. Mengetuk toast membukanya. */
+  to?: string
+  /** Aksi khusus saat diketuk; dipakai bila tujuan perlu diperiksa dulu. */
+  onTap?: () => void
+  /** Teks tombol tujuan. Bawaan: "Lihat". */
+  actionLabel?: string
+  /** Identitas pesan; toast berbeda tidak saling mengganti walau teksnya sama. */
+  key?: string
 }
 
 export interface ToastItem {
@@ -14,7 +22,15 @@ export interface ToastItem {
   message: string
   title: string
   duration: number
+  to?: string
+  onTap?: () => void
+  /** Kosong bila toast tidak punya tujuan. */
+  actionLabel: string
+  key: string
 }
+
+/** Toast yang bisa diketuk diberi waktu lebih lama agar sempat diraih. */
+const MIN_ACTION_DURATION = 7000
 
 const DEFAULT_DURATION: Record<ToastTone, number> = {
   success: 3800,
@@ -52,16 +68,21 @@ function pause(id: number) {
 
 function push(tone: ToastTone, message: string, options: ToastOptions = {}) {
   const title = options.title ?? ''
-  const duration = options.duration ?? DEFAULT_DURATION[tone]
+  const { to, onTap } = options
+  const actionable = Boolean(to || onTap)
+  const actionLabel = actionable ? options.actionLabel ?? 'Lihat' : ''
+  const duration = options.duration
+    ?? (actionable ? Math.max(DEFAULT_DURATION[tone], MIN_ACTION_DURATION) : DEFAULT_DURATION[tone])
+  const key = options.key ?? [tone, title, message, to ?? ''].join('|')
   // Pesan yang sama tidak ditumpuk: yang lama diganti dan hitungannya mulai lagi.
   for (const t of items.value) {
-    if (t.tone === tone && t.message === message && t.title === title) dismiss(t.id)
+    if (t.key === key) dismiss(t.id)
   }
   // Maksimal 3 toast; yang terlama dibuang
   for (const t of items.value.slice(0, -2)) dismiss(t.id)
 
   const id = nextId++
-  items.value = [...items.value, { id, tone, message, title, duration }]
+  items.value = [...items.value, { id, tone, message, title, duration, to, onTap, actionLabel, key }]
   if (duration > 0) {
     timers.set(id, { remaining: duration, startedAt: 0 })
     resume(id)

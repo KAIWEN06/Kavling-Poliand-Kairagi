@@ -75,7 +75,7 @@ const particles = Array.from({ length: 16 }, (_, i) => {
   display: grid;
   place-items: center;
   min-height: 100dvh;
-  padding: calc(var(--space-6) + env(safe-area-inset-top, 0px)) var(--space-6) calc(var(--space-6) + var(--safe-bottom));
+  padding: calc(var(--space-6) + var(--safe-top)) var(--space-6) calc(var(--space-6) + var(--safe-bottom));
   background: var(--cel-bg);
   color: var(--on-forest);
   overflow: hidden;

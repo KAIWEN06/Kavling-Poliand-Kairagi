@@ -607,7 +607,7 @@ onBeforeUnmount(() => {
   /* Overlay selalu menutup seluruh layar (tidak ikut menyusut), jadi halaman di belakang
      tidak pernah tersentuh. Ruang keyboard dan status bar diatur lewat padding. */
   box-sizing: border-box;
-  padding: max(env(safe-area-inset-top, 0px), 12px) 0 var(--app-modal-keyboard-height, 0px);
+  padding: max(var(--safe-top), 12px) 0 var(--app-modal-keyboard-height, 0px);
   overscroll-behavior: contain;
 }
 
@@ -626,7 +626,7 @@ onBeforeUnmount(() => {
   color: var(--text-primary);
   box-shadow: 0 -8px 30px rgb(37 37 37 / 12%);
   outline: none;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--safe-bottom);
 }
 
 .app-modal__header {
@@ -693,7 +693,7 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  padding: 12px 16px calc(12px + var(--safe-bottom));
   border-top: 1px solid var(--border-default);
   background: var(--surface-primary);
 }
@@ -719,7 +719,7 @@ onBeforeUnmount(() => {
 
 .app-modal--dialog {
   align-items: center;
-  padding: max(env(safe-area-inset-top, 0px), 16px) 16px max(16px, var(--app-modal-keyboard-height, 0px));
+  padding: max(var(--safe-top), 16px) 16px max(16px, var(--app-modal-keyboard-height, 0px));
 }
 
 .app-modal--dialog .app-modal__panel {
@@ -762,7 +762,7 @@ onBeforeUnmount(() => {
 }
 
 .app-modal--no-footer .app-modal__body {
-  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  padding-bottom: calc(18px + var(--safe-bottom));
 }
 
 /* Gerak modal: pendek, pelan, lembut. Token di theme/variables.css (--dur-modal-*, --ease-modal-*). */

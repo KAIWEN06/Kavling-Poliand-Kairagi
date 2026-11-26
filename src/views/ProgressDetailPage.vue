@@ -231,7 +231,7 @@ useRealtimeRefresh(['progress'], () => load({ silent: true }))
 </script>
 
 <style scoped>
-.detail-content { --background: var(--app-background, #faf9f6); --padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+.detail-content { --background: var(--app-background, #faf9f6); --padding-bottom: calc(110px + var(--safe-bottom)); }
 .detail-page { width: 100%; max-width: 680px; margin: 0 auto; padding: 14px 16px 24px; }
 
 .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -281,7 +281,7 @@ useRealtimeRefresh(['progress'], () => load({ silent: true }))
 
 /* Header melayang di atas foto saat data sudah ada */
 .detail-page.has-hero { padding-top: 0; }
-.detail-page.has-hero .detail-header { position: absolute; z-index: 4; top: 0; left: 0; right: 0; margin: 0; padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 0; }
+.detail-page.has-hero .detail-header { position: absolute; z-index: 4; top: 0; left: 0; right: 0; margin: 0; padding: calc(var(--safe-top) + 14px) 16px 0; }
 .detail-page.has-hero .icon-button { border-color: rgba(255, 255, 255, .28); background: rgba(27, 40, 22, .42); color: #fff; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .detail-page.has-hero .icon-button:focus-visible { outline-color: var(--poliland-gold, #cba044); }
 .detail-page.has-hero .header-title span { color: var(--poliland-gold-soft, #f4d69a); }

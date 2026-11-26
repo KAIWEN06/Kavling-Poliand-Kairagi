@@ -548,8 +548,12 @@ async function removeCustomerInterest(id: number) {
 
 async function saveCustomer() {
   if (!customer.value) return
-  saving.value = true
   editError.value = ''
+  if (customer.value.email && !editForm.email.trim()) {
+    editError.value = 'Email tidak bisa dihapus. Isi email baru bila ingin menggantinya.'
+    return
+  }
+  saving.value = true
   try {
     const updated = await customerService.updateCustomer(customer.value.id, editForm)
     customer.value = { ...customer.value, ...updated }
@@ -773,7 +777,7 @@ useRealtimeRefresh(
 
 <style scoped>
 .admin-buyer-detail-page { font-family: var(--font-primary); color: var(--text-primary); }
-.buyer-detail-content { min-height: 100%; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); background: var(--app-background); }
+.buyer-detail-content { min-height: 100%; padding: 22px 16px calc(112px + var(--safe-bottom)); background: var(--app-background); }
 .buyer-detail-breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: var(--text-primary); font-size: 15px; font-weight: var(--font-weight-bold); }
 .breadcrumb-back { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border-default); border-radius: 50%; background: var(--surface-primary); color: var(--text-primary); }
 .breadcrumb-back ion-icon { font-size: 18px; }

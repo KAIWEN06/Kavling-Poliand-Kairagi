@@ -12,6 +12,7 @@ import Skeleton from '@/components/ui/Skeleton.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
+import RecommendationSettings from '@/components/client/RecommendationSettings.vue'
 import { useToast } from '@/composables/useToast'
 import { askNotificationPermission } from '@/composables/useNotificationPrompt'
 import { favoriteService, type FavoriteLot } from '@/services/favoriteService'
@@ -74,7 +75,10 @@ async function toggleAlerts(event: Event) {
   }
 }
 
+const recoSettings = ref<InstanceType<typeof RecommendationSettings> | null>(null)
+
 async function refresh() {
+  void recoSettings.value?.refresh()
   await load()
   if (status.value === 'ready') await Promise.all([loadLots(), loadAlerts()])
 }
@@ -152,6 +156,8 @@ function openLot(id: number) {
           </span>
           <input type="checkbox" role="switch" :checked="alertsEnabled" :disabled="alertsSaving" @change="toggleAlerts" />
         </label>
+
+        <RecommendationSettings v-if="status === 'ready'" ref="recoSettings" />
 
         <div v-if="isLoading" class="favp__list" role="status" aria-label="Memuat favorit">
           <Skeleton v-for="n in 3" :key="n" height="150px" border-radius="16px" />
@@ -258,7 +264,7 @@ function openLot(id: number) {
   gap: var(--space-4, 16px);
   width: min(100%, 720px);
   margin-inline: auto;
-  padding: 16px 16px calc(112px + env(safe-area-inset-bottom, 0px));
+  padding: 16px 16px calc(112px + var(--safe-bottom));
   color: var(--text-primary, #252525);
   font-family: var(--font-primary, 'Plus Jakarta Sans', sans-serif);
 }

@@ -457,7 +457,7 @@ function isActive(path: string) {
   padding:
     0
     12px
-    calc(8px + env(safe-area-inset-bottom));
+    calc(8px + var(--safe-bottom));
 
   transform: none !important;
 

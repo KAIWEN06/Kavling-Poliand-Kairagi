@@ -348,7 +348,7 @@ const explore = () => {
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 0 calc(env(safe-area-inset-bottom, 0px) + 20px);
+  padding: calc(var(--safe-top) + 12px) 0 calc(var(--safe-bottom) + 20px);
   overflow: hidden;
   background: linear-gradient(180deg, #fbf5e6 0%, #f7f0e2 55%, #f1e8d4 100%);
   color: var(--text-primary, #252525);

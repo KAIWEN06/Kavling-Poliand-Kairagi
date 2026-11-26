@@ -614,7 +614,7 @@ useRealtimeRefresh(
 
 <style scoped>
 .team-page { color: var(--text-primary); font-family: var(--font-primary); }
-.team-shell { min-height: 100%; padding: 20px 16px calc(112px + env(safe-area-inset-bottom)); background: var(--app-background); }
+.team-shell { min-height: 100%; padding: 20px 16px calc(112px + var(--safe-bottom)); background: var(--app-background); }
 .page-heading { display: flex; flex-direction: column; align-items: stretch; gap: 14px; margin-bottom: 18px; }
 .page-heading h1, .detail-heading h1 { margin: 0; color: var(--text-primary); font-size: 23px; font-weight: 700; letter-spacing: -0.035em; }
 .page-heading p:last-child { margin: 5px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }

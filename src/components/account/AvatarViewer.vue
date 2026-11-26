@@ -46,7 +46,7 @@ onBeforeUnmount(() => {
   z-index: 30000;
   display: grid;
   place-items: center;
-  padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
+  padding: var(--safe-top) 16px var(--safe-bottom);
   background: rgba(16, 26, 14, 0.92);
   overscroll-behavior: contain;
 }
@@ -65,7 +65,7 @@ onBeforeUnmount(() => {
 
 .viewer-close {
   position: absolute;
-  top: calc(12px + env(safe-area-inset-top, 0px));
+  top: calc(12px + var(--safe-top));
   right: 12px;
   display: grid;
   width: 44px;

@@ -38,7 +38,7 @@
         <!-- KATEGORI -->
         <section class="category-section">
           <SectionHeader title="Kategori foto">
-            <span v-if="!isLoading" class="photo-count">{{ filteredPhotos.length }} foto</span>
+            <span v-if="!isLoading && !errorVariant" class="photo-count">{{ filteredPhotos.length }} foto</span>
           </SectionHeader>
 
           <div class="category-scroll">
@@ -108,7 +108,12 @@
           </div>
 
           <StatusIllustration
-            v-if="!isLoading && filteredPhotos.length === 0"
+            v-if="!isLoading && errorVariant"
+            :variant="errorVariant"
+            :on-action="retryLoad"
+          />
+          <StatusIllustration
+            v-else-if="!isLoading && filteredPhotos.length === 0"
             :variant="photos.length ? 'no-result' : 'empty-data'"
             :title="photos.length ? 'Foto tidak ditemukan' : 'Belum ada foto'"
             :description="photos.length ? 'Foto untuk kategori ini belum tersedia.' : (isAdmin ? 'Galeri masih kosong. Tekan “Tambah foto” untuk mengisinya.' : 'Foto akan segera ditambahkan.')"
@@ -176,6 +181,7 @@
 <script setup lang="ts">
 import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   IonContent,
@@ -257,16 +263,26 @@ const deleteOpen = ref(false)
 const deleteTarget = ref<GalleryPhoto | null>(null)
 const deleting = ref(false)
 
+/** Terisi hanya bila pemuatan gagal dan belum ada foto, supaya kegagalan tidak terbaca sebagai galeri kosong. */
+const errorVariant = ref<'offline-error' | 'fetch-error' | null>(null)
+
 async function loadPhotos({ silent = false }: LoadOptions = {}) {
   try {
     rows.value = (await galleryService.getGallery(true)) as GalleryRow[]
+    errorVariant.value = null
     if (!categories.value.some((category) => category.id === selectedCategory.value)) selectedCategory.value = 'all'
   } catch (error) {
     console.error('Gagal memuat galeri:', error)
-    if (!silent) toast.error('Galeri gagal dimuat. Tarik layar ke bawah untuk mencoba lagi.')
+    if (!rows.value.length) errorVariant.value = resolveErrorVariant(error)
+    else if (!silent) toast.error('Galeri gagal diperbarui. Tarik layar ke bawah untuk mencoba lagi.')
   } finally {
     isLoading.value = false
   }
+}
+
+function retryLoad() {
+  isLoading.value = true
+  void loadPhotos()
 }
 
 const handleRefresh = async () => {
@@ -345,7 +361,7 @@ useRealtimeRefresh(['gallery'], () => loadPhotos({ silent: true }))
 
 .gallery-content {
   --background: var(--pl-paper, #f9f5ec);
-  --padding-bottom: calc(110px + env(safe-area-inset-bottom));
+  --padding-bottom: calc(110px + var(--safe-bottom));
 }
 
 .gallery-page { padding-bottom: 28px; }
@@ -357,7 +373,7 @@ useRealtimeRefresh(['gallery'], () => loadPhotos({ silent: true }))
   flex-direction: column;
   justify-content: flex-end;
   min-height: clamp(420px, 66dvh, 540px);
-  padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px 0;
+  padding: calc(var(--safe-top) + 24px) 24px 0;
   overflow: hidden;
   background:
     radial-gradient(110% 60% at 100% 0%, rgba(244, 214, 154, 0.26) 0%, rgba(244, 214, 154, 0) 62%),

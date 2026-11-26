@@ -80,6 +80,8 @@ const paymentPlansLoading = ref(false)
 const selectedPlanId = ref<number | null>(null)
 const downPaymentInput = ref('')
 const useDownPayment = ref(false)
+/** Email akun yang sedang masuk; kolom email dikunci ke nilai ini. */
+const accountEmail = ref('')
 const createBuyer = reactive({
   fullName: '',
   phone: '',
@@ -129,16 +131,39 @@ const statusFilters: Array<{ label: string; value: SpkListFilter }> = [
   { label: 'Selesai', value: 'Completed' },
 ]
 
+// Dipakai kartu ringkasan dan daftar, supaya angka kartu selalu sama dengan isi daftarnya.
+function matchesStatusFilter(record: ClientSpkRecord, filter: SpkListFilter) {
+  switch (filter) {
+    case 'All':
+      return true
+    case 'Submitted':
+      return record.status === 'Submitted' || record.status === 'Under Review'
+    case 'In Progress':
+      return record.status !== 'Rejected'
+        && record.status !== 'Cancelled'
+        && record.notaryStatus !== 'Menunggu Diproses'
+        && record.notaryStatus !== 'Selesai'
+    case 'Completed':
+      return record.status !== 'Rejected' && record.notaryStatus === 'Selesai'
+    default:
+      return record.status === filter
+  }
+}
+
+function countByFilter(filter: SpkListFilter) {
+  return spkRecords.value.filter(record => matchesStatusFilter(record, filter)).length
+}
+
 const stats = computed(() => ({
-  total: spkRecords.value.length,
-  submitted: spkRecords.value.filter(row => row.status === 'Submitted' || row.status === 'Under Review').length,
-  approved: spkRecords.value.filter(row => row.status === 'Approved').length,
-  rejected: spkRecords.value.filter(row => row.status === 'Rejected').length,
+  total: countByFilter('All'),
+  inProgress: countByFilter('In Progress'),
+  approved: countByFilter('Approved'),
+  rejected: countByFilter('Rejected'),
 }))
 
 const statCards = computed(() => [
   { key: 'total' as const, label: 'Semua SPK', filter: 'All' as const },
-  { key: 'submitted' as const, label: 'Dalam Proses', filter: 'Submitted' as const },
+  { key: 'inProgress' as const, label: 'Dalam Proses', filter: 'In Progress' as const },
   { key: 'approved' as const, label: 'Disetujui', filter: 'Approved' as const },
   { key: 'rejected' as const, label: 'Ditolak', filter: 'Rejected' as const },
 ])
@@ -152,19 +177,7 @@ function onProcessLoaded(steps: SpkProcessStep[]) {
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase('id-ID')
   return spkRecords.value.filter(record => {
-    const matchesStatus = selectedStatus.value === 'All'
-      || (selectedStatus.value === 'Submitted' && (record.status === 'Submitted' || record.status === 'Under Review'))
-      || (selectedStatus.value === 'In Progress'
-        && record.status !== 'Rejected'
-        && record.notaryStatus !== 'Menunggu Diproses'
-        && record.notaryStatus !== 'Selesai')
-      || (selectedStatus.value === 'Completed'
-        && record.status !== 'Rejected'
-        && record.notaryStatus === 'Selesai')
-      || (selectedStatus.value !== 'Submitted'
-        && selectedStatus.value !== 'In Progress'
-        && selectedStatus.value !== 'Completed'
-        && record.status === selectedStatus.value)
+    const matchesStatus = matchesStatusFilter(record, selectedStatus.value)
     const haystack = [
       record.spkNumber, record.buyer.fullName, record.buyer.phone,
       record.lot.name, record.lot.id,
@@ -264,6 +277,7 @@ const termsAccepted = ref(false)
 const identityForm = useMyIdentityForm()
 const { identity, available: identityAvailable, loading: identityLoading, loadError: identityLoadError, problem: identityProblem } = identityForm
 const canSubmitCreate = computed(() => Boolean(
+  createBuyer.email.trim() &&
   termsAccepted.value &&
   !identityProblem.value &&
   !reuseFeesLoading.value &&
@@ -400,7 +414,8 @@ async function openCreateForm(preferredLotId: number | null = null) {
       createBuyer.fullName = firstText(metadata.full_name, metadata.name)
       createBuyer.phone = firstText(metadata.phone, metadata.whatsapp_phone, metadata.phone_number, user.phone)
       createBuyer.whatsappPhone = firstText(metadata.whatsapp_phone, metadata.whatsapp)
-      createBuyer.email = firstText(user.email)
+      accountEmail.value = firstText(user.email)
+      createBuyer.email = accountEmail.value
       createBuyer.address = firstText(metadata.address)
 
       const { data: customer, error: customerError } = await supabase
@@ -413,7 +428,7 @@ async function openCreateForm(preferredLotId: number | null = null) {
         createBuyer.fullName = customer.full_name || createBuyer.fullName
         createBuyer.phone = customer.phone || customer.whatsapp_phone || createBuyer.phone
         createBuyer.whatsappPhone = customer.whatsapp_phone || customer.phone || ''
-        createBuyer.email = customer.email || user.email || ''
+        createBuyer.email = user.email || customer.email || ''
         createBuyer.address = customer.address || ''
       }
     }
@@ -593,7 +608,7 @@ function handleCreateFile(type: 'ktp' | 'kk' | 'npwp' | 'paymentProof', event: E
 
 async function submitCreateSPK() {
   if (!canSubmitCreate.value || !selectedCreateLot.value || !selectedCreateLotPrice.value) {
-    createError.value = 'Lengkapi data pembeli, pilih kaveling, isi rencana pembayaran, serta unggah KTP, KK, dan bukti transfer tanda jadi. Centang juga bahwa Anda sudah membaca ketentuan pemesanan.'
+    createError.value = 'Lengkapi data pembeli termasuk email, pilih kaveling, isi rencana pembayaran, serta unggah KTP, KK, dan bukti transfer tanda jadi. Centang juga bahwa Anda sudah membaca ketentuan pemesanan.'
     return
   }
   creating.value = true
@@ -927,7 +942,7 @@ useRealtimeRefresh(
           <label>Nama lengkap <b>*</b><input v-model.trim="createBuyer.fullName" data-input="name" required placeholder="Nama sesuai KTP" /></label>
           <label>Nomor kontak <b>*</b><input v-model.trim="createBuyer.phone" inputmode="tel" required placeholder="Nomor telepon" /></label>
           <label>Nomor WhatsApp<input v-model.trim="createBuyer.whatsappPhone" inputmode="tel" placeholder="Nomor WhatsApp" /></label>
-          <label>Email<input v-model.trim="createBuyer.email" type="email" placeholder="email@contoh.com" /></label>
+          <label>Email<input v-model.trim="createBuyer.email" type="email" placeholder="email@contoh.com" :readonly="Boolean(accountEmail)" required /></label>
           <label>Alamat <b>*</b><textarea v-model.trim="createBuyer.address" rows="2" required placeholder="Alamat lengkap" /></label>
           <template v-if="identityAvailable">
             <p v-if="identityLoading" class="spk-lot-empty" role="status">Memuat data identitas...</p>
@@ -1294,10 +1309,11 @@ useRealtimeRefresh(
   </ion-page>
 </template>
 <style scoped>
+input[type='email']:read-only { border-style: dashed; }
 .client-spk-page { --background: var(--ion-background-color, #f7f8f5); }
-.spk-shell { width:min(100%,900px); margin:0 auto; padding:24px 18px calc(110px + env(safe-area-inset-bottom)); color:var(--ion-text-color,#243126); }
+.spk-shell { width:min(100%,900px); margin:0 auto; padding:24px 18px calc(110px + var(--safe-bottom)); color:var(--ion-text-color,#243126); }
 .spk-create-btn { display:flex; align-items:center; gap:6px; border:1px solid #355a2c; background:#355a2c; color:#fff; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; white-space:nowrap; }
-.spk-create-fab { position:fixed; z-index:20; right:calc(18px + env(safe-area-inset-right)); bottom:calc(88px + env(safe-area-inset-bottom)); display:grid; place-items:center; width:56px; height:56px; padding:0; border:0; border-radius:50%; box-shadow:0 5px 16px #24312640; cursor:pointer; }
+.spk-create-fab { position:fixed; z-index:20; right:calc(18px + var(--safe-right)); bottom:calc(88px + var(--safe-bottom)); display:grid; place-items:center; width:56px; height:56px; padding:0; border:0; border-radius:50%; box-shadow:0 5px 16px #24312640; cursor:pointer; }
 .spk-create-fab ion-icon { font-size:27px; }
 .spk-create-form { display:grid; gap:18px; padding:2px 2px 8px; }
 .spk-form-section { display:grid; gap:10px; }
@@ -1482,7 +1498,7 @@ useRealtimeRefresh(
 .spk-reason-text { margin:0; color:var(--text-secondary,#737d72); font-size:11px; line-height:1.55; }
 .spk-reason-number { margin:0; color:var(--poliland-green); font-size:11px; font-weight:800; }
 @media (min-width:700px) { .spk-shell { padding:32px 28px 60px; } .spk-stats { gap:13px; } .spk-stat { padding:17px; } .spk-card { padding:19px; }}
-@media (max-width:390px) { .spk-shell { padding-inline:13px; } .spk-stats { gap:6px; } .spk-stat { padding:10px 8px; } .spk-stat strong { font-size:20px; } .spk-card-meta { gap:5px; } .spk-card-meta strong { font-size:9px; } .spk-card-actions { gap:5px; } .spk-card-actions button { padding:8px; } .spk-create-fab { right:calc(14px + env(safe-area-inset-right)); bottom:calc(84px + env(safe-area-inset-bottom)); }}
+@media (max-width:390px) { .spk-shell { padding-inline:13px; } .spk-stats { gap:6px; } .spk-stat { padding:10px 8px; } .spk-stat strong { font-size:20px; } .spk-card-meta { gap:5px; } .spk-card-meta strong { font-size:9px; } .spk-card-actions { gap:5px; } .spk-card-actions button { padding:8px; } .spk-create-fab { right:calc(14px + var(--safe-right)); bottom:calc(84px + var(--safe-bottom)); }}
 
 .spk-schedule-description {
   margin: 0 0 12px;

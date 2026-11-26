@@ -116,7 +116,7 @@
         <!-- SEMUA PROYEK -->
         <section class="block">
           <SectionHeader title="Semua proyek">
-            <span v-if="!isLoading" class="section-count">{{ filteredProjects.length }}</span>
+            <span v-if="!isLoading && !errorVariant" class="section-count">{{ filteredProjects.length }}</span>
           </SectionHeader>
 
           <div v-if="isLoading" class="project-list" aria-hidden="true">
@@ -168,6 +168,12 @@
           </ul>
 
           <StatusIllustration
+            v-else-if="errorVariant"
+            :variant="errorVariant"
+            :on-action="retryLoad"
+          />
+
+          <StatusIllustration
             v-else
             :variant="projects.length ? 'no-result' : 'empty-data'"
             :title="projects.length ? 'Proyek tidak ditemukan' : 'Belum ada kabar'"
@@ -187,6 +193,7 @@
 <script setup lang="ts">
 import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { motion } from 'motion-v'
@@ -294,15 +301,25 @@ function openProject(project: { id: string }) {
   router.push(`/progress/${project.id}`)
 }
 
+/** Terisi hanya bila pemuatan gagal dan belum ada data, supaya kegagalan tidak terbaca sebagai "belum ada kabar". */
+const errorVariant = ref<'offline-error' | 'fetch-error' | null>(null)
+
 async function loadProjects({ silent = false }: LoadOptions = {}) {
   try {
     rows.value = await progressService.getProgress(false)
+    errorVariant.value = null
   } catch (error) {
     console.error('Gagal memuat kemajuan:', error)
-    if (!silent) toast.error('Kemajuan gagal dimuat. Tarik layar ke bawah untuk mencoba lagi.')
+    if (!rows.value.length) errorVariant.value = resolveErrorVariant(error)
+    else if (!silent) toast.error('Kemajuan gagal diperbarui. Tarik layar ke bawah untuk mencoba lagi.')
   } finally {
     isLoading.value = false
   }
+}
+
+function retryLoad() {
+  isLoading.value = true
+  void loadProjects()
 }
 
 function openAdd() { formOpen.value = true }
@@ -333,7 +350,7 @@ useRealtimeRefresh(['progress'], () => loadProjects({ silent: true }))
 
 <style scoped>
 .progress-content { --background: var(--pl-paper, #f9f5ec); }
-.progress-page { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+.progress-page { padding-bottom: calc(110px + var(--safe-bottom)); }
 
 /* ---------- Hero ---------- */
 .progress-hero {
@@ -342,7 +359,7 @@ useRealtimeRefresh(['progress'], () => loadProjects({ silent: true }))
   flex-direction: column;
   justify-content: flex-end;
   min-height: clamp(420px, 66dvh, 540px);
-  padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px 0;
+  padding: calc(var(--safe-top) + 24px) 24px 0;
   overflow: hidden;
   background:
     radial-gradient(110% 60% at 100% 0%, rgba(244, 214, 154, 0.26) 0%, rgba(244, 214, 154, 0) 62%),

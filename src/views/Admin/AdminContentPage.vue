@@ -162,7 +162,7 @@ useRealtimeRefresh(['gallery', 'progress', 'faqs', 'contacts', 'home_features'],
 
 <style scoped>
 .cms-page { color: var(--text-primary); }
-.cms-shell { min-height: 100%; max-width: 1180px; margin: auto; padding: 20px 16px calc(112px + env(safe-area-inset-bottom)); background: var(--app-background); }
+.cms-shell { min-height: 100%; max-width: 1180px; margin: auto; padding: 20px 16px calc(112px + var(--safe-bottom)); background: var(--app-background); }
 .cms-intro { margin-bottom: 18px; }
 .cms-intro h1 { margin: 0; font-size: clamp(22px, 5.5vw, 30px); font-weight: 800; letter-spacing: -.01em; }
 .cms-intro p { margin: 6px 0 0; max-width: 62ch; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }

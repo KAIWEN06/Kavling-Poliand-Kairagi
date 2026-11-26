@@ -204,7 +204,7 @@ useRealtimeRefresh(['contacts', 'videos', 'media'], load)
 
 <style scoped>
 .about-content { --background: var(--pl-paper, #f9f5ec); }
-.about-page { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+.about-page { padding-bottom: calc(110px + var(--safe-bottom)); }
 
 /* ---------- Hero ---------- */
 .about-hero {
@@ -212,7 +212,7 @@ useRealtimeRefresh(['contacts', 'videos', 'media'], load)
   display: flex;
   flex-direction: column;
   min-height: clamp(440px, 70dvh, 580px);
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 24px 0;
+  padding: calc(var(--safe-top) + 12px) 24px 0;
   overflow: hidden;
   background:
     radial-gradient(110% 60% at 100% 0%, rgba(244, 214, 154, 0.26) 0%, rgba(244, 214, 154, 0) 62%),

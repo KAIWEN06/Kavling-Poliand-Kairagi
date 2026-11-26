@@ -56,7 +56,7 @@ defineEmits<{ (e: 'action'): void; (e: 'secondary'): void }>()
   justify-content: center;
   width: 100%;
   min-height: 100dvh;
-  padding: calc(env(safe-area-inset-top, 0px) + 32px) 28px calc(env(safe-area-inset-bottom, 0px) + 32px);
+  padding: calc(var(--safe-top) + 32px) 28px calc(var(--safe-bottom) + 32px);
   overflow: hidden;
   background:
     radial-gradient(110% 60% at 100% 0%, rgba(244, 214, 154, 0.26) 0%, rgba(244, 214, 154, 0) 62%),

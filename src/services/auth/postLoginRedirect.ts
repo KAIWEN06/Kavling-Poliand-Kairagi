@@ -28,6 +28,17 @@ export function clearPostLoginRedirect(): void {
   }
 }
 
+/** Lihat tujuan yang masih berlaku tanpa menghapusnya, untuk menjelaskan kenapa pengunjung diminta masuk. */
+export function peekPostLoginRedirect(): string | null {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(KEY) ?? 'null') as { path?: unknown; at?: unknown } | null
+    if (typeof parsed?.at !== 'number' || Date.now() - parsed.at > MAX_AGE_MS) return null
+    return isAllowedPath(parsed.path) ? parsed.path : null
+  } catch {
+    return null
+  }
+}
+
 /** Ambil dan hapus tujuan tersimpan. Hanya berlaku untuk role client. */
 export function consumePostLoginRedirect(role: string | null | undefined): string | null {
   let raw: string | null = null

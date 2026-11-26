@@ -465,6 +465,7 @@ Rasio dihitung dengan rumus WCAG 2.x. Teks normal minimal 4,5:1, teks besar (24p
 | `--danger-text` `#A8322D` (galat, alamat kosong) | `--danger-bg` `#FBE7E6` | 5,6 | Lolos |
 | `--danger-text` `#A8322D` | `--surface-muted` `#F5F3EE` | 6,0 | Lolos |
 | `--poliland-green` `#355A2C` (pilihan aktif) | `--green-50` `#EEF3EA` | 7,0 | Lolos |
+| `--danger-text` `#A8322D` (status "Terlambat" di pemilih kavling) | putih | 6,7 | Lolos |
 
 Aturan tambahan:
 

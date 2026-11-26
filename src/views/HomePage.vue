@@ -65,7 +65,7 @@ import ScrollReveal from '@/components/ui/ScrollReveal.vue'
 import HomeSkeleton from '@/components/ui/skeletons/HomeSkeleton.vue'
 import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
 import { useToast } from '@/composables/useToast'
-import { toWaNumber } from '@/utils/homeContent'
+import { waLink } from '@/utils/homeContent'
 import { useSiteplan } from '../composables/useSiteplant'
 import { contactsService } from '@/services/contactService'
 
@@ -159,9 +159,9 @@ const loadContactSettings = async ({ silent = false }: LoadOptions = {}) => {
 onMounted(() => loadContactSettings())
 
 const contactWhatsapp = () => {
-  const number = toWaNumber(contactSettings.value.whatsapp)
-  if (!number) return toast.info('Nomor WhatsApp belum tersedia. Silakan coba lagi nanti.')
-  window.open(`https://wa.me/${number}`, '_blank')
+  const url = waLink(contactSettings.value.whatsapp)
+  if (!url) return toast.info('Nomor WhatsApp belum tersedia. Silakan coba lagi nanti.')
+  window.open(url, '_blank')
 }
 
 useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
@@ -186,7 +186,7 @@ useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
    * Jangan gunakan padding-bottom kecil seperti 12px karena
    * konten bagian akhir dapat tertutup tab bar.
    */
-  --padding-bottom: calc(110px + env(safe-area-inset-bottom));
+  --padding-bottom: calc(110px + var(--safe-bottom));
 
   width: 100%;
   height: 100%;
@@ -197,7 +197,7 @@ useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
  * Kita tidak memberi height/fixed overflow pada section-section Home.
  */
 .home-content::part(scroll) {
-  padding-bottom: calc(110px + env(safe-area-inset-bottom));
+  padding-bottom: calc(110px + var(--safe-bottom));
   box-sizing: border-box;
 }
 

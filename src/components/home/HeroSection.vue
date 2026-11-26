@@ -94,7 +94,7 @@ import { cmsService, type CmsHero } from '@/services/cmsService'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
 import { useCmsAdmin } from '@/composables/useCmsAdmin'
-import { toWaNumber } from '@/utils/homeContent'
+import { waLink } from '@/utils/homeContent'
 
 defineEmits(['goToSiteplan'])
 
@@ -122,15 +122,13 @@ const handleCta = () => {
   if (/^https?:\/\//i.test(target)) window.open(target, '_blank', 'noopener')
 }
 
-const cleanWhatsapp = () => toWaNumber(whatsappNumber.value)
-
 const contactWhatsapp = () => {
-  const number = cleanWhatsapp()
-  if (!number) {
+  const url = waLink(whatsappNumber.value)
+  if (!url) {
     console.warn('Nomor WhatsApp tidak tersedia')
     return
   }
-  window.open(`https://wa.me/${number}`, '_system')
+  window.open(url, '_system')
 }
 
 const loadHeroData = async ({ silent = false }: LoadOptions = {}) => {

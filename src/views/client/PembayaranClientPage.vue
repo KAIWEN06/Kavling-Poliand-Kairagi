@@ -6,8 +6,10 @@ import { useToast } from '@/composables/useToast'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
-import { computed, onMounted, ref, watch } from 'vue'
-import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { IonContent, IonIcon, IonPage, IonSpinner, useIonRouter } from '@ionic/vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import {
   checkmarkCircleOutline,
   chevronForward,
@@ -15,7 +17,6 @@ import {
   hourglassOutline,
   searchOutline,
   cloudUploadOutline,
-  lockClosedOutline,
   walletOutline,
 } from 'ionicons/icons'
 
@@ -24,6 +25,7 @@ import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import { useRowFocus } from '@/composables/useRowFocus'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import ReviewInvite from '@/components/reviews/ReviewInvite.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { useCelebration } from '@/composables/useCelebration'
@@ -79,6 +81,7 @@ type ClientTransaction = {
 }
 
 type PaymentHistoryItem = {
+  transactionId: number | null
   id: number
   reference: string
   date: string | null
@@ -117,7 +120,7 @@ const cancellationReason = ref('')
 const cancellationSubmitting = ref(false)
 const cancellationError = ref('')
 const toast = useToast()
-const { alert: showDetail } = useConfirm()
+const { alert: showDetail, confirm: askDetail } = useConfirm()
 const latestCancellation = ref<any>(null)
 
 const filters: Array<{ label: string; value: FilterStatus }> = [
@@ -132,11 +135,16 @@ const selectedTransaction = computed(() =>
   transactions.value.find(item => item.id === selectedTransactionId.value) ?? null,
 )
 
+// Kartu ringkasan mengikuti kaveling terpilih; daftar riwayat tetap semua transaksi.
+const selectedPayments = computed(() => {
+  const id = selectedTransactionId.value
+  return id == null ? [] : paymentHistory.value.filter(item => item.transactionId === id)
+})
 const verifiedTotal = computed(() =>
-  paymentHistory.value.filter(item => item.status === 'verified').reduce((sum, item) => sum + item.amount, 0),
+  selectedPayments.value.filter(item => item.status === 'verified').reduce((sum, item) => sum + item.amount, 0),
 )
 const pendingTotal = computed(() =>
-  paymentHistory.value.filter(item => item.status === 'pending').reduce((sum, item) => sum + item.amount, 0),
+  selectedPayments.value.filter(item => item.status === 'pending').reduce((sum, item) => sum + item.amount, 0),
 )
 const filteredTransactions = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase('id-ID')
@@ -195,6 +203,24 @@ const cashPaid = computed(() => cashPayments.value
   .reduce((sum, item) => sum + Number(item.amount || 0), 0))
 const cashPending = computed(() => cashPayments.value.some(item =>
   item.status === 'Pending' || item.status === 'Needs Reupload'))
+
+// Harus sama dengan public.is_transaction_paid_off di database.
+const isPaidOff = computed(() => {
+  const tx = selectedTransaction.value
+  if (!tx) return false
+  if (tx.transactionStatus === 'Sold') return true
+  if (tx.paymentType === 'Cash') return tx.finalPrice > 0 && cashPaid.value >= tx.finalPrice
+  const dpPaid = dpPayments.value
+    .filter(item => item.status === 'Confirmed')
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  return tx.schedules.length > 0
+    && tx.schedules.every(item => item.status === 'Paid')
+    && dpPaid >= tx.downPayment
+})
+const canRequestCancellation = computed(() => {
+  const tx = selectedTransaction.value
+  return Boolean(tx) && tx?.transactionStatus !== 'Cancelled' && !isPaidOff.value
+})
 
 const nextInstallmentIndex = computed(() => {
   const schedules = selectedTransaction.value?.schedules ?? []
@@ -454,7 +480,7 @@ async function loadPaymentData({ silent = false }: LoadOptions = {}) {
         .from('payments')
         .select(`
           id, customer_id, lot_id, payment_date, amount, payment_method, note,
-          created_at, transaction_id, status, payment_category, proof_path,
+          created_at, transaction_id, spk_request_id, status, payment_category, proof_path,
           reference_number, review_note, verified_at,
           lots(lot_number, area, dimension, blocks(name, code)),
           payment_allocations(allocated_amount, installment_schedules(installment_number))
@@ -534,8 +560,16 @@ async function loadPaymentData({ silent = false }: LoadOptions = {}) {
       } as ClientTransaction
     })
 
+    // Booking fee bisa hanya terhubung lewat SPK, tanpa transaction_id.
+    const spkTransactionMap = new Map<number, number>(spkRows
+      .filter((item: any) => item.transaction_id != null)
+      .map((item: any) => [Number(item.id), Number(item.transaction_id)]))
+
     paymentHistory.value = paymentRows.map((row: any) => ({
       id: Number(row.id),
+      transactionId: row.transaction_id != null
+        ? Number(row.transaction_id)
+        : spkTransactionMap.get(Number(row.spk_request_id)) ?? null,
       reference: row.reference_number || `PAY-${String(row.id).padStart(5, '0')}`,
       date: row.payment_date,
       installmentNumbers: getPaymentInstallmentNumbers(row),
@@ -573,7 +607,7 @@ async function openCancellationForm() {
   cancellationReason.value = ''
   latestCancellation.value = null
   const transaction = selectedTransaction.value
-  if (!transaction || transaction.transactionStatus === 'Cancelled') return
+  if (!transaction || !canRequestCancellation.value) return
   try {
     latestCancellation.value = await purchaseCancellationService.getLatest(transaction.id)
   } catch (error) {
@@ -590,7 +624,11 @@ async function submitCancellationRequest() {
   cancellationError.value = ''
   try {
     const requestId = await purchaseCancellationService.request(transaction.id, reason)
-    toast.success('Admin akan memeriksa permintaan dan riwayat pembayaran Anda.', { title: `Pengajuan pembatalan #${requestId} terkirim`, duration: 6000 })
+    toast.success('Admin akan memeriksa permintaan dan riwayat pembayaran Anda.', {
+      title: `Pengajuan pembatalan #${requestId} terkirim`,
+      to: `/client/pembayaran?transactionId=${transaction.id}&bagian=pembatalan`,
+      actionLabel: 'Lihat status',
+    })
     latestCancellation.value = await purchaseCancellationService.getLatest(transaction.id).catch(() => null)
     cancellationModalOpen.value = false
   } catch (error: any) {
@@ -662,13 +700,63 @@ function selectTransaction(value: string | number) {
   selectedTransactionId.value = Number(value)
   resetPaymentForm()
 }
-function openTransaction(item: PaymentHistoryItem) {
+const proofItem = ref<PaymentHistoryItem | null>(null)
+const proofUrl = ref('')
+const proofLoading = ref(false)
+const proofError = ref('')
+/** Jawaban untuk bukti yang sudah ditutup atau diganti diabaikan. */
+let proofRequest = 0
+const proofFileName = computed(() => {
+  const item = proofItem.value
+  if (!item?.proofPath) return ''
+  const extension = item.proofPath.split('.').pop()?.toLowerCase() || 'jpg'
+  return `Bukti-${item.reference}.${extension}`
+})
+const reuploadItem = computed(() =>
+  paymentHistory.value.find(item => item.id === reuploadPaymentId.value) ?? null,
+)
+
+async function openProof(item: PaymentHistoryItem) {
+  if (!item.proofPath) return
+  const request = ++proofRequest
+  proofItem.value = item
+  proofUrl.value = ''
+  proofError.value = ''
+  proofLoading.value = true
+  try {
+    const url = await paymentService.getProofUrl(item.proofPath)
+    if (request === proofRequest) proofUrl.value = url
+  } catch (error) {
+    console.error('Gagal membuka bukti pembayaran:', error)
+    if (request === proofRequest) proofError.value = 'Periksa koneksi lalu coba lagi. Bila tetap gagal, hubungi Admin.'
+  } finally {
+    if (request === proofRequest) proofLoading.value = false
+  }
+}
+function closeProof() {
+  proofRequest += 1
+  proofItem.value = null
+  proofUrl.value = ''
+  proofError.value = ''
+  proofLoading.value = false
+}
+
+async function openTransaction(item: PaymentHistoryItem) {
   reuploadError.value = ''
   reuploadProof.value = null
   reuploadPaymentId.value = item.rawStatus === 'Needs Reupload' ? item.id : null
   if (item.rawStatus !== 'Needs Reupload') {
-    void showDetail({ title: 'Detail pembayaran', message: detailMessage(item), tone: 'info', confirmText: 'Tutup' })
+    const detail = { title: 'Detail pembayaran', tone: 'info' as const }
+    if (!item.proofPath) {
+      void showDetail({ ...detail, message: `${detailMessage(item)}\nBukti: belum dilampirkan`, confirmText: 'Tutup' })
+      return
+    }
+    if (await askDetail({ ...detail, message: detailMessage(item), confirmText: 'Lihat bukti', cancelText: 'Tutup' })) {
+      await openProof(item)
+    }
+    return
   }
+  void nextTick(() => document.getElementById('reupload-panel')?.scrollIntoView({ block: 'nearest' }))
 }
 
 function onReuploadProofChange(event: Event) {
@@ -701,10 +789,15 @@ async function submitReupload() {
   reuploadError.value = ''
 
   try {
-    await paymentService.replacePaymentProof(reuploadPaymentId.value, reuploadProof.value)
+    const paymentId = reuploadPaymentId.value
+    await paymentService.replacePaymentProof(paymentId, reuploadProof.value)
     reuploadPaymentId.value = null
     reuploadProof.value = null
-    toast.success('Pengajuan lama kembali menunggu verifikasi.', { title: 'Bukti pengganti terkirim', duration: 6000 })
+    toast.success('Pengajuan lama kembali menunggu verifikasi.', {
+      title: 'Bukti pengganti terkirim',
+      to: `/client/pembayaran?paymentId=${paymentId}`,
+      actionLabel: 'Lihat bukti',
+    })
     await loadPaymentData()
   } catch (error: any) {
     reuploadError.value = error?.message || 'Bukti pengganti gagal dikirim.'
@@ -713,23 +806,82 @@ async function submitReupload() {
   }
 }
 
+const ionRouter = useIonRouter()
+function openLotDetail() {
+  const lotId = selectedTransaction.value?.lotId
+  if (lotId) ionRouter.push(`/client/kavling/${lotId}`)
+}
+
+type ViewTab = 'pay' | 'history'
+const viewTabs: { value: ViewTab, label: string }[] = [
+  { value: 'pay', label: 'Bayar' },
+  { value: 'history', label: 'Riwayat' },
+]
+const activeTab = ref<ViewTab>('pay')
+/** Riwayat tersembunyi di tab lain, jadi tagihan unggah ulang harus tetap terlihat. */
+const reuploadCount = computed(() => paymentHistory.value.filter(item => item.rawStatus === 'Needs Reupload').length)
+function onTabKeydown(event: KeyboardEvent) {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+  event.preventDefault()
+  activeTab.value = activeTab.value === 'pay' ? 'history' : 'pay'
+  void nextTick(() => document.getElementById(`payment-tab-${activeTab.value}`)?.focus())
+}
+
+const HISTORY_PAGE_SIZE = 5
+const historyPager = usePagination(filteredTransactions, {
+  pageSize: HISTORY_PAGE_SIZE,
+  resetOn: [selectedFilter, searchQuery],
+})
+
+const SCHEDULE_PAGE_SIZE = 6
+const schedulePager = usePagination(computed(() => selectedTransaction.value?.schedules ?? []), {
+  pageSize: SCHEDULE_PAGE_SIZE,
+})
+// Buka halaman yang memuat cicilan aktif; pembaruan otomatis tidak memindahkan halaman.
+watch(
+  () => `${selectedTransactionId.value}:${nextInstallmentIndex.value}`,
+  () => schedulePager.setPage(Math.floor(Math.max(0, nextInstallmentIndex.value) / SCHEDULE_PAGE_SIZE) + 1),
+  { immediate: true },
+)
+
 const routeQuery = useOwnRouteQuery()
 const { focusedId, focusRow } = useRowFocus()
 
 /** Dari notifikasi: pilih transaksinya, lalu sorot pembayaran yang dimaksud bila ada. */
 async function applyNotificationTarget() {
-  const { paymentId, transactionId, spkId } = routeQuery.value
+  const { paymentId, transactionId, spkId, bagian } = routeQuery.value
   const payment = paymentHistory.value.find(item => item.id === Number(paymentId))
   const transaction = transactions.value.find(item =>
     item.payments.some(row => Number(row.id) === payment?.id)
     || item.id === Number(transactionId)
     || (spkId && Number(item.spkRequestId) === Number(spkId)))
   if (transaction && transaction.id !== selectedTransactionId.value) selectTransaction(transaction.id)
-  if (!payment) return
+  if (!payment) {
+    if (transaction) activeTab.value = 'pay'
+    if (transaction && bagian === 'pembatalan') await showCancellationStatus(transaction.id)
+    return
+  }
+  activeTab.value = 'history'
   searchQuery.value = ''
   selectedFilter.value = 'all'
+  // Tunggu reset halaman akibat filter selesai sebelum memilih halaman tujuan.
+  await nextTick()
+  const position = filteredTransactions.value.findIndex(item => item.id === payment.id)
+  historyPager.setPage(Math.floor(Math.max(0, position) / HISTORY_PAGE_SIZE) + 1)
   if (payment.rawStatus === 'Needs Reupload') reuploadPaymentId.value = payment.id
   await focusRow(payment.id, `notif-payment-${payment.id}`)
+}
+
+async function showCancellationStatus(transactionId: number) {
+  try {
+    latestCancellation.value = await purchaseCancellationService.getLatest(transactionId)
+  } catch (error) {
+    console.warn('[Pembayaran Klien] Status pembatalan belum dapat dimuat:', error)
+    return
+  }
+  await nextTick()
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  document.getElementById('cancellation-status')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' })
 }
 
 onMounted(() => loadPaymentData().then(applyNotificationTarget))
@@ -781,7 +933,7 @@ useRealtimeRefresh(
             <span class="title-icon title-icon-gold"><ion-icon :icon="documentTextOutline" /></span>
             <h2 id="lot-title">Informasi Kaveling</h2>
           </div>
-          <div v-if="selectedTransaction" class="lot-summary">
+          <button v-if="selectedTransaction" type="button" class="lot-summary" @click="openLotDetail">
             <span class="lot-thumbnail" aria-hidden="true"><ion-icon :icon="walletOutline" /></span>
             <span class="lot-copy">
               <strong>{{ selectedTransaction.lot }}</strong>
@@ -792,15 +944,17 @@ useRealtimeRefresh(
                 SPK: {{ selectedTransaction.spkStatus === 'Approved' ? 'Disetujui' : 'Diproses' }}
               </span>
             </span>
-            <ion-icon class="lot-chevron" :icon="chevronForward" />
-          </div>
-          <div v-if="selectedTransaction" class="cancellation-action">
+            <ion-icon class="lot-chevron" :icon="chevronForward" aria-hidden="true" />
+            <span class="visually-hidden">Lihat detail kaveling</span>
+          </button>
+          <div v-else-if="!loading" class="empty-inline">Belum ada transaksi kaveling pada akun ini.</div>
+          <div v-if="selectedTransaction && (latestCancellation || canRequestCancellation)" id="cancellation-status" class="cancellation-action">
             <AppNotice v-if="latestCancellation" :tone="latestCancellation.status === 'Rejected' ? 'warning' : latestCancellation.status === 'Approved' ? 'success' : 'info'" :title="`Status pembatalan: ${latestCancellation.status === 'Pending' ? 'Menunggu pemeriksaan' : latestCancellation.status === 'Approved' ? 'Disetujui' : 'Ditolak'}`">
               <p v-if="latestCancellation.decision_note">{{ latestCancellation.decision_note }}</p>
               <p v-if="latestCancellation.purchase_refunds?.[0]">Nilai pengembalian {{ formatCurrency(Number(latestCancellation.purchase_refunds[0].amount)) }}. Batas transfer {{ formatDate(latestCancellation.purchase_refunds[0].due_date) }}.</p>
             </AppNotice>
             <button
-              v-if="selectedTransaction.transactionStatus !== 'Cancelled'"
+              v-if="canRequestCancellation"
               class="cancellation-request-button"
               type="button"
               :disabled="latestCancellation?.status === 'Pending'"
@@ -809,14 +963,13 @@ useRealtimeRefresh(
               {{ latestCancellation?.status === 'Pending' ? 'Menunggu Admin' : 'Batalkan pembelian' }}
             </button>
           </div>
-          <div v-else class="empty-inline">Belum ada transaksi kaveling pada akun ini.</div>
         </section>
 
         <section class="summary-grid" aria-label="Ringkasan pembayaran">
           <article class="summary-card">
             <span class="summary-icon summary-icon-gold"><ion-icon :icon="documentTextOutline" /></span>
             <span class="summary-label">Total Pembayaran</span>
-            <strong>{{ paymentHistory.length }} pembayaran</strong>
+            <strong>{{ selectedPayments.length }} pembayaran</strong>
           </article>
           <article class="summary-card">
             <span class="summary-icon summary-icon-green"><ion-icon :icon="checkmarkCircleOutline" /></span>
@@ -842,14 +995,28 @@ useRealtimeRefresh(
         />
 
         <template v-else-if="transactions.length">
-          <section class="payment-action-card" aria-labelledby="payment-form-title">
-            <div class="section-title">
-              <span class="title-icon title-icon-gold"><ion-icon :icon="walletOutline" /></span>
-              <div>
-                <h2 id="payment-form-title">Lakukan Pembayaran</h2>
-                <p>Nominal dan jadwal mengikuti kesepakatan final SPK.</p>
-              </div>
-            </div>
+          <div class="view-tabs" :class="{ 'view-tabs-history': activeTab === 'history' }" role="tablist" aria-label="Bayar atau lihat riwayat" @keydown="onTabKeydown">
+            <button
+              v-for="tab in viewTabs"
+              :id="`payment-tab-${tab.value}`"
+              :key="tab.value"
+              type="button"
+              role="tab"
+              class="view-tab"
+              :aria-selected="activeTab === tab.value"
+              :aria-controls="`payment-panel-${tab.value}`"
+              :tabindex="activeTab === tab.value ? 0 : -1"
+              @click="activeTab = tab.value"
+            >
+              {{ tab.label }}
+              <span v-if="tab.value === 'history' && reuploadCount" class="view-tab-badge">
+                {{ reuploadCount }}<span class="visually-hidden"> bukti perlu diunggah ulang</span>
+              </span>
+            </button>
+          </div>
+
+          <section v-show="activeTab === 'pay'" id="payment-panel-pay" class="payment-action-card view-panel" role="tabpanel" aria-labelledby="payment-tab-pay">
+            <p>Nominal dan jadwal mengikuti kesepakatan final SPK.</p>
 
             <div class="transaction-picker">
               <label for="transaction-select">Pilih transaksi / kaveling</label>
@@ -924,13 +1091,13 @@ useRealtimeRefresh(
                   <AppNotice v-if="firstUnpaidHasPending" tone="warning">
                     {{ formatInstallmentRange([firstUnpaidSchedule?.installmentNumber], selectedTransaction.schedules.length) }} sedang menunggu verifikasi. Cicilan berikutnya terbuka setelah Admin selesai memeriksa.
                   </AppNotice>
-                  <div v-else-if="firstUnpaidSchedule" class="schedule-picker">
+                  <div v-else-if="firstUnpaidSchedule" id="schedule-top" class="schedule-picker">
                     <div class="schedule-picker-header">
                       <h3>Jadwal Cicilan</h3>
                       <small>{{ installmentProgressLine }}</small>
                     </div>
                     <label
-                      v-for="schedule in selectedTransaction.schedules"
+                      v-for="schedule in schedulePager.items"
                       :key="schedule.id"
                       class="schedule-row"
                       :class="{
@@ -955,6 +1122,15 @@ useRealtimeRefresh(
                         <small>{{ schedule.status === 'Paid' ? 'Lunas' : schedule.hasPendingPayment ? 'Diverifikasi' : schedule.status === 'Overdue' ? 'Jatuh tempo' : 'Mendatang' }}</small>
                       </span>
                     </label>
+                    <AppPagination
+                      v-model:page="schedulePager.page"
+                      :total-pages="schedulePager.totalPages"
+                      :total="schedulePager.total"
+                      :page-size="schedulePager.pageSize"
+                      :show-summary="false"
+                      scroll-to="#schedule-top"
+                      label="Halaman jadwal cicilan"
+                    />
                   </div>
                   <AppNotice v-else tone="success">
                     Semua jadwal cicilan telah lunas.
@@ -1009,14 +1185,8 @@ useRealtimeRefresh(
             </template>
           </section>
 
-          <section class="payment-action-card">
-            <div class="section-title">
-              <span class="title-icon title-icon-gold"><ion-icon :icon="documentTextOutline" /></span>
-              <div>
-                <h2>Riwayat Pembayaran</h2>
-                <p>Semua pengiriman bukti dan status verifikasi.</p>
-              </div>
-            </div>
+          <section v-show="activeTab === 'history'" id="payment-panel-history" class="payment-action-card view-panel" role="tabpanel" aria-labelledby="payment-tab-history">
+            <p>Bukti dari semua kaveling di akun ini.</p>
 
             <label class="search-box">
               <ion-icon :icon="searchOutline" aria-hidden="true" />
@@ -1038,9 +1208,9 @@ useRealtimeRefresh(
               </button>
             </div>
 
-            <section class="transaction-list" aria-label="Daftar transaksi pembayaran">
+            <section id="history-list-top" class="transaction-list" aria-label="Daftar transaksi pembayaran">
               <button
-                v-for="item in filteredTransactions"
+                v-for="item in historyPager.items"
                 :id="`notif-payment-${item.id}`"
                 :key="item.id"
                 class="transaction-card"
@@ -1059,11 +1229,8 @@ useRealtimeRefresh(
                 </span>
                 <span class="transaction-payment">
                   <strong>{{ formatCurrency(item.amount) }}</strong>
-                  <span class="payment-meta">
-                    <span>{{ item.method }}</span>
-                    <span class="status-badge" :class="`status-${item.status}`">
-                      {{ getStatusLabel(item.status, item.rawStatus) }}
-                    </span>
+                  <span class="status-badge" :class="`status-${item.status}`">
+                    {{ getStatusLabel(item.status, item.rawStatus) }}
                   </span>
                 </span>
                 <ion-icon class="transaction-chevron" :icon="chevronForward" aria-hidden="true" />
@@ -1078,7 +1245,7 @@ useRealtimeRefresh(
               />
             </section>
 
-            <div v-if="reuploadPaymentId" class="reupload-panel">
+            <div v-if="reuploadPaymentId" id="reupload-panel" class="reupload-panel">
               <strong>Unggah bukti pengganti</strong>
               <p>Pengajuan pembayaran lama akan dipertahankan. Bukti baru mengembalikan status ke Menunggu Verifikasi.</p>
               <label class="proof-input">
@@ -1091,6 +1258,14 @@ useRealtimeRefresh(
                 />
                 <span class="proof-name">{{ reuploadProof ? reuploadProof.name : 'JPG, PNG, WEBP, atau PDF. Maksimal 5 MB.' }}</span>
               </label>
+              <button
+                v-if="reuploadItem?.proofPath"
+                type="button"
+                class="filter-chip"
+                @click="openProof(reuploadItem)"
+              >
+                Lihat bukti sebelumnya
+              </button>
               <button
                 class="submit-payment-button"
                 type="button"
@@ -1111,6 +1286,15 @@ useRealtimeRefresh(
               </button>
               <AppNotice v-if="reuploadError" tone="error" :message="reuploadError" />
             </div>
+
+            <AppPagination
+              v-model:page="historyPager.page"
+              :total-pages="historyPager.totalPages"
+              :total="historyPager.total"
+              :page-size="historyPager.pageSize"
+              scroll-to="#history-list-top"
+              label="Halaman riwayat pembayaran"
+            />
           </section>
         </template>
 
@@ -1124,6 +1308,17 @@ useRealtimeRefresh(
       </main>
     </ion-content>
     <MobileTabBar variant="client" />
+    <DocumentViewerModal
+      :open="proofItem !== null"
+      :url="proofUrl"
+      :file-name="proofFileName"
+      :subtitle="proofItem ? `${proofItem.lot}, ${formatCurrency(proofItem.amount)}` : ''"
+      :loading="proofLoading"
+      :error="proofError"
+      can-retry
+      @close="closeProof"
+      @retry="proofItem && openProof(proofItem)"
+    />
     <AppModal
       guard-unsaved
       v-model="cancellationModalOpen"
@@ -1166,7 +1361,7 @@ useRealtimeRefresh(
   gap: 20px;
   width: min(100%, 760px);
   margin: 0 auto;
-  padding: 20px 16px calc(104px + env(safe-area-inset-bottom, 0px));
+  padding: 20px 16px calc(104px + var(--safe-bottom));
 }
 
 .lot-card,
@@ -1225,8 +1420,96 @@ useRealtimeRefresh(
   padding: 0;
   border: 0;
   color: inherit;
+  border-radius: var(--radius-control, 12px);
   background: transparent;
+  font: inherit;
   text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease), background-color var(--dur-fast, 160ms) var(--ease-out, ease);
+}
+
+.lot-summary:active {
+  transform: scale(0.98);
+  background: var(--surface-muted, #f5f3ee);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lot-summary:hover { background: var(--surface-muted, #f5f3ee); }
+  .view-tab[aria-selected="false"]:hover { color: var(--text-primary, #252525); }
+}
+
+/* Tab Bayar / Riwayat: pil hijau bergeser di belakang label. */
+.view-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-panel, 20px);
+  background: var(--surface-primary, #fff);
+}
+
+.view-tabs::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 16px;
+  background: var(--poliland-green, #355a2c);
+  transition: transform var(--dur-base, 240ms) var(--ease-out, ease);
+}
+
+.view-tabs-history::before { transform: translateX(100%); }
+
+.view-tab {
+  position: relative;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 16px;
+  color: var(--text-secondary, #5f5f66);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: color var(--dur-fast, 160ms) var(--ease-out, ease), transform var(--dur-fast, 160ms) var(--ease-spring, ease);
+}
+
+.view-tab[aria-selected="true"] { color: #fff; }
+.view-tab:active { transform: scale(0.97); }
+
+.view-tab-badge {
+  display: inline-grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: #a85a13;
+  font-size: 12px;
+}
+
+/* Berjalan ulang setiap panel ditampilkan lagi oleh v-show. */
+.view-panel { animation: view-panel-in var(--dur-base, 240ms) var(--ease-out, ease) both; }
+
+@keyframes view-panel-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
 .lot-thumbnail {
@@ -1408,10 +1691,9 @@ useRealtimeRefresh(
 
 .transaction-card {
   display: grid;
-  min-height: 132px;
-  grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1.2fr) 18px;
+  grid-template-columns: 64px minmax(0, 1fr) 18px;
   align-items: center;
-  gap: 14px;
+  gap: 8px 14px;
   padding: 16px;
   color: inherit;
   text-align: left;
@@ -1420,6 +1702,8 @@ useRealtimeRefresh(
 
 .transaction-date {
   display: grid;
+  grid-column: 1;
+  grid-row: 1 / span 2;
   justify-items: center;
   gap: 2px;
   padding-right: 12px;
@@ -1442,47 +1726,39 @@ useRealtimeRefresh(
   font-size: 12px;
 }
 
-.transaction-info,
-.transaction-payment,
-.payment-meta {
-  display: grid;
-  min-width: 0;
-}
-
 .transaction-info {
-  gap: 5px;
+  display: grid;
+  grid-column: 2;
+  min-width: 0;
+  gap: 3px;
 }
 
 .transaction-info strong,
 .transaction-payment > strong {
-  overflow: hidden;
+  overflow-wrap: anywhere;
   color: var(--text-primary, #252525);
   font-size: 15px;
   font-weight: var(--font-weight-semibold, 600);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.transaction-info > span,
-.payment-meta > span:first-child {
-  overflow: hidden;
-  color: var(--text-secondary, #717178);
+.transaction-info > span {
+  color: var(--text-secondary, #5f5f66);
   font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .transaction-payment {
-  justify-items: end;
-  gap: 5px;
+  display: flex;
+  grid-column: 2;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
 }
 
-.payment-meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 6px;
+.transaction-card .transaction-chevron {
+  grid-column: 3;
+  grid-row: 1 / span 2;
 }
 
 .status-badge {
@@ -1612,8 +1888,8 @@ useRealtimeRefresh(
   }
 
   .transaction-card {
-    grid-template-columns: 52px minmax(0, 1fr) auto 14px;
-    gap: 10px;
+    grid-template-columns: 52px minmax(0, 1fr) 14px;
+    gap: 8px 10px;
     padding: 14px 12px;
   }
 
@@ -1627,12 +1903,11 @@ useRealtimeRefresh(
 
   .transaction-info strong,
   .transaction-payment > strong {
-    font-size: 13px;
+    font-size: 14px;
   }
 
-  .transaction-info > span,
-  .payment-meta > span:first-child {
-    font-size: 11px;
+  .transaction-info > span {
+    font-size: 12px;
   }
 
   .status-badge {
@@ -1652,21 +1927,7 @@ useRealtimeRefresh(
   }
 
   .transaction-card {
-    grid-template-columns: 46px minmax(0, 1fr) 18px;
-  }
-
-  .transaction-payment {
-    grid-column: 2;
-    justify-items: start;
-  }
-
-  .transaction-chevron {
-    grid-column: 3;
-    grid-row: 1 / span 2;
-  }
-
-  .payment-meta {
-    justify-content: flex-start;
+    grid-template-columns: 46px minmax(0, 1fr) 14px;
   }
 }
 
@@ -1708,7 +1969,7 @@ useRealtimeRefresh(
 .payment-info-item { display:grid; gap:4px; padding:12px; border-radius:12px; background:var(--surface-muted,#f5f3ee); }
 .payment-info-item span { color:var(--text-secondary,#717178); font-size:11px; }
 .payment-info-item strong { color:var(--text-primary,#252525); font-size:14px; overflow-wrap:anywhere; }
-.reupload-panel { padding:14px; border:1px solid var(--border-default); border-radius:var(--nt-radius-inline); background:var(--surface-muted); color:var(--text-primary); font-size:13px; line-height:1.55; }
+.reupload-panel { display:grid; gap:10px; padding:14px;border:1px solid var(--border-default); border-radius:var(--nt-radius-inline); background:var(--surface-muted); color:var(--text-primary); font-size:13px; line-height:1.55; }
 .cancellation-action { display: grid; gap: 9px; margin-top: 14px; }
 .cancellation-request-button { min-height: 44px; padding: 10px 14px; border: 1px solid var(--status-danger, #a63e38); border-radius: var(--radius-control, 12px); background: var(--surface-primary, #fff); color: var(--status-danger, #a63e38); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .cancellation-request-button:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 2px; }

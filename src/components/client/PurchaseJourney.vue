@@ -6,97 +6,120 @@ import type { ClientSpkRecord } from '@/services/clientSpkService'
 import { getSpkProcessSteps, stepIsDone, type SpkProcessStep } from '@/services/spkProcessService'
 
 const props = defineProps<{
-  spks: ClientSpkRecord[]
+  /** SPK aktif milik pesanan yang sedang dipilih. */
+  spk: ClientSpkRecord | null
   /** Pembelian yang dibuat tanpa pengajuan dari aplikasi tidak punya tahap yang bisa dihitung. */
   hasPurchase: boolean
+  /** Tampilkan nama kavling bila tidak ada kartu lain yang menyebutnya. */
+  showLot: boolean
 }>()
 
 const router = useRouter()
 
 const STAGES = ['Pilih kavling', 'Ajukan SPK', 'Tanda tangan SPK', 'Notaris sampai serah terima']
 
-/* Daftar SPK sudah diurutkan dari yang terbaru. */
-const activeSpk = computed(() =>
-  props.spks.find((spk) => ['Submitted', 'Under Review', 'Approved'].includes(spk.status)) ?? null,
-)
-
 const steps = ref<SpkProcessStep[]>([])
 const stepsState = ref<'loading' | 'ready' | 'error'>('ready')
 let requestVersion = 0
 
-watch(
-  // Setiap pemuatan ulang daftar SPK juga menyegarkan tahapannya.
-  () => props.spks,
-  async () => {
-    const version = ++requestVersion
-    const spk = activeSpk.value
-    if (spk?.status !== 'Approved') {
-      steps.value = []
-      stepsState.value = 'ready'
-      return
-    }
-    if (!steps.value.length) stepsState.value = 'loading'
-    try {
-      const rows = await getSpkProcessSteps(spk.id)
-      if (version !== requestVersion) return
-      steps.value = rows
-      stepsState.value = 'ready'
-    } catch (error) {
-      console.error('[Beranda Klien] Gagal memuat tahapan proses:', error)
-      if (version === requestVersion && !steps.value.length) stepsState.value = 'error'
-    }
-  },
-  { immediate: true },
-)
+let loadedSpkId: number | null = null
+let resolvedSpkId: number | null = null
+
+async function loadSteps() {
+  const version = ++requestVersion
+  const spk = props.spk
+  // Tahapan pesanan sebelumnya tidak boleh tampil untuk pesanan yang baru dipilih.
+  if ((spk?.id ?? null) !== loadedSpkId) {
+    loadedSpkId = spk?.id ?? null
+    steps.value = []
+  }
+  if (spk?.status !== 'Approved') {
+    steps.value = []
+    resolvedSpkId = null
+    stepsState.value = 'ready'
+    return
+  }
+  // Hanya pesanan yang tahapannya belum pernah termuat; muat ulang tidak mengosongkan penanda.
+  if (resolvedSpkId !== spk.id) stepsState.value = 'loading'
+  try {
+    const rows = await getSpkProcessSteps(spk.id)
+    if (version !== requestVersion) return
+    steps.value = rows
+    resolvedSpkId = spk.id
+    stepsState.value = 'ready'
+  } catch (error) {
+    console.error('[Beranda Klien] Gagal memuat tahapan proses:', error)
+    if (version === requestVersion && resolvedSpkId !== spk.id) stepsState.value = 'error'
+  }
+}
+
+// Setiap pemuatan ulang daftar SPK memberi objek baru, jadi tahapannya ikut segar.
+watch(() => props.spk, loadSteps, { immediate: true })
 
 /** Indeks tahap yang sedang berjalan; sama dengan jumlah tahap bila semuanya selesai. */
 const current = computed(() => {
-  const spk = activeSpk.value
+  const spk = props.spk
   if (!spk) return 0
   if (spk.status !== 'Approved') return 1
   if (steps.value.length && steps.value.every((step) => step.status === 'done')) return STAGES.length
   return stepIsDone(steps.value, 'ttd_spk') ? 3 : 2
 })
 
-const visible = computed(() => (activeSpk.value ? stepsState.value === 'ready' : !props.hasPurchase))
+/* Kartu tetap menempati ruangnya selama tahapan dimuat agar isi di bawahnya tidak terdorong. */
+const visible = computed(() => Boolean(props.spk) || !props.hasPurchase)
+const pending = computed(() => stepsState.value === 'loading')
+/** -1 selama memuat: belum ada tahap yang ditandai. */
+const marked = computed(() => (pending.value ? -1 : current.value))
 
 const note = computed(() => {
   if (current.value === STAGES.length) return 'Semua tahap selesai.'
   return [
     'Kavling berstatus Tersedia bisa langsung diajukan.',
     'Admin sedang memeriksa pengajuan Anda.',
-    'SPK disetujui. Pantau jadwal tanda tangan di Dokumen.',
+    'SPK disetujui. Jadwal tanda tangan ada di detail pengajuan.',
     'Proses berlanjut sampai sertifikat Anda terima.',
   ][current.value]
 })
 </script>
 
 <template>
-  <section v-if="visible" class="journey" aria-labelledby="journey-title">
+  <section v-if="visible" class="journey" aria-labelledby="journey-title" :aria-busy="pending">
     <header>
       <h2 id="journey-title">Perjalanan pembelian</h2>
-      <span v-if="activeSpk">Kavling {{ activeSpk.lot.name }}</span>
+      <span v-if="spk && showLot">Kavling {{ spk.lot.name }}</span>
     </header>
 
-    <ol>
-      <li
-        v-for="(stage, index) in STAGES"
-        :key="stage"
-        :class="{ 'is-done': index < current, 'is-current': index === current }"
-        :aria-current="index === current ? 'step' : undefined"
-      >
-        <span class="journey__mark" aria-hidden="true">{{ index < current ? '✓' : index + 1 }}</span>
-        <span>
-          {{ stage }}
-          <span v-if="index < current" class="journey__sr">, selesai</span>
-        </span>
-      </li>
-    </ol>
+    <template v-if="stepsState === 'error'">
+      <p role="alert">Tahapan proses belum bisa dimuat.</p>
+      <AppButton size="small" fill="outline" @click="loadSteps">Coba lagi</AppButton>
+    </template>
 
-    <p>{{ note }}</p>
-    <AppButton v-if="activeSpk" size="small" fill="outline" @click="router.push('/client/dokumen')">
-      Buka Dokumen
-    </AppButton>
+    <template v-else>
+      <ol>
+        <li
+          v-for="(stage, index) in STAGES"
+          :key="stage"
+          :class="{ 'is-done': index < marked, 'is-current': index === marked }"
+          :aria-current="index === marked ? 'step' : undefined"
+        >
+          <span class="journey__mark" aria-hidden="true">{{ index < marked ? '✓' : index + 1 }}</span>
+          <span>
+            {{ stage }}
+            <span v-if="index < marked" class="journey__sr">, selesai</span>
+          </span>
+        </li>
+      </ol>
+
+      <p class="journey__note" :class="{ 'is-pending': pending }">{{ note }}</p>
+      <AppButton
+        v-if="spk"
+        size="small"
+        fill="outline"
+        @click="router.push({ path: '/client/dokumen', query: { spk_id: spk.id } })"
+      >
+        Buka SPK
+      </AppButton>
+    </template>
   </section>
 </template>
 
@@ -183,6 +206,18 @@ const note = computed(() => {
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--dur-base, 240ms) var(--ease-out, ease-out),
+    border-color var(--dur-base, 240ms) var(--ease-out, ease-out),
+    color var(--dur-base, 240ms) var(--ease-out, ease-out);
+}
+
+.journey__note {
+  transition: opacity var(--dur-base, 240ms) var(--ease-out, ease-out);
+}
+
+.journey__note.is-pending {
+  opacity: 0;
 }
 
 .journey li.is-done {
@@ -203,6 +238,12 @@ const note = computed(() => {
 .journey li.is-current .journey__mark {
   border: 2px solid var(--poliland-green, #355a2c);
   color: var(--poliland-green, #355a2c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey__mark {
+    transition: none;
+  }
 }
 
 .journey__sr {

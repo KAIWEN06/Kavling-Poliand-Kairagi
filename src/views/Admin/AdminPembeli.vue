@@ -883,7 +883,7 @@ useRealtimeRefresh(
 
 <style scoped>
 .admin-buyers-page { --buyers-bg: var(--app-background); font-family: var(--font-primary); color: var(--text-primary); }
-.buyers-content { min-height: 100%; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); background: var(--buyers-bg); }
+.buyers-content { min-height: 100%; padding: 22px 16px calc(112px + var(--safe-bottom)); background: var(--buyers-bg); }
 .buyers-intro h1 { margin: 0; font-size: 24px; letter-spacing: -0.5px; font-weight: var(--font-weight-extrabold); }
 .buyers-intro p { max-width: 340px; margin: 6px 0 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }
 .buyers-filters { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 14px; padding: 0 16px 2px; }
@@ -932,7 +932,7 @@ useRealtimeRefresh(
 .buyers-add-floating {
   position: fixed;
   right: 16px;
-  bottom: calc(92px + env(safe-area-inset-bottom));
+  bottom: calc(92px + var(--safe-bottom));
   z-index: 9000;
   display: grid;
   place-items: center;

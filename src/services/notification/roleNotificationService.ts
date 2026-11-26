@@ -4,6 +4,7 @@ import { authService, type UserRole } from '@/services/auth/authService'
 import { ROLE_LABEL } from '@/services/profile/profileService'
 import {
   notificationService,
+  notificationTone,
   resolveNotificationRoute,
   withTapStamp,
   type AppNotification,
@@ -56,6 +57,8 @@ let tokenHandle: PluginListenerHandle | null = null
 let registeredToken: string | null = null
 let permissionAsked = false
 const shown = new Set<string>()
+/** Toast notifikasi milik konteks aktif; dibuang saat logout atau ganti akun. */
+const inAppToasts: number[] = []
 
 function isNative() {
   return Capacitor.isNativePlatform()
@@ -179,6 +182,29 @@ async function handleClick(event: NotificationClickEvent) {
   }
 }
 
+// ------------------------------------------------------------ toast aplikasi
+
+/** Pengganti notifikasi sistem. Ketukannya lewat jalur yang sama dengan tap notifikasi native. */
+function showInApp(n: AppNotification, current: ActiveContext, route: string) {
+  const target = resolveNotificationRoute(current.role, n)
+  const event: NotificationClickEvent = {
+    id: n.id,
+    targetRole: current.role,
+    recipientId: current.userId,
+    route,
+    payload: { notificationId: n.id },
+    clickedAt: Date.now(),
+  }
+  const id = useToast().show(notificationTone(n), n.body || CATEGORY_LABEL[n.category] || 'Info', {
+    title: n.title,
+    key: `notif:${n.id}`,
+    // Tiba saat layar tidak terlihat: tunggu sampai ditutup agar tidak lewat begitu saja.
+    duration: document.visibilityState !== 'visible' ? 0 : n.priority === 'high' ? 10000 : 8000,
+    onTap: target ? () => void consumeClick(event) : undefined,
+  })
+  inAppToasts.push(id)
+}
+
 // ----------------------------------------------------------------- publik
 
 export const roleNotificationService = {
@@ -282,6 +308,7 @@ export const roleNotificationService = {
   async deactivate() {
     ctx = null
     registeredToken = null
+    for (const id of inAppToasts.splice(0)) useToast().dismiss(id)
     shown.clear()
     try {
       await CustomNotification.clearActiveContext()
@@ -290,7 +317,11 @@ export const roleNotificationService = {
     }
   },
 
-  /** Tampilkan notifikasi dari baris tabel notifications bila milik user & role aktif. */
+  /**
+   * Tampilkan notifikasi dari baris tabel notifications bila milik user & role aktif.
+   * Android memakai notifikasi sistem; web yang sedang dibuka, atau perangkat yang menolak
+   * izin, memakai toast di dalam aplikasi. Keduanya membuka data terkait saat diketuk.
+   */
   async notify(n: AppNotification) {
     const current = ctx
     if (!current || n.recipient_id !== current.userId || n.read_at || shown.has(n.id)) return false
@@ -306,7 +337,11 @@ export const roleNotificationService = {
     if (shown.size > MAX_SHOWN) shown.delete(shown.values().next().value as string)
 
     const route = resolveNotificationRoute(current.role, n) ?? authService.getRoleHomePath(current.role) ?? ''
-    return this.show({
+    if (!isNative() && document.visibilityState === 'visible') {
+      showInApp(n, current, route)
+      return true
+    }
+    const delivered = await this.show({
       id: n.id,
       title: n.title,
       message: n.body ?? '',
@@ -315,6 +350,8 @@ export const roleNotificationService = {
       route,
       payload: { notificationId: n.id, category: n.category, type: n.type, ...(n.data ?? {}) },
     })
+    if (!delivered && ctx?.userId === current.userId) showInApp(n, current, route)
+    return delivered
   },
 
   /**

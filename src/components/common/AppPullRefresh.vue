@@ -366,7 +366,7 @@ onUnmounted(() => {
    ruang kosong yang terbuka langsung terisi (tidak ada layar putih). */
 .pull-refresh {
   position: fixed;
-  top: max(var(--header-bottom, 0px), env(safe-area-inset-top, 0px));
+  top: max(var(--header-bottom, 0px), var(--safe-top));
   left: 0;
   width: 100vw;
   z-index: 10;

@@ -77,7 +77,7 @@ async function handleAction(action: QuickAction) {
 
 <style scoped>
 .admin-more-page { color: var(--text-primary); font-family: var(--font-primary); }
-.more-shell { display: flex; min-height: 100%; flex-direction: column; justify-content: flex-end; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); background: var(--app-background); }
+.more-shell { display: flex; min-height: 100%; flex-direction: column; justify-content: flex-end; padding: 16px 16px calc(96px + var(--safe-bottom)); background: var(--app-background); }
 .quick-card { touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: transform var(--dur-fast, 120ms) var(--ease-spring, ease-out); }
 .quick-card:active:not(:disabled) { transform: scale(.97); }
 .quick-card.quick-card--wide { grid-column: 1 / -1; min-height: 56px; flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; padding: 9px 13px; }

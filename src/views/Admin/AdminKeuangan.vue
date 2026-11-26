@@ -1799,7 +1799,7 @@ const recentReportPayments = computed(() => selectedMonthCashflowEntries.value.m
   date: entry.occurred_on,
   amount: entry.amount,
   statusTone: entry.flow_direction === 'inflow' ? 'confirmed' : 'rejected',
-  statusLabel: entry.flow_direction === 'inflow' ? 'Pemasukan bruto' : entry.source_table === 'booking_fee_refunds' ? 'Pengeluaran refund' : 'Pengeluaran',
+  statusLabel: entry.flow_direction === 'inflow' ? 'Pemasukan bruto' : entry.source_table === 'booking_fee_refunds' ? 'Pengembalian dana' : 'Pengeluaran',
   flowDirection: entry.flow_direction,
 })))
 const filteredReportLots = computed(() => {
@@ -3081,7 +3081,7 @@ useRealtimeRefresh(
 
 <style scoped>
 .admin-finance-page { color: var(--text-primary); font-family: var(--font-primary); }
-.finance-shell { max-width: 1120px; margin: 0 auto; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); }
+.finance-shell { max-width: 1120px; margin: 0 auto; padding: 22px 16px calc(112px + var(--safe-bottom)); }
 .ledger-page { display: grid; gap: 16px; }
 .ledger-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .ledger-heading h1 { margin: 0; color: var(--text-primary); font-size: 21px; }
@@ -3621,7 +3621,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-breakdown li { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-muted); font-size: 12px; }
 .report-breakdown li strong { grid-column: 1 / -1; }
 .report-breakdown li span { color: var(--text-secondary); }
-.payment-plan-add-button { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 4; box-shadow: 0 6px 16px rgb(35 35 35 / 14%); }
+.payment-plan-add-button { position: sticky; bottom: calc(76px + var(--safe-bottom)); z-index: 4; box-shadow: 0 6px 16px rgb(35 35 35 / 14%); }
 @media (min-width: 700px) { .finance-nav { margin-inline: 0; padding-inline: 0; } }
 @media (prefers-reduced-motion: reduce) { .finance-area, .finance-subnav button { transition: none; } }
 
@@ -3639,7 +3639,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-buyer-open { position: static; }
 .report-paid-note { margin: 18px 0 8px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); font-size: 12px; text-align: center; }
 /* Catat pembayaran */
-.finance-fab { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 4; display: flex; width: min(100%, 320px); min-height: 52px; align-items: center; justify-content: center; gap: 8px; margin: 18px auto 0; border: 0; border-radius: 999px; background: var(--poliland-gold); color: var(--text-primary); font: inherit; font-size: 13px; font-weight: var(--font-weight-semibold); box-shadow: 0 6px 16px rgb(35 35 35 / 16%); touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; transition: transform 120ms var(--ease-spring, ease); }
+.finance-fab { position: sticky; bottom: calc(76px + var(--safe-bottom)); z-index: 4; display: flex; width: min(100%, 320px); min-height: 52px; align-items: center; justify-content: center; gap: 8px; margin: 18px auto 0; border: 0; border-radius: 999px; background: var(--poliland-gold); color: var(--text-primary); font: inherit; font-size: 13px; font-weight: var(--font-weight-semibold); box-shadow: 0 6px 16px rgb(35 35 35 / 16%); touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; transition: transform 120ms var(--ease-spring, ease); }
 .finance-fab ion-icon { font-size: 20px; }
 .finance-fab:active { transform: scale(0.97); }
 .finance-fab:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 3px; }

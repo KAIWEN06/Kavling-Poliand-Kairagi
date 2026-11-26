@@ -31,10 +31,12 @@ import {
 
   IonIcon,
 
+  onIonViewWillEnter,
+
 } from '@ionic/vue'
 
 import { authService } from '@/services/auth/authService'
-import { consumePostLoginRedirect } from '@/services/auth/postLoginRedirect'
+import { consumePostLoginRedirect, peekPostLoginRedirect } from '@/services/auth/postLoginRedirect'
 import { supabase } from '@/services/config/supabase'
 
 import AppInput from '@/components/ui/AppInput.vue'
@@ -85,6 +87,12 @@ const REFRESH_DURATION = 1800
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 const errorMessage = ref('')
+
+// Dibaca ulang tiap halaman tampil: Ionic menyimpan halaman, jadi setup tidak berjalan lagi.
+const surveyPending = ref(false)
+onIonViewWillEnter(() => {
+  surveyPending.value = peekPostLoginRedirect()?.includes('survei=1') ?? false
+})
 const resendLoading = ref(false)
 const resendMessage = ref('')
 const isEmailUnconfirmed = computed(() =>
@@ -371,6 +379,9 @@ async function loginWithGoogle() {
           </ion-card-header>
 
           <ion-card-content>
+            <AppNotice v-if="surveyPending && !queryError && !errorMessage" tone="info">
+              Survei lokasi perlu akun. Setelah masuk, Anda kembali ke kavling tadi.
+            </AppNotice>
             <AppNotice v-if="queryError" tone="error">
               {{ queryError }}
             </AppNotice>
@@ -553,7 +564,7 @@ async function loginWithGoogle() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: env(safe-area-inset-top, 0px) 14px max(12px, env(safe-area-inset-bottom, 0px));
+  padding: var(--safe-top) 14px max(12px, var(--safe-bottom));
   overflow-x: hidden;
   background-color: #f7f3ea;
   background-image: radial-gradient(ellipse at 50% 10%, rgb(255 255 255 / 28%) 0%, transparent 68%);
@@ -1006,7 +1017,7 @@ ion-card-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: env(safe-area-inset-top, 0px) 14px max(12px, env(safe-area-inset-bottom, 0px));
+  padding: var(--safe-top) 14px max(12px, var(--safe-bottom));
   background-color: #f7f3ea;
 }
 

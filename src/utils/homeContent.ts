@@ -41,3 +41,12 @@ export function toWaNumber(value: string | null | undefined): string {
   if (!digits) return ''
   return digits.startsWith('0') ? `62${digits.slice(1)}` : digits
 }
+
+/** Pesan awal untuk tombol WhatsApp umum. Pengunjung tetap bisa mengubahnya sebelum mengirim. */
+export const WA_GENERAL_MESSAGE = 'Halo, saya ingin bertanya tentang kavling di PoliLand Kairagi.'
+
+/** Tautan wa.me dengan pesan siap kirim. Kosong bila nomornya tidak ada. */
+export function waLink(value: string | null | undefined, message: string = WA_GENERAL_MESSAGE): string {
+  const number = toWaNumber(value)
+  return number ? `https://wa.me/${number}?text=${encodeURIComponent(message)}` : ''
+}

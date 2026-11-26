@@ -16,8 +16,6 @@
       <ion-router-outlet />
     </div>
 
-    <ClientProfileGateModal />
-
     <!-- Tab bar umum: disembunyikan pada halaman Admin dan client -->
     <div
       v-if="!isRolePage"
@@ -40,7 +38,6 @@ import { IonPage, IonRouterOutlet } from '@ionic/vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
-import ClientProfileGateModal from '@/components/client/ClientProfileGateModal.vue'
 
 const route = useRoute()
 
@@ -130,7 +127,7 @@ onBeforeUnmount(() => {
   left: 0;
   z-index: 10000;
   width: 100%;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--safe-bottom);
   pointer-events: none;
 }
 

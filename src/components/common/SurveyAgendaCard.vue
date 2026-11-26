@@ -1,4 +1,5 @@
 <template>
+  <Transition name="agenda">
   <section v-if="state === 'ready' && items.length" class="agenda" aria-labelledby="agenda-title">
     <div class="agenda__head">
       <h2 id="agenda-title" class="agenda__title">
@@ -34,6 +35,7 @@
       <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
     </button>
   </section>
+  </Transition>
 </template>
 
 <script setup lang="ts">
@@ -108,6 +110,22 @@ useRealtimeRefresh(['survey_requests'], () => load({ silent: true }))
   border: 1px solid var(--poliland-gold);
   border-radius: var(--radius-card);
   box-shadow: inset 4px 0 0 var(--poliland-gold);
+}
+
+/* Datanya datang belakangan: masuk halus, tidak muncul mendadak. */
+.agenda-enter-active {
+  transition: opacity var(--dur-slow, 380ms) var(--ease-out, ease-out), transform var(--dur-slow, 380ms) var(--ease-out, ease-out);
+}
+
+.agenda-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agenda-enter-from {
+    transform: none;
+  }
 }
 
 .agenda__head {

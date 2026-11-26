@@ -1721,7 +1721,7 @@ onBeforeUnmount(() => {
 
 .control-search {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 12px) + 12px);
+  top: calc(var(--safe-top) + 12px);
   left: var(--map-edge);
   right: var(--map-edge);
   z-index: 100;
@@ -1736,7 +1736,7 @@ onBeforeUnmount(() => {
 .right-controls-stack {
   position: absolute;
   top: auto;
-  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 8px);
+  bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 8px);
   right: var(--map-edge);
 
   display: flex;
@@ -1790,7 +1790,7 @@ onBeforeUnmount(() => {
 .control-minimap {
   position: absolute;
   left: var(--map-edge);
-  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 12px);
+  bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 12px);
   max-width: calc(100vw - 2 * var(--map-edge));
   z-index: 10;
   pointer-events: auto;
@@ -1802,7 +1802,7 @@ onBeforeUnmount(() => {
   position: absolute;
   left: var(--map-edge);
   right: calc(var(--map-edge) + 60px);
-  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 8px);
+  bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 8px);
   z-index: 110;
   pointer-events: auto;
 }
@@ -1853,7 +1853,7 @@ onBeforeUnmount(() => {
   }
 
   .control-minimap {
-    bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 8px);
+    bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 8px);
   }
 }
 
@@ -1865,7 +1865,7 @@ onBeforeUnmount(() => {
 
   /* Layar pendek: bilah level pindah ke atas, di samping tombol cari. */
   .control-level {
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    top: calc(var(--safe-top) + 8px);
     right: auto;
     bottom: auto;
     left: calc(var(--map-edge) + 60px);
@@ -1875,28 +1875,28 @@ onBeforeUnmount(() => {
   .right-controls-stack {
     top: auto;
     right: var(--map-edge);
-    bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 8px);
+    bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 8px);
     flex-direction: row;
     gap: clamp(4px, 1vw, 8px);
   }
 
   .control-minimap {
-    bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 8px);
+    bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 8px);
   }
 
   .control-search {
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    top: calc(var(--safe-top) + 8px);
   }
 }
 
 @media (max-width: 360px) {
   .right-controls-stack {
-    right: max(var(--map-edge), env(safe-area-inset-right, 0px));
+    right: max(var(--map-edge), var(--safe-right));
   }
 
   .control-search {
-    left: max(var(--map-edge), env(safe-area-inset-left, 0px));
-    right: max(var(--map-edge), env(safe-area-inset-right, 0px));
+    left: max(var(--map-edge), var(--safe-left));
+    right: max(var(--map-edge), var(--safe-right));
   }
 }
 </style>

@@ -244,9 +244,9 @@ onBeforeUnmount(() => {
 .hud {
   position: absolute;
   z-index: 10;
-  top: max(12px, env(safe-area-inset-top, 0px));
-  right: max(12px, env(safe-area-inset-right, 0px));
-  left: max(12px, env(safe-area-inset-left, 0px));
+  top: max(12px, var(--safe-top));
+  right: max(12px, var(--safe-right));
+  left: max(12px, var(--safe-left));
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -323,9 +323,9 @@ onBeforeUnmount(() => {
 .dock {
   position: absolute;
   z-index: 10;
-  right: max(12px, env(safe-area-inset-right, 0px));
-  bottom: max(16px, env(safe-area-inset-bottom, 0px));
-  left: max(12px, env(safe-area-inset-left, 0px));
+  right: max(12px, var(--safe-right));
+  bottom: max(16px, var(--safe-bottom));
+  left: max(12px, var(--safe-left));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -392,7 +392,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 16px 16px max(16px, env(safe-area-inset-bottom, 0px));
+  padding: 16px 16px max(16px, var(--safe-bottom));
   background: rgba(16, 21, 16, 0.55);
 }
 
@@ -472,9 +472,9 @@ onBeforeUnmount(() => {
 
 /* Landscape: layar pendek, HUD dan petunjuk dipadatkan supaya pemandangan tetap luas. */
 @media (orientation: landscape) and (max-height: 520px) {
-  .hud { top: max(8px, env(safe-area-inset-top, 0px)); }
+  .hud { top: max(8px, var(--safe-top)); }
   .hud-back { width: 40px; height: 40px; }
-  .dock { bottom: max(8px, env(safe-area-inset-bottom, 0px)); gap: 6px; }
+  .dock { bottom: max(8px, var(--safe-bottom)); gap: 6px; }
   .dock-button { min-height: 44px; }
   .hint { padding: 8px 14px; }
 }

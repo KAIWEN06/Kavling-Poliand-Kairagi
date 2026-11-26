@@ -35,8 +35,8 @@ const view = ref<InstanceType<typeof SpkListView> | null>(null)
 .spk-apply-fab {
   position: fixed;
   z-index: 20;
-  right: calc(16px + env(safe-area-inset-right, 0px));
-  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  right: calc(16px + var(--safe-right));
+  bottom: calc(88px + var(--safe-bottom));
   display: inline-flex;
   align-items: center;
   gap: 6px;

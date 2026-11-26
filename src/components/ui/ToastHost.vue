@@ -5,7 +5,7 @@
         v-for="t in items"
         :key="t.id"
         class="ui-toast"
-        :class="{ 'ui-toast--held': held === t.id, 'ui-toast--dragging': held === t.id && drag.x !== 0 }"
+        :class="{ 'ui-toast--link': t.actionLabel, 'ui-toast--held': held === t.id, 'ui-toast--dragging': held === t.id && drag.x !== 0 }"
         :style="held === t.id ? dragStyle : undefined"
         @pointerdown="startDrag($event, t.id)"
         @pointermove="moveDrag($event, t.id)"
@@ -15,8 +15,12 @@
         @mouseleave="resume(t.id)"
         @focusin="pause(t.id)"
         @focusout="resume(t.id)"
+        @click="tapCard($event, t)"
       >
-        <AppNotice floating dismissible :tone="t.tone" :title="t.title" :message="t.message" @dismiss="dismiss(t.id)">
+        <AppNotice
+          floating dismissible :tone="t.tone" :title="t.title" :message="t.message"
+          :action-label="t.actionLabel" @action="activate(t)" @dismiss="dismiss(t.id)"
+        >
           <template #extra>
             <span v-if="t.duration > 0" class="ui-toast__timer" :style="{ animationDuration: `${t.duration}ms` }" aria-hidden="true" />
           </template>
@@ -28,10 +32,31 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { useIonRouter } from '@ionic/vue'
 import AppNotice from '@/components/ui/AppNotice.vue'
-import { useToast } from '@/composables/useToast'
+import { useToast, type ToastItem } from '@/composables/useToast'
+import { withTapStamp } from '@/services/notification/notificationService'
 
 const { items, dismiss, pause, resume } = useToast()
+const ionRouter = useIonRouter()
+
+/* Seluruh kartu bisa diketuk; tombol di dalamnya jalur untuk keyboard dan pembaca layar. */
+const TAP_SLOP = 8
+const TAP_MAX_MS = 500
+let pressedAt = 0
+/** true bila sentuhan terakhir adalah geser atau tahan, bukan ketukan. */
+let notATap = false
+
+function activate(t: Readonly<ToastItem>) {
+  dismiss(t.id)
+  if (t.onTap) t.onTap()
+  else if (t.to) ionRouter.push(withTapStamp(t.to))
+}
+
+function tapCard(event: MouseEvent, t: Readonly<ToastItem>) {
+  if (!t.actionLabel || notATap || (event.target as HTMLElement).closest('button')) return
+  activate(t)
+}
 
 /* Geser ke samping untuk membuang; tahan untuk menjeda hitungan. */
 const SWIPE_DISTANCE = 80
@@ -45,6 +70,8 @@ const dragStyle = computed(() =>
 function startDrag(event: PointerEvent, id: number) {
   if ((event.target as HTMLElement).closest('button')) return
   held.value = id
+  pressedAt = Date.now()
+  notATap = false
   drag.start = event.clientX
   drag.x = 0
   ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
@@ -52,12 +79,15 @@ function startDrag(event: PointerEvent, id: number) {
 }
 
 function moveDrag(event: PointerEvent, id: number) {
-  if (held.value === id) drag.x = event.clientX - drag.start
+  if (held.value !== id) return
+  drag.x = event.clientX - drag.start
+  if (Math.abs(drag.x) > TAP_SLOP) notATap = true
 }
 
 function endDrag(id: number) {
   if (held.value !== id) return
   const swiped = Math.abs(drag.x) > SWIPE_DISTANCE
+  if (Date.now() - pressedAt > TAP_MAX_MS) notATap = true
   held.value = null
   drag.x = 0
   if (swiped) dismiss(id)
@@ -73,7 +103,7 @@ function endDrag(id: number) {
   z-index: var(--nt-z-toast);
   display: flex;
   justify-content: center;
-  padding: calc(env(safe-area-inset-top, 0px) + var(--space-3)) var(--space-3) 0;
+  padding: calc(var(--safe-top) + var(--space-3)) var(--space-3) 0;
   pointer-events: none;
 }
 .ui-toasts__stack {
@@ -88,6 +118,14 @@ function endDrag(id: number) {
   transition: transform var(--dur-base) var(--ease-spring), opacity var(--dur-base) var(--ease-out);
 }
 .ui-toast--dragging { transition: none; }
+.ui-toast--link {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Tombol tutup punya umpan balik sendiri; kartu tidak ikut mengecil. */
+.ui-toast--link:active:not(:has(.nt__close:active)) { transform: scale(0.98); }
 
 .ui-toast__timer {
   position: absolute;
@@ -114,5 +152,6 @@ function endDrag(id: number) {
   .ui-toast, .ui-toast-enter-active, .ui-toast-leave-active, .ui-toast-move { transition: opacity var(--dur-fast) linear; }
   .ui-toast-enter-from, .ui-toast-leave-to { transform: none; }
   .ui-toast__timer { display: none; }
+  .ui-toast--link:active { transform: none; }
 }
 </style>

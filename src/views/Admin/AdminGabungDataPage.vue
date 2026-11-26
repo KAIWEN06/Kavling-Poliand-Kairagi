@@ -256,7 +256,7 @@ useRealtimeRefresh(['customers', 'customer_merge_log'], () => load({ silent: tru
 
 <style scoped>
 .merge-page { color: var(--text-primary); font-family: var(--font-primary); }
-.shell { min-height: 100%; padding: 22px 16px calc(112px + env(safe-area-inset-bottom)); background: var(--app-background); }
+.shell { min-height: 100%; padding: 22px 16px calc(112px + var(--safe-bottom)); background: var(--app-background); }
 .intro { display: grid; gap: 6px; margin-bottom: 18px; }
 .intro h1 { margin: 0; font-family: var(--font-display); font-size: var(--text-2xl); line-height: 1.2; }
 .intro p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-sm); line-height: 1.5; }

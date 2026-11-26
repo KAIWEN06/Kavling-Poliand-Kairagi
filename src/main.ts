@@ -1,5 +1,6 @@
 
 import { createApp } from 'vue'
+import { Capacitor } from '@capacitor/core'
 import App from './App.vue'
 import router from './router'
 
@@ -48,6 +49,11 @@ import './styles/marketing-module.css'
 import './theme/variables.css'
 import './theme/poliland-look.css'
 import './theme/notify.css'
+
+// Di aplikasi Android, MainActivity sudah memberi inset: safe area CSS harus 0 (variables.css).
+if (Capacitor.getPlatform() === 'android') {
+  document.documentElement.classList.add('native-insets')
+}
 
 // Filter input global (angka/huruf/email sesuai jenis field)
 installInputGuard()
