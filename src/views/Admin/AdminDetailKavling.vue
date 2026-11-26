@@ -250,6 +250,7 @@
 
     <!-- Modal Bottom Sheet: seluruh modal menggunakan AppModal bersama -->
     <AppModal
+      guard-unsaved
       v-model="statusModalOpen"
       title="Ubah Status Kavling"
       variant="bottom-sheet"
@@ -267,6 +268,7 @@
     </AppModal>
 
     <AppModal
+      guard-unsaved
       v-model="editModalOpen"
       title="Ubah Informasi Kavling"
       variant="bottom-sheet"
@@ -307,6 +309,7 @@
     </AppModal>
 
     <AppModal
+      guard-unsaved
       v-model="priceModalOpen"
       :title="priceDraft.type === 'cash' ? 'Ubah Harga Normal' : 'Atur Harga Promo'"
       variant="bottom-sheet"
@@ -329,6 +332,7 @@
     </AppModal>
 
     <AppModal
+      guard-unsaved
       v-model="panoramaModalOpen"
       title="Panorama 360°"
       variant="bottom-sheet"
@@ -368,7 +372,7 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard } from '@capacitor/keyboard'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   IonPage, IonContent, IonIcon, IonSpinner, onIonViewWillEnter,
@@ -567,6 +571,25 @@ function errorText(error: unknown) {
   if (error && typeof error === 'object' && 'message' in error) return String((error as { message: unknown }).message)
   return 'Terjadi kesalahan. Periksa koneksi dan izin database.'
 }
+function fillStatusDraft() {
+  statusDraft.value = effectiveStatus.value || 'Available'
+}
+function fillEditDraft() {
+  if (!lot.value) return
+  editDraft.lot_number = lot.value.lot_number || ''
+  editDraft.block_id = lot.value.block_id == null ? '' : String(lot.value.block_id)
+  editDraft.dimension = lot.value.dimension || ''
+  editDraft.area = lot.value.area == null ? '' : String(lot.value.area)
+  editDraft.description = lot.value.description || ''
+}
+function clearPanoramaDraft() {
+  panoramaSelectedFile.value = null
+  if (panoramaFileInput.value) panoramaFileInput.value.value = ''
+}
+// Setiap modal dibuka dari data tersimpan, jadi isian yang sudah dibuang tidak muncul lagi.
+watch(statusModalOpen, (open) => { if (open) fillStatusDraft() })
+watch(editModalOpen, (open) => { if (open) fillEditDraft() })
+watch(panoramaModalOpen, (open) => { if (open) clearPanoramaDraft() })
 async function loadDetail({ silent = false }: LoadOptions = {}) {
   if (!Number.isInteger(lotId.value) || lotId.value <= 0) {
     loadError.value = true; errorMessage.value = 'ID kavling tidak valid.'; loading.value = false; return
@@ -574,16 +597,9 @@ async function loadDetail({ silent = false }: LoadOptions = {}) {
   if (!silent) { loading.value = true; loadError.value = false; errorMessage.value = '' }
   try {
     lot.value = await lotService.getLotById(lotId.value)
-    statusDraft.value = effectiveStatus.value || 'Available'
-    editDraft.lot_number = lot.value.lot_number || ''
-    editDraft.block_id = lot.value.block_id == null ? '' : String(lot.value.block_id)
-    editDraft.dimension = lot.value.dimension || ''
-    editDraft.area = lot.value.area == null ? '' : String(lot.value.area)
-    editDraft.description = lot.value.description || ''
-    if (!silent) {
-      panoramaSelectedFile.value = null
-      if (panoramaFileInput.value) panoramaFileInput.value.value = ''
-    }
+    fillStatusDraft()
+    fillEditDraft()
+    if (!silent) clearPanoramaDraft()
     await Promise.all([loadInstallments({ silent }), loadHistory({ silent }), loadBlocks()])
   } catch (error) {
     console.error('[AdminKavlingDetail] Gagal memuat:', error)

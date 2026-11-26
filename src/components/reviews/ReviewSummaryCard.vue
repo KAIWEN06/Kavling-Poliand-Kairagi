@@ -59,7 +59,6 @@
           label="Beri nilai cepat"
           @update:model-value="(n) => $emit('rate', n)"
         />
-        <button type="button" class="note-link" @click="$emit('write')">Beri nilai</button>
       </div>
       <button type="button" class="write-btn" @click="$emit('write')">Tulis ulasan</button>
     </div>
@@ -145,25 +144,10 @@ const formatAverage = (n: number) => n.toLocaleString('id-ID', { minimumFraction
   margin-top: var(--space-1);
 }
 
-.note-link {
-  min-height: 44px;
-  padding: 0 4px;
-  border: 0;
-  background: none;
-  color: var(--poliland-green, #355a2c);
-  font: 800 14px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
 .write-btn:active { transform: scale(0.97); }
 .write-btn { align-self: flex-start; min-height: 52px; margin-top: 10px; padding: 0 26px; border: 0; border-radius: 14px; background: var(--poliland-gold, #cba044); color: var(--ink, #1b1f1a); font: 800 15px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif); box-shadow: 0 12px 26px -10px rgba(203, 160, 68, 0.85); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: transform var(--dur-base) var(--ease-spring); }
 
-.write-btn:focus-visible,
-.note-link:focus-visible {
+.write-btn:focus-visible {
   outline: 3px solid var(--poliland-gold, #cba044);
   outline-offset: 3px;
 }

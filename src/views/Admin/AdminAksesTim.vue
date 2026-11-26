@@ -210,6 +210,7 @@
     <MobileTabBar v-if="currentRole === 'admin'" variant="admin" />
 
     <AppModal
+      guard-unsaved
       v-model="createOpen"
       :title="`Tambah ${roleLabel(form.role)}`"
       :confirm-text="`Buat akun ${roleLabel(form.role)}`"
@@ -242,6 +243,7 @@
     </AppModal>
 
     <AppModal
+      guard-unsaved
       v-model="editOpen"
       title="Ubah data pemasar"
       confirm-text="Simpan Perubahan"

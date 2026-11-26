@@ -29,7 +29,13 @@
           draggable="false"
         />
 
-        <SiteplanScenery :paused="isFlying || isDragging || !!dragState" />
+        <SiteplanScenery />
+
+        <SiteplanTraffic
+          :width="mapWidth"
+          :height="mapHeight"
+          :paused="isFlying || isDragging || !!dragState"
+        />
 
         <div
           ref="lineLayer"
@@ -172,6 +178,7 @@ import ZoomControl from './ZoomControl.vue'
 import MiniMap from './MiniMap.vue'
 import SearchBox from './SearchBox.vue'
 import SiteplanScenery from './SiteplanScenery.vue'
+import SiteplanTraffic from './SiteplanTraffic.vue'
 
 
 const props = defineProps({

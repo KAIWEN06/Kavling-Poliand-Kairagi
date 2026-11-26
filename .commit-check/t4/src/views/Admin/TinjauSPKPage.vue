@@ -1,0 +1,393 @@
+<template>
+  <ion-page class="review-page">
+    <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
+    <ion-content :fullscreen="true">
+      <main class="review-shell">
+        <PageBackButton fallback="/admin/spk" label="Daftar SPK" />
+        <SkeletonDetailHeader v-if="loading" :sections="3" :rows="5" label="Memuat data SPK" />
+        <div v-else-if="errorMessage" class="review-state review-error" role="alert"><strong>Data tidak dapat dimuat</strong><p>{{ errorMessage }}</p><AppButton size="small" @click="load()">Coba lagi</AppButton></div>
+        <template v-else-if="data">
+          <header class="review-heading"><div> <h1>{{ data.request.spk_number }}</h1><span class="status-chip">Disetujui</span></div><span class="review-id">SPK #{{ data.request.id }} · Transaksi #{{ data.transaction.id }}</span></header>
+          <section class="review-panel">
+            <div class="section-head"><div><h2>Tahapan proses</h2><p class="review-note">{{ data.request.payment_method === 'Cash' ? 'Pembayaran tunai: 4 tahap.' : 'Pembayaran cicilan: 6 tahap.' }} Atur tanggal perkiraan, beri tahu klien bila tahap sudah bisa diproses, lalu tandai selesai.</p></div></div>
+            <SpkProcessTimeline :spk-id="Number(data.request.id)" mode="admin" @changed="load()" />
+          </section>
+          <section class="review-panel"><h2>Informasi SPK</h2><dl class="info-grid">
+            <div><dt>Pembeli</dt><dd>{{ data.request.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ data.request.customer_phone }}</dd></div><div><dt>Kaveling</dt><dd>{{ data.request.lots?.lot_number || data.request.lot_id }}</dd></div><div><dt>Harga transaksi</dt><dd>{{ money(data.request.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ data.request.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div><dt>Tanda jadi</dt><dd>{{ money(data.request.booking_fee_snapshot) }}</dd></div><div><dt>Tanggal persetujuan</dt><dd>{{ date(data.request.approved_at) }}</dd></div><div><dt>Pemasar</dt><dd>{{ data.request.profiles?.full_name || 'Tidak ada' }}</dd></div><div><dt>Sumber pengajuan</dt><dd>{{ data.request.submission_source }}</dd></div>
+          </dl>
+            <IdentityInfo :customer-id="data.request.customer_id" editable title="Identitas pembeli sesuai KTP" />
+          </section>
+          <section v-if="data.request.payment_method === 'Installment'" class="review-panel">
+            <div class="section-head">
+              <div>
+                <h2>Tanggal pembayaran bulanan</h2>
+              </div>
+            </div>
+            <div v-if="data.schedules.length" class="monthly-date-card">
+              <div class="monthly-date-meta">
+                <span>{{ data.schedules.length }} jadwal cicilan</span>
+                <span>{{ paidScheduleCount }} sudah dibayar · {{ editableScheduleCount }} dapat diperbarui</span>
+              </div>
+              <p class="date-picker-hint">
+                Setelah PPJB ditandai selesai, cicilan 1 otomatis jatuh di bulan berikutnya. Ubah tanggal tiap cicilan di sini sesudah itu, lalu simpan. Bulan dan tahun mengikuti jadwal otomatis, dan cicilan yang sudah lunas tidak bisa diubah.
+              </p>
+              <div class="schedule-preview">
+                <div v-for="item in sortedSchedules" :key="item.id" class="schedule-preview-item" :class="{ 'is-paid': item.status === 'Paid' }">
+                  <div class="schedule-editor-info">
+                    <strong>Ke-{{ item.installment_number }} dari {{ sortedSchedules.length }}</strong>
+                    <span>{{ money(item.amount) }}</span>
+                    <small>{{ monthYear(item.due_date) }}</small>
+                  </div>
+                  <div class="schedule-date-action">
+                    <span v-if="item.status === 'Paid'" class="schedule-preview-date paid-label">Lunas</span>
+                    <template v-else>
+                      <strong class="schedule-preview-date">{{ formatScheduleDate(generatedScheduleDates[item.id]) }}</strong>
+                      <button type="button" class="choose-date-button"
+                        :disabled="savingSchedule"
+                        :aria-expanded="activeCalendarId === Number(item.id)"
+                        @click="toggleCalendar(Number(item.id))">
+                        {{ activeCalendarId === Number(item.id) ? 'Tutup kalender' : 'Pilih tanggal' }}
+                      </button>
+                    </template>
+                  </div>
+                  <div v-if="activeCalendarId === Number(item.id)" class="inline-calendar">
+                    <div class="calendar-heading">
+                      <span class="calendar-month">{{ monthYear(item.due_date) }}</span>
+                      <span class="calendar-auto-label">Bulan & tahun otomatis</span>
+                    </div>
+                    <div class="calendar-weekdays">
+                      <span v-for="day in weekDays" :key="day">{{ day }}</span>
+                    </div>
+                    <div class="calendar-days">
+                      <span v-for="blank in calendarOffset(item.due_date)" :key="`blank-${item.id}-${blank}`" class="calendar-blank" />
+                      <button v-for="day in daysInScheduleMonth(item.due_date)" :key="`${item.id}-${day}`"
+                        type="button" class="calendar-day"
+                        :class="{ selected: selectedDay(item) === day }"
+                        @click="selectScheduleDay(item, day)">
+                        {{ day }}
+                      </button>
+                    </div>
+                    <p class="calendar-note">Pilih angka tanggal saja. Bulan dan tahun tidak dapat diubah dari sini.</p>
+                  </div>
+                </div>
+              </div>
+              <AppButton size="medium" :loading="savingSchedule"
+                :disabled="savingSchedule"
+                @click="saveIndividualSchedules">
+                Simpan jadwal
+              </AppButton>
+              <AppNotice v-if="scheduleError" tone="error">
+                {{ scheduleError }}
+              </AppNotice>
+            </div>
+</section>
+          <section v-if="data.commission" class="review-panel"><h2>Komisi pemasar</h2><dl class="info-grid"><div><dt>Nama pemasar</dt><dd>{{ data.commission.profiles?.full_name || '-' }}</dd></div><div><dt>Nomor SPK</dt><dd>{{ data.request.spk_number }}</dd></div><div><dt>Nilai transaksi</dt><dd>{{ money(data.commission.base_amount) }}</dd></div><div><dt>Jenis komisi</dt><dd>{{ data.commission.commission_type }}</dd></div><div><dt>Persentase / nominal</dt><dd>{{ data.commission.commission_rate != null ? `${data.commission.commission_rate}%` : money(data.commission.commission_amount) }}</dd></div><div><dt>Total komisi</dt><dd>{{ money(data.commission.commission_amount) }}</dd></div><div><dt>Status pencairan</dt><dd>{{ data.commission.status }}</dd></div></dl>
+            <p class="review-note">Komisi cair saat pembayaran kaveling (di luar tanda jadi) mencapai {{ data.commission.release_threshold_percent ?? 50 }}%.</p>
+            <div v-if="data.commission.status === 'Eligible' || data.commission.status === 'Processing'" class="commission-pay">
+              <input v-model="commissionReference" type="text" maxlength="60" placeholder="Referensi transfer bank (opsional)" aria-label="Referensi transfer bank" />
+              <AppButton size="small" :loading="payingCommission" @click="payCommission">Cairkan komisi</AppButton>
+            </div>
+            <AppNotice v-if="commissionError" tone="error">
+              {{ commissionError }}
+            </AppNotice>
+          </section>
+        </template>
+      </main>
+    </ion-content>
+  </ion-page>
+</template>
+<script setup lang="ts">
+import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
+import AppNotice from '@/components/ui/AppNotice.vue'
+import { useToast } from '@/composables/useToast'
+import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
+import { arrowBackOutline } from 'ionicons/icons'
+import AppHeader from '@/components/common/AppHeader.vue'
+import PageBackButton from '@/components/ui/PageBackButton.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
+import IdentityInfo from '@/components/identity/IdentityInfo.vue'
+import {
+  getSPKReview,
+  payMarketingCommission,
+  updateInstallmentSchedule,
+} from '@/services/Admin/spkReviewService'
+
+const route = useRoute()
+const router = useRouter()
+
+const loading = ref(true)
+const savingSchedule = ref(false)
+const errorMessage = ref('')
+const scheduleError = ref('')
+const toast = useToast()
+const data = ref<any>(null)
+const commissionReference = ref('')
+const payingCommission = ref(false)
+const commissionError = ref('')
+const activeCalendarId = ref<number | null>(null)
+const scheduleDayOverrides = ref<Record<number, number>>({})
+const weekDays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+
+const sortedSchedules = computed(() =>
+  [...(data.value?.schedules || [])].sort(
+    (a: any, b: any) => Number(a.installment_number) - Number(b.installment_number),
+  ),
+)
+const paidScheduleCount = computed(() =>
+  sortedSchedules.value.filter((item: any) => item.status === 'Paid').length,
+)
+const editableScheduleCount = computed(() =>
+  sortedSchedules.value.filter((item: any) => item.status !== 'Paid').length,
+)
+const generatedScheduleDates = computed<Record<number, string>>(() => {
+  const dates: Record<number, string> = {}
+  for (const item of sortedSchedules.value) {
+    if (item.status === 'Paid') continue
+    const originalDate = dateOnly(item.due_date)
+    if (!originalDate) continue
+    const [year, month] = originalDate.split('-').map(Number)
+    const day = scheduleDayOverrides.value[Number(item.id)] ?? Number(originalDate.slice(8, 10))
+    const lastDay = new Date(year, month, 0).getDate()
+    const safeDay = Math.min(Math.max(day, 1), lastDay)
+    dates[Number(item.id)] = `${year}-${String(month).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`
+  }
+  return dates
+})
+const hasScheduleChanges = computed(() =>
+  sortedSchedules.value.some((item: any) =>
+    item.status !== 'Paid' &&
+    generatedScheduleDates.value[Number(item.id)] !== dateOnly(item.due_date),
+  ),
+)
+
+function dateOnly(value: string | null | undefined): string {
+  return value ? String(value).slice(0, 10) : ''
+}
+
+function monthYear(value: string | null | undefined): string {
+  if (!value) return '-'
+  const [year, month] = dateOnly(value).split('-').map(Number)
+  return new Intl.DateTimeFormat('id-ID', {
+    month: 'long', year: 'numeric', timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, 1)))
+}
+
+function daysInScheduleMonth(value: string | null | undefined): number {
+  if (!value) return 0
+  const [year, month] = dateOnly(value).split('-').map(Number)
+  return new Date(year, month, 0).getDate()
+}
+
+function calendarOffset(value: string | null | undefined): number {
+  if (!value) return 0
+  const [year, month] = dateOnly(value).split('-').map(Number)
+  return new Date(year, month - 1, 1).getDay()
+}
+
+function selectedDay(item: any): number {
+  const generated = generatedScheduleDates.value[Number(item.id)]
+  return generated ? Number(generated.slice(8, 10)) : Number(dateOnly(item.due_date).slice(8, 10))
+}
+
+function toggleCalendar(id: number) {
+  activeCalendarId.value = activeCalendarId.value === id ? null : id
+}
+
+function selectScheduleDay(item: any, day: number) {
+  scheduleDayOverrides.value = {
+    ...scheduleDayOverrides.value,
+    [Number(item.id)]: day,
+  }
+  activeCalendarId.value = null
+}
+
+function formatScheduleDate(value: string | undefined): string {
+  if (!value) return 'Tanggal belum tersedia'
+  const [year, month, day] = value.split('-').map(Number)
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, day)))
+}
+
+const money = (n: number | null) =>
+  n == null
+    ? '-'
+    : new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0,
+      }).format(Number(n))
+
+const date = (v: string | null) =>
+  v
+    ? new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(new Date(v))
+    : '-'
+
+async function load({ silent = false }: LoadOptions = {}) {
+  if (!silent) loading.value = true
+  if (!silent) {
+    errorMessage.value = ''
+    scheduleError.value = ''
+  }
+
+  try {
+    const spkId = Number(route.params.spkId)
+    const transactionId = Number(route.query.transactionId)
+
+    if (!Number.isInteger(spkId) || spkId <= 0 ||
+        !Number.isInteger(transactionId) || transactionId <= 0) {
+      throw new Error('ID SPK atau transaksi tidak valid.')
+    }
+
+    data.value = await getSPKReview(spkId, transactionId)
+    scheduleDayOverrides.value = Object.fromEntries(
+      (data.value.schedules || [])
+        .filter((item: any) => item.status !== 'Paid' && item.due_date)
+        .map((item: any) => [Number(item.id), Number(dateOnly(item.due_date).slice(8, 10))]),
+    )
+    errorMessage.value = ''
+    if (!silent) activeCalendarId.value = null
+  } catch (error) {
+    if (!silent) errorMessage.value = error instanceof Error ? error.message : 'Terjadi kesalahan.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function payCommission() {
+  if (!data.value?.commission || payingCommission.value) return
+  payingCommission.value = true
+  commissionError.value = ''
+  try {
+    await payMarketingCommission(Number(data.value.commission.id), commissionReference.value)
+    commissionReference.value = ''
+    await load()
+  } catch (error) {
+    commissionError.value = error instanceof Error ? error.message : 'Komisi gagal dicairkan.'
+  } finally {
+    payingCommission.value = false
+  }
+}
+
+async function saveIndividualSchedules() {
+  if (!data.value?.schedules?.length) return
+  savingSchedule.value = true
+  scheduleError.value = ''
+
+  try {
+    const editable = sortedSchedules.value.filter((item: any) => item.status !== 'Paid')
+    const changed = editable.filter(
+      (item: any) =>
+        generatedScheduleDates.value[Number(item.id)] !== dateOnly(item.due_date),
+    )
+
+    for (const item of changed) {
+      await updateInstallmentSchedule(
+        Number(item.id),
+        generatedScheduleDates.value[Number(item.id)],
+      )
+    }
+
+    if (changed.length > 0) {
+      await load()
+      toast.success(`${changed.length} jadwal cicilan berhasil diperbarui.`)
+    } else {
+      // Tanggal default sudah berasal dari database; tombol tetap dapat
+      // diklik untuk mengonfirmasi bahwa jadwal tersebut akan digunakan.
+      toast.success('Jadwal siap digunakan.')
+    }
+  } catch (error) {
+    scheduleError.value =
+      error instanceof Error ? error.message : 'Tanggal pembayaran gagal disimpan.'
+    await load()
+  } finally {
+    savingSchedule.value = false
+  }
+}
+
+onMounted(() => load())
+
+/* Tanggal cicilan yang sudah diubah tetapi belum disimpan tidak boleh tertimpa. */
+const hasUnsavedSchedule = computed(() =>
+  (data.value?.schedules ?? []).some(
+    (item: any) =>
+      item.status !== 'Paid' && item.due_date &&
+      scheduleDayOverrides.value[Number(item.id)] !== Number(dateOnly(item.due_date).slice(8, 10)),
+  ),
+)
+
+useRealtimeRefresh(
+  ['spk_requests', 'lot_transactions', 'payments', 'installment_schedules', 'marketing_commissions', 'spk_process_steps'],
+  () => load({ silent: true }),
+  {
+    pauseWhen: () =>
+      loading.value || savingSchedule.value || payingCommission.value ||
+      activeCalendarId.value !== null || commissionReference.value || hasUnsavedSchedule.value,
+  },
+)
+
+</script>
+<style scoped>
+.review-page { --review-gap: 16px; font-family: var(--font-primary); } .review-shell { max-width: 1100px; margin: 0 auto; padding: 24px 16px calc(96px + env(safe-area-inset-bottom)); color: var(--text-primary); } .review-navigation { margin-bottom: 16px; } .review-back-button { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:8px 12px; border:1px solid var(--border-default); border-radius:var(--radius-control); background:var(--surface-primary); color:var(--text-primary); font:inherit; font-weight:600; cursor:pointer; transition:background-color .2s ease, border-color .2s ease; } @media (hover: hover) and (pointer: fine) {
+  .review-back-button:hover { background:var(--surface-muted); border-color:var(--poliland-green); } 
+}.review-back-button:active { transform:translateY(1px); } .review-back-button ion-icon { font-size:18px; } .review-heading,.section-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; } .eyebrow { margin:0 0 4px; color:var(--poliland-gold-text); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; } h1 { margin:0; font-size:clamp(24px,5vw,36px); } h2 { margin:0 0 16px; font-size:18px; } .review-id { color:var(--text-secondary); font-size:13px; } .status-chip,.payment-status { display:inline-flex; padding:6px 10px; border-radius:var(--radius-control); background:var(--status-success-bg); color:var(--poliland-green); font-weight:700; font-size:12px; } .review-panel { margin-top:var(--review-gap); padding:20px; background:var(--surface-primary); border:1px solid var(--border-default); border-radius:var(--radius-panel); } .info-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:0; } dt { color:var(--text-secondary); font-size:12px; } dd { margin:4px 0 0; font-weight:600; overflow-wrap:anywhere; } .monthly-date-card { display:grid; gap:12px; max-width:560px; } .monthly-date-card > label { font-size:13px; font-weight:700; color:var(--text-primary); } .date-picker-wrap { display:flex; align-items:center; gap:10px; min-height:54px; padding:4px 12px; border:1px solid var(--border-default); border-radius:var(--radius-control); background:var(--surface-primary); color:var(--poliland-green); } .date-picker-wrap ion-icon { font-size:21px; flex:none; } .date-picker-wrap input { flex:1; width:100%; border:0; outline:0; padding:8px 0; min-width:0; } .date-picker-wrap input:focus-visible { outline:0; } .date-picker-hint,.schedule-empty { margin:0; color:var(--text-secondary); font-size:12px; line-height:1.6; } .schedule-preview { display:grid; gap:8px; } .schedule-preview-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--border-default); border-radius:var(--radius-control); background:var(--surface-primary); } .schedule-editor-info { display:grid; gap:4px; } .schedule-editor-info strong { font-size:13px; } .schedule-editor-info span,.schedule-editor-info small,.schedule-date-field span,.schedule-preview-date { color:var(--text-secondary); font-size:12px; } .schedule-date-field { display:grid; gap:6px; font-size:12px; font-weight:600; } .schedule-date-field input { width:100%; } .monthly-date-meta { display:flex; flex-wrap:wrap; gap:8px 16px; color:var(--text-secondary); font-size:12px; } input,select,textarea { min-height:44px; border:1px solid var(--border-default); border-radius:var(--radius-control); padding:10px; color:var(--text-primary); background:var(--surface-primary); font:inherit; } .timeline { display:grid; gap:18px; } .timeline-item { display:grid; grid-template-columns:16px 1fr; gap:12px; position:relative; } .timeline-item:not(:last-child)::after { content:''; position:absolute; left:7px; top:18px; bottom:-20px; width:2px; background:var(--border-default); } .timeline-dot { width:14px; height:14px; border-radius:50%; background:var(--border-default); margin-top:3px; } .timeline-item.current .timeline-dot { background:var(--poliland-green); } .timeline-item small { display:block; color:var(--text-secondary); margin-top:4px; } .timeline-item p { margin:6px 0 0; } .review-state { display:grid; place-items:center; gap:8px; min-height:40vh; text-align:center; } .review-error { color:var(--status-danger); } .modal-field { display:grid; gap:6px; margin-bottom:16px; } .modal-field select,.modal-field textarea { width:100%; } button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:3px solid color-mix(in srgb,var(--poliland-green) 45%, transparent); outline-offset:2px; }
+@media (max-width: 760px) { .review-shell { padding-top:16px; } .review-heading { display:block; } .review-id { display:block; margin-top:8px; } .info-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; } .monthly-date-card { max-width:none; } .schedule-editor-item { grid-template-columns:1fr; } .monthly-date-meta { display:grid; gap:4px; } }
+@media (max-width: 480px) { .info-grid { grid-template-columns:1fr; } .review-panel { padding:16px; border-radius:var(--radius-card); } }
+
+.schedule-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.schedule-date-field small {
+  display: block;
+  margin-top: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 640px) {
+  .schedule-date-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.schedule-preview-item { position: relative; flex-wrap: wrap; }
+.schedule-preview-item.is-paid { background: var(--surface-muted); }
+.schedule-date-action { display: grid; justify-items: end; gap: 6px; }
+.choose-date-button {
+  min-height: 36px; padding: 6px 11px; border: 1px solid var(--border-default);
+  border-radius: var(--radius-control); background: var(--surface-primary);
+  color: var(--poliland-green); font: inherit; font-size: 12px; font-weight: 700;
+}
+.choose-date-button:disabled { opacity: .55; cursor: not-allowed; }
+.inline-calendar {
+  flex: 1 0 100%; max-width: 340px; margin-top: 8px; padding: 14px;
+  border: 1px solid var(--border-default); border-radius: var(--radius-card);
+  background: var(--surface-primary);
+}
+.calendar-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+.calendar-month { color:var(--text-primary); font-weight:700; }
+.calendar-auto-label { color:var(--text-secondary); font-size:10px; }
+.calendar-weekdays,.calendar-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; text-align:center; }
+.calendar-weekdays { margin-bottom:6px; color:var(--text-secondary); font-size:11px; font-weight:700; }
+.calendar-day,.calendar-blank { display:grid; place-items:center; aspect-ratio:1; min-width:0; }
+.calendar-day { border:0; border-radius:50%; background:transparent; color:var(--text-primary); font:inherit; font-size:12px; }
+@media (hover: hover) and (pointer: fine) {
+  .calendar-day:hover { background:var(--surface-muted); }
+}
+.calendar-day.selected { background:var(--poliland-green); color:#fff; font-weight:700; }
+.calendar-note { margin:10px 0 0; color:var(--text-secondary); font-size:11px; line-height:1.5; }
+.paid-label { color:var(--status-success); font-weight:700; }
+
+.review-note { margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.commission-pay { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.commission-pay input { flex: 1 1 200px; min-height: 40px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); font: inherit; }
+</style>

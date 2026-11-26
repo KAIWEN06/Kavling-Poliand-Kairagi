@@ -25,6 +25,8 @@ describe('rute notifikasi membawa data terkait', () => {
     ['admin', 'transaction', 'cancellation_requested', { customer_id: 5 }, '/admin/keuangan?tab=cancellations'],
     ['admin', 'transaction', 'lot_released', { lot_id: 9, customer_id: 5 }, '/admin/kavling/9'],
     ['admin', 'survey', 'survey_requested', { survey_id: 'abc' }, '/admin/survei?surveyId=abc'],
+    ['client', 'system', 'favorite_unavailable', { lot_id: 9 }, '/client/kavling/9'],
+    ['client', 'system', 'favorite_available', {}, '/client/favorit'],
     ['marketing', 'spk', 'spk_approved', { spk_id: 7 }, '/marketing/pengajuan?spkId=7'],
     ['marketing', 'payment', 'payment_confirmed', { payment_id: 3 }, '/marketing/pembayaran?paymentId=3'],
     ['marketing', 'payment', 'booking_fee_reminder_client', { spk_id: 7 }, '/marketing/pengajuan?spkId=7'],

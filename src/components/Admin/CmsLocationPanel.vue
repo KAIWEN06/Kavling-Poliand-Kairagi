@@ -18,7 +18,7 @@
 
       <div class="block-head">
         <h3>Tempat terdekat</h3>
-        <button class="btn btn-secondary" type="button" :disabled="settings.places.length >= 10" @click="addPlace">Tambah tempat</button>
+        <button class="btn btn-secondary" type="button" :disabled="settings.places.length >= 10" data-discard-change @click="addPlace">Tambah tempat</button>
       </div>
       <p v-if="!settings.places.length" class="empty">Belum ada tempat terdekat. Bagian ini akan tampil tanpa daftar.</p>
       <ul class="place-list">
@@ -38,9 +38,9 @@
             </label>
           </div>
           <div class="place-controls">
-            <button class="icon-btn" type="button" :disabled="index === 0" aria-label="Naikkan urutan" @click="move(index, -1)">↑</button>
-            <button class="icon-btn" type="button" :disabled="index === settings.places.length - 1" aria-label="Turunkan urutan" @click="move(index, 1)">↓</button>
-            <button class="btn btn-danger" type="button" @click="removePlace(index)">Hapus</button>
+            <button class="icon-btn" type="button" :disabled="index === 0" aria-label="Naikkan urutan" data-discard-change @click="move(index, -1)">↑</button>
+            <button class="icon-btn" type="button" :disabled="index === settings.places.length - 1" aria-label="Turunkan urutan" data-discard-change @click="move(index, 1)">↓</button>
+            <button class="btn btn-danger" type="button" data-discard-change @click="removePlace(index)">Hapus</button>
           </div>
         </li>
       </ul>

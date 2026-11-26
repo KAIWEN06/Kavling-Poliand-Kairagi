@@ -1,5 +1,6 @@
 <template>
   <AppModal
+    guard-unsaved
     :model-value="modelValue"
     title="Laporkan ulasan"
     variant="dialog"

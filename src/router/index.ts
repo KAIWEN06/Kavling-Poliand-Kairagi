@@ -33,6 +33,7 @@ const AdminContentPage = () => import('@/views/Admin/AdminContentPage.vue')
 const AdminSurveyRequestsPage = () => import('@/views/Admin/AdminSurveyRequestsPage.vue')
 const SPKAdminPage = () => import('@/views/Admin/SPKAdminPage.vue')
 const AdminReviewsPage = () => import('@/views/Admin/AdminReviewsPage.vue')
+const AdminMinatPembeliPage = () => import('@/views/Admin/AdminMinatPembeli.vue')
 const TinjauSPKPage = () => import('@/views/Admin/TinjauSPKPage.vue')
 const BerandaMarketingPage = () => import('@/views/marketing/BerandaMarketingPage.vue')
 const KavlingMarketingPage = () => import('@/views/marketing/KavlingMarketingPage.vue')
@@ -187,6 +188,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/admin/ulasan',
     name: 'AdminUlasan',
     component: AdminReviewsPage,
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/admin/minat-pembeli',
+    name: 'AdminMinatPembeli',
+    component: AdminMinatPembeliPage,
     meta: { requiresAuth: true, role: 'admin' },
   },
   {

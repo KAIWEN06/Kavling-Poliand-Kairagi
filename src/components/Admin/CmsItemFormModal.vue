@@ -1,5 +1,6 @@
 <template>
   <AppModal
+    guard-unsaved
     :model-value="modelValue"
     :title="(item ? 'Ubah ' : 'Tambah ') + noun"
     :loading="saving"

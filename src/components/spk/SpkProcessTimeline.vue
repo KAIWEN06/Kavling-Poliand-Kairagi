@@ -102,6 +102,7 @@
     </template>
 
     <AppModal
+      guard-unsaved
       v-model="modalOpen"
       :title="modalTitle"
       variant="bottom-sheet"
@@ -148,7 +149,7 @@
               :class="{ 'is-selected': isoOf(day) === dateValue, 'is-today': isoOf(day) === today }"
               :disabled="isoOf(day) < today"
               :aria-pressed="isoOf(day) === dateValue"
-              @click="pickDay(day)"
+              data-discard-change @click="pickDay(day)"
             >{{ day }}</button>
           </div>
         </div>

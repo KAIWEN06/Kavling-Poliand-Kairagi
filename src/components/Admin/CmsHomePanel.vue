@@ -54,7 +54,7 @@
               {{ previewSrc ? 'Ganti gambar' : 'Pilih gambar' }}
               <input type="file" accept="image/jpeg,image/png,image/webp" @change="selectImage">
             </label>
-            <button v-if="previewSrc" class="btn btn-ghost" type="button" @click="clearImage">Hapus gambar</button>
+            <button v-if="previewSrc" class="btn btn-ghost" type="button" data-discard-change @click="clearImage">Hapus gambar</button>
             <span class="hint">JPG, PNG, atau WEBP. Maksimal 5 MB. Rasio lebar disarankan.</span>
           </div>
         </div>
@@ -63,7 +63,7 @@
       <section v-if="shows('highlights')" class="block" aria-labelledby="hl-title">
         <div class="block-head">
           <h3 id="hl-title">Angka & sorotan</h3>
-          <button class="btn btn-secondary" type="button" :disabled="highlights.length >= 4" @click="addHighlight">Tambah sorotan</button>
+          <button class="btn btn-secondary" type="button" :disabled="highlights.length >= 4" data-discard-change @click="addHighlight">Tambah sorotan</button>
         </div>
         <p class="hint lead">Total kaveling dan jumlah terjual dihitung otomatis dari data kavling. Sorotan di bawah ini tampil di sebelahnya.</p>
         <p v-if="!highlights.length" class="empty">Belum ada sorotan.</p>
@@ -82,7 +82,7 @@
                 </select>
               </label>
             </div>
-            <button class="btn btn-danger" type="button" :aria-label="`Hapus sorotan ${item.label || index + 1}`" @click="highlights.splice(index, 1)">Hapus</button>
+            <button class="btn btn-danger" type="button" :aria-label="`Hapus sorotan ${item.label || index + 1}`" data-discard-change @click="highlights.splice(index, 1)">Hapus</button>
           </li>
         </ul>
       </section>
@@ -90,7 +90,7 @@
       <section v-if="shows('features')" class="block" aria-labelledby="feat-title">
         <div class="block-head">
           <h3 id="feat-title">Keunggulan</h3>
-          <button class="btn btn-secondary" type="button" @click="addFeature">Tambah keunggulan</button>
+          <button class="btn btn-secondary" type="button" data-discard-change @click="addFeature">Tambah keunggulan</button>
         </div>
         <p v-if="!features.length" class="empty">Belum ada keunggulan. Bagian ini tidak tampil di Beranda sampai Anda menambahkan.</p>
         <ul class="feature-list">
@@ -110,13 +110,13 @@
               </label>
             </div>
             <div class="feature-controls">
-              <button class="icon-btn" type="button" :disabled="index === 0" aria-label="Naikkan urutan" @click="moveFeature(index, -1)">↑</button>
-              <button class="icon-btn" type="button" :disabled="index === features.length - 1" aria-label="Turunkan urutan" @click="moveFeature(index, 1)">↓</button>
+              <button class="icon-btn" type="button" :disabled="index === 0" aria-label="Naikkan urutan" data-discard-change @click="moveFeature(index, -1)">↑</button>
+              <button class="icon-btn" type="button" :disabled="index === features.length - 1" aria-label="Turunkan urutan" data-discard-change @click="moveFeature(index, 1)">↓</button>
               <label class="switch compact">
                 <input v-model="feature.is_active" type="checkbox">
                 <span>{{ feature.is_active ? 'Tampil' : 'Disembunyikan' }}</span>
               </label>
-              <button class="btn btn-danger" type="button" @click="removeFeature(feature, index)">Hapus</button>
+              <button class="btn btn-danger" type="button" data-discard-change @click="removeFeature(feature, index)">Hapus</button>
             </div>
           </li>
         </ul>
@@ -126,7 +126,7 @@
       <section v-if="shows('about')" class="block" aria-labelledby="about-title">
         <div class="block-head">
           <h3 id="about-title">Tentang Kami</h3>
-          <button class="btn btn-secondary" type="button" :disabled="aboutPoints.length >= 6" @click="aboutPoints.push('')">Tambah poin</button>
+          <button class="btn btn-secondary" type="button" :disabled="aboutPoints.length >= 6" data-discard-change @click="aboutPoints.push('')">Tambah poin</button>
         </div>
         <div class="fields">
           <label class="field wide">Deskripsi singkat
@@ -139,8 +139,8 @@
           <div class="video-head">
             <h4>Video profil</h4>
             <div class="seg" role="group" aria-label="Sumber video">
-              <button type="button" :class="{ on: videoSource === 'youtube' }" :aria-pressed="videoSource === 'youtube'" @click="setVideoSource('youtube')">YouTube</button>
-              <button type="button" :class="{ on: videoSource === 'upload' }" :aria-pressed="videoSource === 'upload'" @click="setVideoSource('upload')">Unggah file</button>
+              <button type="button" :class="{ on: videoSource === 'youtube' }" :aria-pressed="videoSource === 'youtube'" data-discard-change @click="setVideoSource('youtube')">YouTube</button>
+              <button type="button" :class="{ on: videoSource === 'upload' }" :aria-pressed="videoSource === 'upload'" data-discard-change @click="setVideoSource('upload')">Unggah file</button>
             </div>
           </div>
 
@@ -165,7 +165,7 @@
               {{ thumbSrc ? 'Ganti sampul' : 'Pilih sampul (opsional)' }}
               <input type="file" accept="image/jpeg,image/png,image/webp" @change="selectThumb">
             </label>
-            <button class="btn btn-danger" type="button" @click="clearVideo">Hapus video</button>
+            <button class="btn btn-danger" type="button" data-discard-change @click="clearVideo">Hapus video</button>
             <span class="hint">Sampul YouTube diambil otomatis bila kosong.</span>
           </div>
         </div>
@@ -175,7 +175,7 @@
             <label class="field grow">Poin {{ index + 1 }}
               <input v-model="aboutPoints[index]" maxlength="80" placeholder="Contoh: Kawasan berkembang dan potensial">
             </label>
-            <button class="btn btn-danger" type="button" :aria-label="`Hapus poin ${index + 1}`" @click="aboutPoints.splice(index, 1)">Hapus</button>
+            <button class="btn btn-danger" type="button" :aria-label="`Hapus poin ${index + 1}`" data-discard-change @click="aboutPoints.splice(index, 1)">Hapus</button>
           </li>
         </ul>
       </section>

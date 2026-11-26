@@ -3,6 +3,7 @@ import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeR
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
 import { askNotificationPermission } from '@/composables/useNotificationPrompt'
+import { trackFunnel } from '@/services/funnelService'
 import { NOTARY_FEE, estimateInstallment } from '@/services/payment/paymentCalculator'
 import IdentityFields from '@/components/identity/IdentityFields.vue'
 import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
@@ -106,6 +107,7 @@ const previewUrl = ref('')
 const previewLoading = ref(false)
 const previewError = ref('')
 const reuploadProof = ref<File | null>(null)
+const detailModalRef = ref<InstanceType<typeof AppModal> | null>(null)
 const reuploadSubmitting = ref(false)
 const reuploadError = ref('')
 const refundProofSubmitting = ref(false)
@@ -349,6 +351,7 @@ async function loadBookingFeesWithTimeout() {
 
 async function openCreateForm(preferredLotId: number | null = null) {
   createOpen.value = true
+  trackFunnel('spk_form_open', preferredLotId)
   createError.value = ''
   termsAccepted.value = false
   void identityForm.load()
@@ -617,6 +620,7 @@ async function submitCreateSPK() {
       documents: createDocuments,
       reuseBookingPaymentId: selectedReusePaymentId.value,
     })
+    trackFunnel('spk_submitted', selectedCreateLot.value?.id)
     createOpen.value = false
     await loadSpkRecords()
     void askNotificationPermission('Supaya Anda tahu hasil pemeriksaan pengajuan SPK.')
@@ -905,6 +909,7 @@ useRealtimeRefresh(
     <MobileTabBar variant="client" />
 
     <AppModal
+      guard-unsaved
       v-model="createOpen"
       title="Buat SPK"
       variant="bottom-sheet"
@@ -936,14 +941,14 @@ useRealtimeRefresh(
         <section class="spk-form-section">
           <h3>2. Pilih Kaveling</h3>
           <label class="spk-lot-search">Cari kaveling
-            <input v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kaveling atau blok" />
+            <input data-discard-ignore v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kaveling atau blok" />
           </label>
           <p v-if="lotLoading" class="spk-lot-empty">Memuat kaveling tersedia...</p>
           <div v-else class="spk-lot-list" role="group" aria-label="Pilih kaveling">
             <button v-for="lot in filteredCreateLots" :key="lot.id" type="button"
               class="spk-lot-option" :class="{ selected: selectedLotId === lot.id, held: heldLots.has(lot.id) }"
               :disabled="heldLots.has(lot.id)"
-              :aria-pressed="selectedLotId === lot.id" @click="selectCreateLot(lot)">
+              :aria-pressed="selectedLotId === lot.id" data-discard-change @click="selectCreateLot(lot)">
               <span class="spk-lot-check" aria-hidden="true">{{ selectedLotId === lot.id ? '✓' : '' }}</span>
               <span>
                 <strong>{{ lot.lot_number }}</strong>
@@ -970,7 +975,7 @@ useRealtimeRefresh(
                   @input="downPaymentInput = ($event.target as HTMLInputElement).value.replace(/\D/g, '')" />
               </label>
               <div class="spk-dp-shortcuts">
-                <button v-for="percent in [10,20,30]" :key="percent" type="button" @click="setDownPaymentPercent(percent)">{{ percent }}%</button>
+                <button v-for="percent in [10,20,30]" :key="percent" type="button" data-discard-change @click="setDownPaymentPercent(percent)">{{ percent }}%</button>
               </div>
             </template>
             <label>Tenor cicilan
@@ -1066,7 +1071,8 @@ useRealtimeRefresh(
       </form>
     </AppModal>
 
-    <AppModal
+    <AppModal ref="detailModalRef"
+      :unsaved="Boolean(reuploadProof)"
       :model-value="detailOpen"
       title="Detail SPK"
       variant="bottom-sheet"
@@ -1251,7 +1257,7 @@ useRealtimeRefresh(
         </section>
       </div>
       <template #footer>
-        <AppButton type="button" variant="neutral" fill="outline" class="spk-detail-close" @click="closeDetail">Tutup</AppButton>
+        <AppButton type="button" variant="neutral" fill="outline" class="spk-detail-close" @click="detailModalRef?.close()">Tutup</AppButton>
       </template>
     </AppModal>
 
@@ -1302,7 +1308,7 @@ useRealtimeRefresh(
 .spk-form-section input:not([type=file]):not([type=radio]),.spk-form-section select,.spk-form-section textarea { width:100%; min-width:0; min-height:44px; border:1px solid var(--border-default,#dfe5dc); border-radius:10px; padding:11px; background:var(--surface-primary,#fff); color:var(--text-primary,#263329); font:inherit; font-weight:400; outline:none; }
 .spk-form-section input:focus-visible,.spk-form-section select:focus-visible,.spk-form-section textarea:focus-visible { border-color:var(--poliland-green,#55784b); box-shadow:0 0 0 3px color-mix(in srgb,var(--poliland-green,#355a2c) 22%,transparent); }
 .spk-lot-search { display:grid; gap:6px; }
-.spk-lot-list { display:grid; gap:8px; max-height:260px; overflow:auto; padding:2px; }
+.spk-lot-list { display:grid; grid-auto-rows:max-content; gap:8px; max-height:260px; overflow:auto; padding:2px; }
 .spk-lot-option { display:grid; grid-template-columns:22px minmax(0,1fr) auto; align-items:center; gap:9px; min-height:58px; border:1px solid var(--border-default,#e1e7de); border-radius:10px; background:var(--surface-primary,#fff); padding:9px 10px; color:var(--text-primary,#263329); text-align:left; cursor:pointer; }
 .spk-lot-option.held { cursor:not-allowed; background:var(--surface-secondary,#f3f4f1); opacity:.8; }
 .spk-lot-option.held>b { color:var(--text-secondary,#7b8679); }

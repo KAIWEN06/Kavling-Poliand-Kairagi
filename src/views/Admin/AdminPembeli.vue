@@ -126,6 +126,7 @@
     </AppModal>
 
     <AppModal
+      guard-unsaved
       v-model="addModalOpen"
       title="Tambah klien"
       variant="bottom-sheet"
@@ -266,7 +267,7 @@
             <label for="add-lot-search">Cari kaveling tersedia</label>
             <input
               id="add-lot-search"
-              v-model="addLotSearch"
+              data-discard-ignore v-model="addLotSearch"
               type="search"
               placeholder="Ketik nomor kaveling atau blok..."
               autocomplete="off"
@@ -1013,7 +1014,7 @@ useRealtimeRefresh(
   border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit;
 }
 .add-customer-form .lot-picker-list {
-  display: grid; gap: 8px; max-height: 280px; overflow-y: auto; margin: 0; padding: 0; border: 0;
+  display: grid; grid-auto-rows: max-content; gap: 8px; max-height: 280px; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: 0; border: 0;
 }
 .add-customer-form .lot-picker-list legend { margin-bottom: 8px; color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }
 .add-customer-form .lot-picker-option {

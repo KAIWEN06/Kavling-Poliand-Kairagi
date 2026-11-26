@@ -12,12 +12,15 @@ import Skeleton from '@/components/ui/Skeleton.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
+import { useToast } from '@/composables/useToast'
+import { askNotificationPermission } from '@/composables/useNotificationPrompt'
 import { favoriteService, type FavoriteLot } from '@/services/favoriteService'
 import { formatCurrency, getStatusLabel, normalizeLotStatus } from '@/utils/siteplan'
 
 const MAX_COMPARE = 3
 
 const router = useRouter()
+const toast = useToast()
 const { ids, status, load } = useFavorites()
 
 const lots = ref<FavoriteLot[]>([])
@@ -40,9 +43,40 @@ async function loadLots() {
   }
 }
 
+/* null: fiturnya belum ada atau statusnya belum terbaca, sakelar disembunyikan. */
+const alertsEnabled = ref<boolean | null>(null)
+const alertsSaving = ref(false)
+
+async function loadAlerts() {
+  try {
+    alertsEnabled.value = await favoriteService.getAlertsEnabled()
+  } catch (error) {
+    console.error('[Favorit] Gagal membaca pengaturan notifikasi:', error)
+  }
+}
+
+async function toggleAlerts(event: Event) {
+  const input = event.target as HTMLInputElement
+  const next = input.checked
+  alertsSaving.value = true
+  try {
+    await favoriteService.setAlertsEnabled(next)
+    alertsEnabled.value = next
+    if (next) {
+      void askNotificationPermission('Supaya kabar kavling favorit sampai ke HP Anda.', { requested: true })
+    }
+  } catch (error) {
+    console.error('[Favorit] Gagal menyimpan pengaturan notifikasi:', error)
+    input.checked = !next
+    toast.error('Pengaturan notifikasi belum tersimpan. Coba lagi.')
+  } finally {
+    alertsSaving.value = false
+  }
+}
+
 async function refresh() {
   await load()
-  if (status.value === 'ready') await loadLots()
+  if (status.value === 'ready') await Promise.all([loadLots(), loadAlerts()])
 }
 
 onIonViewWillEnter(() => void refresh())
@@ -110,6 +144,14 @@ function openLot(id: number) {
             back-label="Daftar kaveling"
           />
         </Reveal>
+
+        <label v-if="status === 'ready' && alertsEnabled !== null" class="favp__alerts">
+          <span>
+            <strong>Kabari perubahan status</strong>
+            <small>Paling banyak sekali sehari.</small>
+          </span>
+          <input type="checkbox" role="switch" :checked="alertsEnabled" :disabled="alertsSaving" @change="toggleAlerts" />
+        </label>
 
         <div v-if="isLoading" class="favp__list" role="status" aria-label="Memuat favorit">
           <Skeleton v-for="n in 3" :key="n" height="150px" border-radius="16px" />
@@ -219,6 +261,75 @@ function openLot(id: number) {
   padding: 16px 16px calc(112px + env(safe-area-inset-bottom, 0px));
   color: var(--text-primary, #252525);
   font-family: var(--font-primary, 'Plus Jakarta Sans', sans-serif);
+}
+
+.favp__alerts {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: var(--radius-card, 16px);
+  background: var(--surface-primary, #fff);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.favp__alerts > span {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.favp__alerts small {
+  color: var(--text-secondary, #5f5f66);
+  font-size: 12px;
+}
+
+.favp__alerts input {
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 28px;
+  margin: 0;
+  appearance: none;
+  border-radius: var(--radius-pill, 999px);
+  background: #8a8a90;
+  cursor: pointer;
+}
+
+.favp__alerts input::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 160ms var(--ease-out, ease-out);
+}
+
+.favp__alerts input:checked {
+  background: var(--poliland-green, #355a2c);
+}
+
+.favp__alerts input:checked::after {
+  transform: translateX(20px);
+}
+
+.favp__alerts input:focus-visible {
+  outline: 3px solid var(--poliland-green, #355a2c);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favp__alerts input::after { transition: none; }
 }
 
 .favp__list {

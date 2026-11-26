@@ -1031,6 +1031,7 @@
         />
 
         <AppModal
+          guard-unsaved
           v-model="reviewDialogOpen"
           :title="reviewTargetStatus === 'Rejected' ? 'Tolak Transaksi' : 'Minta unggah ulang'"
           variant="dialog"
@@ -1050,6 +1051,7 @@
         </AppModal>
 
         <AppModal
+          guard-unsaved
           v-model="bankModalOpen"
           :title="editingBankId ? 'Ubah rekening' : 'Tambah rekening'"
           variant="bottom-sheet"
@@ -1090,6 +1092,7 @@
         </AppModal>
 
         <AppModal
+          guard-unsaved
           v-model="planModalOpen"
           :title="editingPlanId ? 'Ubah skema' : 'Tambah skema'"
           variant="bottom-sheet"
@@ -1172,6 +1175,7 @@
     </ion-content>
     <MobileTabBar variant="admin" />
     <AppModal
+      guard-unsaved
       v-model="cancellationDecisionOpen"
       :title="cancellationDecision === 'Approved' ? 'Setujui Pembatalan' : 'Tolak Pengajuan Pembatalan'"
       :confirm-text="cancellationDecision === 'Approved' ? 'Setujui dan Lepaskan Kavling' : 'Tolak Pengajuan'"

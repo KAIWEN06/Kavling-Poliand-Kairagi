@@ -185,7 +185,7 @@ onBeforeUnmount(() => {
 .search-btn { flex: none; min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; background: var(--poliland-green); color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .search-btn:disabled { opacity: .5; cursor: not-allowed; }
 
-.results { display: grid; margin: 0; padding: 4px; list-style: none; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); max-height: 220px; overflow: auto; }
+.results { display: grid; grid-auto-rows: max-content; margin: 0; padding: 4px; list-style: none; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); max-height: 220px; overflow: auto; }
 .result { display: flex; align-items: flex-start; gap: 8px; width: 100%; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--text-primary); font: inherit; font-size: 13px; line-height: 1.4; text-align: left; cursor: pointer; }
 .result:active, .result:hover { background: var(--status-success-bg); }
 .result ion-icon { flex: none; margin-top: 2px; color: var(--poliland-green); }

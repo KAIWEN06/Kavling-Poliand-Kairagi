@@ -371,7 +371,7 @@ useRealtimeRefresh(['contacts'], () => loadContacts(true))
 .block + .block { margin-top: 20px; }
 
 /* Kartu kontak */
-.contact-list { display: grid; gap: 12px; }
+.contact-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 
 .contact-card {
   position: relative;
@@ -470,7 +470,8 @@ useRealtimeRefresh(['contacts'], () => loadContacts(true))
 .contact-state-error { border-color: var(--status-danger); color: var(--status-danger); }
 
 /* Sosial */
-.social-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+/* minmax(0, 1fr): tanpa ini URL nowrap melebarkan kolom dan mendorong panah keluar layar. */
+.social-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0; padding: 0; list-style: none; }
 .social-card {
   display: flex;
   align-items: center;

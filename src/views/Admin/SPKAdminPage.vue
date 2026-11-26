@@ -86,7 +86,7 @@
     </ion-content>
     <MobileTabBar variant="admin" />
 
-    <AppModal v-model="detailOpen" title="Detail pengajuan SPK" variant="bottom-sheet" cancel-text="Tutup" :show-confirm="false" :max-height="'92dvh'">
+    <AppModal :unsaved="Boolean(refundFile || refundMethod.trim() || refundNote.trim() || refundBankReference.trim())" v-model="detailOpen" title="Detail pengajuan SPK" variant="bottom-sheet" cancel-text="Tutup" :show-confirm="false" :max-height="'92dvh'">
       <div v-if="selectedRequest" class="spk-detail">
         <div class="spk-detail-banner"><div><span>Nomor SPK</span><strong>{{ selectedRequest.spk_number }}</strong></div><span :class="['spk-status', `status-${selectedRequest.status.toLowerCase().replaceAll(' ', '-')}`]">{{ statusLabel(selectedRequest.status) }}</span></div>
         <section class="spk-detail-section"><h3>Informasi pembeli</h3>
@@ -264,7 +264,7 @@
       <div class="spk-confirm-copy"><p>SPK <strong>{{ actionRequest?.spk_number }}</strong> akan disetujui.</p><p>Status kaveling <strong>{{ actionRequest?.lot_number }}</strong> akan berubah menjadi <strong>Dipesan</strong>.</p><p>Pastikan data dan dokumen telah diperiksa. Persetujuan tidak dapat dilakukan jika kaveling sudah tidak tersedia.</p></div>
     </AppModal>
 
-    <AppModal v-model="rejectOpen" title="Tolak pengajuan SPK" variant="dialog"
+    <AppModal guard-unsaved v-model="rejectOpen" title="Tolak pengajuan SPK" variant="dialog"
       :loading="saving" :confirm-disabled="!rejectionReason.trim()" confirm-text="Tolak SPK" confirm-variant="danger" slide-confirm slide-label="Geser untuk menolak SPK"
       cancel-text="Batal" @confirm="confirmReject">
       <div class="spk-reject-form"><p>Pilih kategori yang sesuai. Tanda jadi hanya dapat digunakan ulang jika penolakan terjadi karena kesalahan administratif.</p>
@@ -282,6 +282,7 @@
     </AppModal>
 
     <AppModal
+      guard-unsaved
       v-model="createOpen"
       title="Buat SPK untuk Klien"
       variant="bottom-sheet"
@@ -314,12 +315,12 @@
                   @click="changeCustomerSource(source.value)">{{ source.label }}</button>
               </div>
               <label class="spk-lot-search">Cari klien berdasarkan nama
-                <input v-model.trim="customerSearchQuery" type="search" placeholder="Ketik nama klien..." />
+                <input data-discard-ignore v-model.trim="customerSearchQuery" type="search" placeholder="Ketik nama klien..." />
               </label>
               <p v-if="customersLoading" class="spk-customer-state">Memuat daftar klien {{ selectedCustomerSource }}...</p>
               <div v-else class="spk-customer-picker">
                 <button v-for="customer in filteredCustomers" :key="customer.id" type="button"
-                  class="spk-customer-option" @click="selectCustomer(customer)">
+                  class="spk-customer-option" data-discard-change @click="selectCustomer(customer)">
                   <strong>{{ customer.full_name }}</strong>
                   <small>Telepon: {{ customer.phone || 'Tidak tersedia' }} · WhatsApp: {{ customer.whatsapp_phone || 'Tidak tersedia' }}</small>
                 </button>
@@ -381,12 +382,12 @@
           <section class="spk-form-section">
             <h3>2. Minat Kaveling</h3>
             <label class="spk-lot-search">Cari kaveling
-              <input v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kaveling atau blok" />
+              <input data-discard-ignore v-model.trim="lotSearchQuery" type="search" placeholder="Cari nomor kaveling atau blok" />
             </label>
             <div class="spk-lot-list" role="group" aria-label="Pilih beberapa kaveling">
               <button v-for="lot in filteredAvailableLots" :key="lot.id" type="button"
                 class="spk-lot-option" :class="{ selected: selectedLotIds.includes(lot.id) }"
-                :aria-pressed="selectedLotIds.includes(lot.id)" @click="toggleLot(lot.id)">
+                :aria-pressed="selectedLotIds.includes(lot.id)" data-discard-change @click="toggleLot(lot.id)">
                 <span class="spk-lot-check" aria-hidden="true">{{ selectedLotIds.includes(lot.id) ? '✓' : '' }}</span>
                 <span>
                   <strong>{{ lot.lot_number }} <em v-if="isInterestedLot(lot.id)" class="spk-interest-badge">Minat klien</em></strong>
@@ -417,7 +418,7 @@
                       @input="updateLotDp(lot.id, ($event.target as HTMLInputElement).value)" />
                   </label>
                   <div class="spk-dp-shortcuts">
-                    <button v-for="p in [10,20,30]" :key="p" type="button" @click="setLotDp(lot.id,p)">{{ p }}%</button>
+                    <button v-for="p in [10,20,30]" :key="p" type="button" data-discard-change @click="setLotDp(lot.id,p)">{{ p }}%</button>
                   </div>
                   <p v-if="lotDpInvalid(lot)" class="spk-dp-warning" role="alert">
                     {{ dpAmounts[lot.id] ? 'Uang muka harus lebih kecil dari harga kaveling.' : 'Isi nominal uang muka, atau pilih Langsung cicil.' }}
@@ -829,7 +830,17 @@ function formatDate(value: string) {
 function formatMakassarDateTime(value: string) {
   return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(value))
 }
-function openDetail(row: AdminSPKRequest) { selectedRequest.value = row; detailOpen.value = true }
+function openDetail(row: AdminSPKRequest) {
+  // Isian pengembalian dana milik pengajuan sebelumnya tidak boleh terbawa.
+  refundFile.value = null
+  refundMethod.value = ''
+  refundNote.value = ''
+  refundBankReference.value = ''
+  refundTransferAt.value = currentMakassarDateTimeLocal()
+  refundError.value = ''
+  selectedRequest.value = row
+  detailOpen.value = true
+}
 function goToReview(row: AdminSPKRequest) {
   if (row.status !== 'Approved' || !row.transaction_id) return
   router.push({ name: 'AdminTinjauSPK', params: { spkId: row.id }, query: { transactionId: String(row.transaction_id) } })
@@ -1391,7 +1402,7 @@ useRealtimeRefresh(
 .spk-lot-search { display:grid; gap:6px; color:var(--text-primary); font-size:11px; font-weight:700; }
 .spk-lot-search input { min-height:44px; border:1px solid var(--border-default); border-radius:var(--radius-control); padding:0 12px; background:var(--surface-primary); color:var(--text-primary); font:inherit; outline:none; }
 .spk-lot-search input:focus-visible { border-color:var(--poliland-green); box-shadow:0 0 0 3px color-mix(in srgb,var(--poliland-green) 22%,transparent); }
-.spk-lot-list { display:grid; gap:8px; max-height:260px; overflow:auto; padding:2px; }
+.spk-lot-list { display:grid; grid-auto-rows:max-content; gap:8px; max-height:260px; overflow:auto; padding:2px; }
 .spk-lot-option { display:grid; grid-template-columns:24px minmax(0,1fr) auto; align-items:center; gap:9px; width:100%; min-height:58px; border:1px solid var(--border-default); border-radius:var(--radius-control); padding:9px 10px; background:var(--surface-primary); color:var(--text-primary); text-align:left; font:inherit; cursor:pointer; }
 .spk-lot-option.selected {
   border-color:var(--poliland-green);
@@ -1442,7 +1453,7 @@ useRealtimeRefresh(
 .spk-payment-result .spk-total-row strong { color:#355a2c; font-size:15px; }
 .spk-payment-result small,.spk-payment-hint { color:#879184; font-size:10px; line-height:1.5; }
 
-.spk-customer-picker { display:grid; gap:6px; max-height:190px; overflow:auto; }
+.spk-customer-picker { display:grid; grid-auto-rows:max-content; gap:6px; max-height:190px; overflow:auto; }
 .spk-customer-option { display:grid; gap:4px; width:100%; min-height:44px; padding:10px; text-align:left; border:1px solid #e3e9df; border-radius:10px; background:#fff; color:#2e3b2e; cursor:pointer; }
 .spk-customer-option.selected { border-color:#55784b; background:#f1f6ee; }
 .spk-customer-option small,.spk-customer-state { color:#818a80; font-size:10px; }

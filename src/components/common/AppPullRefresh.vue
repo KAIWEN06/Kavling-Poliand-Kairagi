@@ -74,6 +74,30 @@ const indicatorOffset = computed(() => {
   return pull < REFRESH_HOLD ? pull - REFRESH_HOLD : (pull - REFRESH_HOLD) / 2
 })
 
+// Pull-to-refresh hanya untuk halaman utama. Gestur di dalam overlay (termasuk backdrop-nya)
+// milik overlay itu. Overlay baru cukup memakai AppModal, komponen Ionic, atau role="dialog".
+const EXCLUDED_OVERLAYS = [
+  '.app-modal',
+  '[role="dialog"]',
+  '[role="alertdialog"]',
+  '[aria-modal="true"]',
+  'ion-modal',
+  'ion-popover',
+  'ion-action-sheet',
+  'ion-alert',
+  'ion-picker',
+  'ion-loading',
+  'ion-menu',
+  '.modal-overlay',
+  '.menu-backdrop',
+  '.cel',
+  '.detail-panel',
+  '.search-wrapper',
+  '.search-results',
+  '.search-empty',
+  '.search-filter-overlay'
+].join(', ')
+
 const instanceId = Symbol('pull-refresh')
 let tracking = false
 let pulling = false
@@ -107,19 +131,7 @@ function isOwnPageActive() {
 
 function isInsideExcludedOverlay(target: EventTarget | null) {
   if (!(target instanceof Element)) return false
-
-  // Pull-to-refresh hanya boleh bekerja pada halaman utama.
-  // DetailPanel memiliki scroll container sendiri, jadi gesture di dalamnya
-  // tidak boleh dianggap sebagai pull-to-refresh halaman.
-  if (target.closest('.detail-panel')) return true
-  if (target.closest('ion-modal')) return true
-  if (
-    target.closest(
-      '.search-wrapper, .search-results, .search-empty, .search-filter-overlay'
-    )
-  ) return true
-
-  return false
+  return !!target.closest(EXCLUDED_OVERLAYS)
 }
 
 function findContext() {
@@ -330,8 +342,6 @@ function wait(ms: number) {
 
 onMounted(() => {
   if (props.scoped) scopedPageChecks.add(isOwnPageActive)
-  document.documentElement.style.overscrollBehaviorY = 'contain'
-  document.body.style.overscrollBehaviorY = 'contain'
 
   document.addEventListener('touchstart', handleTouchStart, { passive: true })
   document.addEventListener('touchmove', handleTouchMove, { passive: false })
@@ -346,9 +356,6 @@ onUnmounted(() => {
   document.removeEventListener('touchmove', handleTouchMove)
   document.removeEventListener('touchend', handleTouchEnd)
   document.removeEventListener('touchcancel', handleTouchCancel)
-
-  document.documentElement.style.overscrollBehaviorY = ''
-  document.body.style.overscrollBehaviorY = ''
 
   applyContentShift(0)
 })

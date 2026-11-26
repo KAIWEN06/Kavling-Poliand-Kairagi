@@ -1,19 +1,70 @@
-Bangun peningkatan UI dan animasi transisi interaktif untuk fitur siteplan penjualan kavling pada aplikasi [Web React / Vue / Ionic + Capacitor] saya agar pengalaman pengguna terasa lebih imersif, modern, dan responsif.
+# Knowledge Base: Arsitektur UI/UX, Psikologi Perilaku, & Sistem Konversi Aplikasi Pembelian Kavling
 
-Kondisi saat ini:
-- Sudah ada siteplan interaktif yang bisa diklik per kavling untuk menampilkan informasi kavling dan melihat tampilan 360 derajat.
-- Animasi transisi dan tampilan UI masih terasa standar/biasa saja.
+## 1. Prinsip Dasar & Tujuan Produk
+* **Karakteristik Produk:** Properti bernilai tinggi dengan siklus keputusan panjang. Pengguna membutuhkan rasa aman tinggi terkait legalitas, kondisi fisik lokasi, dan kejelasan skema pembayaran sebelum memutuskan *booking*.
+* **Prinsip Desain Utama:** Mengutamakan transparansi, kepercayaan (*high-trust*), dan ergonomi *mobile-first*. Dilarang menggunakan *dark patterns* (misalnya *countdown* palsu atau biaya tersembunyi).
+* **Tujuan Konversi:** Mempermudah proses eksplorasi peta *siteplan* hingga pengajuan Surat Pemesanan Kavling (SPK) dan *booking* dengan friksi seminimal mungkin.
 
-Alur interaksi dan animasi yang diinginkan:
-1. Level Siteplan Keseluruhan: Menampilkan peta siteplan dengan blok dan kavling yang interaktif, hover/focus yang jelas, serta UI overlay yang bersih dan modern (tidak ramai/menumpuk).
-2. Klik Blok -> Zoom ke Blok: Saat pengguna memilih/mengklik sebuah blok, kamera/tampilan melakukan animasi zoom halus (gaya Google Earth zoom transition dengan kurva easing yang natural) mengarah tepat ke blok tersebut dan memperjelas kavling di dalamnya.
-3. Klik Kavling -> Zoom ke Detail Kavling: Saat kavling di dalam blok diklik, transisi berlanjut zoom masuk ke kavling target dan membuka panel/tampilan detail kavling (status, luas, harga, skema pembayaran, tombol aksi) dengan animasi masuk-keluar yang halus serta tombol "Kembali ke Blok" / "Kembali ke Siteplan" (termasuk dukungan tombol back).
-4. Mode Lihat 360° dengan Giroskop: Dari detail kavling, pengguna dapat masuk ke tampilan panorama 360° dengan transisi zoom/fade yang mulus. Tambahkan dukungan kontrol giroskop perangkat mobile untuk mengarahkan pandangan 360°, lengkap dengan:
-   - Penanganan izin akses sensor gerak/orientasi perangkat secara ramah pengguna.
-   - Fallback kontrol sentuh/geser (drag/pan) jika giroskop tidak tersedia, ditolak, atau tidak aktif.
-   - Tombol toggle aktif/nonaktif giroskop dan tombol reset/kalibrasi arah pandang.
+---
 
-Kebutuhan UI/UX & Performa:
-- Desain UI bersih, terstruktur, kontras jelas, nyaman di layar sentuh (target sentuh memadai dan aman dari area notch/status bar maupun keyboard).
-- Optimalkan performa animasi (targetkan 60fps, hindari lag saat transisi dan saat memuat gambar 360°, gunakan lazy loading/manajemen memori yang baik).
-- Jelaskan dulu pendekatan arsitektur dan struktur komponen/state yang disarankan sebelum atau bersamaan dengan implementasi kode, agar mudah diintegrasikan ke proyek yang sudah ada.
+## 2. Eksplorasi & Rekomendasi Cerdas (Algoritma Ringan)
+* **Logika Penyaringan & Rekomendasi:** Sistem menyaring dan merekomendasikan blok atau unit kavling secara relevan berdasarkan:
+  * Preferensi luas tanah dan rentang anggaran pengguna.
+  * Karakteristik posisi unit (tipe *hook*, dekat fasilitas umum, lebar jalan, atau arah hadap).
+  * Riwayat interaksi pengguna (unit yang sering dilihat atau disimpan ke favorit).
+* **Kurasi Pilihan (Mengatasi *Paradox of Choice*):** Untuk mencegah kebingungan akibat terlalu banyak pilihan unit (*analysis paralysis*), kelompokkan kavling dengan label kurasi yang jelas seperti *"Paling Banyak Dilirik Minggu Ini"*, *"Dekat Fasilitas Umum"*, atau *"Rekomendasi Investasi"*.
+
+---
+
+## 3. Penerapan Psikologi Keputusan (Etis & High-Trust)
+* **Social Proof & Authority:**
+  * Penanda status ketersediaan unit (*Tersedia*, *Booking*, *Terjual*) secara *real-time* langsung di peta *siteplan*.
+  * Indikator jumlah peminat yang sedang melihat atau memantau unit tertentu.
+  * Lencana (*badge*) status legalitas yang jelas (SHM, pecah sertifikat, siap AJB).
+* **Scarcity Alami:** Menampilkan informasi sisa unit per blok atau kuota promo harga perdana secara faktual tanpa batas waktu palsu.
+* **Anchoring & Transparansi Biaya:** Menyajikan perbandingan berdampingan antara skema *Cash Keras*, *Cash Bertahap*, dan *Cicilan/KPR*—lengkap dengan rincian DP, estimasi cicilan bulanan, serta estimasi biaya notaris/AJB agar tidak terjadi kejutan biaya (*price shock*).
+* **Endowment Effect (Rasa Memiliki Sebelum Membeli):** Membangun keterikatan emosional melalui fitur simulasi bangun rumah di atas kavling pilihan, penamaan daftar favorit (misalnya *"Kavling Impian Keluarga"*), dan fitur perbandingan 2–3 unit favorit.
+* **Sunk Cost & Komitmen Bertahap:** Menggunakan *progress bar* tahapan yang transparan (*Pilih Unit → Pengajuan SPK → Tanda Tangan & Tanda Jadi → Proses Notaris/AJB*) agar pengguna melihat kemajuan proses secara jelas dan termotivasi menyelesaikannya.
+* **Trust Sequencing:** Menampilkan bukti legalitas, status sertifikat, profil pengembang, dan progres lahan terlebih dahulu sebelum menyodorkan rincian harga besar.
+
+---
+
+## 4. Struktur Halaman, Visualisasi & Ergonomi UI (Mobile-First)
+* **Tata Letak Interaktif:** Mengombinasikan peta *siteplan* visual dengan kartu ringkasan unit di bagian bawah layar (*bottom sheet*) saat unit dipilih.
+* **Progressive Disclosure (Hierarki Informasi Bertahap):**
+  * *Layar Awal:* Menampilkan informasi inti (kode unit, harga, luas tanah, status ketersediaan, dan visual lokasi).
+  * *Layar Diperluas:* Menampilkan spesifikasi teknis detail, rincian simulasi pembayaran, dan dokumen legalitas.
+* **Visualisasi Imersif (*Uncertainty Reduction*):**
+  * Tampilan panorama 360° langsung dari titik kavling untuk memperlihatkan arah hadap, lebar jalan depan unit, dan lingkungan sekitar.
+  * Informasi konteks lingkungan (*hyperlocal insights*) berupa jarak nyata ke fasilitas penting (akses jalan utama, sekolah, pusat kota).
+* **Microcopy & Ergonomi:**
+  * Penempatan tombol aksi utama di area jangkauan jempol (*thumb zone*).
+  * Menggunakan Bahasa Indonesia yang jelas, ramah, dan menenangkan untuk tombol aksi (contoh: *"Ajukan Booking Kavling"*, *"Simulasi Cicilan"*, *"Jadwalkan Survei Lokasi"*).
+* **Optimasi Performa:** Menggunakan kompresi gambar modern (WebP/AVIF) dan *lazy loading* aset peta agar waktu muat cepat dan tidak memutus niat transaksi pengguna seluler.
+
+---
+
+## 5. Sistem Notifikasi Retensi & Transaksional (*Event-Driven*)
+Notifikasi pada aplikasi kavling harus menjaga wibawa dan menghindari pengiriman massal berlebihan (*spam*) yang memicu kejenuhan (*notification fatigue*).
+
+### Mekanisme Teknis
+* **Event-Driven Triggers:** Dipicu otomatis oleh aksi spesifik pengguna (melihat unit yang sama berulang kali, menyimpan kavling ke favorit, atau perubahan status administrasi).
+* **Send-Time Optimization (STO):** Menjadwalkan pengiriman pada jam-jam saat pengguna paling aktif membuka ponsel.
+* **Behavioral Segmentation & Frequency Capping:** Mengelompokkan pengguna berdasarkan tahap minat (eksplorasi, *booking*, proses berkas) dan membatasi kuota notifikasi harian.
+* **Deep Linking & Rich Media:** Mengetuk notifikasi langsung membuka layar spesifik (detail kavling terkait, halaman SPK, atau jadwal survei) dengan pratinjau visual dan tombol aksi cepat.
+
+### Psikologi & Pemicu Notifikasi Kavling
+* **Hook Model & Hyper-Personalization:** Menyebutkan kode blok/unit spesifik yang diminati pengguna agar terasa relevan.
+* **Loss Aversion & Zeigarnik Effect:** Mengingatkan proses yang belum tuntas atau berkurangnya sisa unit pada blok yang diminati secara faktual.
+* **Kategori Pemicu Utama:**
+  1. *Minat Tinggi (Browse/Wishlist Alert):* Saat unit di blok favorit mulai menipis atau ada peminat lain mengajukan *booking*.
+  2. *Progres & Tenggat Administrasi:* Saat SPK disetujui, pengingat jadwal tanda tangan fisik SPK/*booking fee*, atau pembaruan tahap notaris/AJB.
+  3. *Pengingat Jadwal Survei:* Dikirim H-1 dan beberapa jam sebelum jadwal kunjungan lapangan beserta tautan peta lokasi.
+* **Soft Prompt Izin Notifikasi:** Meminta izin notifikasi secara kontekstual setelah pengguna menyukai unit atau mengajukan SPK (bukan saat pertama kali membuka aplikasi).
+
+---
+
+## 6. Pengukuran Data & Penyelamatan Konversi (CRO)
+* **Funnel & Drop-Off Analytics:** Memantau titik henti pengguna di setiap tahap (eksplorasi → kalkulator cicilan → pengajuan SPK) untuk mendeteksi hambatan informasi atau kebingungan skema biaya.
+* **Behavioral Telemetry & A/B Testing:** Mengamati area layar yang sering diketuk (*heatmap*/*rage clicks*) serta menguji variasi *microcopy* tombol dan tata letak kalkulator cicilan.
+* **Human Handoff yang Mulus (*Warm Lead Routing*):** Jika pengguna berulang kali membuka simulasi cicilan atau berhenti di tengah pengisian SPK, sediakan tombol bantuan cepat ke admin/marketing yang otomatis membawa data unit yang sedang dilihat agar pengguna tidak perlu menjelaskan ulang dari awal.

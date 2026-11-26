@@ -365,7 +365,7 @@ select { width: 100%; min-height: 48px; padding: 0 40px 0 16px; border: 1px soli
 
 select:focus { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; border-color: var(--poliland-green); box-shadow: none; }
 
-.list { display: grid; gap: 14px; }
+.list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 
 .state { display: grid; gap: var(--space-2); justify-items: start; margin: 0; padding: 22px 18px; border: 1px dashed var(--border-strong, #d5d0c4); border-radius: var(--radius-card, 16px); background: var(--surface-primary, #fff); color: var(--text-secondary, #5f5f66); font-size: 15px; line-height: var(--leading-body); }
 .state strong { color: var(--text-primary); }

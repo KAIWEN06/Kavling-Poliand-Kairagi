@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useId } from 'vue'
 import { getLotInstallments } from '@/services/siteplanService'
+import { trackFunnel } from '@/services/funnelService'
 import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
 import { NOTARY_FEE, estimateInstallment } from '@/services/payment/paymentCalculator'
 import { formatCurrency } from '@/utils/siteplan'
@@ -81,7 +82,8 @@ function quickValue(percent: number) {
 </script>
 
 <template>
-  <div class="sim">
+  <!-- Server hanya menghitung akun pembeli; sentuhan pertama saja yang dikirim. -->
+  <div class="sim" @click.once="trackFunnel('simulation_used', lotId)">
     <div class="sim__tabs" role="group" aria-label="Cara bayar">
       <button type="button" :aria-pressed="scheme === 'cash'" @click="scheme = 'cash'">Tunai</button>
       <button type="button" :aria-pressed="scheme === 'installment'" @click="scheme = 'installment'">Cicilan</button>

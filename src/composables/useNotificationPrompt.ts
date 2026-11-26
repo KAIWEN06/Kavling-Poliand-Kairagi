@@ -26,10 +26,11 @@ function markAsked() {
  * Meminta izin notifikasi tepat setelah pengguna melakukan sesuatu yang hasilnya
  * akan diberitahukan. Penjelasan tampil dulu; dialog sistem hanya muncul bila disetujui.
  * Tidak pernah melempar error, jadi aman dipanggil tanpa await.
+ * `requested`: pengguna sendiri baru menyalakan notifikasi, jadi jeda seminggu diabaikan.
  */
-export async function askNotificationPermission(reason: string) {
+export async function askNotificationPermission(reason: string, { requested = false } = {}) {
   try {
-    if (recentlyAsked() || !(await roleNotificationService.canAskPermission())) return
+    if ((!requested && recentlyAsked()) || !(await roleNotificationService.canAskPermission())) return
     const agreed = await useConfirm().confirm({
       title: 'Aktifkan notifikasi?',
       message: reason,

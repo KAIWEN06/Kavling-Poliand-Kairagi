@@ -24,6 +24,7 @@ import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import { useRowFocus } from '@/composables/useRowFocus'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import ReviewInvite from '@/components/reviews/ReviewInvite.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { useCelebration } from '@/composables/useCelebration'
 import { supabase } from '@/services/config/supabase'
@@ -829,6 +830,8 @@ useRealtimeRefresh(
           </article>
         </section>
 
+        <ReviewInvite />
+
         <SkeletonDetailHeader v-if="loading" :sections="2" :rows="4" label="Memuat data pembayaran" />
         <StatusIllustration
           v-else-if="loadError"
@@ -1122,6 +1125,7 @@ useRealtimeRefresh(
     </ion-content>
     <MobileTabBar variant="client" />
     <AppModal
+      guard-unsaved
       v-model="cancellationModalOpen"
       title="Ajukan Pembatalan Pembelian"
       confirm-text="Kirim Pengajuan"

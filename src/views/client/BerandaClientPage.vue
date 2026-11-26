@@ -25,8 +25,9 @@ import {
 } from '@/services/clientSpkService'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
-import AppButton from '@/components/ui/AppButton.vue'
+import ReviewInvite from '@/components/reviews/ReviewInvite.vue'
 import PurchaseJourney from '@/components/client/PurchaseJourney.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import Reveal from '@/components/ui/Reveal.vue'
@@ -342,6 +343,8 @@ useRealtimeRefresh(
                 <ion-icon class="docs__chev" :icon="chevronForward" aria-hidden="true" />
               </button>
             </Reveal>
+
+            <ReviewInvite />
           </div>
 
           <!-- RIWAYAT PEMBAYARAN -->

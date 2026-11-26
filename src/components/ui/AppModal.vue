@@ -2,9 +2,11 @@
   <Transition name="app-modal">
     <div
       v-if="modelValue"
+      ref="rootRef"
       class="app-modal"
-      :class="[`app-modal--${variant}`, { 'app-modal--no-footer': !showFooter, 'app-modal--slide': slideConfirm && showConfirm, 'app-modal--keyboard': keyboardHeight > 0 }]"
+      :class="[`app-modal--${variant}`, { 'app-modal--draggable': dismissable,'app-modal--no-footer': !showFooter, 'app-modal--slide': slideConfirm && showConfirm, 'app-modal--keyboard': keyboardHeight > 0 }]"
       :style="{ '--app-modal-keyboard-height': `${keyboardHeight}px` }"
+      @pointerdown="handlePointerDown"
       @click.self="handleBackdrop"
       @touchmove.self.prevent
     >
@@ -18,9 +20,13 @@
         tabindex="-1"
         :style="panelStyle"
         @keydown="handleKeydown"
+        @touchstart="onDragStart"
+        @touchmove="onDragMove"
+        @touchend="onDragEnd"
+        @touchcancel="onDragCancel"
       >
         <header v-if="showHeader" class="app-modal__header">
-          <slot name="header">
+          <slot name="header" :close="() => requestClose('close-button')">
             <h2 v-if="title" :id="titleId" class="app-modal__title">
               {{ title }}
             </h2>
@@ -42,7 +48,12 @@
 
         <div v-if="showDivider" class="app-modal__divider" />
 
-        <div class="app-modal__body">
+        <div
+          class="app-modal__body"
+          @input.capture="trackChange"
+          @change.capture="trackChange"
+          @click.capture="trackChoice"
+        >
           <slot />
         </div>
 
@@ -86,6 +97,14 @@
   </Transition>
 </template>
 
+<script lang="ts">
+// Dipakai bersama semua instance: dialog konfirmasi bisa terbuka di atas modal lain, dan
+// menutupnya tidak boleh melepas kunci halaman milik modal di bawahnya.
+let openModalCount = 0
+let overflowBeforeLock = ''
+let overscrollBeforeLock = ''
+</script>
+
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Keyboard } from '@capacitor/keyboard'
@@ -94,10 +113,11 @@ import { IonIcon } from '@ionic/vue'
 import { closeOutline } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 type ModalVariant = 'bottom-sheet' | 'dialog' | 'fullscreen'
 type ConfirmVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'neutral'
-type CloseReason = 'close-button' | 'cancel' | 'backdrop' | 'escape'
+type CloseReason = 'close-button' | 'cancel' | 'backdrop' | 'escape' | 'swipe'
 
 interface Props {
   modelValue: boolean
@@ -120,6 +140,10 @@ interface Props {
   slideLabel?: string
   closeOnBackdrop?: boolean
   closeOnEscape?: boolean
+  /** Modal formulir: minta konfirmasi bila pengguna sudah mengisi sesuatu lalu menutupnya. */
+  guardUnsaved?: boolean
+  /** Dipakai bila hanya sebagian modal berupa formulir: induk yang menentukan ada isian atau tidak. */
+  unsaved?: boolean
   maxWidth?: string
   maxHeight?: string
 }
@@ -143,6 +167,8 @@ const props = withDefaults(defineProps<Props>(), {
   slideLabel: '',
   closeOnBackdrop: true,
   closeOnEscape: true,
+  guardUnsaved: false,
+  unsaved: false,
   maxWidth: '560px',
   maxHeight: '90dvh',
 })
@@ -154,6 +180,7 @@ const emit = defineEmits<{
   close: [reason: CloseReason]
 }>()
 
+const rootRef = ref<HTMLElement | null>(null)
 const dialogRef = ref<HTMLElement | null>(null)
 const keyboardHeight = ref(0)
 let pluginKeyboardHeight = 0
@@ -161,8 +188,7 @@ let keyboardListeners: PluginListenerHandle[] = []
 let modalActivation = 0
 const titleId = `app-modal-title-${Math.random().toString(36).slice(2, 10)}`
 const previousActiveElement = ref<HTMLElement | null>(null)
-const previousBodyOverflow = ref('')
-const previousBodyOverscroll = ref('')
+let holdsPageLock = false
 
 const slideVariant = computed<'primary' | 'success' | 'danger' | 'neutral'>(() =>
   props.confirmVariant === 'secondary' ? 'primary' : props.confirmVariant,
@@ -193,9 +219,175 @@ function getFocusableElements() {
     .filter((element) => element.getAttribute('aria-hidden') !== 'true')
 }
 
+/* ---------- Menutup lewat tarik ke bawah dan ketuk di luar ---------- */
+
+/** Modal yang dikunci (close-on-backdrop false) atau sedang memproses tidak bisa ditutup lewat gestur. */
+const dismissable = computed(() => props.closeOnBackdrop && !props.loading)
+
+const DRAG_SLOP = 6
+const DRAG_CLOSE_DISTANCE = 120
+const DRAG_CLOSE_RATIO = 0.25
+const FLICK_VELOCITY = 0.5 // px per ms
+const FLICK_MIN_DISTANCE = 24
+/** Elemen yang punya gestur sendiri, jadi tarikan dari sana tidak menggeser modal. */
+const DRAG_IGNORE = 'input, textarea, select, [contenteditable="true"], .stc'
+
+interface Drag {
+  startX: number
+  startY: number
+  lastY: number
+  lastTime: number
+  velocity: number
+  offset: number
+  active: boolean
+}
+
+let drag: Drag | null = null
+let pressStartedOnBackdrop = false
+
+/** Tarikan hanya dimulai bila semua area gulir di bawah jari sudah berada di paling atas. */
+function canStartDrag(target: EventTarget | null) {
+  const panel = dialogRef.value
+  if (!panel || !(target instanceof Element)) return false
+  if (target.closest(DRAG_IGNORE)) return false
+
+  for (let element: Element | null = target; element && element !== panel; element = element.parentElement) {
+    if (element.scrollTop > 0) return false
+  }
+
+  return true
+}
+
+function onDragStart(event: TouchEvent) {
+  if (drag?.active) {
+    onDragCancel()
+    return
+  }
+
+  drag = null
+  const touch = event.touches[0]
+  if (!dismissable.value || event.touches.length !== 1 || !touch || !canStartDrag(event.target)) return
+
+  drag = {
+    startX: touch.clientX,
+    startY: touch.clientY,
+    lastY: touch.clientY,
+    lastTime: event.timeStamp,
+    velocity: 0,
+    offset: 0,
+    active: false,
+  }
+}
+
+function onDragMove(event: TouchEvent) {
+  const panel = dialogRef.value
+  const touch = event.touches[0]
+  if (!drag || !panel || !touch) return
+
+  const deltaX = touch.clientX - drag.startX
+  const deltaY = touch.clientY - drag.startY
+
+  if (!drag.active) {
+    // Gerak ke atas atau ke samping milik gulir biasa.
+    if (deltaY < 0 || Math.abs(deltaX) > Math.abs(deltaY) || !event.cancelable) {
+      if (Math.abs(deltaX) > DRAG_SLOP || Math.abs(deltaY) > DRAG_SLOP) drag = null
+      return
+    }
+
+    // Harus dicegah sejak gerak pertama; setelah browser mulai menggulir, tidak bisa dibatalkan.
+    event.preventDefault()
+    if (deltaY <= DRAG_SLOP) return
+
+    drag.active = true
+    drag.startY = touch.clientY
+    panel.style.transition = 'none'
+  } else if (event.cancelable) {
+    event.preventDefault()
+  }
+
+  const elapsed = event.timeStamp - drag.lastTime
+  if (elapsed > 0) drag.velocity = (touch.clientY - drag.lastY) / elapsed
+  drag.lastY = touch.clientY
+  drag.lastTime = event.timeStamp
+  drag.offset = Math.max(0, touch.clientY - drag.startY)
+  panel.style.translate = `0 ${drag.offset}px`
+}
+
+function onDragEnd(event: TouchEvent) {
+  const panel = dialogRef.value
+  const finished = drag
+  drag = null
+  if (!finished?.active || !panel) return
+
+  // Jari yang berhenti dulu sebelum diangkat tidak dihitung sebagai sentakan.
+  const velocity = event.timeStamp - finished.lastTime > 100 ? 0 : finished.velocity
+  const distance = Math.min(DRAG_CLOSE_DISTANCE, panel.offsetHeight * DRAG_CLOSE_RATIO)
+  const flicked = velocity > FLICK_VELOCITY && finished.offset > FLICK_MIN_DISTANCE
+  const pulledFar = finished.offset > distance && velocity > -FLICK_VELOCITY
+
+  if (dismissable.value && (flicked || pulledFar)) void dismissByDrag(panel)
+  else settleDrag(panel)
+}
+
+function onDragCancel() {
+  const wasActive = drag?.active
+  drag = null
+  if (wasActive && dialogRef.value) settleDrag(dialogRef.value)
+}
+
+function settleDrag(panel: HTMLElement) {
+  panel.style.transition = 'translate var(--dur-modal-in) var(--ease-modal-in)'
+  panel.style.translate = '0 0'
+  panel.addEventListener('transitionend', () => { panel.style.transition = '' }, { once: true })
+}
+
+/** Panel meneruskan geraknya ke bawah memakai transisi keluar milik modal. */
+async function dismissByDrag(panel: HTMLElement) {
+  if (hasUnsavedInput()) {
+    // Panel kembali dulu; modal baru tertutup bila pengguna memilih membuang isian.
+    settleDrag(panel)
+    void requestClose('swipe')
+    return
+  }
+
+  panel.style.transition = ''
+  void requestClose('swipe')
+  panel.style.translate = '0 100%'
+  await nextTick()
+  // Induk menolak menutup: kembalikan panel ke tempatnya.
+  if (props.modelValue) settleDrag(panel)
+}
+
+/** Teks yang diseleksi dari dalam panel lalu dilepas di luar tidak boleh menutup modal. */
+function handlePointerDown(event: PointerEvent) {
+  pressStartedOnBackdrop = event.target === event.currentTarget
+}
+
+/**
+ * ion-router-outlet memakai `contain: layout`, jadi backdrop modal di dalam halaman tidak
+ * menutupi AppHeader dan sidebar. Ketukan di sana diperlakukan sebagai ketukan di luar modal.
+ */
+function handleOutsideLayoutClick(event: MouseEvent) {
+  const root = rootRef.value
+  const target = event.target
+  if (!root || !(target instanceof Element) || !props.closeOnBackdrop) return
+  // Halaman yang di-cache Ionic bisa menyimpan modal tersembunyi; jangan tangkap ketukannya.
+  if (root.contains(target) || !root.getClientRects().length) return
+  if (!target.closest('.header-slot, .tabbar-overlay')) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  requestClose('backdrop')
+}
+
 function lockPage() {
-  previousBodyOverflow.value = document.body.style.overflow
-  previousBodyOverscroll.value = document.body.style.overscrollBehavior
+  if (holdsPageLock) return
+  holdsPageLock = true
+  openModalCount += 1
+  if (openModalCount > 1) return
+
+  overflowBeforeLock = document.body.style.overflow
+  overscrollBeforeLock = document.body.style.overscrollBehavior
   document.body.style.overflow = 'hidden'
   document.body.style.overscrollBehavior = 'none'
   document.documentElement.style.overflow = 'hidden'
@@ -203,8 +395,13 @@ function lockPage() {
 }
 
 function unlockPage() {
-  document.body.style.overflow = previousBodyOverflow.value
-  document.body.style.overscrollBehavior = previousBodyOverscroll.value
+  if (!holdsPageLock) return
+  holdsPageLock = false
+  openModalCount -= 1
+  if (openModalCount > 0) return
+
+  document.body.style.overflow = overflowBeforeLock
+  document.body.style.overscrollBehavior = overscrollBeforeLock
   document.documentElement.style.overflow = ''
   window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
 }
@@ -241,6 +438,7 @@ function revealFocusedField(event: FocusEvent) {
 async function activateModal() {
   if (typeof document === 'undefined') return
   const activation = ++modalActivation
+  touched = false
 
   previousActiveElement.value = document.activeElement instanceof HTMLElement
     ? document.activeElement
@@ -252,6 +450,7 @@ async function activateModal() {
   const focusable = getFocusableElements()
   ;(focusable[0] || dialogRef.value)?.focus()
   document.addEventListener('keydown', handleDocumentKeydown)
+  document.addEventListener('click', handleOutsideLayoutClick, true)
   window.visualViewport?.addEventListener('resize', syncViewport)
   window.visualViewport?.addEventListener('scroll', syncViewport)
   window.addEventListener('scroll', syncViewport, { passive: true })
@@ -285,6 +484,8 @@ function deactivateModal() {
 
   modalActivation += 1
   document.removeEventListener('keydown', handleDocumentKeydown)
+  document.removeEventListener('click', handleOutsideLayoutClick, true)
+  drag = null
   window.visualViewport?.removeEventListener('resize', syncViewport)
   window.visualViewport?.removeEventListener('scroll', syncViewport)
   window.removeEventListener('scroll', syncViewport)
@@ -298,8 +499,42 @@ function deactivateModal() {
   previousActiveElement.value = null
 }
 
-function requestClose(reason: CloseReason) {
-  if (props.loading) return
+/* ---------- Konfirmasi sebelum membuang isian ---------- */
+
+const { confirm } = useConfirm()
+let touched = false
+let confirmingDiscard = false
+
+function hasUnsavedInput() {
+  return props.unsaved || (props.guardUnsaved && touched)
+}
+
+/** Kolom pencarian di dalam formulir diberi data-discard-ignore karena bukan isian. */
+function trackChange(event: Event) {
+  if (event.target instanceof Element && !event.target.closest('[data-discard-ignore]')) touched = true
+}
+
+/** Pilihan berbentuk tombol tidak memicu input/change, jadi ditandai data-discard-change. */
+function trackChoice(event: Event) {
+  if (event.target instanceof Element && event.target.closest('[data-discard-change]')) touched = true
+}
+
+async function requestClose(reason: CloseReason) {
+  if (props.loading || confirmingDiscard) return
+
+  if (hasUnsavedInput()) {
+    confirmingDiscard = true
+    const discard = await confirm({
+      title: 'Buang perubahan?',
+      message: 'Isian yang belum disimpan akan hilang.',
+      confirmText: 'Buang',
+      cancelText: 'Lanjut mengisi',
+      tone: 'error',
+    })
+    confirmingDiscard = false
+    // Induk bisa saja sudah menutup modal selagi pertanyaan tampil.
+    if (!discard || !props.modelValue || props.loading) return
+  }
 
   emit('close', reason)
 
@@ -307,8 +542,11 @@ function requestClose(reason: CloseReason) {
   emit('update:modelValue', false)
 }
 
+/** Untuk tombol tutup buatan induk, agar tetap melewati konfirmasi. */
+defineExpose({ close: () => requestClose('close-button') })
+
 function handleBackdrop() {
-  if (props.closeOnBackdrop) requestClose('backdrop')
+  if (props.closeOnBackdrop && pressStartedOnBackdrop) requestClose('backdrop')
 }
 
 function handleDocumentKeydown(event: KeyboardEvent) {
@@ -554,8 +792,9 @@ onBeforeUnmount(() => {
 .app-modal-leave-active .app-modal__panel {
   transition:
     transform var(--modal-dur) var(--modal-ease),
+    translate var(--modal-dur) var(--modal-ease),
     opacity var(--modal-dur) var(--modal-ease);
-  will-change: transform, opacity;
+  will-change: transform, translate, opacity;
 }
 
 .app-modal-enter-active {
@@ -588,6 +827,22 @@ onBeforeUnmount(() => {
   .app-modal-enter-from .app-modal__panel,
   .app-modal-leave-to .app-modal__panel {
     transform: none;
+  }
+}
+
+/* Pegangan penanda bahwa sheet bisa ditarik turun (hanya layar sentuh). */
+@media (pointer: coarse) and (max-width: 699px) {
+  .app-modal--bottom-sheet.app-modal--draggable .app-modal__panel::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: var(--border-strong);
+    pointer-events: none;
   }
 }
 

@@ -66,6 +66,7 @@
     </ion-content>
 
     <AppModal
+      guard-unsaved
       v-model="mergeOpen"
       title="Gabungkan data"
       confirm-text="Gabungkan"
@@ -91,7 +92,7 @@
             role="radio"
             :aria-checked="keepId === row.id"
             :class="['choice', { 'choice--on': keepId === row.id }]"
-            @click="keepId = row.id"
+            data-discard-change @click="keepId = row.id"
           >
             <span class="choice-head">
               <strong>{{ row.full_name }}</strong>

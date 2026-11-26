@@ -116,6 +116,7 @@
         />
 
         <LegalAssurance v-if="showLotInfo" class="detail-legal" />
+        <NearbyFacilities v-if="showLotInfo" :key="lot.id" :lot-id="Number(lot.id)" class="detail-legal" />
 
         <!-- SPESIFIKASI -->
         <section v-if="showLotInfo" class="detail-section">
@@ -374,6 +375,8 @@ import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing P
 import verifiedMascot from '@/assets/mascot/Verified_Mascot.webp'
 import soldMascot from '@/assets/mascot/Sold_Lot_Mascot.webp'
 import FavoriteButton from '@/components/client/FavoriteButton.vue'
+import NearbyFacilities from '@/components/client/NearbyFacilities.vue'
+import { trackFunnel } from '@/services/funnelService'
 import LegalAssurance from '@/components/payment/LegalAssurance.vue'
 import PaymentSimulation from '@/components/payment/PaymentSimulation.vue'
 
@@ -653,6 +656,7 @@ function setDetailMode(active: boolean) {
 
 onMounted(() => {
   setDetailMode(true)
+  if (props.clientMode) trackFunnel('lot_view', props.lot?.id)
 
   // Kode layar 360° diunduh lebih awal agar transisinya tidak tertahan.
   if (props.lot?.panorama_url) {

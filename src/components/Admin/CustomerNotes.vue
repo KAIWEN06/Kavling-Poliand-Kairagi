@@ -121,6 +121,7 @@
 
     <!-- Editor catatan -->
     <AppModal
+      guard-unsaved
       v-model="editing"
       variant="bottom-sheet"
       :loading="saving"
@@ -130,7 +131,7 @@
       @cancel="closeEditor"
       @close="closeEditor"
     >
-      <template #header>
+      <template #header="{ close }">
         <div>
           <h2 class="app-modal__title">
             {{ form.id ? 'Ubah catatan' : 'Catatan baru' }}
@@ -141,7 +142,7 @@
           class="app-modal__close"
           aria-label="Tutup modal"
           :disabled="saving"
-          @click="closeEditor"
+          @click="close"
         >
           <ion-icon :icon="closeOutline" aria-hidden="true" />
         </button>

@@ -1,0 +1,56 @@
+/* ===================================================================
+   NOTIFIKASI: SATU SUMBER GAYA
+   Dipakai oleh AppNotice (toast dan pesan di halaman), ConfirmHost,
+   CelebrationHost, dan ikon di pusat notifikasi. Ubah di sini, semua ikut.
+
+   Tiap nada punya 4 nilai:
+   --nt-bg     latar kartu
+   --nt-title  judul dan teks aksi (kontras >= 4.5:1 di atas --nt-bg)
+   --nt-solid  lingkaran ikon dan bar waktu
+   --nt-on     gambar ikon di atas --nt-solid (putih di atas emas dilarang)
+   =================================================================== */
+:root {
+  --nt-radius: var(--radius-lg);
+  --nt-radius-inline: var(--radius-md);
+  --nt-pad: 12px;
+  --nt-space: 8px; /* jarak atas-bawah pesan di dalam halaman */
+  --nt-gap: 12px;
+  --nt-icon: 36px;
+  --nt-icon-inline: 28px;
+  --nt-font: var(--text-sm);
+  --nt-text: var(--text-primary);
+  --nt-shadow: 0 14px 34px rgba(31, 53, 25, 0.18), 0 2px 6px rgba(31, 53, 25, 0.08);
+
+  /* Lapisan: di atas AppModal (11000) dan overlay Ionic (20000+). */
+  --nt-z-confirm: 40000;
+  --nt-z-toast: 41000;
+  --nt-z-celebration: 42000;
+}
+
+.nt-tone--success {
+  --nt-bg: #EEF5EA;
+  --nt-title: #2B4824;
+  --nt-solid: #355A2C;
+  --nt-on: #FFFFFF;
+}
+
+.nt-tone--error {
+  --nt-bg: #FCEDEC;
+  --nt-title: #9A2C28;
+  --nt-solid: #A8322D;
+  --nt-on: #FFFFFF;
+}
+
+.nt-tone--warning {
+  --nt-bg: #FDF4DE;
+  --nt-title: #754F07;
+  --nt-solid: #E0B552;
+  --nt-on: #1B1F1A;
+}
+
+.nt-tone--info {
+  --nt-bg: #EDF2FD;
+  --nt-title: #1A469F;
+  --nt-solid: #1D4FB8;
+  --nt-on: #FFFFFF;
+}

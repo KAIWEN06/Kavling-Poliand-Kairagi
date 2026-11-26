@@ -216,6 +216,7 @@
 
     <!-- ADMIN: VIDEO PROFIL -->
     <AppModal
+      guard-unsaved
       v-model="isModalOpen"
       title="Kelola Video Profil"
       :loading="saving"
@@ -257,7 +258,7 @@
 
               <button
                 type="button"
-                @click="handleChangeVideoSource('youtube')"
+                data-discard-change @click="handleChangeVideoSource('youtube')"
                 :class="[
                   'source-tab',
                   videoSource === 'youtube'
@@ -271,7 +272,7 @@
 
               <button
                 type="button"
-                @click="handleChangeVideoSource('upload')"
+                data-discard-change @click="handleChangeVideoSource('upload')"
                 :class="[
                   'source-tab',
                   videoSource === 'upload'

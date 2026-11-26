@@ -12,6 +12,7 @@
   </button>
 
   <AppModal
+    guard-unsaved
     v-model="open"
     title="Kirim pesan WhatsApp"
     confirm-text="Buka WhatsApp"

@@ -73,6 +73,7 @@
     </ion-content>
     <MobileTabBar variant="admin" />
     <AppModal
+      guard-unsaved
       v-model="rejectSurveyOpen"
       title="Tolak permintaan survei"
       variant="dialog"

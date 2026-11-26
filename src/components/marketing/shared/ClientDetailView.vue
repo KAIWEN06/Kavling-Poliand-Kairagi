@@ -308,7 +308,7 @@
     <p class="cd-readonly">Admin mengonfirmasi SPK serta mengurus pembayaran, jadwal, dan pengembalian dana.</p>
 
     <!-- Modal: status perkembangan -->
-    <AppModal v-model="statusModal" title="Ubah status klien" confirm-text="Simpan status" :loading="saving" @confirm="saveStatus">
+    <AppModal guard-unsaved v-model="statusModal" title="Ubah status klien" confirm-text="Simpan status" :loading="saving" @confirm="saveStatus">
       <div class="mk-form">
         <label class="mk-field">
           <span>Status</span>
@@ -328,7 +328,7 @@
     </AppModal>
 
     <!-- Modal: follow-up -->
-    <AppModal v-model="followupModal" title="Catat tindak lanjut" confirm-text="Simpan" :loading="saving" @confirm="saveFollowup">
+    <AppModal guard-unsaved v-model="followupModal" title="Catat tindak lanjut" confirm-text="Simpan" :loading="saving" @confirm="saveFollowup">
       <div class="mk-form">
         <div class="mk-filters">
           <label class="mk-field"><span>Tanggal</span><input v-model="followupForm.followup_date" type="date" class="mk-input" /></label>
@@ -353,7 +353,7 @@
     </AppModal>
 
     <!-- Modal: catatan -->
-    <AppModal v-model="noteModal" :title="role === 'head' ? 'Beri arahan ke pemasar' : 'Tambah catatan'" confirm-text="Simpan catatan" :loading="saving" @confirm="saveNote">
+    <AppModal guard-unsaved v-model="noteModal" :title="role === 'head' ? 'Beri arahan ke pemasar' : 'Tambah catatan'" confirm-text="Simpan catatan" :loading="saving" @confirm="saveNote">
       <div class="mk-form">
         <label class="mk-field"><span>Judul</span><input v-model="noteForm.title" class="mk-input" maxlength="120" /></label>
         <label class="mk-field">
@@ -368,7 +368,7 @@
     </AppModal>
 
     <!-- Modal: edit informasi -->
-    <AppModal v-model="editModal" title="Ubah data klien" confirm-text="Simpan perubahan" :loading="saving" @confirm="saveEdit">
+    <AppModal guard-unsaved v-model="editModal" title="Ubah data klien" confirm-text="Simpan perubahan" :loading="saving" @confirm="saveEdit">
       <div class="mk-form">
         <label class="mk-field"><span>Nama lengkap</span><input v-model="editForm.full_name" data-input="name" class="mk-input" /></label>
         <div class="mk-filters">

@@ -1,5 +1,6 @@
 <template>
   <AppModal
+    guard-unsaved
     :model-value="modelValue"
     :title="title"
     :loading="busy"

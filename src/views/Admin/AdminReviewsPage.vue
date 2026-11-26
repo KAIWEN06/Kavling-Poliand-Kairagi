@@ -110,6 +110,7 @@
     </ion-content>
 
     <AppModal
+      :unsaved="Boolean(newTerm.trim())"
       v-model="termsOpen"
       title="Kata terlarang"
       cancel-text="Tutup"
@@ -169,6 +170,7 @@
     </AppModal>
 
     <AppModal
+      guard-unsaved
       v-model="noteOpen"
       :title="noteTitle"
       variant="dialog"
@@ -513,7 +515,7 @@ useRealtimeRefresh(['customer_reviews', 'review_reports'], () => load({ silent: 
 .terms-head h3 { margin: 12px 0 0; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
 .terms-head .meta { margin-top: 12px; font-variant-numeric: tabular-nums; }
 
-.terms-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; max-height: 42dvh; overflow-y: auto; overscroll-behavior: contain; }
+.terms-list { display: grid; grid-auto-rows: max-content; gap: 8px; margin: 0; padding: 0; list-style: none; max-height: 42dvh; overflow-y: auto; overscroll-behavior: contain; }
 .term { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-primary); }
 .term-main { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .term-text { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); line-height: 1.35; overflow-wrap: anywhere; }

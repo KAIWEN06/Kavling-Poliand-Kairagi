@@ -139,6 +139,7 @@ export function resolveNotificationRoute(role: UserRole | null, n: AppNotificati
       return customerId ? `${base}/clients/${customerId}` : `${base}/clients`
     }
     case 'client':
+      if (n.type.startsWith('favorite_')) return lotId ? `/client/kavling/${lotId}` : '/client/favorit'
       if (n.category === 'survey') return lotId ? `/client/kavling/${lotId}?survei=1` : '/client/kavling'
       // Tanda jadi diunggah dan dipantau dari detail SPK, bukan halaman pembayaran.
       if (n.category === 'spk' || (!paymentId && spkId && n.type.startsWith('booking_fee'))) {

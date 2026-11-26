@@ -38,6 +38,21 @@ export const favoriteService = {
     if (error) throw error
   },
 
+  /** null bila fiturnya belum ada (migrasi 202611300015 belum diterapkan). */
+  async getAlertsEnabled(): Promise<boolean | null> {
+    const { data, error } = await supabase.from('notification_preferences').select('favorite_alerts').maybeSingle()
+    if (error) {
+      if (isFavoritesUnavailable(error)) return null
+      throw error
+    }
+    return Boolean(data?.favorite_alerts)
+  },
+
+  async setAlertsEnabled(enabled: boolean) {
+    const { error } = await supabase.rpc('set_favorite_alerts', { p_enabled: enabled })
+    if (error) throw error
+  },
+
   async getLots(ids: number[]): Promise<FavoriteLot[]> {
     if (!ids.length) return []
     const { data, error } = await supabase

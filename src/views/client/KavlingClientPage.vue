@@ -181,6 +181,16 @@
             <span v-if="chip.key !== 'all'" :class="['kv-dot', chip.key]" aria-hidden="true"></span>
             {{ chip.label }} ({{ chip.count }})
           </button>
+          <button
+            v-if="nearLotIds.size"
+            type="button"
+            :class="['kv-chip', { active: nearOnly }]"
+            :aria-pressed="nearOnly"
+            @click="nearOnly = !nearOnly"
+          >
+            <ion-icon :icon="locationOutline" aria-hidden="true" />
+            Dekat fasilitas
+          </button>
         </div>
 
         <!-- LOADING -->
@@ -227,6 +237,10 @@
                   <div class="kv-lot-info">
                     <h3>{{ lot.code }}</h3>
                     <p>{{ lot.meta }}</p>
+                    <p v-if="nearLabel.get(lot.id) && lot.status !== 'sold'" class="kv-near">
+                      <ion-icon :icon="locationOutline" aria-hidden="true" />
+                      {{ nearLabel.get(lot.id) }}
+                    </p>
                   </div>
 
                   <span :class="['kv-badge', lot.status, { held: lot.status === 'available' && heldLots.has(lot.id) }]">
@@ -318,6 +332,7 @@ import {
   personOutline,
   chevronForwardOutline,
   heart,
+  locationOutline,
   checkmarkCircleOutline,
   timeOutline,
   closeCircleOutline,
@@ -328,6 +343,7 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { useFavorites } from '@/composables/useFavorites'
+import { formatDistance, lotHighlightService, type LotHighlight } from '@/services/lotHighlightService'
 import siteplanImage from '@/assets/siteplan/Siteplan.webp'
 import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
@@ -379,6 +395,26 @@ interface Lot {
 const ionRouter = useIonRouter()
 const { ids: favoriteIds, status: favoritesStatus, load: loadFavorites } = useFavorites()
 onIonViewWillEnter(() => void loadFavorites())
+
+const nearby = ref<LotHighlight[]>([])
+const nearOnly = ref(false)
+/* Daftar sudah terurut dari yang terdekat, jadi yang pertama per kavling yang dipakai. */
+const nearLabel = computed(() => {
+  const labels = new Map<number, string>()
+  for (const item of nearby.value) {
+    if (!labels.has(item.lotId)) labels.set(item.lotId, `${item.facility} · ${formatDistance(item.distanceM)}`)
+  }
+  return labels
+})
+const nearLotIds = computed(() => new Set(nearLabel.value.keys()))
+onIonViewWillEnter(async () => {
+  try {
+    nearby.value = await lotHighlightService.list()
+  } catch {
+    nearby.value = []
+  }
+  if (!nearby.value.length) nearOnly.value = false
+})
 
 /* siteplan: sumber data yang sama dengan halaman beranda */
 const { lots: siteplanLots, reload: reloadSiteplan } = useSiteplan()
@@ -449,6 +485,7 @@ const minInput = ref<HTMLInputElement | null>(null)
 
 function resetFilters() {
   statusFilter.value = 'all'
+  nearOnly.value = false
   query.value = ''
   minPriceText.value = ''
   maxPriceText.value = ''
@@ -797,7 +834,10 @@ function proximityScore(lot: Lot): number {
   return Infinity
 }
 
-const filtered = computed(() => pinSurveyLots(matched.value, surveyByLot.value))
+const filtered = computed(() => {
+  const list = pinSurveyLots(matched.value, surveyByLot.value)
+  return nearOnly.value ? list.filter((lot) => nearLotIds.value.has(lot.id)) : list
+})
 
 const matched = computed(() => {
   let result = lots.value.filter((l) => statusFilter.value === 'all' || l.status === statusFilter.value)
@@ -856,7 +896,7 @@ const sortModel = computed<string>({
 
 const pager = usePagination(filtered, {
   pageSize: 10,
-  resetOn: [statusFilter, sortMode, searchType, priceMode, query, minPriceText, maxPriceText],
+  resetOn: [nearOnly, statusFilter, sortMode, searchType, priceMode, query, minPriceText, maxPriceText],
 })
 
 /* ---------- helpers ---------- */
@@ -1188,6 +1228,15 @@ h2 {
   font-size: 13px;
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
+}
+
+.kv-near {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--poliland-green, #355a2c);
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .kv-chip.active {

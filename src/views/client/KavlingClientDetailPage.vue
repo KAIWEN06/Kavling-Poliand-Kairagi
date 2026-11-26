@@ -324,6 +324,7 @@
             </div>
 
             <LegalAssurance v-if="!hideSoldInfo" class="hero-legal" />
+            <NearbyFacilities v-if="!hideSoldInfo" :key="lot.id" :lot-id="Number(lot.id)" class="hero-legal" />
 
             <div v-if="!isSold" class="price-summary client-price-summary">
               <div>
@@ -462,6 +463,8 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import LegalAssurance from '@/components/payment/LegalAssurance.vue'
 import FavoriteButton from '@/components/client/FavoriteButton.vue'
+import NearbyFacilities from '@/components/client/NearbyFacilities.vue'
+import { trackFunnel } from '@/services/funnelService'
 import { askNotificationPermission } from '@/composables/useNotificationPrompt'
 import PaymentSimulation from '@/components/payment/PaymentSimulation.vue'
 import missingPanoramaMascot from '@/assets/mascot/Confused_Mascot_and_Missing Panorama.webp'
@@ -951,6 +954,7 @@ async function sendSurveyRequest() {
     surveyNote.value = ''
     await refreshClientSurveyStatus()
     await refreshSurveyAvailability()
+    trackFunnel('survey_submitted', lotId.value)
     void askNotificationPermission('Supaya Anda tahu saat jadwal survei dikonfirmasi.')
   } catch (error) {
     console.error('[ClientKavlingDetail] Gagal membuat permintaan survei:', error)
@@ -1038,6 +1042,7 @@ async function loadDetail({ silent = false }: LoadOptions = {}) {
       operatingHours.value = contactSettings.operatingHours
     }
     if (!lot.value) throw new Error('Data kaveling tidak tersedia.')
+    trackFunnel('lot_view', lot.value.id)
     isOwnLot.value = isSold.value
       ? await lotService.isLotOwnedByMe(lot.value.id).catch(() => false)
       : false

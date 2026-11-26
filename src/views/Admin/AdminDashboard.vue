@@ -981,4 +981,14 @@ useRealtimeRefresh(
 .quick__copy { display: grid; min-width: 0; gap: 2px; }
 .quick__copy strong { font-size: var(--text-md); font-weight: 600; }
 .quick__copy small { color: var(--text-secondary); font-size: var(--text-xs); line-height: 1.3; }
+/* Ubin dua kolom di ponsel terlalu sempit untuk ikon di samping teks, jadi ikon di atas. */
+@media (max-width: 639px) {
+  .quick__item {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    justify-items: start;
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+}
 </style>

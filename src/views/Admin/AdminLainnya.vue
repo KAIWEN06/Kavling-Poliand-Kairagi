@@ -27,7 +27,7 @@
 import { useToast } from '@/composables/useToast'
 import Reveal from '@/components/ui/Reveal.vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { calendarOutline, chatbubbleEllipsesOutline, documentTextOutline, gitMergeOutline, gridOutline, mapOutline, peopleOutline, settingsOutline, walletOutline } from 'ionicons/icons'
+import { calendarOutline, chatbubbleEllipsesOutline, documentTextOutline, gitMergeOutline, gridOutline, mapOutline, peopleOutline, settingsOutline, statsChartOutline, walletOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
@@ -39,6 +39,7 @@ const toast = useToast()
 // (dekat ibu jari dan tab bar). Grid menempel ke dasar layar.
 const actions: QuickAction[] = [
   { label: 'Data ganda', icon: gitMergeOutline, tone: 'neutral', route: '/admin/gabung-data', wide: true },
+  { label: 'Minat pembeli', icon: statsChartOutline, tone: 'neutral', route: '/admin/minat-pembeli', wide: true },
   { label: 'Ulasan klien', icon: chatbubbleEllipsesOutline, tone: 'green', route: '/admin/ulasan' },
   { label: 'Akses tim', icon: settingsOutline, tone: 'green', route: '/admin/akses-tim' },
   { label: 'Kelola konten', icon: gridOutline, tone: 'neutral', route: '/admin/konten' },

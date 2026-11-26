@@ -306,6 +306,7 @@
         </template>
         <div v-else class="buyer-detail-state"><ion-icon :icon="peopleOutline" /><strong>Pembeli tidak ditemukan</strong><p>Data pembeli mungkin sudah dihapus atau tidak dapat diakses.</p></div>
         <AppModal
+          guard-unsaved
           v-model="editing"
           title="Ubah data pembeli"
           variant="bottom-sheet"
@@ -947,7 +948,7 @@ useRealtimeRefresh(
 .lot-picker-state strong { color: var(--text-primary); }
 .lot-picker-error { color: var(--status-danger); }
 .lot-picker-error button { min-height: 44px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; }
-.lot-picker-list { display: grid; gap: 8px; max-height: 280px; overflow-y: auto; margin: 0; padding: 0; border: 0; }
+.lot-picker-list { display: grid; grid-auto-rows: max-content; gap: 8px; max-height: 280px; overflow-y: auto; overscroll-behavior: contain; margin: 0;padding: 0; border: 0; }
 .lot-picker-list legend { margin-bottom: 8px; color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }
 .lot-picker-option { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 58px; padding: 10px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); cursor: pointer; }
 .lot-picker-option.selected { border-color: var(--poliland-green); background: var(--status-success-bg); }
