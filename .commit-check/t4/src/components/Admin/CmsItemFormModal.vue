@@ -155,7 +155,7 @@ async function save() {
     else id ? await faqService.updateFaq(id, payload as any) : await faqService.createFaq(payload as any)
     resetPreview()
     emit('update:modelValue', false)
-    emit('saved', 'Tersimpan dan langsung tampil di situs web.')
+    emit('saved', 'Tersimpan dan langsung tampil di halaman publik.')
   } catch (error) {
     formError.value = error instanceof Error ? error.message : 'Data gagal disimpan.'
   } finally {

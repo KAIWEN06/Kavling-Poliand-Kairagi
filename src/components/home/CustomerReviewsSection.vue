@@ -2,8 +2,6 @@
   <section id="ulasan-client" class="reviews-band" aria-label="Ulasan klien">
     <div class="container">
       <SectionHeader title="Ulasan klien" />
-      <p class="subheading">Pengalaman dan cerita mereka bersama PoliLand Kairagi.</p>
-
       <div class="summary-wrap">
         <ReviewSummaryCard :stats="stats" :loading="statsLoading" @write="openForm()" @rate="openForm" />
       </div>
@@ -48,7 +46,7 @@
           </template>
           <template v-else>
             <strong>Belum ada ulasan yang dipublikasikan.</strong>
-            Jadilah klien pertama yang membagikan pengalaman bersama PoliLand Kairagi.
+            Ulasan Anda bisa menjadi yang pertama.
             <button type="button" class="link" @click="openForm()">Tulis ulasan</button>
           </template>
         </div>
@@ -69,9 +67,9 @@
 
       <!-- Form -->
       <div v-if="formOpen" id="review-form-anchor" ref="formRef" class="add">
-        <h3 class="add-title">Bagikan Pengalaman Anda</h3>
+        <h3 class="add-title">Tulis ulasan Anda</h3>
         <p class="add-desc">
-          Ceritakan pengalaman Anda bersama PoliLand Kairagi untuk membantu calon pembeli lainnya.
+          Cerita Anda membantu calon pembeli lain.
         </p>
 
         <p v-if="writer.checking" class="state">Memeriksa akun…</p>
@@ -353,9 +351,7 @@ useRealtimeRefresh(
 
 .container { max-width: 1024px; margin: 0 auto; padding: 0 20px; }
 
-.subheading { margin: -6px 0 0; color: var(--text-secondary, #5f5f66); font-size: 15px; line-height: 1.55; }
-
-.summary-wrap { margin-top: 20px; }
+.summary-wrap { margin-top: 4px; }
 
 .controls { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; padding-bottom: 16px; }
 
@@ -382,6 +378,9 @@ select:focus { outline: 3px solid var(--poliland-gold, #cba044); outline-offset:
 
 .link { min-height: 44px; padding: 0; border: 0; background: none; color: var(--poliland-green); font: inherit; font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; touch-action: manipulation; }
 
+.link { -webkit-tap-highlight-color: transparent; }
+.link:active { opacity: 0.7; }
+
 .add { margin-top: var(--space-8); scroll-margin-top: var(--space-6); }
 .add-title {
   margin: 0;
@@ -406,6 +405,8 @@ select:focus { outline: 3px solid var(--poliland-gold, #cba044); outline-offset:
 .gate-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
 .btn { min-height: 44px; padding: 0 22px; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.btn { transition: transform var(--dur-base) var(--ease-spring); }
+.btn:active { transform: scale(0.97); }
 .btn:focus-visible { outline: none; box-shadow: var(--ring-focus); }
 .btn--primary { border: 1px solid var(--poliland-green); background: var(--poliland-green); color: #fff; }
 @media (hover: hover) and (pointer: fine) {
@@ -414,6 +415,10 @@ select:focus { outline: 3px solid var(--poliland-gold, #cba044); outline-offset:
 .btn--neutral { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-primary); }
 @media (hover: hover) and (pointer: fine) {
   .btn--neutral:hover { background: var(--surface-muted); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active { transform: none; }
 }
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }

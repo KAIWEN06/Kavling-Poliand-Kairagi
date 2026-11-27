@@ -143,6 +143,7 @@ useRealtimeRefresh(['progress'], load)
 .heading-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .see-all { display: inline-flex; align-items: center; gap: 3px; min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--poliland-green, #355a2c); font: 700 14px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif); white-space: nowrap; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .see-all ion-icon { font-size: 16px; transition: transform var(--dur-base) var(--ease-spring); }
+.see-all:active { transform: scale(0.97); }
 .see-all:active ion-icon { transform: translateX(3px); }
 .see-all:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
 
@@ -172,10 +173,14 @@ useRealtimeRefresh(['progress'], load)
 .card-admin { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
 .mini { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: #fff; color: var(--poliland-gold-text, #805708); font-size: 18px; box-shadow: var(--shadow-sm); cursor: pointer; touch-action: manipulation; }
 .mini.danger { color: var(--status-danger, #b3261e); }
+.mini { transition: transform var(--dur-base) var(--ease-spring); }
+.mini:active { transform: scale(0.97); }
 .mini:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
 .confirm-text { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.6; }
 
 @media (prefers-reduced-motion: reduce) {
-  .progress-card:has(.card-open:active) { transform: none; }
+  .progress-card:has(.card-open:active),
+  .see-all:active,
+  .mini:active { transform: none; }
 }
 </style>

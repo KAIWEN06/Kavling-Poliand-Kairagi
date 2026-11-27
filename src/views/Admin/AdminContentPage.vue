@@ -5,7 +5,7 @@
       <main class="cms-shell">
         <Reveal :order="1">
           <header class="cms-intro">
-            <h1>Kelola konten situs web</h1>
+            <h1>Kelola konten halaman publik</h1>
             <p>Ubah isi halaman yang dilihat calon pembeli sebelum masuk. Perubahan langsung tampil setelah disimpan.</p>
           </header>
         </Reveal>

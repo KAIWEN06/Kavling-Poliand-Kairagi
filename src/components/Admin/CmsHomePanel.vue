@@ -65,7 +65,7 @@
           <h3 id="hl-title">Angka & sorotan</h3>
           <button class="btn btn-secondary" type="button" :disabled="highlights.length >= 4" data-discard-change @click="addHighlight">Tambah sorotan</button>
         </div>
-        <p class="hint lead">Total kaveling dan jumlah terjual dihitung otomatis dari data kavling. Sorotan di bawah ini tampil di sebelahnya.</p>
+        <p class="hint lead">Total kavling dan jumlah terjual dihitung otomatis dari data kavling. Sorotan di bawah ini tampil di sebelahnya.</p>
         <p v-if="!highlights.length" class="empty">Belum ada sorotan.</p>
         <ul class="rows">
           <li v-for="(item, index) in highlights" :key="index" class="row-item">
@@ -184,7 +184,7 @@
         <div class="block-head"><h3 id="cta-title">Ajakan di bagian bawah</h3></div>
         <div class="fields">
           <label class="field wide">Judul
-            <input v-model="cta.title" maxlength="60" placeholder="Siap memiliki kaveling impian?">
+            <input v-model="cta.title" maxlength="60" placeholder="Siap memiliki kavling impian?">
           </label>
           <label class="field wide">Teks pendukung
             <input v-model="cta.text" maxlength="120" placeholder="Hubungi tim kami sekarang dan dapatkan informasi lengkap.">
@@ -452,7 +452,7 @@ async function save(): Promise<boolean> {
       { key: HOME_KEYS.aboutPoints, label: 'Poin Tentang Kami', value: JSON.stringify(aboutPoints.value.map((point) => point.trim()).filter(Boolean)) },
     )
     if (entries.length) await contactsService.saveMany(entries)
-    notify('Tersimpan dan langsung tampil di situs web.')
+    notify('Tersimpan dan langsung tampil di halaman publik.')
     emit('saved')
     return true
   } catch (error) {

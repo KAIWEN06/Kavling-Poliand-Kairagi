@@ -1,33 +1,43 @@
 <template>
   <ion-page>
     <div class="home-wrapper pl-surface">
-      <ion-content :fullscreen="false" class="home-content" :scroll-events="true">
-        <!-- 1. Perkenalan -->
+      <ion-content :fullscreen="false" class="home-content" :scroll-events="true" @ionScroll="syncMaket">
+        <!-- 1. Nilai produk: sampul, angka, ketersediaan, denah, lokasi -->
         <HeroSection @goToSiteplan="goToSiteplan" @contactWhatsapp="contactWhatsapp" />
-        <ScrollReveal :enabled="!isLoading" variant="scale"><StatsSection /></ScrollReveal>
+        <ScrollReveal :enabled="!isLoading" variant="scale"><StatsSection :lots="lots" /></ScrollReveal>
+        <!-- Tanpa ScrollReveal: transform pembungkus akan menggeser posisi yang diukur maket. -->
+        <KavlingMaket ref="maketRef" :available="availableCount" />
+        <ScrollReveal :enabled="!isLoading">
+          <section class="siteplan-section">
+            <SectionHeader title="Denah & lokasi">
+              <button class="see-all" type="button" @click="goToSiteplan">Denah <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
+            </SectionHeader>
+            <div class="siteplan-stack">
+              <SiteplanPreview :lots="lots" @goToSiteplan="goToSiteplan" />
+              <LocationSection />
+            </div>
+          </section>
+        </ScrollReveal>
+
+        <!-- 2. Bukti: foto dan pembangunan -->
+        <ScrollReveal :enabled="!isLoading"><GalleryPreview /></ScrollReveal>
+        <ScrollReveal :enabled="!isLoading"><ProgressPreview /></ScrollReveal>
+
+        <!-- 3. Siapa pengelolanya -->
         <ScrollReveal :enabled="!isLoading"><AboutSection /></ScrollReveal>
         <ScrollReveal :enabled="!isLoading"><FeaturesSection /></ScrollReveal>
 
-        <!-- 2. Bukti & produk -->
-        <ScrollReveal :enabled="!isLoading"><GalleryPreview /></ScrollReveal>
-        <ScrollReveal :enabled="!isLoading">
-          <section class="siteplan-section">
-            <SectionHeader title="Lokasi & denah kavling">
-              <button class="see-all" type="button" @click="goToSiteplan">Denah <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
-            </SectionHeader>
-            <LocationSection />
-            <SiteplanPreview :lots="lots" @goToSiteplan="goToSiteplan" />
-          </section>
-        </ScrollReveal>
-        <ScrollReveal :enabled="!isLoading"><ProgressPreview /></ScrollReveal>
-
-        <!-- 3. Kepercayaan & tindakan -->
+        <!-- 4. Kepercayaan & tindakan -->
         <ScrollReveal :enabled="!isLoading"><CustomerReviewsSection /></ScrollReveal>
         <ScrollReveal :enabled="!isLoading"><FAQSection /></ScrollReveal>
         <ScrollReveal :enabled="!isLoading" variant="scale"><CTASection @contactWhatsapp="contactWhatsapp" /></ScrollReveal>
         <ScrollReveal :enabled="!isLoading"><ContactSection /></ScrollReveal>
 
         <!-- Penutup: bukit dan matahari yang sama dengan layar Welcome -->
+        <footer class="home-footer">
+          <SceneBackdrop class="home-footer__scene" height="100%" :sway="false" />
+          <p class="home-footer__line">PoliLand Kairagi</p>
+        </footer>
       </ion-content>
 
       <Transition name="refresh-fade">
@@ -46,7 +56,9 @@ import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeR
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { chevronForwardOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue'
+import KavlingMaket from '@/components/home/KavlingMaket.vue'
+import { normalizeLotStatus } from '@/utils/siteplan'
 import HeroSection from '@/components/home/HeroSection.vue'
 import StatsSection from '@/components/home/StatsSection.vue'
 import FeaturesSection from '@/components/home/FeatureSection.vue'
@@ -74,6 +86,13 @@ const isLoading = ref(true)
 const isRefreshing = ref(false)
 
 const { lots, reload: reloadSiteplan } = useSiteplan()
+const availableCount = computed(() => lots.value.filter((lot) => normalizeLotStatus(lot.status) === 'available').length)
+
+const maketRef = ref<InstanceType<typeof KavlingMaket> | null>(null)
+const syncMaket = () => maketRef.value?.sync()
+
+/* Jumlah tersedia dan warna denah ikut berubah saat data kavling berubah. */
+useRealtimeRefresh(['lots'], () => reloadSiteplan({ silent: true }))
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -102,6 +121,7 @@ const handleRefresh = () => {
   refreshTimer = setTimeout(() => {
     isLoading.value = false
     isRefreshing.value = false
+    void nextTick(syncMaket)
 
     // Beri tahu AppPullRefresh bahwa refresh selesai.
     window.dispatchEvent(
@@ -115,6 +135,7 @@ const handleInitialLoad = () => {
   // Tidak menunggu seluruh komponen.
   setTimeout(() => {
     isLoading.value = false
+    void nextTick(syncMaket)
   }, 800)
 }
 
@@ -180,24 +201,16 @@ useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
 
 .home-content {
   --background: var(--pl-paper, #F9F5EC);
-
-  /*
-   * Ruang bawah untuk fixed bottom tab bar.
-   * Jangan gunakan padding-bottom kecil seperti 12px karena
-   * konten bagian akhir dapat tertutup tab bar.
-   */
-  --padding-bottom: calc(110px + var(--safe-bottom));
+  --padding-bottom: 0px;
 
   width: 100%;
   height: 100%;
 }
 
-/*
- * Pastikan konten Ionic benar-benar boleh memanjang.
- * Kita tidak memberi height/fixed overflow pada section-section Home.
- */
-.home-content::part(scroll) {
-  padding-bottom: calc(110px + var(--safe-bottom));
+/* Jarak antar-bagian diatur masing-masing komponen. */
+.siteplan-section {
+  width: 100%;
+  padding: 36px 20px 0;
   box-sizing: border-box;
 }
 
@@ -215,60 +228,44 @@ useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-}
-
-.see-all ion-icon {
-  font-size: 16px;
   transition: transform var(--dur-base) var(--ease-spring);
 }
+.see-all:active { transform: scale(0.97); }
+.see-all ion-icon { font-size: 16px; }
+.see-all:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
 
-.see-all:active ion-icon {
-  transform: translateX(3px);
+@media (prefers-reduced-motion: reduce) {
+  .see-all:active { transform: none; }
 }
 
-.see-all:focus-visible {
-  outline: 3px solid var(--poliland-gold, #cba044);
-  outline-offset: 2px;
-}
+.siteplan-stack { display: flex; flex-direction: column; gap: 14px; }
 
-/* Jarak antar-bagian diatur masing-masing komponen; jangan menimpa elemen akar anak di sini. */
-.siteplan-section {
-  width: 100%;
-  padding: 40px 20px 0;
-  box-sizing: border-box;
-}
-
-/*
- * Spacer tambahan hanya sebagai safety net.
- * Nilai utama tetap --padding-bottom pada ion-content.
- */
-.bottom-space {
-  display: block;
-  width: 100%;
-  height: 110px;
-  min-height: 110px;
-  margin: 0;
-  padding: 0;
-  background: var(--pl-paper, #F9F5EC);
-}
-
+/* Bukit memanjang sampai ke belakang tab bar, jadi ruang bawahnya ada di dalam footer. */
 .home-footer {
   position: relative;
-  height: 190px;
-  margin-top: 24px;
+  height: calc(250px + var(--safe-bottom));
+  margin-top: 8px;
   overflow: hidden;
+}
+
+/* Matahari utuh di dalam footer agar cahayanya tidak terpotong garis lurus. */
+.home-footer__scene :deep(.sun) {
+  top: 0;
+  right: -90px;
+  width: 260px;
+  height: 200px;
+  background: radial-gradient(closest-side, rgba(244, 214, 154, 0.7), rgba(244, 214, 154, 0));
 }
 
 .home-footer__line {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 28px;
+  bottom: calc(110px + var(--safe-bottom));
   margin: 0;
   text-align: center;
   color: var(--green-800, #2b4824);
-  font: 700 12px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
-  letter-spacing: 0.08em;
+  font: 700 13px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
 }
 
 .refresh-overlay {

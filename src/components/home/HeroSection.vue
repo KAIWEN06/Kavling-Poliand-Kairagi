@@ -58,7 +58,7 @@
         :transition="reduced ? { duration: 0 } : { type: 'spring', stiffness: 260, damping: 22, delay: 0.9 }"
       >
         <ion-button class="primary-button" @click="$emit('goToSiteplan')">
-          Lihat Denah
+          Lihat denah
           <ion-icon slot="end" :icon="arrowForwardOutline" />
         </ion-button>
 
@@ -69,7 +69,7 @@
 
         <!-- DATA SELESAI -->
         <ion-button v-else-if="showCta" class="outline-button" fill="outline" :disabled="ctaDisabled" @click="handleCta">
-          {{ hero.cta_text || 'Hubungi Kami' }}
+          {{ hero.cta_text || 'Hubungi kami' }}
         </ion-button>
       </motion.div>
     </div>

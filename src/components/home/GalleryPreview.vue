@@ -176,11 +176,11 @@ const handleRefreshData = async () => {
 
 onMounted(() => {
   fetchGallery()
-  window.addEventListener('poliland:refresh-data', handleRefreshData)
+  window.addEventListener('poliland:refresh-gallery', handleRefreshData)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('poliland:refresh-data', handleRefreshData)
+  window.removeEventListener('poliland:refresh-gallery', handleRefreshData)
 })
 
 const categories = computed(() => {
@@ -225,6 +225,7 @@ useRealtimeRefresh(['gallery'], fetchGallery)
 .section { padding: 36px 20px 0; }
 .see-all { display: inline-flex; align-items: center; gap: 3px; min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--poliland-green, #355a2c); font: 700 14px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif); white-space: nowrap; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .see-all ion-icon { font-size: 16px; transition: transform var(--dur-base) var(--ease-spring); }
+.see-all:active { transform: scale(0.97); }
 .see-all:active ion-icon { transform: translateX(3px); }
 .see-all:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
 
@@ -264,6 +265,8 @@ useRealtimeRefresh(['gallery'], fetchGallery)
 /* Aksi admin */
 .admin-item-actions { position: absolute; top: 6px; right: 6px; z-index: 10; display: flex; gap: 6px; }
 .action-btn { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: #fff; font-size: 18px; box-shadow: var(--shadow-sm); cursor: pointer; touch-action: manipulation; }
+.action-btn { transition: transform var(--dur-base) var(--ease-spring); }
+.action-btn:active { transform: scale(0.97); }
 .action-btn:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
 .edit-btn { color: var(--poliland-gold-text, #805708); }
 .delete-btn { color: var(--status-danger, #b3261e); }
@@ -282,6 +285,8 @@ useRealtimeRefresh(['gallery'], fetchGallery)
 
 @media (prefers-reduced-motion: reduce) {
   .gallery-item:active,
+  .see-all:active,
+  .action-btn:active,
   .category-chip:active { transform: none; }
 }
 </style>

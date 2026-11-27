@@ -370,6 +370,7 @@ Gerak boleh lebih hidup daripada dashboard, dengan batas berikut. Semua memakai 
 | Discroll | Blok muncul sekali: fade + naik 18px (`up`) atau membesar dengan pantulan (`scale`) | `480ms`; `scale` memakai `--ease-spring` untuk transform |
 | Daftar kartu | Masuk berurutan, jeda `60–70ms` per kartu, indeks dibatasi 8 | `560ms` `--ease-spring` |
 | Angka dan bar | `CountUp` dan bar progres tumbuh dari kiri | `0,9–1,4s`, mulai setelah judul masuk |
+| Maket 3D (hanya Beranda) | `home/KavlingMaket.vue`: denah datar miring menjadi maket, teras bukit naik, petak terangkat. Mengikuti gulir, tidak dipaku (tanpa `sticky`) | `rotateX 6°→56°`, `rotateZ 0→-32°`; rAF + interpolasi `90ms` (`utils/maketMotion.ts`), berhenti saat sampai; reduced-motion = bentuk jadi, diam |
 | Tekan | Turun ke `scale(0.97)`, lepas dengan sedikit pantulan | tekan `--dur-fast`, lepas `--dur-base` `--ease-spring` |
 
 Batas agar tidak mengganggu:
@@ -471,6 +472,8 @@ Rasio dihitung dengan rumus WCAG 2.x. Teks normal minimal 4,5:1, teks besar (24p
 | `#E8837C` (bar "Terjual" Beranda Owner, non-teks) | `--green-800` `#2B4824` | 3,9 | Lolos 3:1; bukan untuk teks kecil |
 | `#8FAF82` (bar "Tersedia" Beranda Owner, non-teks) | `--green-800` `#2B4824` | 4,2 | Lolos 3:1; bukan untuk teks kecil |
 | `--text-secondary` `#5F5F66` (baris blok terpilih) | `--green-50` `#EEF3EA` | 5,6 | Lolos |
+| `--green-800` `#2B4824` (nama di penutup Beranda) | tiga lapis bukit di atas krem | 5,9 | Lolos |
+| `--on-forest` / putih (judul maket Beranda) | titik paling terang pancaran emas di atas `--green-800` | 5,4 / 6,1 | Lolos |
 
 Aturan tambahan:
 
@@ -1291,6 +1294,7 @@ Defined in `src/theme/variables.css`: `--ease-out`, `--ease-in`, `--ease-drawer`
 | Section heading reveal | `src/components/ui/SectionHeader.vue`                      |
 | Count-up numbers       | `src/components/ui/CountUp.vue`                            |
 | Scene (sun, hills, sparkle) | `src/components/ui/SceneBackdrop.vue`                 |
+| Scroll-driven 3D (Home) | `src/components/home/KavlingMaket.vue`, math in `src/utils/maketMotion.ts` |
 | Reduced-motion global  | `src/styles/main.css`                                      |
 | JS reduced-motion      | `src/composables/useReducedMotion.ts`                      |
 | Toast                  | `src/components/ui/ToastHost.vue`                          |

@@ -65,7 +65,7 @@ async function submit() {
 }
 
 function onSaved() {
-  toast.success('Tersimpan dan langsung tampil di situs web.')
+  toast.success('Tersimpan dan langsung tampil di halaman publik.')
   emit('update:modelValue', false)
   emit('saved')
 }

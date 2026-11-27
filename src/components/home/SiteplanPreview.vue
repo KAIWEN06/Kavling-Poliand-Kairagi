@@ -1,7 +1,7 @@
 <template>
   <div class="siteplan-preview-card">
     <div class="siteplan-header">
-      <h3>Temukan kaveling Anda</h3>
+      <h3>Status tiap petak</h3>
       <span class="header-icon"><ion-icon :icon="mapOutline" aria-hidden="true" /></span>
     </div>
 
@@ -18,7 +18,7 @@
       />
     </div>
 
-    <ul class="siteplan-legend" aria-label="Status kaveling">
+    <ul class="siteplan-legend" aria-label="Status kavling">
       <li><i class="available"></i> Tersedia</li>
       <li><i class="booking"></i> Dipesan</li>
       <li><i class="sold"></i> Terjual</li>
@@ -113,7 +113,7 @@ watch(
 </script>
 
 <style scoped>
-.siteplan-preview-card { margin-top: 14px; padding: 18px; overflow: hidden; border: 1px solid var(--border-default, #eae7e0); border-radius: var(--radius-panel, 20px); background: var(--surface-primary, #fff); box-shadow: var(--shadow-sm); }
+.siteplan-preview-card { padding: 18px; overflow: hidden; border: 1px solid var(--border-default, #eae7e0); border-radius: var(--radius-panel, 20px); background: var(--surface-primary, #fff); box-shadow: var(--shadow-sm); }
 .siteplan-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .siteplan-header h3 { margin: 0; color: var(--text-primary, #252525); font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-size: 22px; line-height: 1.15; font-weight: 650; letter-spacing: -0.01em; }
 .header-icon { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 14px; background: var(--green-100, #e8eee4); color: var(--poliland-green, #355a2c); font-size: 22px; }

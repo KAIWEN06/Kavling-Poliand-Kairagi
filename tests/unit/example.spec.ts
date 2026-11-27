@@ -7,7 +7,10 @@ const getContacts = vi.fn()
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }), useRoute: () => ({ path: '/home', query: {} }) }))
 vi.mock('@/services/config/supabase', () => ({ supabase: {} }))
 vi.mock('@/services/contactService', () => ({ contactsService: { getAll: () => getContacts() } }))
-vi.mock('@/composables/useSiteplant', () => ({ useSiteplan: () => ({ lots: [], reload: vi.fn() }) }))
+vi.mock('@/composables/useSiteplant', async () => {
+  const { ref } = await import('vue')
+  return { useSiteplan: () => ({ lots: ref([]), reload: vi.fn() }) }
+})
 vi.mock('@/composables/useRealtimeRefresh', () => ({ useRealtimeRefresh: vi.fn() }))
 
 import HomePage from '@/views/HomePage.vue'

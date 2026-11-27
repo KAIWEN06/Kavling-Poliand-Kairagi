@@ -1318,7 +1318,10 @@ useRealtimeRefresh(['videos', 'contacts'], refreshAboutContent)
   font: 700 13px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
   box-shadow: var(--shadow-sm);
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-base) var(--ease-spring);
 }
+.admin-edit-btn:active { transform: scale(0.97); }
 
 .about-image {
   position: relative;
@@ -1364,6 +1367,7 @@ useRealtimeRefresh(['videos', 'contacts'], refreshAboutContent)
 
 @media (prefers-reduced-motion: reduce) {
   .text-btn:active ion-icon,
+  .admin-edit-btn:active,
   .play-button:active { transform: none; scale: 1; }
 }
 
@@ -1594,7 +1598,7 @@ useRealtimeRefresh(['videos', 'contacts'], refreshAboutContent)
 
 .drop-hint {
   margin-top: 2px;
-  color: #8a8a90;
+  color: var(--text-secondary, #5f5f66);
   font-size: 11px;
 }
 

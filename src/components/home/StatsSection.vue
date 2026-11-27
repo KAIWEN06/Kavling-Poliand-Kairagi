@@ -6,10 +6,10 @@
         <span class="stat-icon"><ion-icon :icon="homeOutline" aria-hidden="true" /></span>
         <div class="stat-text">
           <strong>
-            <template v-if="loading">…</template>
-            <CountUp v-else :value="`${totalLots}+`" />
+            <template v-if="totalLots === null">…</template>
+            <CountUp v-else :value="String(totalLots)" />
           </strong>
-          <span>Total kaveling</span>
+          <span>Total kavling</span>
         </div>
       </div>
 
@@ -18,8 +18,8 @@
         <span class="stat-icon"><ion-icon :icon="ribbonOutline" aria-hidden="true" /></span>
         <div class="stat-text">
           <strong>
-            <template v-if="loading">…</template>
-            <CountUp v-else :value="`${soldCount}+`" />
+            <template v-if="soldCount === null">…</template>
+            <CountUp v-else :value="String(soldCount)" />
           </strong>
           <span>Terjual</span>
         </div>
@@ -46,12 +46,13 @@
 </template>
 
 <script setup lang="ts">
-import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
-import { ref, onMounted } from 'vue'
+import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
+import { computed, ref, onMounted } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { homeOutline, ribbonOutline } from 'ionicons/icons'
 
-import { lotService } from '@/services/lotService'
+import type { SiteplanLot } from '@/services/siteplanService'
+import { normalizeLotStatus } from '@/utils/siteplan'
 import { contactsService } from '@/services/contactService'
 import { resolveCmsIcon } from '@/utils/cmsIcons'
 import { HOME_KEYS, parseHighlights, type HomeHighlight } from '@/utils/homeContent'
@@ -60,9 +61,15 @@ import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsPanelModal from '@/components/Admin/CmsPanelModal.vue'
 import CountUp from '@/components/ui/CountUp.vue'
 
-const totalLots = ref(0)
-const soldCount = ref(0)
-const loading = ref(true)
+/**
+ * Data kavling datang dari HomePage (RPC publik yang sama dengan denah);
+ * tabel lots tidak bisa dibaca pengunjung. null = belum ada data, jangan tampilkan 0.
+ */
+const props = withDefaults(defineProps<{ lots?: SiteplanLot[] }>(), { lots: () => [] })
+const totalLots = computed(() => (props.lots.length ? props.lots.length : null))
+const soldCount = computed(() =>
+  props.lots.length ? props.lots.filter((lot) => normalizeLotStatus(lot.status) === 'sold').length : null,
+)
 const highlights = ref<HomeHighlight[]>([])
 const editOpen = ref(false)
 const { isAdmin } = useCmsAdmin()
@@ -77,31 +84,9 @@ const loadHighlights = async () => {
   }
 }
 
-const loadStats = async ({ silent = false }: LoadOptions = {}) => {
-  try {
-    if (!silent) loading.value = true
+onMounted(loadHighlights)
 
-    const [total, sold] = await Promise.all([
-      lotService.getTotalLotsCount(),
-      lotService.getSoldCount()
-    ])
-
-    totalLots.value = total
-    soldCount.value = sold
-
-  } catch (error) {
-    console.error('Gagal mengambil statistik kaveling:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(() => {
-  loadStats()
-  loadHighlights()
-})
-
-useRealtimeRefresh(['contacts', 'lots'], () => Promise.all([loadHighlights(), loadStats({ silent: true })]))
+useRealtimeRefresh(['contacts'], loadHighlights)
 
 </script>
 

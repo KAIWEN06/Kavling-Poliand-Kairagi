@@ -173,7 +173,7 @@ async function save() {
     if (uploadedUrl && previousUrl) await removePublicFile(photoBucket(), previousUrl)
     resetPreview()
     emit('update:modelValue', false)
-    emit('saved', 'Tersimpan dan langsung tampil di situs web.')
+    emit('saved', 'Tersimpan dan langsung tampil di halaman publik.')
   } catch (error) {
     if (uploadedUrl) await removePublicFile(photoBucket(), uploadedUrl)
     formError.value = uploadErrorMessage(error, 'Data gagal disimpan.')

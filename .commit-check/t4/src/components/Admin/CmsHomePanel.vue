@@ -431,7 +431,7 @@ async function save(): Promise<boolean> {
       { key: HOME_KEYS.aboutPoints, label: 'Poin Tentang Kami', value: JSON.stringify(aboutPoints.value.map((point) => point.trim()).filter(Boolean)) },
     )
     if (entries.length) await contactsService.saveMany(entries)
-    notify('Tersimpan dan langsung tampil di situs web.')
+    notify('Tersimpan dan langsung tampil di halaman.')
     emit('saved')
     return true
   } catch (error) {

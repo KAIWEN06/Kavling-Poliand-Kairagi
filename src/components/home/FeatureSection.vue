@@ -95,6 +95,9 @@ useRealtimeRefresh(['home_features'], load)
 }
 .feature-card p { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 14px; line-height: 1.6; }
 
+/* Ditahan sampai ScrollReveal menampilkan blok; tanpa ini animasinya selesai saat belum terlihat. */
+:global(.scroll-reveal:not(.is-shown) .feature-card) { animation-play-state: paused; }
+
 @keyframes feature-in { from { opacity: 0; translate: 18px 0; scale: 0.97; } }
 
 @media (prefers-reduced-motion: reduce) {

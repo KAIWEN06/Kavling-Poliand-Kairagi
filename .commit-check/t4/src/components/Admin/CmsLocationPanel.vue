@@ -3,7 +3,7 @@
     <header v-if="!embedded" class="panel-head">
       <div>
         <h2 id="location-title">Lokasi</h2>
-        <p>Cari dan tandai titik kavling di peta, lalu atur daftar tempat terdekat. Tampil di bagian Lokasi & Denah Kavling pada Beranda.</p>
+        <p>Cari dan tandai titik kaveling di peta, lalu atur daftar tempat terdekat. Tampil di bagian Lokasi & Denah Kavling pada Beranda.</p>
       </div>
       <button class="btn btn-primary" type="button" :disabled="saving || loading" @click="save">
         {{ saving ? 'Menyimpan…' : 'Simpan lokasi' }}
