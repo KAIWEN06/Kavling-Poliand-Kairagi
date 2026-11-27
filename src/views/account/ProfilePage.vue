@@ -211,6 +211,7 @@ const loggingOut = ref(false)
 const tabVariant = computed(() => {
   switch (profile.value?.role) {
     case 'owner':
+      return 'owner'
     case 'admin':
       return 'admin'
     case 'marketing_head':

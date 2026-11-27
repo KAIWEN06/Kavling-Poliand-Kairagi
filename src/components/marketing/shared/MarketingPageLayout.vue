@@ -22,7 +22,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 
 const props = withDefaults(
-  defineProps<{ title: string; subtitle?: string; showBack?: boolean; backRoute?: string; tabVariant?: 'marketing' | 'head'; refreshable?: boolean }>(),
+  defineProps<{ title: string; subtitle?: string; showBack?: boolean; backRoute?: string; tabVariant?: 'marketing' | 'head' | 'owner'; refreshable?: boolean }>(),
   { subtitle: undefined, showBack: false, backRoute: undefined, tabVariant: 'marketing', refreshable: true },
 )
 const emit = defineEmits<{ refresh: [] }>()

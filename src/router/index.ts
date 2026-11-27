@@ -63,6 +63,12 @@ const KavlingClientPage = () => import('@/views/client/KavlingClientPage.vue')
 const KavlingClientDetailPage = () => import('@/views/client/KavlingClientDetailPage.vue')
 const SPKClientPage = () => import('@/views/client/SPKClientPage.vue')
 const SettingsPage = () => import('@/views/account/SettingsPage.vue')
+const BerandaOwnerPage = () => import('@/views/owner/BerandaOwnerPage.vue')
+const KavlingOwnerPage = () => import('@/views/owner/KavlingOwnerPage.vue')
+const StatistikOwnerPage = () => import('@/views/owner/StatistikOwnerPage.vue')
+const LaporanOwnerPage = () => import('@/views/owner/LaporanOwnerPage.vue')
+const LainnyaOwnerPage = () => import('@/views/owner/LainnyaOwnerPage.vue')
+const OwnerDataPage = () => import('@/views/owner/OwnerDataPage.vue')
 import { setupAuthGuards } from '@/router/guards'
 
 const routes: Array<RouteRecordRaw> = [
@@ -122,7 +128,44 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/beranda-owner',
     name: 'BerandaOwner',
-    component: BerandaAdminPage,
+    component: BerandaOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/kavling',
+    name: 'KavlingOwner',
+    component: KavlingOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/statistik',
+    name: 'StatistikOwner',
+    component: StatistikOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/laporan',
+    name: 'LaporanOwner',
+    component: LaporanOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/lainnya',
+    name: 'LainnyaOwner',
+    component: LainnyaOwnerPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/data/pembeli',
+    name: 'OwnerDataPembeli',
+    component: OwnerDataPage,
+    meta: { requiresAuth: true, role: 'owner' },
+  },
+  {
+    path: '/owner/siteplan',
+    name: 'OwnerSiteplan',
+    component: SiteplanPage,
+    props: { variant: 'admin' },
     meta: { requiresAuth: true, role: 'owner' },
   },
   {

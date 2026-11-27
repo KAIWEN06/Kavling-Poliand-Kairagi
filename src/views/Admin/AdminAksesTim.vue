@@ -8,7 +8,7 @@
 
     <ion-content :fullscreen="true">
       <main class="team-shell">
-        <PageBackButton v-if="!selectedMarketing && currentRole === 'admin'" fallback="/admin/lainnya" />
+        <PageBackButton v-if="!selectedMarketing && (currentRole === 'admin' || currentRole === 'owner')" :fallback="currentRole === 'owner' ? '/owner/lainnya' : '/admin/lainnya'" />
 
         <template v-if="selectedMarketing">
           <div class="detail-topbar">
@@ -207,7 +207,7 @@
       </main>
     </ion-content>
 
-    <MobileTabBar v-if="currentRole === 'admin'" variant="admin" />
+    <MobileTabBar v-if="currentRole === 'admin' || currentRole === 'owner'" variant="admin" />
 
     <AppModal
       guard-unsaved

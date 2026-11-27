@@ -6,7 +6,7 @@ import { consumePostLoginRedirect, setPostLoginRedirect } from '@/services/auth/
 
 // Denah milik tiap role, untuk tautan "Bagikan kavling" yang dibuka saat masih login.
 const SITEPLAN_BY_ROLE: Record<Exclude<UserRole, 'client'>, string> = {
-  owner: '/admin/siteplan',
+  owner: '/owner/siteplan',
   admin: '/admin/siteplan',
   marketing_head: '/kepala-marketing/siteplan',
   marketing: '/marketing/siteplan',
@@ -89,6 +89,8 @@ export function setupAuthGuards(router: Router) {
       try {
         const role = await lookupRole()
         if (!role) return { name: 'Login', query: { error: 'role_missing' } }
+        // Owner punya berandanya sendiri; tombol "kembali ke beranda" di halaman Admin diarahkan ke sana.
+        if (role === 'owner' && to.name === 'BerandaAdmin') return '/beranda-owner'
         const roleAllowed = role === requiredRole || (requiredRole === 'admin' && role === 'owner')
         if (!roleAllowed) {
           return authService.getRoleHomePath(role) ?? { name: 'Login' }

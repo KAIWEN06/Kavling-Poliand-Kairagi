@@ -194,7 +194,9 @@ function goBack(): void {
     ionRouter.back()
     return
   }
-  const fallback = route.path.startsWith('/admin')
+  const fallback = route.path.startsWith('/owner')
+    ? '/owner/kavling'
+    : route.path.startsWith('/admin')
     ? '/beranda-admin'
     : route.path.startsWith('/client')
       ? '/client/kavling'

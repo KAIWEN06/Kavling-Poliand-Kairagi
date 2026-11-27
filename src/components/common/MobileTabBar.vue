@@ -10,7 +10,26 @@
            ADMIN
            ========================= -->
 
-      <template v-if="variant === 'admin' || route.path.startsWith('/admin/')">
+      <!-- Owner memakai tabnya sendiri, juga saat membuka halaman Admin. -->
+      <template v-if="isOwner">
+
+        <button
+          v-for="tab in ownerTabs"
+          :key="tab.path"
+          type="button"
+          :class="['nav-item', { active: isActive(tab.path) }]"
+          :aria-current="isActive(tab.path) ? 'page' : undefined"
+          @click="goTo(tab.path)"
+        >
+          <span class="icon-wrap">
+            <ion-icon :icon="tab.icon" />
+          </span>
+          <span class="nav-label">{{ tab.label }}</span>
+        </button>
+
+      </template>
+
+      <template v-else-if="variant === 'admin' || route.path.startsWith('/admin/')">
 
         <button
           type="button"
@@ -283,6 +302,14 @@ const headTabs = [
   { path: '/kepala-marketing/lainnya', label: 'Lainnya', icon: menuOutline },
 ]
 
+const ownerTabs = [
+  { path: '/beranda-owner', label: 'Beranda', icon: homeOutline },
+  { path: '/owner/kavling', label: 'Kaveling', icon: gridOutline },
+  { path: '/owner/statistik', label: 'Statistik', icon: pulseOutline },
+  { path: '/owner/laporan', label: 'Laporan', icon: barChartOutline },
+  { path: '/owner/lainnya', label: 'Lainnya', icon: menuOutline },
+]
+
 const marketingTabs = [
   { path: '/beranda-marketing', label: 'Beranda', icon: homeOutline },
   { path: '/kavling', label: 'Kaveling', icon: gridOutline },
@@ -301,6 +328,11 @@ const TAB_CHILDREN: Record<string, string[]> = {
     '/marketing/lainnya', '/marketing/pengajuan', '/marketing/pembayaran',
     '/marketing/komisi', '/akun', '/pengaturan',
   ],
+  '/beranda-owner': [],
+  '/owner/kavling': ['/owner/siteplan', '/admin/kavling'],
+  '/owner/statistik': [],
+  '/owner/laporan': [],
+  '/owner/lainnya': ['/owner/data', '/admin', '/akun', '/pengaturan'],
   '/beranda-kepala-marketing': [],
   '/kepala-marketing/clients': [],
   '/kepala-marketing/perkembangan': [],
@@ -312,20 +344,28 @@ const TAB_CHILDREN: Record<string, string[]> = {
 }
 
 import { useRoute } from 'vue-router'
+import { readIdentity } from '@/services/auth/lastIdentity'
 import {
+  computed,
   onBeforeUnmount,
   onMounted,
   ref,
 } from 'vue'
 
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
-    variant?: 'public' | 'marketing' | 'admin' | 'client' | 'head'
+    variant?: 'public' | 'marketing' | 'admin' | 'client' | 'head' | 'owner'
   }>(),
   {
     variant: 'public',
   },
+)
+
+/* /admin/kavling termasuk tab Kaveling, jadi tidak ikut menyalakan Lainnya. */
+const isOwner = computed(() =>
+  props.variant === 'owner' ||
+  (props.variant === 'admin' && Boolean(route.path) && readIdentity()?.role === 'owner'),
 )
 
 const detailOpen = ref(false)
@@ -432,6 +472,8 @@ function goTo(path: string) {
    ===================================================== */
 
 function isActive(path: string) {
+
+  if (path === '/owner/lainnya' && route.path.startsWith('/admin/kavling')) return false
 
   const children = TAB_CHILDREN[path]
   if (children) {
