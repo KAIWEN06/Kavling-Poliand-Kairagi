@@ -386,6 +386,7 @@ import {
 
 import { IonIcon } from '@ionic/vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import { useBackToClose } from '@/composables/useBackStack'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 
 import {
@@ -438,6 +439,10 @@ const inputWrapper =
   ref<HTMLElement | null>(null)
 
 const selectedIndex = ref(-1)
+
+/* Back Android: tutup panel filter dulu, lalu bilah pencarian. */
+useBackToClose(() => expanded.value, () => closeBar())
+useBackToClose(() => filterOpen.value, () => closeFilter())
 
 /* =========================================================
    SEARCH MODE GLOBAL EVENT

@@ -1,5 +1,6 @@
 import { supabase } from "@/services/config/supabase";
 import { compressImage } from "@/utils/imageCompress";
+import { removePublicFile } from "@/utils/storageFiles";
 
 export interface ProgressItem {
   id?: string;
@@ -53,16 +54,7 @@ export const progressService = {
   },
 
   async deleteImageFile(imageUrl?: string): Promise<void> {
-    if (!imageUrl) return;
-    try {
-      const urlParts = imageUrl.split("/progress/");
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
-        await supabase.storage.from("progress").remove([filePath]);
-      }
-    } catch (err) {
-      console.error("Gagal menghapus file lama dari storage:", err);
-    }
+    await removePublicFile("progress", imageUrl);
   },
 
   async createProgress(item: ProgressItem): Promise<ProgressItem> {
@@ -89,11 +81,11 @@ export const progressService = {
   },
 
   async deleteProgress(id: string, imageUrl?: string): Promise<boolean> {
-    if (imageUrl) {
-      await this.deleteImageFile(imageUrl);
-    }
-    const { error } = await supabase.from("progress").delete().eq("id", id);
+    const { data, error } = await supabase.from("progress").delete().eq("id", id).select("id");
     if (error) throw error;
+    if (!data?.length) throw new Error("Kabar tidak terhapus. Muat ulang halaman lalu coba lagi.");
+    // File dihapus setelah datanya hilang, agar kabar yang gagal dihapus tidak kehilangan foto.
+    await this.deleteImageFile(imageUrl);
     return true;
   }
 };

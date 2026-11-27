@@ -284,10 +284,10 @@
                       v-if="lot.status !== 'sold'"
                       type="button"
                       class="kv-icon-btn"
-                      :aria-label="`${hasShareLink ? 'Salin link' : 'Salin info'} ${lot.code}`"
+                      :aria-label="`Salin info ${lot.code}`"
                       @click="copy(lotContent(lot))"
                     >
-                      <ion-icon :icon="hasShareLink ? linkOutline : copyOutline" aria-hidden="true" />
+                      <ion-icon :icon="copyOutline" aria-hidden="true" />
                     </button>
 
                     <button type="button" class="kv-detail" @click="openDetail(lot.id)">
@@ -340,7 +340,6 @@ import {
   swapVerticalOutline,
   chevronDownOutline,
   shareSocialOutline,
-  linkOutline,
   copyOutline,
   callOutline,
   personOutline,
@@ -371,7 +370,7 @@ import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
 import { pinSurveyLots, surveyService, type LotSurveyInfo } from '@/services/surveyService'
 import { dimensionDistance, parseDimension, parseNumber, parsePrice } from '@/services/Admin/LotsearchService'
 import { getLotId, getLotStatusColor } from '@/utils/siteplan'
-import { lotShareContent, lotShareUrl } from '@/utils/shareLot'
+import { lotShareContent } from '@/utils/shareLot'
 import { useShareLot } from '@/composables/useShareLot'
 
 type LotStatus = 'available' | 'booked' | 'sold'
@@ -922,8 +921,6 @@ const pager = usePagination(filtered, {
 /* ---------- helpers ---------- */
 
 const { share, copy } = useShareLot()
-// Tanpa alamat web publik, tombol salin menyalin info kavling.
-const hasShareLink = Boolean(lotShareUrl(1))
 
 function formatRupiah(value: number) {
   return 'Rp ' + value.toLocaleString('id-ID')

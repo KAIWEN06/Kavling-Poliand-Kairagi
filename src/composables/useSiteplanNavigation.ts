@@ -32,10 +32,13 @@ export function useSiteplanNavigation(
     selectedLot.value = lot
   }
 
-  /** Ketukan pada bentuk kavling: ke bloknya dulu, baru ke kavlingnya. */
-  function tapLot(lot: SiteplanLot): void {
+  /**
+   * Ketukan pada bentuk kavling: ke bloknya dulu, baru ke kavlingnya.
+   * Bila pengguna sudah zoom sedekat tampilan blok, langsung ke kavlingnya.
+   */
+  function tapLot(lot: SiteplanLot, zoomedIntoBlock = false): void {
     const block = findBlockOfLot(blocks.value, lot)
-    if (block && block.key !== activeBlockKey.value) openBlock(block.key)
+    if (!zoomedIntoBlock && block && block.key !== activeBlockKey.value) openBlock(block.key)
     else openLot(lot)
   }
 

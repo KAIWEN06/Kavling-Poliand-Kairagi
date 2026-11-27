@@ -99,6 +99,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/forgot-password',
     name: 'ForgotPassword',
     component: ForgotPasswordPage,
+    meta: { publicOnly: true },
   },
   {
     path: '/reset-password',
@@ -369,15 +370,20 @@ const routes: Array<RouteRecordRaw> = [
     component: SPKMarketingPage,
     meta: { requiresAuth: true, role: 'marketing' },
   },
+  // ---------------------------------------------------------------
+  // Client: semua halaman wajib login. Katalog publik ada di /siteplan.
+  // ---------------------------------------------------------------
   {
-  path: '/beranda-client',
-  name: 'BerandaClient',
-  component: BerandaClientPage,
+    path: '/beranda-client',
+    name: 'BerandaClient',
+    component: BerandaClientPage,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/kavling',
     name: 'KavlingClient',
     component: KavlingClientPage,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/favorit',
@@ -389,16 +395,19 @@ const routes: Array<RouteRecordRaw> = [
     path: '/client/siteplan',
     name: 'ClientSiteplan',
     component: SiteplanPage,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/kavling/:id',
     name: 'KavlingClientDetail',
     component: KavlingClientDetailPage,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/spk',
     name: 'SPKClient',
     component: SPKClientPage,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/akun',
@@ -408,12 +417,14 @@ const routes: Array<RouteRecordRaw> = [
     path: '/client/dokumen',
     name: 'DokumenClient',
     component: DokumenClientPage,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/pembayaran',
     alias: '/pembayaran-client',
     name: 'PembayaranClient',
     component: PembayaranClientPage,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/marketing',
@@ -463,6 +474,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     component: MainLayout,
+    // Pengguna yang masih login dialihkan ke beranda role-nya (lihat guards.ts).
+    meta: { guestSite: true },
     children: [
       { path: 'home', name: 'Home', component: HomePage },
       { path: 'siteplan', name: 'Siteplan', component: SiteplanPage },

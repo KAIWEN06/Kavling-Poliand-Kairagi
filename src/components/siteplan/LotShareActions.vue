@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IonIcon } from '@ionic/vue'
-import { copyOutline, linkOutline, shareSocialOutline } from 'ionicons/icons'
+import { copyOutline, shareSocialOutline } from 'ionicons/icons'
 import { useShareLot } from '@/composables/useShareLot'
 import type { ShareContent } from '@/utils/shareLot'
 
@@ -19,8 +19,8 @@ const { share, copy } = useShareLot()
         <span>Bagikan</span>
       </button>
       <button type="button" class="share-action" @click="copy(content)">
-        <ion-icon :icon="content.url ? linkOutline : copyOutline" aria-hidden="true" />
-        <span>{{ content.url ? 'Salin link' : 'Salin info' }}</span>
+        <ion-icon :icon="copyOutline" aria-hidden="true" />
+        <span>Salin</span>
       </button>
     </div>
   </div>

@@ -33,20 +33,32 @@ export interface SpkStepInfo {
   requirement: string | null
 }
 
-export const SPK_STEP_INFO: Record<SpkStepKey, SpkStepInfo> = {
+/** Skema yang menentukan syarat pembayaran tiap langkah. */
+export type SpkPaymentPlan = 'cash' | 'down_payment' | 'no_down_payment'
+
+/** Tunai tidak punya langkah PPJB; sisanya dibedakan oleh nominal uang muka. */
+export function spkPaymentPlan(
+  steps: Pick<SpkProcessStep, 'key'>[],
+  downPayment: number | null | undefined,
+): SpkPaymentPlan {
+  if (!steps.some((s) => s.key === 'ppjb')) return 'cash'
+  return Number(downPayment) > 0 ? 'down_payment' : 'no_down_payment'
+}
+
+const SPK_STEP_INFO: Record<SpkStepKey, SpkStepInfo> = {
   ttd_spk: {
     title: 'Tanda tangan SPK dan tanda jadi',
-    summary: 'Tanda tangan langsung di atas kertas. Bisa sekaligus saat acara di notaris.',
+    summary: 'Tanda tangan di atas kertas, terpisah dari acara di notaris. Harus selesai sebelum PPJB.',
     requirement: null,
   },
   ppjb: {
     title: 'Tanda tangan PPJB di notaris',
-    summary: 'Perjanjian jual beli dibuat di notaris. Tanggal cicilan pertama ditetapkan saat ini.',
-    requirement: 'Jika memilih uang muka, uang muka harus sudah dibayar sebelum atau saat tanda tangan.',
+    summary: 'Perjanjian jual beli dibuat di notaris.',
+    requirement: null,
   },
   cicilan: {
     title: 'Bayar cicilan',
-    summary: 'Cicilan pertama dibayar di bulan setelah PPJB, lalu berlanjut tiap bulan sampai lunas.',
+    summary: 'Cicilan pertama dibayar di bulan setelah PPJB, lalu tiap bulan sampai lunas.',
     requirement: 'Langkah ini selesai sendiri saat cicilan terakhir terverifikasi lunas.',
   },
   ajb: {
@@ -64,6 +76,23 @@ export const SPK_STEP_INFO: Record<SpkStepKey, SpkStepInfo> = {
     summary: 'Sertifikat diserahkan dan Anda menerima bukti tanda terima. Setelah itu kavling resmi terjual.',
     requirement: null,
   },
+}
+
+const SPK_STEP_PLAN_INFO: Record<SpkPaymentPlan, Partial<Record<SpkStepKey, Partial<SpkStepInfo>>>> = {
+  cash: {
+    ttd_spk: { summary: 'Tanda tangan di atas kertas, Harus selesai sebelum AJB.' },
+  },
+  down_payment: {
+    ppjb: { requirement: 'Cukup bayar uang muka, pada hari tanda tangan PPJB.' },
+  },
+  no_down_payment: {
+    ppjb: { requirement: 'Tanpa uang muka, jadi cicilan pertama harus lunas sebelum atau saat tanda tangan.' },
+    cicilan: { summary: 'Cicilan kedua dibayar di bulan setelah PPJB, lalu tiap bulan sampai lunas.' },
+  },
+}
+
+export function spkStepInfo(key: SpkStepKey, plan: SpkPaymentPlan): SpkStepInfo {
+  return { ...SPK_STEP_INFO[key], ...SPK_STEP_PLAN_INFO[plan][key] }
 }
 
 export const SPK_STEP_STATUS_LABEL: Record<SpkStepStatus, string> = {

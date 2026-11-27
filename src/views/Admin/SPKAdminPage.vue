@@ -49,6 +49,10 @@
                 <div><span class="spk-number">{{ request.spk_number }}</span><time>{{ formatDate(request.created_at) }}</time></div>
                 <span :class="['spk-status', `status-${request.status.toLowerCase().replaceAll(' ', '-')}`]">{{ statusLabel(request.status) }}</span>
               </div>
+              <div v-if="spkStage(request.status, request.notary_status)" class="spk-stage-row">
+                <span>Tahapan proses</span>
+                <StatusBadge :label="SPK_STAGE_LABEL[spkStage(request.status, request.notary_status)!]" :tone="SPK_STAGE_TONE[spkStage(request.status, request.notary_status)!]" />
+              </div>
               <div class="spk-person">
                 <div class="spk-avatar">{{ initials(request.customer_full_name) }}</div>
                 <div class="spk-person-info"><strong>{{ request.customer_full_name }}</strong><span>{{ request.customer_phone }}</span><small>Sumber: {{ sourceLabel(request.submission_source) }}<template v-if="request.marketing_name"> · {{ request.marketing_name }}</template></small></div>
@@ -504,6 +508,8 @@ import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import { currentMakassarDateTimeLocal, makassarDateTimeLocalToIso } from '@/utils/financialCashflow'
 import { compareLotNumber } from '@/utils/lotNumber'
+import { sortByRunningStage, spkStage, SPK_STAGE_LABEL } from '@/utils/spkStage'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import {
   approveSPKRequest, getAdminSPKRequests, getAdminSPKStats,
   getSPKDocumentUrl, rejectSPKRequest,
@@ -665,6 +671,7 @@ const filteredCustomers = computed(() => {
   return customers.value.filter(c => !q || c.full_name.toLocaleLowerCase('id-ID').includes(q))
 })
 const selectedCreateLots = computed(() => availableLots.value.filter(lot => selectedLotIds.value.includes(lot.id)))
+const SPK_STAGE_TONE = { running: 'gold', 'not-started': 'neutral', done: 'success' } as const
 const sourceFilters = [
   { label: 'Semua', value: 'All' as const },
   { label: 'Pemasar', value: 'Marketing' as const },
@@ -746,13 +753,16 @@ const statusFilters: { label: string; value: 'All' | SPKStatus }[] = [
 ]
 const filteredRequests = computed(() => {
   const q = searchQuery.value.trim().toLocaleLowerCase('id-ID')
-  return requests.value.filter(row => {
+  const matches = requests.value.filter(row => {
     const matchesStatus = selectedStatus.value === 'All' || row.status === selectedStatus.value
     const matchesSource = selectedSource.value === 'All' || row.submission_source === selectedSource.value
     const haystack = [row.spk_number, row.customer_full_name, row.customer_phone, row.marketing_name, row.lot_number]
       .filter(Boolean).join(' ').toLocaleLowerCase('id-ID')
     return matchesStatus && matchesSource && (!q || haystack.includes(q))
   })
+  return selectedStatus.value === 'All'
+    ? sortByRunningStage(matches, row => [row.status, row.notary_status])
+    : matches
 })
 const pager = usePagination(filteredRequests, {
   pageSize: 10,
@@ -1320,6 +1330,8 @@ useRealtimeRefresh(
 .status-approved { background:#e8f4e7; color:#2e6b36; }
 .status-rejected { background:#fcebea; color:#a63e38; }
 .status-cancelled { background:#eef0ed; color:#687168; }
+/* #5f5f66 di atas #f3f6f0 = 5,8:1 */
+.spk-stage-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:11px; padding:9px 10px; border-radius:var(--radius-xs); background:#f3f6f0; color:#5f5f66; font-size:12px; }
 .spk-person { display:flex; align-items:center; gap:10px; margin:15px 0; }
 .spk-avatar { display:grid; place-items:center; width:40px; height:40px; flex:0 0 40px; border-radius:13px; background:#edf3e9; color:#355a2c; font-size:12px; font-weight:800; }
 .spk-person-info { display:grid; gap:3px; min-width:0; }

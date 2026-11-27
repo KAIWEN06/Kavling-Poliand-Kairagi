@@ -15,10 +15,10 @@ export function useShareLot() {
     }
   }
 
-  /** Dengan tautan, hanya tautannya yang disalin; tanpa tautan, info kavlingnya. */
+  /** Yang disalin sama dengan isi bagikan: info kavling, lalu tautannya bila ada. */
   async function copy(content: ShareContent) {
-    if (await copyText(content.url || shareAsPlainText(content))) {
-      toast.success(content.url ? 'Link kavling disalin.' : 'Info kavling disalin.')
+    if (await copyText(shareAsPlainText(content))) {
+      toast.success(content.url ? 'Info dan link disalin.' : 'Info kavling disalin.')
     } else {
       failed()
     }

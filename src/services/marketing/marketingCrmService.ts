@@ -261,7 +261,7 @@ export async function getClientDetail(customerId: number): Promise<ClientDetail>
       .select(`id, lot_id, status, payment_type, price_at_booking, discount_amount, final_price, down_payment, booking_fee,
         principal_amount, margin_amount, installment_total, monthly_payment, months, booking_date, sold_date, cancelled_date,
         installment_start_date, lots (lot_number, blocks (name)),
-        installment_schedules (id, installment_number, due_date, amount, status,
+        installment_schedules (id, installment_number, due_date, due_date_official, amount, status,
           installment_penalties (id, days_late, amount, status))`)
       .eq('customer_id', customerId)
       .order('created_at', { ascending: false }),
@@ -477,7 +477,7 @@ function ownerOf(row: { customers?: any; submission_source?: string; marketing_i
 export async function listSpkRequests() {
   const { data, error } = await supabase
     .from('spk_requests')
-    .select(`id, spk_number, status, submitted_at, reviewed_at, approved_at, booking_fee_snapshot, payment_method, months,
+    .select(`id, spk_number, status, submitted_at, reviewed_at, approved_at, booking_fee_snapshot, payment_method, months, notary_status,
       admin_note, rejection_reason, rejection_category, submission_source, marketing_id, customer_id, customer_full_name,
       customers (id, full_name, marketing_id),
       lots (lot_number, blocks (name)),
@@ -524,7 +524,7 @@ export async function listPayments() {
 export async function listInstallmentSchedules() {
   const { data, error } = await supabase
     .from('installment_schedules')
-    .select(`id, transaction_id, installment_number, due_date, amount, status,
+    .select(`id, transaction_id, installment_number, due_date, due_date_official, amount, status,
       installment_penalties (days_late, amount, status),
       lot_transactions (id, status, payment_type, final_price, down_payment, months, monthly_payment,
         customers (id, full_name, marketing_id, phone, whatsapp_phone),

@@ -63,9 +63,15 @@ const app = createApp(App)
 
 app
   .use(IonicVue, {
+    // Tombol Back Android hanya ditangani App.vue. Bila true, Ionic ikut mundur satu
+    // halaman pada tekanan yang sama (dobel mundur).
+    hardwareBackButton: false,
     navAnimation: poliPageTransition,
     alertEnter: alertEnterAnimation,
     alertLeave: alertLeaveAnimation,
+    // MainActivity sudah mengecilkan WebView saat keyboard terbuka. Padding bawaan Ionic di
+    // ion-content (aktif karena Keyboard.resize = 'none') akan menghitung keyboard dua kali.
+    ...(Capacitor.getPlatform() === 'android' ? { scrollPadding: false } : {}),
   })
   .use(router)
 
@@ -73,7 +79,7 @@ app
 async function bootstrap() {
   try {
     // Daftarkan listener callback Google OAuth
-    await initializeAuthDeepLinks()
+    await initializeAuthDeepLinks(router)
 
     // Callback OAuth yang sudah terpakai: bersihkan URL lalu arahkan ke login.
     const oauthError = consumeOAuthUrlError()

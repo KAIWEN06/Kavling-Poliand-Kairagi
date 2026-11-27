@@ -1,6 +1,7 @@
 
 import { supabase } from '@/services/config/supabase'
 import { clearStalePkceVerifier } from '@/services/auth/authUrlError'
+import { forgetIdentity, readIdentity, rememberIdentity } from '@/services/auth/lastIdentity'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import type { ID } from '@/types/common'
@@ -163,6 +164,7 @@ export const authService = {
       // Logout tidak boleh gagal karena push.
     }
     const { error } = await supabase.auth.signOut()
+    forgetIdentity()
 
     // Bersihkan verifier PKCE agar login Google berikutnya memulai flow baru.
     clearStalePkceVerifier()
@@ -180,9 +182,18 @@ export const authService = {
       .eq('id', String(userId))
       .maybeSingle()
 
-    if (error) throw error
+    if (error) {
+      // Gangguan sesaat tidak boleh membuat pengguna yang masih login terlempar.
+      const known = readIdentity()
+      if (known?.userId === String(userId)) return known.role
+      throw error
+    }
 
-    return normalizeRole(data?.role)
+    const role = normalizeRole(data?.role)
+    if (role) rememberIdentity({ userId: String(userId), role })
+    else forgetIdentity()
+
+    return role
   },
 
   /**

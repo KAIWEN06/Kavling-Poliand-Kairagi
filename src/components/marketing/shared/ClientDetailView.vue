@@ -144,11 +144,11 @@
                   <li v-for="s in tx.schedules" :key="s.id">
                     <div>
                       <strong>Ke-{{ s.installment_number }}</strong>
-                      <span>Jatuh tempo {{ formatDate(s.due_date) }}<template v-if="penaltyOf(s)"> · denda {{ formatRupiah(penaltyOf(s)) }}</template></span>
+                      <span>{{ s.due_date_official === false ? 'Tanggal mengikuti PPJB' : `Jatuh tempo ${formatDate(s.due_date)}` }}<template v-if="penaltyOf(s)"> · denda {{ formatRupiah(penaltyOf(s)) }}</template></span>
                     </div>
                     <div class="cd-row-end">
                       <strong>{{ formatRupiah(s.amount) }}</strong>
-                      <StatusBadge :label="scheduleStatusLabel(s.status, s.due_date)" :tone="scheduleStatusTone(s.status, s.due_date)" />
+                      <StatusBadge :label="scheduleStatusLabel(s.status, s.due_date_official === false ? null : s.due_date)" :tone="scheduleStatusTone(s.status, s.due_date_official === false ? null : s.due_date)" />
                     </div>
                   </li>
                 </ul>
@@ -223,7 +223,7 @@
           </AppNotice>
           <div v-if="spk.status === 'Approved'" class="cd-sub">
             <h4>Tahapan proses</h4>
-            <SpkProcessTimeline :spk-id="spk.id" mode="view" />
+            <SpkProcessTimeline :spk-id="spk.id" :down-payment="spk.down_payment_amount" mode="view" />
           </div>
           <details class="cd-more">
             <summary>Riwayat pemeriksaan ({{ spk.history.length }})</summary>
@@ -527,7 +527,7 @@ function penaltyTotal(tx: any) {
 }
 function penaltyOf(schedule: any) {
   const penalty = Array.isArray(schedule.installment_penalties) ? schedule.installment_penalties[0] : schedule.installment_penalties
-  return penalty && penalty.status !== 'Waived' ? Number(penalty.amount || 0) : 0
+  return penalty && !['Waived', 'Closed'].includes(penalty.status) ? Number(penalty.amount || 0) : 0
 }
 
 /* Pengajuan SPK oleh Marketing: kaveling diminati yang masih tersedia, ditandai bila sedang ditahan SPK lain. */

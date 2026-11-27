@@ -14,6 +14,13 @@ export type ShareResult = 'shared' | 'cancelled' | 'copied' | 'failed'
  * alamat web harus diisi lewat VITE_PUBLIC_WEB_URL. Kosong berarti belum ada tautan.
  */
 export function lotShareUrl(lotId: number | string): string {
+  const base = publicWebUrl()
+  if (!base) return ''
+  return `${base.replace(/\/+$/, '')}/siteplan?kavling=${encodeURIComponent(String(lotId))}`
+}
+
+/** Alamat web publik aplikasi, atau kosong bila belum ada. */
+function publicWebUrl(): string {
   let base = String(import.meta.env.VITE_PUBLIC_WEB_URL || '').trim()
 
   if (!base && !Capacitor.isNativePlatform()) {
@@ -23,8 +30,27 @@ export function lotShareUrl(lotId: number | string): string {
     }
   }
 
-  if (!base) return ''
-  return `${base.replace(/\/+$/, '')}/siteplan?kavling=${encodeURIComponent(String(lotId))}`
+  return base
+}
+
+/**
+ * Rute dalam aplikasi untuk tautan kavling yang dibuka dari luar (Android App Links).
+ * Hanya alamat web milik sendiri yang diterima; selain itu null.
+ */
+export function sharedLotPath(link: string): string | null {
+  const web = publicWebUrl()
+  if (!web) return null
+  try {
+    const url = new URL(link)
+    const base = new URL(web)
+    const path = `${base.pathname.replace(/\/+$/, '')}/siteplan`
+    const lotId = url.searchParams.get('kavling') ?? ''
+    if (url.protocol !== 'https:' || url.host !== base.host) return null
+    if (url.pathname.replace(/\/+$/, '') !== path || !/^\d+$/.test(lotId)) return null
+    return `/siteplan?kavling=${lotId}`
+  } catch {
+    return null
+  }
 }
 
 export interface LotShareInput {

@@ -120,6 +120,20 @@ export function selectableSequence<T extends ScheduleLike & { id: number }>(
 }
 
 /**
+ * Selama PPJB belum selesai (tanggal jadwal belum resmi): pembelian ber-uang
+ * muka belum menerima cicilan, dan tanpa uang muka hanya cicilan pertama.
+ * Harus sama dengan create_admin_payment_with_allocations di database.
+ */
+export function openBeforePpjb<T extends ScheduleLike>(
+  sequence: T[],
+  schedules: Array<{ due_date_official?: boolean }>,
+  hasDownPayment: boolean,
+): T[] {
+  if (!schedules.some((item) => item.due_date_official === false)) return sequence
+  return hasDownPayment ? [] : sequence.filter((item) => numberOf(item) === 1)
+}
+
+/**
  * Terapkan pilihan baru pada urutan cicilan.
  * Memilih cicilan ke-N otomatis memilih semua cicilan aktif sebelumnya;
  * melepas cicilan ke-N juga melepas semua cicilan setelahnya.

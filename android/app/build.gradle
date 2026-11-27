@@ -1,6 +1,15 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+// Domain link kavling diambil dari VITE_PUBLIC_WEB_URL di .env, sama dengan yang dipakai web.
+// Selama masih kosong, dipakai domain .invalid yang tidak pernah cocok dengan link mana pun.
+def resolveWebHost = {
+    def envFile = rootProject.file('../.env')
+    def line = envFile.exists() ? envFile.readLines().find { it.trim().startsWith('VITE_PUBLIC_WEB_URL=') } : null
+    def value = line ? line.split('=', 2)[1].trim().replaceAll(/^["']|["']$/, '') : ''
+    return value ? new URI(value).host : 'poliland.invalid'
+}
+
 android {
     namespace = "com.poliland.kairagi"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -10,6 +19,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        manifestPlaceholders = [webHost: resolveWebHost()]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

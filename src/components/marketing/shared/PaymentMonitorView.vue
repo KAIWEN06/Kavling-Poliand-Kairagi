@@ -65,10 +65,10 @@
               <td v-if="isHead" data-label="Pemasar">{{ memberName(s.owner_id) }}</td>
               <td data-label="Kaveling">{{ s.lot?.lot_number || '-' }}</td>
               <td data-label="Cicilan">Ke-{{ s.installment_number }}{{ s.transaction?.months ? ` dari ${s.transaction.months}` : '' }}</td>
-              <td data-label="Jatuh tempo">{{ formatDate(s.due_date) }}<span v-if="isLate(s)" class="mk-danger-text mk-block">{{ daysLate(s) }} hari terlambat</span></td>
+              <td data-label="Jatuh tempo">{{ s.due_date_official === false ? 'Mengikuti PPJB' : formatDate(s.due_date) }}<span v-if="isLate(s)" class="mk-danger-text mk-block">{{ daysLate(s) }} hari terlambat</span></td>
               <td data-label="Nominal" class="num">{{ formatRupiah(s.amount) }}</td>
-              <td data-label="Status"><StatusBadge :label="scheduleStatusLabel(s.status, s.due_date)" :tone="scheduleStatusTone(s.status, s.due_date)" /></td>
-              <td data-label="Denda" class="num">{{ s.penalty && s.penalty.status !== 'Waived' ? formatRupiah(s.penalty.amount) : '-' }}</td>
+              <td data-label="Status"><StatusBadge :label="scheduleStatusLabel(s.status, officialDue(s))" :tone="scheduleStatusTone(s.status, officialDue(s))" /></td>
+              <td data-label="Denda" class="num">{{ s.penalty && !['Waived', 'Closed'].includes(s.penalty.status) ? formatRupiah(s.penalty.amount) : '-' }}</td>
             </tr>
           </tbody>
         </table>
@@ -135,8 +135,13 @@ function paymentsBy(status: string) {
 }
 const visiblePayments = computed(() => (payStatus.value ? paymentsBy(payStatus.value) : scopedPayments.value))
 
+/** Tanggal sebelum PPJB masih sementara, jadi tidak dihitung sebagai jatuh tempo. */
+function officialDue(s: any): string | null {
+  return s.due_date_official === false ? null : s.due_date
+}
 function isLate(s: any) {
-  return s.status === 'Overdue' || (s.status === 'Pending' && s.due_date < today)
+  const due = officialDue(s)
+  return s.status === 'Overdue' || (s.status === 'Pending' && due !== null && due < today)
 }
 function daysLate(s: any) {
   return Math.max(0, Math.round((new Date(today).getTime() - new Date(s.due_date).getTime()) / 86400000))
@@ -146,7 +151,7 @@ const soonLimit = (() => {
   d.setDate(d.getDate() + 7)
   return d.toISOString().slice(0, 10)
 })()
-const dueSoon = computed(() => scopedSchedules.value.filter((s) => s.status === 'Pending' && s.due_date >= today && s.due_date <= soonLimit))
+const dueSoon = computed(() => scopedSchedules.value.filter((s) => s.status === 'Pending' && s.due_date_official !== false && s.due_date >= today && s.due_date <= soonLimit))
 const overdue = computed(() => scopedSchedules.value.filter(isLate))
 const visibleSchedules = computed(() => {
   switch (schedFilter.value) {

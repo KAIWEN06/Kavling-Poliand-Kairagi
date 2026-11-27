@@ -202,6 +202,7 @@ import { IonIcon } from '@ionic/vue'
 import { cmsService, type CmsFeature, type CmsHero } from '@/services/cmsService'
 import { contactsService } from '@/services/contactService'
 import { CMS_ICON_OPTIONS, resolveCmsIcon } from '@/utils/cmsIcons'
+import { GALLERY_BUCKET, removePublicFile, uploadErrorMessage } from '@/utils/storageFiles'
 import { HOME_KEYS, parseHighlights, parsePoints, type HomeHighlight } from '@/utils/homeContent'
 import { featureService, isYouTubeUrl, getYouTubeThumbnail, type VideoItem } from '@/services/featureService'
 
@@ -239,6 +240,8 @@ const customCtaUrl = ref('')
 const selectedImage = ref<File | null>(null)
 const localPreview = ref('')
 
+/** Gambar sampul yang tersimpan di database, untuk dibersihkan setelah diganti atau dihapus. */
+let storedHeroImage = ''
 const previewSrc = computed(() => localPreview.value || hero.image_url || '')
 
 // Video profil (tabel `videos`, satu video aktif)
@@ -296,12 +299,20 @@ async function saveVideo() {
     return
   }
   let url = videoUrl.value.trim()
-  if (selectedVideo.value) url = (await featureService.uploadVideo(selectedVideo.value)).url
   let thumb = thumbUrl.value
-  if (selectedThumb.value) thumb = (await featureService.uploadThumbnail(selectedThumb.value)).url
-  else if (isYouTubeUrl(url)) thumb = thumb || getYouTubeThumbnail(url) || ''
-  const payload: VideoItem = { title: videoTitle.value.trim() || 'Video Profil PoliLand', video_url: url, thumbnail_url: thumb || null, is_active: true, sort_order: 0 }
-  savedVideo.value = old?.id ? await featureService.updateVideo(old.id, payload) : await featureService.createVideo(payload)
+  let newVideo = ''
+  let newThumb = ''
+  try {
+    if (selectedVideo.value) url = newVideo = (await featureService.uploadVideo(selectedVideo.value)).url
+    if (selectedThumb.value) thumb = newThumb = (await featureService.uploadThumbnail(selectedThumb.value)).url
+    else if (isYouTubeUrl(url)) thumb = thumb || getYouTubeThumbnail(url) || ''
+    const payload: VideoItem = { title: videoTitle.value.trim() || 'Video Profil PoliLand', video_url: url, thumbnail_url: thumb || null, is_active: true, sort_order: 0 }
+    savedVideo.value = old?.id ? await featureService.updateVideo(old.id, payload) : await featureService.createVideo(payload)
+  } catch (error) {
+    await featureService.deleteVideoFile(newVideo)
+    await featureService.deleteThumbnailFile(newThumb)
+    throw error
+  }
   // bersihkan berkas lama yang sudah tidak dipakai
   if (old && old.video_url !== url) await featureService.deleteVideoFile(old.video_url)
   if (old?.thumbnail_url && old.thumbnail_url !== thumb) await featureService.deleteThumbnailFile(old.thumbnail_url)
@@ -321,6 +332,7 @@ async function load() {
   try {
     const [savedHero, savedFeatures, contacts] = await Promise.all([cmsService.getHero(true), cmsService.getFeatures(), contactsService.getAll()])
     if (savedHero) Object.assign(hero, { ...savedHero, subtitle: savedHero.subtitle ?? '', description: savedHero.description ?? '' })
+    storedHeroImage = savedHero?.image_url || ''
     const url = (hero.cta_url || 'whatsapp').trim()
     if (PRESET_VALUES.has(url)) ctaPreset.value = url
     else { ctaPreset.value = 'custom'; customCtaUrl.value = url }
@@ -411,9 +423,18 @@ async function save(): Promise<boolean> {
   saving.value = true
   try {
     if (shows('hero')) {
-      if (selectedImage.value) hero.image_url = await cmsService.uploadImage(selectedImage.value)
-      const savedHero = await cmsService.saveHero({ ...hero })
+      const uploaded = selectedImage.value ? await cmsService.uploadImage(selectedImage.value) : ''
+      let savedHero: CmsHero
+      try {
+        savedHero = await cmsService.saveHero({ ...hero, image_url: uploaded || hero.image_url })
+      } catch (error) {
+        await removePublicFile(GALLERY_BUCKET, uploaded)
+        throw error
+      }
       hero.id = savedHero.id
+      hero.image_url = savedHero.image_url
+      if (storedHeroImage !== (savedHero.image_url || '')) await removePublicFile(GALLERY_BUCKET, storedHeroImage)
+      storedHeroImage = savedHero.image_url || ''
       resetLocalPreview()
     }
     if (shows('features')) {
@@ -435,7 +456,7 @@ async function save(): Promise<boolean> {
     emit('saved')
     return true
   } catch (error) {
-    notify(error instanceof Error ? error.message : 'Konten gagal disimpan.', 'error')
+    notify(uploadErrorMessage(error, 'Konten gagal disimpan.'), 'error')
     return false
   } finally {
     saving.value = false
@@ -461,9 +482,6 @@ onBeforeUnmount(() => { resetLocalPreview(); if (thumbPreview.value) URL.revokeO
 .image-frame p { margin: 0; padding: 12px; color: var(--text-secondary); font-size: 12px; text-align: center; }
 .image-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .image-actions .hint { flex-basis: 100%; }
-.file-btn { position: relative; cursor: pointer; }
-.file-btn input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; pointer-events: none; }
-.file-btn:focus-within { outline: 3px solid color-mix(in srgb, var(--poliland-green) 35%, transparent); outline-offset: 2px; }
 .video-field { display: grid; gap: 12px; margin: 16px 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
 .video-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .video-head h4 { margin: 0; font-size: 14px; font-weight: 800; }

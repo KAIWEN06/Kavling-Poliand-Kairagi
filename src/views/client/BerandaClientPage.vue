@@ -8,6 +8,7 @@ import {
   IonIcon,
   IonPage,
   onIonViewWillEnter,
+  useIonRouter,
 } from '@ionic/vue'
 import {
   checkmarkOutline,
@@ -38,6 +39,7 @@ import { useToast } from '@/composables/useToast'
 import { formatInstallmentRange, formatRupiah as formatRupiahId } from '@/utils/installmentFormat'
 
 const router = useRouter()
+const ionRouter = useIonRouter()
 const clientName = ref('Pembeli')
 const clientSpks = ref<ClientSpkRecord[]>([])
 const documentsLoaded = ref(false)
@@ -236,7 +238,7 @@ onIonViewWillEnter(() => {
 
 async function logout() {
   await authService.logout()
-  await router.replace('/login')
+  ionRouter.replace('/login')
 }
 
 function goTo(path: string) {
@@ -403,7 +405,7 @@ useRealtimeRefresh(
                 @click="openPayments()"
               >
                 <span class="next__label">Pembayaran berikutnya</span>
-                <strong class="next__date t-figure">{{ formatDay(nextSchedule.dueDate) }}</strong>
+                <strong class="next__date t-figure">{{ nextSchedule.dueDate ? formatDay(nextSchedule.dueDate) : 'Mengikuti PPJB' }}</strong>
                 <span class="next__row">
                   <span class="t-num">{{ formatInstallmentRange([nextSchedule.installmentNumber], overview?.schedules.length) }} · {{ formatRupiah(nextSchedule.amount) }}</span>
                   <StatusBadge size="sm" :tone="isOverdue(nextSchedule) ? 'danger' : 'warning'" :label="isOverdue(nextSchedule) ? 'Terlambat' : 'Belum dibayar'" />

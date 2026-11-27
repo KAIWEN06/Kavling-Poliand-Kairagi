@@ -6,6 +6,8 @@ export type InstallmentScheduleRecord = {
   transaction_id: number
   installment_number: number
   due_date: string
+  /** false selama PPJB belum selesai: due_date masih sementara. */
+  due_date_official?: boolean
   amount: number
   status: 'Pending' | 'Paid' | 'Overdue'
   pending_payment?: boolean
@@ -92,6 +94,7 @@ export const paymentService = {
         transaction_id,
         installment_number,
         due_date,
+        due_date_official,
         amount,
         status,
         payment_allocations (
@@ -109,6 +112,7 @@ export const paymentService = {
       transaction_id: Number(row.transaction_id),
       installment_number: Number(row.installment_number),
       due_date: row.due_date,
+      due_date_official: row.due_date_official,
       amount: Number(row.amount),
       status: row.status,
 
@@ -451,11 +455,10 @@ export const paymentService = {
       ? CLIENT_SPK_PROOF_BUCKET
       : PROOF_BUCKET
 
+    // Policy Storage hanya mengizinkan Client menulis di folder miliknya sendiri.
     const folder = isClientSpkPayment
       ? `${userId}/${payment.spk_request_id}`
-      : payment.transaction_id
-        ? `transaction/${payment.transaction_id}`
-        : `spk/${paymentId}`
+      : `${userId}/${payment.transaction_id ?? paymentId}`
 
     const newPath = isClientSpkPayment
       ? `${folder}/reupload-${Date.now()}-${crypto.randomUUID()}.${safeExtension}`

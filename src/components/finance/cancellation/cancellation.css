@@ -1,0 +1,86 @@
+/* Gaya bersama alur pembatalan pembelian (klien dan Admin). Awalan pc-. */
+.pc-stack { display: grid; gap: 12px; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
+.pc-stack p { margin: 0; }
+
+.pc-field { display: grid; gap: 6px; min-width: 0; font-weight: var(--font-weight-semibold); }
+.pc-field small { color: var(--text-secondary); font-weight: 400; }
+/* 16px mencegah iPhone memperbesar layar saat isian dipilih. */
+.pc-field input,
+.pc-field select,
+.pc-field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+}
+.pc-field textarea { min-height: 92px; resize: vertical; }
+.pc-field input:focus-visible,
+.pc-field select:focus-visible,
+.pc-field textarea:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+
+.pc-group { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.pc-group legend { margin-bottom: 8px; padding: 0; font-weight: var(--font-weight-bold); }
+
+.pc-check { display: flex; align-items: center; gap: 12px; min-height: 48px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.pc-check input { flex: 0 0 auto; width: 22px; height: 22px; margin: 0; accent-color: var(--poliland-green); }
+
+.pc-sum { margin: 0; padding: 4px 14px; border-radius: var(--radius-card); background: var(--surface-muted); }
+.pc-sum > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; }
+.pc-sum > div + div { border-top: 1px solid var(--border-default); }
+.pc-sum dt { color: var(--text-secondary); }
+.pc-sum dd { margin: 0; text-align: right; font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.pc-sum .pc-sum__main dt { color: var(--text-primary); font-weight: var(--font-weight-bold); }
+.pc-sum .pc-sum__main dd { color: var(--poliland-green); font-size: 18px; font-weight: var(--font-weight-bold); }
+
+.pc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-fast, 150ms) var(--ease-spring, ease-out);
+}
+.pc-btn:active { transform: scale(0.97); }
+.pc-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+.pc-btn:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+.pc-btn--primary { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }
+.pc-btn--danger { border-color: var(--danger-text); color: var(--danger-text); }
+
+.pc-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.pc-tabs .pc-btn { flex: 1 1 auto; }
+.pc-tabs .pc-btn[aria-pressed='true'] { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }
+
+.pc-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.pc-card { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); color: var(--text-primary); font-size: 13px; line-height: 1.55; }
+.pc-card__top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; }
+.pc-card__top > .pc-strong { white-space: nowrap; }
+.pc-card h3 { margin: 0; font-size: 16px; }
+.pc-card p { margin: 0; overflow-wrap: anywhere; }
+.pc-muted { color: var(--text-secondary); }
+.pc-strong { font-size: 16px; font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.pc-late { color: var(--danger-text); font-weight: var(--font-weight-bold); }
+.pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pc-actions .pc-btn { flex: 1 1 160px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-btn { transition: none; }
+  .pc-btn:active { transform: none; }
+}

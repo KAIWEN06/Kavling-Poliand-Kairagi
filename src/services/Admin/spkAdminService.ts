@@ -71,6 +71,7 @@ export interface AdminSPKRequest {
   total_payment_snapshot: number | null
   notes: string | null
   status: SPKStatus
+  notary_status?: string | null
   reviewed_by: string | null
   reviewed_at: string | null
   approved_at: string | null
@@ -443,7 +444,13 @@ export function getAdminSPKStats(rows: AdminSPKRequest[]): SPKAdminStats {
 }
 
 export async function getSPKDocumentUrl(filePath: string, bucket = STORAGE_BUCKET): Promise<string> {
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(filePath, 300)
+  let { data, error } = await supabase.storage.from(bucket).createSignedUrl(filePath, 300)
+  // Bukti tanda jadi dari pengajuan Client bisa tersimpan di salah satu dari dua bucket.
+  if (error) {
+    const other = bucket === STORAGE_BUCKET ? 'payment-proofs' : STORAGE_BUCKET
+    const retry = await supabase.storage.from(other).createSignedUrl(filePath, 300)
+    if (!retry.error) ({ data, error } = retry)
+  }
   throwIfError(error)
   if (!data?.signedUrl) throw new Error('Tautan dokumen tidak tersedia.')
   return data.signedUrl

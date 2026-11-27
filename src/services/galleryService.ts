@@ -1,5 +1,6 @@
 import { supabase } from '@/services/config/supabase'
 import { compressImage } from '@/utils/imageCompress'
+import { GALLERY_BUCKET, removePublicFile } from '@/utils/storageFiles'
 
 export interface GalleryPayload {
   title: string
@@ -67,12 +68,15 @@ export const galleryService = {
     id: string,
     imageUrl?: string
   ) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('gallery')
       .delete()
       .eq('id', id)
+      .select('id')
 
     if (error) throw error
+    // RLS yang menolak tidak memunculkan error; tanpa cek ini hapus terlihat berhasil.
+    if (!data?.length) throw new Error('Foto tidak terhapus. Muat ulang halaman lalu coba lagi.')
 
     if (imageUrl) {
       await this.deleteImage(imageUrl)
@@ -95,7 +99,7 @@ export const galleryService = {
 
     const { error: uploadError } =
       await supabase.storage
-        .from('galleries')
+        .from(GALLERY_BUCKET)
         .upload(filePath, file, {
           cacheControl: '31536000',
           upsert: false
@@ -107,7 +111,7 @@ export const galleryService = {
 
     const { data } =
       supabase.storage
-        .from('galleries')
+        .from(GALLERY_BUCKET)
         .getPublicUrl(filePath)
 
     return {
@@ -117,24 +121,6 @@ export const galleryService = {
   },
 
   async deleteImage(imageUrl: string) {
-    try {
-      const urlObj = new URL(imageUrl)
-      const pathParts =
-        urlObj.pathname.split('/galleries/')
-
-      if (pathParts.length < 2) return
-
-      const filePath =
-        decodeURIComponent(pathParts[1])
-
-      await supabase.storage
-        .from('galleries')
-        .remove([filePath])
-    } catch (err) {
-      console.error(
-        'Gagal menghapus file gambar dari storage:',
-        err
-      )
-    }
+    await removePublicFile(GALLERY_BUCKET, imageUrl)
   }
 }

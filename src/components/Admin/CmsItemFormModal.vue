@@ -29,7 +29,10 @@
       <div v-if="type !== 'faq'" class="field wide">
         <span>Foto{{ type === 'gallery' ? ' *' : '' }}</span>
         <img v-if="previewSrc" :src="previewSrc" alt="Pratinjau foto" class="preview" width="480" height="270">
-        <input type="file" accept="image/jpeg,image/png,image/webp" aria-label="Pilih foto" @change="selectFile">
+        <label class="btn btn-secondary file-btn">
+          {{ previewSrc ? 'Ganti foto' : 'Pilih foto' }}
+          <input type="file" accept="image/jpeg,image/png,image/webp" @change="selectFile">
+        </label>
         <span class="hint">JPG, PNG, atau WEBP. Maksimal 5 MB.</span>
       </div>
       <label class="field">Urutan tampil
@@ -53,6 +56,7 @@ import AppModal from '@/components/ui/AppModal.vue'
 import { galleryService } from '@/services/galleryService'
 import { progressService } from '@/services/progressService'
 import { faqService } from '@/services/faqService'
+import { GALLERY_BUCKET, removePublicFile, uploadErrorMessage } from '@/utils/storageFiles'
 
 export type CmsItemType = 'gallery' | 'progress' | 'faq'
 
@@ -130,15 +134,25 @@ function validate(): string {
   return ''
 }
 
+const photoBucket = () => (props.type === 'gallery' ? GALLERY_BUCKET : 'progress')
+/** Foto yang baru terunggah pada percobaan simpan ini; dibuang bila datanya gagal disimpan. */
+let uploadedUrl = ''
+async function uploadPhoto(picked: File): Promise<string> {
+  uploadedUrl = props.type === 'gallery'
+    ? (await galleryService.uploadImage(picked)).url
+    : await progressService.uploadImage(picked)
+  return uploadedUrl
+}
+
 /** Hanya kirim kolom yang benar-benar ada di tabel masing-masing. */
 async function buildPayload(): Promise<Record<string, unknown>> {
   const base = { sort_order: Number(form.sort_order) || 0, is_active: form.is_active }
   if (props.type === 'faq') return { question: form.title.trim(), answer: form.description.trim(), ...base }
   if (props.type === 'gallery') {
-    const imageUrl = file.value ? (await galleryService.uploadImage(file.value)).url : form.image_url
+    const imageUrl = file.value ? await uploadPhoto(file.value) : form.image_url
     return { title: form.title.trim(), description: form.description.trim(), category: form.category.trim() || 'Umum', image_url: imageUrl, ...base }
   }
-  const imageUrl = file.value ? await progressService.uploadImage(file.value) : form.image_url
+  const imageUrl = file.value ? await uploadPhoto(file.value) : form.image_url
   const percentage = Math.min(100, Math.max(0, Number(form.percentage) || 0))
   const status = percentage >= 100 ? 'completed' : percentage <= 0 ? 'planned' : 'ongoing'
   return { title: form.title.trim(), description: form.description.trim(), progress_date: form.progress_date, percentage, status, image_url: imageUrl || null, ...base }
@@ -148,17 +162,21 @@ async function save() {
   formError.value = validate()
   if (formError.value) return
   saving.value = true
+  uploadedUrl = ''
+  const previousUrl: string = props.item?.image_url || ''
   try {
     const payload = await buildPayload()
     const id = props.item?.id
     if (props.type === 'gallery') id ? await galleryService.updateGallery(id, payload as any) : await galleryService.createGallery(payload as any)
     else if (props.type === 'progress') id ? await progressService.updateProgress(id, payload as any) : await progressService.createProgress(payload as any)
     else id ? await faqService.updateFaq(id, payload as any) : await faqService.createFaq(payload as any)
+    if (uploadedUrl && previousUrl) await removePublicFile(photoBucket(), previousUrl)
     resetPreview()
     emit('update:modelValue', false)
     emit('saved', 'Tersimpan dan langsung tampil di situs web.')
   } catch (error) {
-    formError.value = error instanceof Error ? error.message : 'Data gagal disimpan.'
+    if (uploadedUrl) await removePublicFile(photoBucket(), uploadedUrl)
+    formError.value = uploadErrorMessage(error, 'Data gagal disimpan.')
   } finally {
     saving.value = false
   }

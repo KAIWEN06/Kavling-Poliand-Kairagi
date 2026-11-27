@@ -64,6 +64,7 @@
 
 <script setup lang="ts">
 import AppNotice from '@/components/ui/AppNotice.vue'
+import { useBackToClose } from '@/composables/useBackStack'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { addOutline, removeOutline } from 'ionicons/icons'
@@ -73,6 +74,8 @@ const emit = defineEmits<{
   (e: 'confirm', file: File): void
   (e: 'cancel'): void
 }>()
+
+useBackToClose(() => Boolean(props.file), () => emit('cancel'))
 
 const OUTPUT_SIZE = 512
 const MAX_ZOOM = 4

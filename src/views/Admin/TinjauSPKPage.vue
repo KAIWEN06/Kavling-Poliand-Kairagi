@@ -10,7 +10,7 @@
           <header class="review-heading"><div> <h1>{{ data.request.spk_number }}</h1><span class="status-chip">Disetujui</span></div><span class="review-id">SPK #{{ data.request.id }} · Transaksi #{{ data.transaction.id }}</span></header>
           <section class="review-panel">
             <div class="section-head"><div><h2>Tahapan proses</h2><p class="review-note">{{ data.request.payment_method === 'Cash' ? 'Pembayaran tunai: 4 tahap.' : 'Pembayaran cicilan: 6 tahap.' }} Atur tanggal perkiraan, beri tahu klien bila tahap sudah bisa diproses, lalu tandai selesai.</p></div></div>
-            <SpkProcessTimeline :spk-id="Number(data.request.id)" mode="admin" @changed="load()" />
+            <SpkProcessTimeline :spk-id="Number(data.request.id)" :down-payment="Number(data.transaction.down_payment || 0)" mode="admin" @changed="load()" />
           </section>
           <section class="review-panel"><h2>Informasi SPK</h2><dl class="info-grid">
             <div><dt>Pembeli</dt><dd>{{ data.request.customer_full_name }}</dd></div><div><dt>Nomor telepon</dt><dd>{{ data.request.customer_phone }}</dd></div><div><dt>Kaveling</dt><dd>{{ data.request.lots?.lot_number || data.request.lot_id }}</dd></div><div><dt>Harga transaksi</dt><dd>{{ money(data.request.lot_price_snapshot) }}</dd></div><div><dt>Metode pembayaran</dt><dd>{{ data.request.payment_method === 'Cash' ? 'Tunai' : 'Cicilan' }}</dd></div><div><dt>Tanda jadi</dt><dd>{{ money(data.request.booking_fee_snapshot) }}</dd></div><div><dt>Tanggal persetujuan</dt><dd>{{ date(data.request.approved_at) }}</dd></div><div><dt>Pemasar</dt><dd>{{ data.request.profiles?.full_name || 'Tidak ada' }}</dd></div><div><dt>Sumber pengajuan</dt><dd>{{ data.request.submission_source }}</dd></div>
@@ -29,7 +29,7 @@
                 <span>{{ paidScheduleCount }} sudah dibayar · {{ editableScheduleCount }} dapat diperbarui</span>
               </div>
               <p class="date-picker-hint">
-                Setelah PPJB ditandai selesai, cicilan 1 otomatis jatuh di bulan berikutnya. Ubah tanggal tiap cicilan di sini sesudah itu, lalu simpan. Bulan dan tahun mengikuti jadwal otomatis, dan cicilan yang sudah lunas tidak bisa diubah.
+                {{ Number(data.transaction.down_payment) > 0 ? 'Setelah PPJB ditandai selesai, cicilan 1 otomatis jatuh di bulan berikutnya.' : 'Saat PPJB ditandai selesai, cicilan 1 bertanggal hari itu dan cicilan 2 jatuh di bulan berikutnya.' }} Ubah tanggal tiap cicilan di sini sesudah itu, lalu simpan. Bulan dan tahun mengikuti jadwal otomatis, dan cicilan yang sudah lunas tidak bisa diubah.
               </p>
               <div class="schedule-preview">
                 <div v-for="item in sortedSchedules" :key="item.id" class="schedule-preview-item" :class="{ 'is-paid': item.status === 'Paid' }">

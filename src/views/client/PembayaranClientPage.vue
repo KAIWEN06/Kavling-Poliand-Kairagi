@@ -11,20 +11,16 @@ import { IonContent, IonIcon, IonPage, IonSpinner, useIonRouter } from '@ionic/v
 import AppPagination from '@/components/ui/AppPagination.vue'
 import { usePagination } from '@/composables/usePagination'
 import {
-  checkmarkCircleOutline,
   chevronForward,
-  documentTextOutline,
-  hourglassOutline,
   searchOutline,
   cloudUploadOutline,
-  walletOutline,
+  gitCommitOutline,
 } from 'ionicons/icons'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import { useRowFocus } from '@/composables/useRowFocus'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
-import AppModal from '@/components/ui/AppModal.vue'
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import ReviewInvite from '@/components/reviews/ReviewInvite.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
@@ -32,8 +28,10 @@ import { useCelebration } from '@/composables/useCelebration'
 import { supabase } from '@/services/config/supabase'
 import { paymentService } from '@/services/Finance/paymentService'
 import { formatInstallmentRange, formatProgressLine, formatRupiah, summarizeInstallmentProgress } from '@/utils/installmentFormat'
-import { getSpkProcessSteps, stepIsDone, type SpkProcessStep } from '@/services/spkProcessService'
+import { currentStep, getSpkProcessSteps, spkPaymentPlan, spkStepInfo, stepIsDone, type SpkProcessStep } from '@/services/spkProcessService'
 import { purchaseCancellationService } from '@/services/Finance/purchaseCancellationService'
+import ClientCancellationModal from '@/components/finance/cancellation/ClientCancellationModal.vue'
+import ClientRefundList from '@/components/finance/cancellation/ClientRefundList.vue'
 
 /**
  * PENTING:
@@ -116,9 +114,8 @@ const reuploadProof = ref<File | null>(null)
 const reuploadSubmitting = ref(false)
 const reuploadError = ref('')
 const cancellationModalOpen = ref(false)
-const cancellationReason = ref('')
 const cancellationSubmitting = ref(false)
-const cancellationError = ref('')
+const refundRefreshKey = ref(0)
 const toast = useToast()
 const { alert: showDetail, confirm: askDetail } = useConfirm()
 const latestCancellation = ref<any>(null)
@@ -135,7 +132,13 @@ const selectedTransaction = computed(() =>
   transactions.value.find(item => item.id === selectedTransactionId.value) ?? null,
 )
 
-// Kartu ringkasan mengikuti kaveling terpilih; daftar riwayat tetap semua transaksi.
+// Panel atas mengikuti kaveling terpilih. Riwayat juga, kecuali diminta semua.
+type HistoryScope = 'lot' | 'all'
+const historyScope = ref<HistoryScope>('lot')
+const historyScopes: Array<{ value: HistoryScope, label: string }> = [
+  { value: 'lot', label: 'Kaveling ini' },
+  { value: 'all', label: 'Semua kaveling' },
+]
 const selectedPayments = computed(() => {
   const id = selectedTransactionId.value
   return id == null ? [] : paymentHistory.value.filter(item => item.transactionId === id)
@@ -146,9 +149,12 @@ const verifiedTotal = computed(() =>
 const pendingTotal = computed(() =>
   selectedPayments.value.filter(item => item.status === 'pending').reduce((sum, item) => sum + item.amount, 0),
 )
+const hasOtherLotPayments = computed(() => selectedPayments.value.length < paymentHistory.value.length)
+const scopedPayments = computed(() =>
+  historyScope.value === 'all' ? paymentHistory.value : selectedPayments.value)
 const filteredTransactions = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase('id-ID')
-  return paymentHistory.value.filter(item => {
+  return scopedPayments.value.filter(item => {
     const matchesFilter = selectedFilter.value === 'all' || item.status === selectedFilter.value
     const text = [
       item.reference, item.lot, item.method, item.category, item.note ?? '',
@@ -165,8 +171,9 @@ const dpPayments = computed(() =>
 )
 const dpConfirmed = computed(() => dpPayments.value.some(item => item.status === 'Confirmed'))
 
-// Pembayaran mengikuti tahapan proses SPK: tunai dan DP dibuka setelah SPK
-// disetujui, cicilan dibuka setelah PPJB di notaris selesai.
+// Pembayaran mengikuti tahapan proses SPK, dan semuanya baru dibuka setelah SPK
+// disetujui. Dengan uang muka: sampai PPJB hanya uang muka. Tanpa uang muka:
+// cicilan pertama dibayar sebelum atau saat PPJB. Sisa cicilan setelah PPJB.
 const processSteps = ref<SpkProcessStep[]>([])
 const processLoaded = ref(false)
 watch(
@@ -175,24 +182,45 @@ watch(
     processSteps.value = []
     processLoaded.value = false
     if (!spkId) return
+    // Jawaban terlambat dari kaveling sebelumnya diabaikan.
+    const isStale = () => selectedTransaction.value?.spkRequestId !== spkId
     try {
-      processSteps.value = await getSpkProcessSteps(Number(spkId))
+      const steps = await getSpkProcessSteps(Number(spkId))
+      if (!isStale()) processSteps.value = steps
     } catch {
-      processSteps.value = []
+      if (!isStale()) processSteps.value = []
     } finally {
-      processLoaded.value = true
+      if (!isStale()) processLoaded.value = true
     }
   },
   { immediate: true },
 )
 const ppjbDone = computed(() => stepIsDone(processSteps.value, 'ppjb'))
+const ppjbReady = computed(() => ppjbDone.value
+  || processSteps.value.some(step => step.key === 'ppjb' && step.status === 'ready'))
+const waitingForPpjb = computed(() => dpRequired.value && !dpConfirmed.value)
 const paymentsOpen = computed(() => {
   const tx = selectedTransaction.value
   if (!tx || tx.spkStatus !== 'Approved') return false
   if (tx.paymentType === 'Cash') return true
-  if (dpRequired.value && !dpConfirmed.value) return true
+  if (dpRequired.value && !dpConfirmed.value) return ppjbReady.value
+  if (!dpRequired.value) return true
   return ppjbDone.value
 })
+/** Tanpa uang muka dan PPJB belum selesai: hanya cicilan pertama yang terbuka. */
+const onlyFirstInstallment = computed(() =>
+  isInstallment.value && !dpRequired.value && !ppjbDone.value)
+const closedTitle = computed(() => {
+  if (selectedTransaction.value?.spkStatus !== 'Approved') return 'Pembayaran belum dibuka'
+  return waitingForPpjb.value ? 'Uang muka dibayar saat PPJB' : 'Cicilan belum dibuka'
+})
+const closedReason = computed(() => {
+  if (selectedTransaction.value?.spkStatus !== 'Approved') return 'Pembayaran dibuka setelah SPK disetujui.'
+  return waitingForPpjb.value
+    ? 'Pembayaran terbuka setelah Admin menandai jadwal PPJB siap diproses.'
+    : 'Cicilan dibuka setelah PPJB di notaris selesai. Cicilan pertama jatuh di bulan berikutnya.'
+})
+const cancellationPending = computed(() => latestCancellation.value?.status === 'Pending')
 const dpPending = computed(() => dpPayments.value.some(item =>
   item.status === 'Pending' || item.status === 'Needs Reupload'))
 const cashPayments = computed(() =>
@@ -252,6 +280,7 @@ const selectableSchedules = computed(() => {
   for (let i = start; i < schedules.length; i += 1) {
     const schedule = schedules[i]
     if (schedule.status === 'Paid' || schedule.hasPendingPayment) break
+    if (onlyFirstInstallment.value && schedule.installmentNumber !== 1) break
     result.push(schedule)
   }
   return result
@@ -287,7 +316,8 @@ const paymentCategory = computed<PaymentCategory | null>(() => {
 const paymentBlockedReason = computed(() => {
   const transaction = selectedTransaction.value
   if (!transaction) return 'Pilih transaksi terlebih dahulu.'
-  if (!paymentsOpen.value) return transaction.spkStatus !== 'Approved' ? 'Pembayaran dibuka setelah SPK disetujui.' : 'Cicilan bisa dibayar setelah PPJB di notaris selesai. Admin akan memberi tahu Anda.'
+  if (cancellationPending.value) return 'Pengajuan pembatalan sedang diperiksa. Pembayaran baru ditahan sampai ada keputusan.'
+  if (!paymentsOpen.value) return closedReason.value
   if (transaction.transactionStatus === 'Cancelled') return 'Transaksi ini sudah dibatalkan.'
   if (transaction.paymentType === 'Cash') {
     if (cashPaid.value >= transaction.finalPrice) return 'Pembayaran tunai sudah lunas.'
@@ -301,6 +331,9 @@ const paymentBlockedReason = computed(() => {
   }
   if (!transaction.schedules.length) return 'Jadwal cicilan final belum tersedia. Silakan hubungi Admin.'
   if (firstUnpaidSchedule.value === null) return 'Seluruh cicilan sudah lunas.'
+  if (onlyFirstInstallment.value && firstUnpaidSchedule.value.installmentNumber > 1) {
+    return 'Cicilan berikutnya dibuka setelah PPJB selesai.'
+  }
   if (firstUnpaidHasPending.value) return 'Cicilan berikutnya sedang menunggu verifikasi. Tunggu konfirmasi Admin sebelum mengirim pembayaran baru.'
   if (selectedScheduleIds.value.length === 0) return 'Pilih cicilan yang ingin dibayar.'
   return ''
@@ -329,8 +362,22 @@ const detailMessage = (item: PaymentHistoryItem) => [
   item.reviewNote ? `Catatan verifikasi: ${item.reviewNote}` : '',
 ].filter(Boolean).join('\n')
 
+// Spasi tak terputus: "Rp" dan angkanya tidak boleh terpisah baris.
 function formatCurrency(amount: number) {
-  return formatRupiah(amount)
+  return formatRupiah(amount).replace(' ', '\u00a0')
+}
+// Tanpa uang muka, tanggal jadwal masih sementara selama PPJB belum selesai.
+function scheduleDateLabel(schedule: Schedule) {
+  if (onlyFirstInstallment.value && schedule.status !== 'Paid') {
+    return schedule.installmentNumber === 1 ? 'Sebelum atau saat PPJB' : 'Tanggal ditetapkan saat PPJB'
+  }
+  return schedule.dueDate ? formatDate(schedule.dueDate) : 'Tanggal belum ditentukan'
+}
+function scheduleStateLabel(schedule: Schedule) {
+  if (schedule.status === 'Paid') return 'Lunas'
+  if (schedule.hasPendingPayment) return 'Diverifikasi'
+  if (onlyFirstInstallment.value) return schedule.installmentNumber === 1 ? 'Belum dibayar' : 'Terkunci'
+  return schedule.status === 'Overdue' ? 'Jatuh tempo' : 'Mendatang'
 }
 function formatDate(value: string) {
   const date = new Date(value)
@@ -602,39 +649,40 @@ async function loadPaymentData({ silent = false }: LoadOptions = {}) {
   }
 }
 
-async function openCancellationForm() {
-  cancellationError.value = ''
-  cancellationReason.value = ''
-  latestCancellation.value = null
-  const transaction = selectedTransaction.value
-  if (!transaction || !canRequestCancellation.value) return
+async function loadCancellationStatus(transactionId: number) {
   try {
-    latestCancellation.value = await purchaseCancellationService.getLatest(transaction.id)
+    const latest = await purchaseCancellationService.getLatest(transactionId)
+    if (selectedTransactionId.value === transactionId) latestCancellation.value = latest
   } catch (error) {
-    console.warn('Riwayat pembatalan belum tersedia. Jalankan migrasi keuangan untuk mengaktifkan fitur ini.', error)
+    console.warn('[Pembayaran Klien] Status pembatalan belum dapat dimuat:', error)
   }
-  cancellationModalOpen.value = true
 }
 
-async function submitCancellationRequest() {
-  const transaction = selectedTransaction.value
-  const reason = cancellationReason.value.trim()
-  if (!transaction || reason.length < 5 || cancellationSubmitting.value) return
+function openCancellationForm() {
+  if (selectedTransaction.value && canRequestCancellation.value) cancellationModalOpen.value = true
+}
+
+async function withdrawCancellation() {
+  const request = latestCancellation.value
+  const transactionId = selectedTransactionId.value
+  if (!request || !transactionId || cancellationSubmitting.value) return
+  const confirmed = await askDetail({
+    title: 'Tarik pengajuan pembatalan?',
+    message: 'Pembelian berjalan lagi dan jadwal cicilan tetap berlaku.',
+    confirmText: 'Tarik pengajuan',
+    cancelText: 'Kembali',
+    tone: 'warning',
+  })
+  if (!confirmed) return
   cancellationSubmitting.value = true
-  cancellationError.value = ''
   try {
-    const requestId = await purchaseCancellationService.request(transaction.id, reason)
-    toast.success('Admin akan memeriksa permintaan dan riwayat pembayaran Anda.', {
-      title: `Pengajuan pembatalan #${requestId} terkirim`,
-      to: `/client/pembayaran?transactionId=${transaction.id}&bagian=pembatalan`,
-      actionLabel: 'Lihat status',
-    })
-    latestCancellation.value = await purchaseCancellationService.getLatest(transaction.id).catch(() => null)
-    cancellationModalOpen.value = false
+    await purchaseCancellationService.withdraw(Number(request.id))
+    toast.success('Pengajuan pembatalan ditarik.')
   } catch (error: any) {
-    cancellationError.value = error?.message || 'Pengajuan pembatalan belum dapat dikirim.'
+    toast.error(error?.message || 'Pengajuan belum bisa ditarik.')
   } finally {
     cancellationSubmitting.value = false
+    await loadCancellationStatus(transactionId)
   }
 }
 
@@ -806,7 +854,58 @@ async function submitReupload() {
   }
 }
 
+const spkStatusLabel = computed(() => {
+  const tx = selectedTransaction.value
+  if (!tx?.spkRequestId) return 'SPK belum tersedia'
+  if (tx.spkStatus === 'Approved') return 'SPK disetujui'
+  return tx.spkStatus === 'Rejected' ? 'SPK ditolak' : 'SPK diproses'
+})
+const spkProgress = computed(() => {
+  const steps = processSteps.value
+  if (!steps.length) return null
+  const current = currentStep(steps)
+  const plan = spkPaymentPlan(steps, selectedTransaction.value?.downPayment)
+  return {
+    done: steps.filter(step => step.status === 'done').length,
+    total: steps.length,
+    label: current ? `Sekarang: ${spkStepInfo(current.key, plan).title}` : 'Semua tahap selesai',
+  }
+})
+const lotSubtitle = computed(() => {
+  const tx = selectedTransaction.value
+  if (!tx) return ''
+  const scheme = tx.paymentType === 'Cash'
+    ? 'Tunai'
+    : `Cicilan ${tx.months ? `${tx.months} bulan` : `${tx.schedules.length} jadwal`}`
+  const size = tx.area != null ? `${tx.area.toLocaleString('id-ID')} m²` : tx.dimension
+  return [scheme, size].filter(Boolean).join(', ')
+})
+const reuploadCountByLot = computed(() => {
+  const counts = new Map<number, number>()
+  for (const item of paymentHistory.value) {
+    if (item.rawStatus !== 'Needs Reupload' || item.transactionId == null) continue
+    counts.set(item.transactionId, (counts.get(item.transactionId) ?? 0) + 1)
+  }
+  return counts
+})
+/** Tagihan unggah ulang yang tersembunyi karena riwayat hanya menampilkan kaveling ini. */
+const hiddenReuploadCount = computed(() => historyScope.value === 'all'
+  ? 0
+  : reuploadCount.value - selectedPayments.value.filter(item => item.rawStatus === 'Needs Reupload').length)
+function chooseLot(id: number) {
+  if (id === selectedTransactionId.value) return
+  reuploadPaymentId.value = null
+  reuploadProof.value = null
+  reuploadError.value = ''
+  historyScope.value = 'lot'
+  selectTransaction(id)
+}
+
 const ionRouter = useIonRouter()
+function openSpkDetail() {
+  const spkId = selectedTransaction.value?.spkRequestId
+  if (spkId) ionRouter.push(`/client/dokumen?spk_id=${spkId}`)
+}
 function openLotDetail() {
   const lotId = selectedTransaction.value?.lotId
   if (lotId) ionRouter.push(`/client/kavling/${lotId}`)
@@ -830,7 +929,7 @@ function onTabKeydown(event: KeyboardEvent) {
 const HISTORY_PAGE_SIZE = 5
 const historyPager = usePagination(filteredTransactions, {
   pageSize: HISTORY_PAGE_SIZE,
-  resetOn: [selectedFilter, searchQuery],
+  resetOn: [selectedFilter, searchQuery, historyScope, selectedTransactionId],
 })
 
 const SCHEDULE_PAGE_SIZE = 6
@@ -862,6 +961,7 @@ async function applyNotificationTarget() {
     return
   }
   activeTab.value = 'history'
+  historyScope.value = payment.transactionId === selectedTransactionId.value ? 'lot' : 'all'
   searchQuery.value = ''
   selectedFilter.value = 'all'
   // Tunggu reset halaman akibat filter selesai sebelum memilih halaman tujuan.
@@ -884,6 +984,12 @@ async function showCancellationStatus(transactionId: number) {
   document.getElementById('cancellation-status')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' })
 }
 
+// Status pengajuan ikut menentukan boleh tidaknya membayar, jadi dimuat tiap ganti transaksi.
+watch(selectedTransactionId, (id) => {
+  latestCancellation.value = null
+  if (id) void loadCancellationStatus(id)
+})
+
 onMounted(() => loadPaymentData().then(applyNotificationTarget))
 watch(() => routeQuery.value.nt, (stamp) => {
   if (stamp) void loadPaymentData().then(applyNotificationTarget)
@@ -891,6 +997,8 @@ watch(() => routeQuery.value.nt, (stamp) => {
 
 async function refreshPaymentData() {
   await loadPaymentData({ silent: true })
+  refundRefreshKey.value += 1
+  if (selectedTransactionId.value) await loadCancellationStatus(selectedTransactionId.value)
 
   // Cicilan yang sudah dibayar dari tempat lain tidak boleh tetap terpilih.
   const available = new Set(selectableSchedules.value.map((item) => item.id))
@@ -928,62 +1036,77 @@ useRealtimeRefresh(
 
     <ion-content class="payment-content" :fullscreen="true">
       <main class="payment-shell">
-        <section class="lot-card" aria-labelledby="lot-title">
-          <div class="section-title">
-            <span class="title-icon title-icon-gold"><ion-icon :icon="documentTextOutline" /></span>
-            <h2 id="lot-title">Informasi Kaveling</h2>
+        <section v-if="!loading && !loadError && selectedTransaction" class="lot-hero" aria-labelledby="lot-title">
+          <fieldset v-if="transactions.length > 1" class="lot-picker" :disabled="submitting || cancellationSubmitting">
+            <legend>Pilih kaveling</legend>
+            <div class="lot-options">
+              <label v-for="item in transactions" :key="item.id" class="lot-option">
+                <input
+                  type="radio"
+                  name="payment-lot"
+                  class="visually-hidden"
+                  :value="item.id"
+                  :checked="item.id === selectedTransactionId"
+                  @change="chooseLot(item.id)"
+                />
+                <span class="lot-option-name">{{ item.lot }}</span>
+                <span v-if="reuploadCountByLot.get(item.id)" class="view-tab-badge">
+                  {{ reuploadCountByLot.get(item.id) }}<span class="visually-hidden"> bukti perlu diunggah ulang</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div :key="selectedTransaction.id" class="lot-detail">
+            <div class="lot-heading">
+              <h2 id="lot-title">{{ selectedTransaction.lot }}</h2>
+              <p>{{ lotSubtitle }}</p>
+            </div>
+
+            <dl class="lot-facts">
+              <div class="lot-fact">
+                <dt>Harga final SPK</dt>
+                <dd>{{ formatCurrency(selectedTransaction.finalPrice) }}</dd>
+              </div>
+              <div v-if="isInstallment" class="lot-fact">
+                <dt>Uang muka</dt>
+                <dd>{{ dpRequired ? formatCurrency(selectedTransaction.downPayment) : 'Tanpa uang muka' }}</dd>
+              </div>
+              <div class="lot-fact">
+                <dt>Terverifikasi</dt>
+                <dd>{{ formatCurrency(verifiedTotal) }}</dd>
+              </div>
+              <div class="lot-fact">
+                <dt>Menunggu verifikasi</dt>
+                <dd :class="{ 'lot-fact-waiting': pendingTotal > 0 }">{{ formatCurrency(pendingTotal) }}</dd>
+              </div>
+            </dl>
+
+            <div class="spk-progress">
+              <p class="spk-progress-status">
+                <strong>{{ spkStatusLabel }}</strong>
+                <span v-if="spkProgress">{{ spkProgress.done }} dari {{ spkProgress.total }} tahap selesai</span>
+              </p>
+              <template v-if="spkProgress">
+                <span class="spk-progress-track" aria-hidden="true">
+                  <span :style="{ transform: `scaleX(${spkProgress.done / spkProgress.total})` }" />
+                </span>
+                <p class="spk-progress-step">{{ spkProgress.label }}</p>
+              </template>
+            </div>
           </div>
-          <button v-if="selectedTransaction" type="button" class="lot-summary" @click="openLotDetail">
-            <span class="lot-thumbnail" aria-hidden="true"><ion-icon :icon="walletOutline" /></span>
-            <span class="lot-copy">
-              <strong>{{ selectedTransaction.lot }}</strong>
-              <span>{{ selectedTransaction.area != null ? `${selectedTransaction.area.toLocaleString('id-ID')} m²` : 'Luas belum tersedia' }}</span>
-              <span class="lot-location">{{ selectedTransaction.dimension || selectedTransaction.block }}</span>
-              <span class="spk-status">
-                <ion-icon :icon="checkmarkCircleOutline" />
-                SPK: {{ selectedTransaction.spkStatus === 'Approved' ? 'Disetujui' : 'Diproses' }}
-              </span>
-            </span>
-            <ion-icon class="lot-chevron" :icon="chevronForward" aria-hidden="true" />
-            <span class="visually-hidden">Lihat detail kaveling</span>
-          </button>
-          <div v-else-if="!loading" class="empty-inline">Belum ada transaksi kaveling pada akun ini.</div>
-          <div v-if="selectedTransaction && (latestCancellation || canRequestCancellation)" id="cancellation-status" class="cancellation-action">
-            <AppNotice v-if="latestCancellation" :tone="latestCancellation.status === 'Rejected' ? 'warning' : latestCancellation.status === 'Approved' ? 'success' : 'info'" :title="`Status pembatalan: ${latestCancellation.status === 'Pending' ? 'Menunggu pemeriksaan' : latestCancellation.status === 'Approved' ? 'Disetujui' : 'Ditolak'}`">
-              <p v-if="latestCancellation.decision_note">{{ latestCancellation.decision_note }}</p>
-              <p v-if="latestCancellation.purchase_refunds?.[0]">Nilai pengembalian {{ formatCurrency(Number(latestCancellation.purchase_refunds[0].amount)) }}. Batas transfer {{ formatDate(latestCancellation.purchase_refunds[0].due_date) }}.</p>
-            </AppNotice>
-            <button
-              v-if="canRequestCancellation"
-              class="cancellation-request-button"
-              type="button"
-              :disabled="latestCancellation?.status === 'Pending'"
-              @click="openCancellationForm"
-            >
-              {{ latestCancellation?.status === 'Pending' ? 'Menunggu Admin' : 'Batalkan pembelian' }}
+
+          <div class="lot-actions">
+            <button v-if="selectedTransaction.spkRequestId" type="button" class="hero-button hero-button-primary" @click="openSpkDetail">
+              <ion-icon :icon="gitCommitOutline" aria-hidden="true" />
+              Lihat proses SPK
+            </button>
+            <button type="button" class="hero-button hero-button-ghost" @click="openLotDetail">
+              Detail kaveling
+              <ion-icon :icon="chevronForward" aria-hidden="true" />
             </button>
           </div>
         </section>
-
-        <section class="summary-grid" aria-label="Ringkasan pembayaran">
-          <article class="summary-card">
-            <span class="summary-icon summary-icon-gold"><ion-icon :icon="documentTextOutline" /></span>
-            <span class="summary-label">Total Pembayaran</span>
-            <strong>{{ selectedPayments.length }} pembayaran</strong>
-          </article>
-          <article class="summary-card">
-            <span class="summary-icon summary-icon-green"><ion-icon :icon="checkmarkCircleOutline" /></span>
-            <span class="summary-label">Terverifikasi</span>
-            <strong class="amount-green">{{ formatCurrency(verifiedTotal) }}</strong>
-          </article>
-          <article class="summary-card">
-            <span class="summary-icon summary-icon-orange"><ion-icon :icon="hourglassOutline" /></span>
-            <span class="summary-label">Menunggu Verifikasi</span>
-            <strong class="amount-orange">{{ formatCurrency(pendingTotal) }}</strong>
-          </article>
-        </section>
-
-        <ReviewInvite />
 
         <SkeletonDetailHeader v-if="loading" :sections="2" :rows="4" label="Memuat data pembayaran" />
         <StatusIllustration
@@ -1018,39 +1141,9 @@ useRealtimeRefresh(
           <section v-show="activeTab === 'pay'" id="payment-panel-pay" class="payment-action-card view-panel" role="tabpanel" aria-labelledby="payment-tab-pay">
             <p>Nominal dan jadwal mengikuti kesepakatan final SPK.</p>
 
-            <div class="transaction-picker">
-              <label for="transaction-select">Pilih transaksi / kaveling</label>
-              <select id="transaction-select" :value="selectedTransactionId ?? ''" @change="selectTransaction(($event.target as HTMLSelectElement).value)">
-                <option v-for="item in transactions" :key="item.id" :value="item.id">
-                  {{ item.lot }} — {{ item.paymentType === 'Cash' ? 'Tunai' : 'Cicilan' }}
-                </option>
-              </select>
-            </div>
-
             <template v-if="selectedTransaction">
-              <div class="payment-info-grid">
-                <div class="payment-info-item">
-                  <span>Harga final SPK</span>
-                  <strong>{{ formatCurrency(selectedTransaction.finalPrice) }}</strong>
-                </div>
-                <div class="payment-info-item">
-                  <span>Skema pembayaran</span>
-                  <strong>{{ selectedTransaction.paymentType === 'Cash' ? 'Tunai' : 'Cicilan' }}</strong>
-                </div>
-                <template v-if="isInstallment">
-                  <div class="payment-info-item">
-                    <span>Skema uang muka</span>
-                    <strong>{{ dpRequired ? formatCurrency(selectedTransaction.downPayment) : 'Tanpa uang muka (cicilan penuh)' }}</strong>
-                  </div>
-                  <div class="payment-info-item">
-                    <span>Tenor SPK</span>
-                    <strong>{{ selectedTransaction.months ? `${selectedTransaction.months} bulan` : `${selectedTransaction.schedules.length} jadwal` }}</strong>
-                  </div>
-                </template>
-              </div>
-
-              <AppNotice v-if="!paymentsOpen" tone="warning" title="Pembayaran belum dibuka">
-                {{ selectedTransaction.spkStatus !== 'Approved' ? 'Pembayaran dibuka setelah SPK disetujui.' : 'Cicilan bisa dibayar setelah PPJB di notaris selesai. Admin akan memberi tahu Anda lewat aplikasi.' }}
+              <AppNotice v-if="!paymentsOpen" tone="warning" :title="closedTitle">
+                {{ closedReason }}
               </AppNotice>
 
               <template v-else-if="selectedTransaction.paymentType === 'Cash'">
@@ -1071,11 +1164,11 @@ useRealtimeRefresh(
 
               <template v-else>
                 <template v-if="dpRequired && !dpConfirmed">
-                  <AppNotice tone="warning" title="Uang muka wajib dibayar terlebih dahulu">
-                    Setelah uang muka dikonfirmasi Admin, jadwal cicilan akan terbuka. Untuk transaksi ini uang muka sebesar {{ formatCurrency(selectedTransaction.downPayment) }}.
+                  <AppNotice tone="warning" title="Bayar uang muka">
+                    Bayar pada hari tanda tangan PPJB. Cicilan pertama jatuh di bulan setelah PPJB.
                   </AppNotice>
                   <AppNotice v-if="dpPending" tone="warning">
-                    Bukti uang muka sedang menunggu verifikasi. Cicilan belum dapat dibayar sampai uang muka dikonfirmasi.
+                    Bukti uang muka sedang menunggu verifikasi Admin.
                   </AppNotice>
                   <div v-else class="payment-total">
                     <span>Nominal uang muka yang harus dibayar</span>
@@ -1084,12 +1177,15 @@ useRealtimeRefresh(
                 </template>
 
                 <template v-else>
-                  <AppNotice tone="info" :title="dpRequired ? 'Uang muka telah dikonfirmasi' : 'Cicilan tanpa uang muka'">
+                  <AppNotice v-if="onlyFirstInstallment" tone="info" :title="firstUnpaidSchedule?.installmentNumber === 1 ? 'Bayar cicilan pertama' : 'Cicilan pertama sudah lunas'">
+                    {{ firstUnpaidSchedule?.installmentNumber === 1 ? 'Tanpa uang muka, cicilan ini dilunasi sebelum atau saat tanda tangan PPJB.' : 'Cicilan berikutnya dibuka setelah PPJB selesai.' }}
+                  </AppNotice>
+                  <AppNotice v-else tone="info" :title="dpRequired ? 'Uang muka telah dikonfirmasi' : 'Cicilan tanpa uang muka'">
                     Bayar satu atau beberapa cicilan sekaligus, mulai dari cicilan aktif berikutnya.
                   </AppNotice>
 
                   <AppNotice v-if="firstUnpaidHasPending" tone="warning">
-                    {{ formatInstallmentRange([firstUnpaidSchedule?.installmentNumber], selectedTransaction.schedules.length) }} sedang menunggu verifikasi. Cicilan berikutnya terbuka setelah Admin selesai memeriksa.
+                    {{ formatInstallmentRange([firstUnpaidSchedule?.installmentNumber], selectedTransaction.schedules.length) }} sedang menunggu verifikasi. Cicilan berikutnya terbuka setelah {{ onlyFirstInstallment ? 'PPJB selesai' : 'Admin selesai memeriksa' }}.
                   </AppNotice>
                   <div v-else-if="firstUnpaidSchedule" id="schedule-top" class="schedule-picker">
                     <div class="schedule-picker-header">
@@ -1114,12 +1210,12 @@ useRealtimeRefresh(
                         />
                         <span class="schedule-row-copy">
                           <strong>Ke-{{ schedule.installmentNumber }}</strong>
-                          <small>{{ schedule.dueDate ? formatDate(schedule.dueDate) : 'Tanggal belum ditentukan' }}</small>
+                          <small>{{ scheduleDateLabel(schedule) }}</small>
                         </span>
                       </span>
                       <span class="schedule-row-amount">
                         <strong>{{ formatCurrency(schedule.amount) }}</strong>
-                        <small>{{ schedule.status === 'Paid' ? 'Lunas' : schedule.hasPendingPayment ? 'Diverifikasi' : schedule.status === 'Overdue' ? 'Jatuh tempo' : 'Mendatang' }}</small>
+                        <small>{{ scheduleStateLabel(schedule) }}</small>
                       </span>
                     </label>
                     <AppPagination
@@ -1186,7 +1282,23 @@ useRealtimeRefresh(
           </section>
 
           <section v-show="activeTab === 'history'" id="payment-panel-history" class="payment-action-card view-panel" role="tabpanel" aria-labelledby="payment-tab-history">
-            <p>Bukti dari semua kaveling di akun ini.</p>
+            <div v-if="hasOtherLotPayments" class="scope-switch" role="group" aria-label="Cakupan riwayat">
+              <button
+                v-for="scope in historyScopes"
+                :key="scope.value"
+                type="button"
+                class="scope-option"
+                :aria-pressed="historyScope === scope.value"
+                @click="historyScope = scope.value"
+              >
+                {{ scope.label }}
+              </button>
+            </div>
+            <button v-if="hiddenReuploadCount > 0" type="button" class="reupload-elsewhere" @click="historyScope = 'all'">
+              <span>{{ hiddenReuploadCount }} bukti di kaveling lain perlu diunggah ulang</span>
+              <ion-icon :icon="chevronForward" aria-hidden="true" />
+            </button>
+            <p v-if="scopedPayments.length">{{ scopedPayments.length }} pembayaran tercatat.</p>
 
             <label class="search-box">
               <ion-icon :icon="searchOutline" aria-hidden="true" />
@@ -1238,10 +1350,10 @@ useRealtimeRefresh(
 
               <StatusIllustration
                 v-if="filteredTransactions.length === 0"
-                :variant="paymentHistory.length === 0 ? 'empty-data' : 'no-result'"
+                :variant="scopedPayments.length === 0 ? 'empty-data' : 'no-result'"
                 size="sm"
-                :title="paymentHistory.length === 0 ? 'Belum ada riwayat pembayaran' : 'Transaksi tidak ditemukan'"
-                :description="paymentHistory.length === 0 ? 'Riwayat akan muncul setelah bukti pembayaran dikirim.' : 'Coba ubah kata pencarian atau filter status.'"
+                :title="scopedPayments.length === 0 ? 'Belum ada riwayat pembayaran' : 'Transaksi tidak ditemukan'"
+                :description="scopedPayments.length === 0 ? 'Riwayat akan muncul setelah bukti pembayaran dikirim.' : 'Coba ubah kata pencarian atau filter status.'"
               />
             </section>
 
@@ -1296,6 +1408,31 @@ useRealtimeRefresh(
               label="Halaman riwayat pembayaran"
             />
           </section>
+
+          <div v-if="selectedTransaction && (latestCancellation || canRequestCancellation)" id="cancellation-status" class="cancellation-action">
+            <AppNotice v-if="latestCancellation && latestCancellation.status !== 'Withdrawn'" :tone="latestCancellation.status === 'Rejected' ? 'warning' : latestCancellation.status === 'Approved' ? 'success' : 'info'" :title="`Status pembatalan: ${latestCancellation.status === 'Pending' ? 'Menunggu pemeriksaan' : latestCancellation.status === 'Approved' ? 'Disetujui' : 'Ditolak'}`">
+              <p v-if="latestCancellation.decision_note">{{ latestCancellation.decision_note }}</p>
+              <p v-if="latestCancellation.purchase_refunds?.[0]">Nilai pengembalian {{ formatCurrency(Number(latestCancellation.purchase_refunds[0].amount)) }}. Batas transfer {{ formatDate(latestCancellation.purchase_refunds[0].due_date) }}.</p>
+            </AppNotice>
+            <button
+              v-if="canRequestCancellation"
+              class="cancellation-request-button"
+              type="button"
+              :disabled="latestCancellation?.status === 'Pending'"
+              @click="openCancellationForm"
+            >
+              {{ cancellationPending ? 'Menunggu Admin' : 'Batalkan pembelian' }}
+            </button>
+            <button
+              v-if="cancellationPending"
+              class="cancellation-withdraw-button"
+              type="button"
+              :disabled="cancellationSubmitting"
+              @click="withdrawCancellation"
+            >
+              Tarik pengajuan
+            </button>
+          </div>
         </template>
 
         <StatusIllustration
@@ -1305,6 +1442,9 @@ useRealtimeRefresh(
           description="Informasi pembayaran akan muncul setelah transaksi kaveling dibuat untuk akun Anda."
           fill
         />
+
+        <ClientRefundList :refresh-key="refundRefreshKey" />
+        <ReviewInvite />
       </main>
     </ion-content>
     <MobileTabBar variant="client" />
@@ -1319,33 +1459,16 @@ useRealtimeRefresh(
       @close="closeProof"
       @retry="proofItem && openProof(proofItem)"
     />
-    <AppModal
-      guard-unsaved
+    <ClientCancellationModal
       v-model="cancellationModalOpen"
-      title="Ajukan Pembatalan Pembelian"
-      confirm-text="Kirim Pengajuan"
-      confirm-variant="danger"
-      slide-confirm
-      slide-label="Geser untuk ajukan pembatalan"
-      :loading="cancellationSubmitting"
-      :confirm-disabled="cancellationReason.trim().length < 5"
-      @confirm="submitCancellationRequest"
-    >
-      <div class="cancellation-modal-copy">
-        <p>Permintaan akan diperiksa Admin. Jika disetujui, kaveling dilepaskan dan pengembalian dihitung sebesar 50% dari uang muka serta cicilan yang sudah dikonfirmasi. Tanda jadi tidak dikembalikan.</p>
-        <label for="purchase-cancellation-reason">Alasan pembatalan</label>
-        <textarea id="purchase-cancellation-reason" v-model="cancellationReason" rows="4" maxlength="2000" placeholder="Jelaskan alasan pengajuan pembatalan (minimal 5 karakter)." />
-        <small>{{ cancellationReason.trim().length }}/2000 karakter</small>
-        <AppNotice v-if="cancellationError" tone="error">
-          {{ cancellationError }}
-        </AppNotice>
-      </div>
-    </AppModal>
+      :transaction-id="selectedTransactionId"
+      @update:saving="cancellationSubmitting = $event"
+      @submitted="loadCancellationStatus"
+    />
   </ion-page>
 </template>
 
 <style scoped>
-.empty-inline { color:var(--text-secondary,#717178); font-size:13px; padding:8px 0; }
 .payment-page {
   --background: var(--app-background, #faf9f6);
   color: var(--text-primary, #252525);
@@ -1364,8 +1487,6 @@ useRealtimeRefresh(
   padding: 20px 16px calc(104px + var(--safe-bottom));
 }
 
-.lot-card,
-.summary-card,
 .transaction-card {
   border: 1px solid var(--border-default, #eae7e0);
   border-radius: var(--radius-panel, 20px);
@@ -1373,57 +1494,109 @@ useRealtimeRefresh(
   box-shadow: 0 2px 8px rgb(37 37 37 / 4%);
 }
 
-.lot-card {
+/* Panel kaveling: pilihan di atas, semua data di bawahnya milik kaveling itu. */
+.lot-hero {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
   padding: 20px;
+  border-radius: var(--radius-panel, 20px);
+  color: var(--on-forest, #f4f1e8);
+  background:
+    radial-gradient(90% 60% at 100% 0%, rgb(244 214 154 / 22%) 0%, rgb(244 214 154 / 0%) 60%),
+    linear-gradient(155deg, var(--green-700, #355a2c) 0%, var(--green-900, #1f3519) 100%);
+  box-shadow: var(--shadow-sm);
 }
 
-.section-title {
+.lot-picker { min-width: 0; margin: 0; padding: 0; border: 0; }
+.lot-picker legend { margin-bottom: 8px; padding: 0; font-size: 13px; font-weight: 600; }
+.lot-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(128px, 100%), 1fr)); gap: 8px; }
+
+.lot-option {
   display: flex;
+  min-width: 0;
+  min-height: 44px;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid rgb(244 241 232 / 45%);
+  border-radius: var(--radius-control, 12px);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease), background-color var(--dur-fast, 160ms) var(--ease-out, ease), color var(--dur-fast, 160ms) var(--ease-out, ease);
 }
 
-.section-title h2 {
+.lot-option-name { min-width: 0; overflow-wrap: break-word; text-wrap: balance; }
+.lot-option:has(input:checked) { border-color: var(--poliland-gold-soft, #f4d69a); color: var(--ink, #1b1f1a); background: var(--poliland-gold-soft, #f4d69a); }
+.lot-option:has(input:focus-visible) { outline: 3px solid #fff; outline-offset: 2px; }
+.lot-option:active { transform: scale(0.97); }
+.lot-picker:disabled .lot-option { cursor: not-allowed; opacity: 0.6; }
+
+/* Dipasang ulang (:key) saat kaveling diganti agar terlihat datanya berubah. */
+.lot-detail { display: grid; gap: 16px; min-width: 0; animation: view-panel-in var(--dur-base, 240ms) var(--ease-out, ease) both; }
+
+.lot-hero .lot-heading h2 {
   margin: 0;
-  color: var(--text-primary, #252525);
-  font-size: 18px;
-  font-weight: var(--font-weight-semibold, 600);
+  color: #fff;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(22px, 6.8vw, 28px);
+  font-weight: 650;
+  line-height: 1.15;
+  overflow-wrap: break-word;
 }
+.lot-heading p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
 
-.title-icon,
-.summary-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: var(--radius-control, 12px);
+.lot-facts { display: grid; margin: 0; }
+/* Bila label dan nilai tidak muat sebaris, nilai turun utuh ke baris berikutnya. */
+.lot-fact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+  padding: 10px 0;
+  border-top: 1px solid rgb(244 241 232 / 18%);
 }
-
-.title-icon {
-  width: 48px;
-  height: 48px;
-  font-size: 22px;
+.lot-fact dt { font-size: 13px; }
+.lot-fact dd {
+  margin: 0 0 0 auto;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
+.lot-fact .lot-fact-waiting { color: var(--poliland-gold-soft, #f4d69a); }
 
-.title-icon-gold,
-.summary-icon-gold {
-  color: var(--poliland-gold-text, #966a12);
-  background: var(--poliland-gold-soft, #f4d69a);
-}
+.spk-progress { display: grid; gap: 8px; padding: 12px; border-radius: var(--radius-control, 12px); background: rgb(0 0 0 / 22%); }
+.spk-progress p { margin: 0; font-size: 13px; line-height: 1.45; }
+.spk-progress-status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
+.spk-progress-status strong { color: var(--poliland-gold-soft, #f4d69a); }
+.spk-progress-track { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: rgb(244 241 232 / 22%); }
+.spk-progress-track span { display: block; height: 100%; background: var(--poliland-gold-soft, #f4d69a); transform-origin: left center; transition: transform var(--dur-slow, 380ms) var(--ease-out, ease); }
+.spk-progress .spk-progress-step { color: #fff; font-weight: 600; }
 
-.lot-summary {
-  display: grid;
-  width: 100%;
-  grid-template-columns: 120px minmax(0, 1fr) 20px;
+.lot-actions { display: grid; gap: 8px; }
+.hero-button {
+  display: flex;
+  min-height: 48px;
   align-items: center;
-  gap: 14px;
-  padding: 0;
-  border: 0;
-  color: inherit;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
   border-radius: var(--radius-control, 12px);
-  background: transparent;
   font: inherit;
-  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -1431,16 +1604,26 @@ useRealtimeRefresh(
   -webkit-user-select: none;
   transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease), background-color var(--dur-fast, 160ms) var(--ease-out, ease);
 }
-
-.lot-summary:active {
-  transform: scale(0.98);
-  background: var(--surface-muted, #f5f3ee);
-}
+.hero-button ion-icon { flex: 0 0 auto; font-size: 18px; }
+.hero-button:active { transform: scale(0.97); }
+.hero-button-primary { color: var(--ink, #1b1f1a); background: var(--poliland-gold, #cba044); }
+.hero-button-ghost { border-color: rgb(244 241 232 / 45%); color: var(--on-forest, #f4f1e8); background: transparent; }
+.payment-page .lot-hero button:focus-visible { outline-color: #fff; }
 
 @media (hover: hover) and (pointer: fine) {
-  .lot-summary:hover { background: var(--surface-muted, #f5f3ee); }
   .view-tab[aria-selected="false"]:hover { color: var(--text-primary, #252525); }
+  .lot-option:not(:has(input:checked)):hover,
+  .hero-button-ghost:hover { background: rgb(255 255 255 / 10%); }
 }
+
+.scope-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 16px; background: var(--surface-muted, #f5f3ee); }
+.scope-option,
+.reupload-elsewhere { min-height: 44px; border: 0; border-radius: var(--radius-control, 12px); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease); }
+.scope-option { padding: 8px; color: var(--text-secondary, #5f5f66); background: transparent; }
+.scope-option[aria-pressed="true"] { color: #fff; background: var(--poliland-green, #355a2c); }
+.scope-option:active,
+.reupload-elsewhere:active { transform: scale(0.97); }
+.reupload-elsewhere { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; color: var(--warning-text, #805708); background: var(--warning-bg, #fbf0d8); text-align: left; }
 
 /* Tab Bayar / Riwayat: pil hijau bergeser di belakang label. */
 .view-tabs {
@@ -1512,109 +1695,9 @@ useRealtimeRefresh(
   to { opacity: 1; transform: none; }
 }
 
-.lot-thumbnail {
-  display: grid;
-  min-height: 88px;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-muted, #f5f3ee);
-}
-
-.lot-copy {
-  display: grid;
-  min-width: 0;
-  gap: 5px;
-}
-
-.lot-copy > strong {
-  color: var(--text-primary, #252525);
-  font-size: 17px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.lot-copy > span:not(.spk-status) {
-  color: var(--text-secondary, #717178);
-  font-size: 14px;
-}
-
-.lot-copy .lot-location {
-  color: var(--poliland-gold-text, #966a12);
-}
-
-.spk-status {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
-  gap: 6px;
-  margin-top: 3px;
-  padding: 6px 9px;
-  border: 1px solid var(--poliland-gold-soft, #f4d69a);
-  border-radius: var(--radius-control, 12px);
-  color: var(--poliland-gold-text, #966a12);
-  background: var(--surface-muted, #f5f3ee);
-  font-size: 12px;
-}
-
-.lot-chevron,
 .transaction-chevron {
   color: #aab3c0;
   font-size: 22px;
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.summary-card {
-  display: grid;
-  min-width: 0;
-  min-height: 150px;
-  align-content: space-between;
-  justify-items: start;
-  gap: 10px;
-  padding: 16px;
-}
-
-.summary-icon {
-  width: 48px;
-  height: 48px;
-  font-size: 22px;
-}
-
-.summary-icon-green {
-  color: var(--poliland-green, #355a2c);
-  background: var(--status-success-bg, #eaf7ef);
-}
-
-.summary-icon-orange {
-  color: #a85a13;
-  background: #fff3e5;
-}
-
-.summary-label {
-  min-height: 36px;
-  color: var(--text-secondary, #717178);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.summary-card > strong {
-  overflow-wrap: anywhere;
-  color: var(--text-primary, #252525);
-  font-size: 16px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.summary-card .amount-green {
-  color: var(--poliland-green, #355a2c);
-}
-
-.summary-card .amount-orange {
-  color: #a85a13;
 }
 
 .search-box {
@@ -1643,7 +1726,8 @@ useRealtimeRefresh(
   color: var(--text-primary, #252525);
   background: transparent;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
+  text-overflow: ellipsis;
 }
 
 .search-box input::placeholder {
@@ -1735,10 +1819,18 @@ useRealtimeRefresh(
 
 .transaction-info strong,
 .transaction-payment > strong {
-  overflow-wrap: anywhere;
   color: var(--text-primary, #252525);
   font-size: 15px;
   font-weight: var(--font-weight-semibold, 600);
+}
+
+.transaction-info strong,
+.transaction-info > span {
+  overflow-wrap: break-word;
+}
+
+.transaction-payment > strong {
+  white-space: nowrap;
 }
 
 .transaction-info > span {
@@ -1788,8 +1880,14 @@ useRealtimeRefresh(
 
 .status-rejected {
   border-color: #ffd1d1;
-  color: var(--status-danger, #d94b45);
+  color: var(--danger-text, #a8322d);
   background: #fff1f1;
+}
+
+.status-refunded {
+  border-color: var(--border-strong, #d5d0c4);
+  color: var(--text-primary, #252525);
+  background: var(--surface-muted, #f5f3ee);
 }
 
 .empty-state {
@@ -1836,55 +1934,8 @@ useRealtimeRefresh(
     padding-top: 16px;
   }
 
-  .lot-card {
+  .lot-hero {
     padding: 16px;
-  }
-
-  .lot-summary {
-    grid-template-columns: 96px minmax(0, 1fr) 16px;
-    gap: 10px;
-  }
-
-  .lot-thumbnail {
-    min-height: 82px;
-  }
-
-  .lot-copy > strong {
-    font-size: 15px;
-  }
-
-  .lot-copy > span:not(.spk-status) {
-    font-size: 12px;
-  }
-
-  .spk-status {
-    font-size: 10px;
-  }
-
-  .summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .summary-card {
-    min-height: 148px;
-    gap: 8px;
-    padding: 10px;
-  }
-
-  .summary-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-  }
-
-  .summary-label {
-    min-height: 32px;
-    font-size: 11px;
-  }
-
-  .summary-card > strong {
-    font-size: 12px;
   }
 
   .transaction-card {
@@ -1912,20 +1963,11 @@ useRealtimeRefresh(
 
   .status-badge {
     padding-inline: 8px;
-    font-size: 10px;
+    font-size: 11px;
   }
 }
 
 @media (max-width: 380px) {
-  .summary-card {
-    min-height: 150px;
-    padding: 10px;
-  }
-
-  .summary-card > strong {
-    font-size: 12px;
-  }
-
   .transaction-card {
     grid-template-columns: 46px minmax(0, 1fr) 14px;
   }
@@ -1940,6 +1982,11 @@ useRealtimeRefresh(
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+
+  .lot-option:active,
+  .hero-button:active,
+  .scope-option:active,
+  .reupload-elsewhere:active { transform: none; }
 }
 
 /* Form pembayaran */
@@ -1955,31 +2002,21 @@ useRealtimeRefresh(
 .payment-action-card h2,
 .payment-action-card h3 { margin: 0; color: var(--text-primary, #252525); }
 .payment-action-card p { margin: 0; color: var(--text-secondary, #717178); font-size: 13px; line-height: 1.55; }
-.transaction-picker { display:grid; gap:8px; }
-.transaction-picker label,
 .form-field { display:grid; gap:7px; color:var(--text-primary,#252525); font-size:13px; font-weight:600; }
-.transaction-picker select,
 .form-field input,
 .form-field textarea {
   width:100%; min-height:46px; padding:10px 12px; border:1px solid var(--border-default,#eae7e0);
-  border-radius:12px; color:var(--text-primary,#252525); background:var(--surface-primary,#fff); font:inherit;
+  border-radius:12px; color:var(--text-primary,#252525); background:var(--surface-primary,#fff); font:inherit; font-size:16px;
 }
 .form-field textarea { min-height:80px; resize:vertical; }
-.payment-info-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-.payment-info-item { display:grid; gap:4px; padding:12px; border-radius:12px; background:var(--surface-muted,#f5f3ee); }
-.payment-info-item span { color:var(--text-secondary,#717178); font-size:11px; }
-.payment-info-item strong { color:var(--text-primary,#252525); font-size:14px; overflow-wrap:anywhere; }
 .reupload-panel { display:grid; gap:10px; padding:14px;border:1px solid var(--border-default); border-radius:var(--nt-radius-inline); background:var(--surface-muted); color:var(--text-primary); font-size:13px; line-height:1.55; }
 .cancellation-action { display: grid; gap: 9px; margin-top: 14px; }
 .cancellation-request-button { min-height: 44px; padding: 10px 14px; border: 1px solid var(--status-danger, #a63e38); border-radius: var(--radius-control, 12px); background: var(--surface-primary, #fff); color: var(--status-danger, #a63e38); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .cancellation-request-button:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 2px; }
 .cancellation-request-button:disabled { opacity: .65; cursor: not-allowed; }
-.cancellation-modal-copy { display: grid; gap: 10px; color: var(--text-primary, #252525); font-size: 13px; line-height: 1.55; }
-.cancellation-modal-copy p { margin: 0; }
-.cancellation-modal-copy label { font-weight: 600; }
-.cancellation-modal-copy textarea { width: 100%; min-height: 110px; padding: 11px; border: 1px solid var(--border-default, #eae7e0); border-radius: var(--radius-control, 12px); background: var(--surface-primary, #fff); color: var(--text-primary, #252525); font: inherit; resize: vertical; }
-.cancellation-modal-copy textarea:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 2px; }
-.cancellation-modal-copy small { color: var(--text-secondary, #63636a); text-align: right; }
+.cancellation-withdraw-button { min-height: 44px; padding: 10px 14px; border: 1px solid var(--border-default, #eae7e0); border-radius: var(--radius-control, 12px); background: var(--surface-primary, #fff); color: var(--text-primary, #252525); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
+.cancellation-withdraw-button:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 2px; }
+.cancellation-withdraw-button:disabled { opacity: .65; cursor: not-allowed; }
 .schedule-picker { display:grid; gap:8px; }
 .schedule-picker-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 .schedule-row {
@@ -1987,21 +2024,21 @@ useRealtimeRefresh(
   border:1px solid var(--border-default,#eae7e0); border-radius:12px; background:var(--surface-primary,#fff);
 }
 .schedule-row.selected { border-color:var(--poliland-green,#55784b); background:var(--status-success-bg,#f1f6ee); }
-.schedule-row.locked { opacity:.55; }
-.schedule-row-main { display:flex; align-items:center; gap:10px; min-width:0; }
-.schedule-row input { width:18px; height:18px; accent-color:var(--poliland-green,#355a2c); }
+.schedule-row.locked { background:var(--surface-muted,#f5f3ee); }
+.schedule-row-main { display:flex; flex:1; align-items:center; gap:10px; min-width:0; }
+.schedule-row input { flex:0 0 auto; width:18px; height:18px; accent-color:var(--poliland-green,#355a2c); }
 .schedule-row-copy { display:grid; gap:3px; min-width:0; }
 .schedule-row-copy strong { color:var(--text-primary,#252525); font-size:13px; }
 .schedule-row-copy small { color:var(--text-secondary,#717178); font-size:11px; }
-.schedule-row-amount { text-align:right; white-space:nowrap; }
+.schedule-row-amount { flex:0 0 auto; text-align:right; white-space:nowrap; }
 .schedule-row-amount strong { color:var(--text-primary,#252525); font-size:13px; }
 .schedule-row-amount small { display:block; color:var(--text-secondary,#717178); font-size:10px; }
 .payment-total {
-  display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px;
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 12px; padding:14px;
   border-radius:12px; background:var(--surface-muted,#f5f3ee);
 }
 .payment-total span { color:var(--text-secondary,#717178); font-size:12px; }
-.payment-total strong { color:var(--text-primary,#252525); font-size:18px; }
+.payment-total strong { margin-left:auto; white-space:nowrap; color:var(--text-primary,#252525); font-size:18px; }
 .proof-input { display:grid; gap:8px; padding:14px; border:1px dashed var(--border-default,#c9c9c9); border-radius:12px; }
 .proof-input input { width:100%; font-size:12px; }
 .proof-name { color:var(--poliland-green,#355a2c); font-size:12px; overflow-wrap:anywhere; }
@@ -2014,7 +2051,5 @@ useRealtimeRefresh(
 .transaction-card { width:100%; border:1px solid var(--border-default,#eae7e0); text-align:left; }
 @media(max-width:560px) {
   .payment-action-card { padding:16px; }
-  .payment-info-grid { grid-template-columns:1fr 1fr; }
 }
 </style>
-+

@@ -60,7 +60,8 @@ function toOverview(tx: any, paymentRows: any[], scheduleRows: any[]): PurchaseO
     .map((row) => ({
       id: Number(row.id),
       installmentNumber: Number(row.installment_number),
-      dueDate: row.due_date,
+      // Sebelum PPJB tanggalnya masih sementara, jadi tidak dipakai.
+      dueDate: row.due_date_official === false ? null : row.due_date,
       amount: Number(row.amount ?? 0),
       status: row.status,
     }))
@@ -163,7 +164,7 @@ export function useClientPurchaseOverview() {
       if (installmentIds.length) {
         const { data, error: scheduleError } = await supabase
           .from('installment_schedules')
-          .select('id, transaction_id, installment_number, due_date, amount, status')
+          .select('id, transaction_id, installment_number, due_date, due_date_official, amount, status')
           .in('transaction_id', installmentIds)
           .order('installment_number', { ascending: true })
         if (scheduleError) throw scheduleError

@@ -38,6 +38,7 @@ import {
 import { authService } from '@/services/auth/authService'
 import { consumePostLoginRedirect, peekPostLoginRedirect } from '@/services/auth/postLoginRedirect'
 import { supabase } from '@/services/config/supabase'
+import { useGoogleAuthSpinner } from '@/composables/useGoogleAuthSpinner'
 
 import AppInput from '@/components/ui/AppInput.vue'
 
@@ -77,6 +78,7 @@ const showPassword = ref(false)
 
 const loading = ref(false)
 const googleLoading = ref(false)
+useGoogleAuthSpinner(googleLoading)
 
 // Loading visual untuk initial page load dan Pull-to-Refresh.
 // Tidak bergantung pada request auth/Supabase agar tidak pernah stuck.

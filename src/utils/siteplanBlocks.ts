@@ -53,6 +53,34 @@ export function buildSiteplanBlocks(lots: SiteplanLot[]): SiteplanBlock[] {
   })
 }
 
+/* Blok lain harus jelas lebih dekat ke tengah, supaya keterangan tidak bolak-balik di perbatasan. */
+const SWITCH_RATIO = 0.7
+
+/**
+ * Blok yang sedang dilihat: pemilik kavling terdekat ke tengah layar.
+ * `distances` berisi jarak layar tiap kavling ke titik tengah itu.
+ */
+export function pickViewedBlockKey(
+  distances: Array<{ key: string; distance: number }>,
+  activeKey: string | null,
+  maxDistance: number,
+): string | null {
+  let nearest: { key: string; distance: number } | null = null
+  let activeDistance = Infinity
+
+  for (const item of distances) {
+    if (!nearest || item.distance < nearest.distance) nearest = item
+    if (item.key === activeKey) activeDistance = Math.min(activeDistance, item.distance)
+  }
+
+  /* Layar digeser ke area tanpa kavling: tidak ada blok yang sedang dilihat. */
+  if (!nearest || nearest.distance > maxDistance) return null
+
+  return activeDistance <= maxDistance && nearest.distance >= activeDistance * SWITCH_RATIO
+    ? activeKey
+    : nearest.key
+}
+
 export function findBlockOfLot(blocks: SiteplanBlock[], lot: SiteplanLot | null): SiteplanBlock | null {
   if (!lot) return null
   const id = getLotId(lot)

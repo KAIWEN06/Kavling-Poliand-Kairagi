@@ -333,7 +333,8 @@ import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import AppPagination from '@/components/ui/AppPagination.vue'
 import { usePagination } from '@/composables/usePagination'
 import { useIonRouter, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
@@ -378,6 +379,7 @@ type Interest = { id: number; lotNumber: string; block: string; paymentType: str
 type Transaction = { id: number; lotNumber: string; block: string; status: string; paymentType: string; finalPrice: number | null }
 
 const router = useIonRouter()
+const routeQuery = useOwnRouteQuery()
 const customers = ref<Customer[]>([])
 const query = ref('')
 const selectedFilter = ref<FilterValue>('all')
@@ -872,6 +874,15 @@ function openCustomer(id: number) {
 }
 
 onMounted(() => loadCustomers())
+
+// Aksi cepat di Beranda membuka formulir lewat ?action=tambah. nt membedakan tiap ketukan.
+watch(
+  () => routeQuery.value.nt,
+  () => {
+    if (routeQuery.value.action === 'tambah' && !addModalOpen.value) void openAddCustomer()
+  },
+  { immediate: true },
+)
 
 useRealtimeRefresh(
   ['customers', 'customer_interests', 'customer_notes', 'lot_transactions', 'payments', 'lots'],

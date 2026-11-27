@@ -13,6 +13,9 @@ import {
 import MascotCanvas from '@/components/auth/MascotCanvas.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import { supabase } from '@/services/config/supabase'
+import { authService } from '@/services/auth/authService'
+import { resolveHome } from '@/services/auth/resolveHome'
+import { useGoogleAuthSpinner } from '@/composables/useGoogleAuthSpinner'
 
 interface MascotHandle {
   setEmailFocus(active: boolean): Promise<void>
@@ -32,6 +35,7 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const loading = ref(false)
 const googleLoading = ref(false)
+useGoogleAuthSpinner(googleLoading)
 const errorMessage = ref('')
 const successMessage = ref('')
 const passwordIsValid = computed(() => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password.value))
@@ -45,6 +49,28 @@ async function onPasswordVisibilityChange(visible: boolean) {
 async function onConfirmPasswordVisibilityChange(visible: boolean) {
   showConfirmPassword.value = visible
   await mascotRef.value?.setPasswordVisible(visible)
+}
+
+// Email yang sudah terdaftar langsung masuk, hanya bila kata sandinya cocok dengan akun itu.
+async function loginExistingAccount() {
+  try {
+    const { user } = await authService.login(email.value, password.value)
+    const destination = await resolveHome(user.id)
+    password.value = ''
+    confirmPassword.value = ''
+    await router.replace(destination)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (/invalid login credentials/i.test(message)) {
+      errorMessage.value =
+        'Email ini sudah terdaftar dengan kata sandi lain. Buka halaman Masuk untuk memakai kata sandi akun, Google, atau Lupa kata sandi.'
+    } else if (/email not confirmed/i.test(message)) {
+      errorMessage.value = 'Email ini sudah terdaftar tetapi belum dikonfirmasi. Periksa kotak masuk dan folder spam.'
+    } else {
+      errorMessage.value = message || 'Email ini sudah terdaftar, tetapi belum bisa masuk. Coba dari halaman Masuk.'
+    }
+    void mascotRef.value?.playError()
+  }
 }
 
 async function submitRegistration() {
@@ -78,6 +104,15 @@ async function submitRegistration() {
         },
       },
     })
+    // Tanpa konfirmasi email Supabase membalas error; dengan konfirmasi, user tanpa identities.
+    const alreadyRegistered = error
+      ? error.code === 'user_already_exists' || error.code === 'email_exists'
+      : !data.session && data.user?.identities?.length === 0
+
+    if (alreadyRegistered) {
+      await loginExistingAccount()
+      return
+    }
     if (error) throw error
 
     if (data.session) {
@@ -100,11 +135,8 @@ async function registerWithGoogle() {
   googleLoading.value = true
   mascotRef.value?.stopIntro()
   try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    if (error) throw error
+    // Jalur yang sama dengan halaman Masuk, agar Android kembali lewat deep link.
+    await authService.signInWithGoogle()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Pendaftaran dengan Google gagal dimulai.'
     googleLoading.value = false

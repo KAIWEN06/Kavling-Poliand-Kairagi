@@ -453,6 +453,7 @@ import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonDetailHeader from '@/components/ui/skeletons/SkeletonDetailHeader.vue'
 import { computed, reactive, ref, watch } from 'vue'
+import { useBackToClose } from '@/composables/useBackStack'
 import { useRoute, useRouter } from 'vue-router'
 import {
   IonPage, IonContent, IonIcon, onIonViewWillEnter,
@@ -690,6 +691,7 @@ function getTimePartsInTimeZone(timeZone: string) {
 }
 
 const calendarOpen = ref(false)
+useBackToClose(() => calendarOpen.value, () => { calendarOpen.value = false })
 const initialDate = parseISODate(selectedSurveyDate.value) || new Date()
 const calendarYear = ref(initialDate.getFullYear())
 const calendarMonth = ref(initialDate.getMonth())

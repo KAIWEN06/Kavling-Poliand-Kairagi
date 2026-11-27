@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { PHYSICAL_BLOCKS, buildSiteplanBlocks, findBlockOfLot } from '@/utils/siteplanBlocks'
+import {
+  PHYSICAL_BLOCKS,
+  buildSiteplanBlocks,
+  findBlockOfLot,
+  pickViewedBlockKey,
+} from '@/utils/siteplanBlocks'
 import {
   FLIGHT_MAX_MS,
   FLIGHT_MIN_MS,
@@ -7,6 +12,7 @@ import {
   cameraEase,
   createFlight,
   frameRect,
+  reachesBlockZoom,
   worldToScreen,
   zoomAround,
 } from '@/utils/siteplanCamera'
@@ -33,6 +39,16 @@ describe('blok fisik denah', () => {
     const rows = [...migrationSql.matchAll(/\('([A-L])', '(LOT_[0-9A]+)'\)/g)].map((m) => `${m[1]}:${m[2]}`)
     const expected = PHYSICAL_BLOCKS.flatMap((b) => b.lotIds.map((id) => `${b.code}:${id}`))
     expect(rows).toEqual(expected)
+  })
+
+  test('blok yang dilihat mengikuti kavling terdekat ke tengah layar', () => {
+    const near = [{ key: 'blok-A', distance: 90 }, { key: 'blok-B', distance: 20 }]
+    expect(pickViewedBlockKey(near, null, 195)).toBe('blok-B')
+    expect(pickViewedBlockKey(near, 'blok-A', 195)).toBe('blok-B')
+    /* Di perbatasan, blok yang aktif dipertahankan. */
+    const edge = [{ key: 'blok-A', distance: 24 }, { key: 'blok-B', distance: 20 }]
+    expect(pickViewedBlockKey(edge, 'blok-A', 195)).toBe('blok-A')
+    expect(pickViewedBlockKey([{ key: 'blok-A', distance: 400 }], 'blok-A', 195)).toBeNull()
   })
 
   test('menghitung kavling tersedia', () => {
@@ -124,6 +140,16 @@ describe('kamera denah', () => {
   test('rotasi mengambil arah terpendek', () => {
     const flight = createFlight({ ...home, rotation: 270 }, { ...home, rotation: 0 }, size)
     expect(flight.at(0.5).rotation).toBeCloseTo(270 + 90 * cameraEase(0.5), 3)
+  })
+
+  test('zoom manual setingkat blok atau lebih dekat dikenali', () => {
+    expect(reachesBlockZoom(1.25, 3.6, 1.25)).toBe(false)
+    expect(reachesBlockZoom(2.5, 3.6, 1.25)).toBe(false)
+    expect(reachesBlockZoom(3.2, 3.6, 1.25)).toBe(true)
+    expect(reachesBlockZoom(6, 3.6, 1.25)).toBe(true)
+    /* Blok lebar yang terbingkai di skala awal tetap butuh zoom sungguhan. */
+    expect(reachesBlockZoom(1.25, 1.2, 1.25)).toBe(false)
+    expect(reachesBlockZoom(1.5, 1.2, 1.25)).toBe(true)
   })
 
   test('zoomAround mempertahankan titik di bawah jari', () => {

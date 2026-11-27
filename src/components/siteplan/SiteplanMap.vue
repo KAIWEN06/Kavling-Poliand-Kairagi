@@ -163,13 +163,14 @@ import {
   advanceClock,
   createFlight,
   frameRect,
+  reachesBlockZoom,
   worldToScreen,
   zoomAround,
   type Camera,
   type Rect
 } from '../../utils/siteplanCamera'
 import { getLotId } from '../../utils/siteplan'
-import type { SiteplanBlock } from '../../utils/siteplanBlocks'
+import { findBlockOfLot, pickViewedBlockKey, type SiteplanBlock } from '../../utils/siteplanBlocks'
 
 import SiteplanLegend from './SiteplanLegend.vue'
 import PolygonLayer from './PolygonLayer.vue'
@@ -251,6 +252,7 @@ const emit = defineEmits([
   'rotate',
   'map-click',
   'select-block',
+  'view-block',
   'overview',
   'zoomed-out',
   'search-select'
@@ -572,10 +574,12 @@ function focusCamera(rotation = currentRotation.value): Camera | null {
   if (!ids.length) return null
 
   const bounds = boundsOf(ids)
-  if (!bounds) return null
+  return bounds ? frameBounds(bounds, !!lotId, rotation) : null
+}
 
+function frameBounds(bounds: Rect, isLot: boolean, rotation: number): Camera {
   /* Kavling tunggal diberi ruang agar tetangganya tetap terlihat. */
-  const grow = lotId ? 0.45 : 0.04
+  const grow = isLot ? 0.45 : 0.04
 
   return frameRect(
     {
@@ -588,11 +592,26 @@ function focusCamera(rotation = currentRotation.value): Camera | null {
       size: { width: mapWidth.value, height: mapHeight.value },
       viewBox: mapViewBox.value,
       rotation,
-      insets: focusInsets(!!lotId),
+      insets: focusInsets(isLot),
       minScale: props.minScale,
       maxScale: props.maxScale
     }
   )
+}
+
+/* Pengguna sudah melihat blok ini sedekat tampilan blok, entah lewat cubit, roda, atau tombol zoom. */
+function isZoomedIntoBlock(bounds: Rect) {
+  return reachesBlockZoom(
+    currentScale.value,
+    frameBounds(bounds, false, currentRotation.value).scale,
+    props.scale
+  )
+}
+
+function selectTappedLot(lot: any) {
+  const block = findBlockOfLot(props.blocks, lot)
+  const bounds = block ? boundsOf(block.lotIds) : null
+  emit('select', lot, !!bounds && isZoomedIntoBlock(bounds))
 }
 
 function homeCamera(): Camera {
@@ -629,17 +648,78 @@ watch(
   { flush: 'post' }
 )
 
-function exitBlockIfZoomedOut() {
-  if (
-    props.activeBlock &&
-    !props.selectedLot &&
-    blockScale > 0 &&
-    currentScale.value < blockScale * 0.55
-  ) {
+function hasZoomedOutOfBlock() {
+  if (!props.activeBlock || blockScale <= 0) return false
+
+  /* Kembali ke zoom awal juga berarti keluar, termasuk untuk blok yang lebar. */
+  const backHome =
+    currentScale.value <= props.scale && blockScale > props.scale * 1.2
+
+  return backHome || currentScale.value < blockScale * 0.55
+}
+
+/* Blok di tengah area peta yang tidak tertutup pencarian dan bilah level. */
+function blockAtCenter(): SiteplanBlock | null {
+  const size = { width: mapWidth.value, height: mapHeight.value }
+  const insets = focusInsets(false)
+  const centerX = (insets.left + size.width - insets.right) / 2
+  const centerY = (insets.top + size.height - insets.bottom) / 2
+
+  const distances = props.blocks.flatMap((block) =>
+    block.lotIds.flatMap((id) => {
+      const bounds = boundsOf([id])
+      if (!bounds) return []
+
+      const point = worldToScreen(
+        bounds.x + bounds.width / 2,
+        bounds.y + bounds.height / 2,
+        camera.value,
+        size,
+        mapViewBox.value
+      )
+
+      return [{ key: block.key, distance: Math.hypot(point.x - centerX, point.y - centerY) }]
+    })
+  )
+
+  const key = pickViewedBlockKey(
+    distances,
+    props.activeBlock?.key ?? null,
+    Math.min(size.width, size.height) / 2
+  )
+
+  return props.blocks.find((block) => block.key === key) ?? null
+}
+
+/*
+ * Setelah pengguna sendiri menggeser atau zoom, keterangan blok mengikuti yang
+ * terlihat. Kamera tidak ikut digerakkan.
+ */
+function syncViewedBlock() {
+  if (props.selectedLot) return
+
+  if (hasZoomedOutOfBlock()) {
     blockScale = 0
     keepCameraOnce = true
     emit('zoomed-out')
+    return
   }
+
+  const block = blockAtCenter()
+  if (!block || block.key === props.activeBlock?.key) return
+
+  const bounds = boundsOf(block.lotIds)
+  if (!bounds) return
+
+  /* Dari tampilan keseluruhan, blok baru disebut setelah zoom setingkat blok. */
+  if (!props.activeBlock && !isZoomedIntoBlock(bounds)) return
+
+  blockScale = Math.min(
+    frameBounds(bounds, false, currentRotation.value).scale,
+    currentScale.value
+  )
+  keepCameraOnce = true
+  emit('view-block', block.key)
 }
 
 /* Penanda blok hanya ada di level keseluruhan dan saat peta diam. */
@@ -659,7 +739,8 @@ const blockMarkers = computed(() => {
 
   return props.blocks.flatMap((block) => {
     const bounds = boundsOf(block.lotIds)
-    if (!bounds) return []
+    /* Sedekat tampilan blok, penanda hanya menutupi kavling dan menarik kamera mundur. */
+    if (!bounds || isZoomedIntoBlock(bounds)) return []
 
     const point = worldToScreen(
       bounds.x + bounds.width / 2,
@@ -1282,7 +1363,7 @@ function onPointerUp(
 
 
       if (lot) {
-        emit('select', lot)
+        selectTappedLot(lot)
       }
 
     }, 0)
@@ -1294,7 +1375,7 @@ function onPointerUp(
   ) {
 
     resetGestureState()
-    exitBlockIfZoomedOut()
+    if (!wasSingleTap) syncViewedBlock()
 
     return
   }
@@ -1448,6 +1529,8 @@ function handleMiniMapClick(
   }
 
 
+  syncViewedBlock()
+
   emit(
     'map-click',
     payload
@@ -1479,7 +1562,7 @@ function zoomBy(factor: number) {
   const next = clamp(base.scale * factor, props.minScale, props.maxScale)
   flyTo(zoomAround(base, next, 0, 0), BUTTON_ZOOM_MS)
   window.clearTimeout(exitTimer)
-  exitTimer = window.setTimeout(exitBlockIfZoomedOut, BUTTON_ZOOM_MS + 60)
+  exitTimer = window.setTimeout(syncViewedBlock, BUTTON_ZOOM_MS + 60)
 }
 
 function zoomIn() {
@@ -1550,7 +1633,7 @@ function handleWheel(event: WheelEvent) {
 
   const point = toViewportPoint(event.clientX, event.clientY)
   commitCamera(zoomAround(camera.value, next, point.x, point.y))
-  exitBlockIfZoomedOut()
+  syncViewedBlock()
 }
 
 

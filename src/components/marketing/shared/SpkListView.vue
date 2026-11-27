@@ -35,7 +35,7 @@
         <thead>
           <tr>
             <th>Klien</th><th v-if="isHead">Pemasar</th><th>Kaveling</th><th>Diajukan</th>
-            <th class="num">Nominal SPK</th><th>Status SPK</th><th>Pembayaran SPK</th><th>Catatan Admin</th>
+            <th class="num">Nominal SPK</th><th>Status SPK</th><th>Tahapan proses</th><th>Pembayaran SPK</th><th>Catatan Admin</th>
           </tr>
         </thead>
         <tbody>
@@ -50,6 +50,10 @@
             <td data-label="Diajukan">{{ formatDate(row.submitted_at) }}</td>
             <td data-label="Nominal SPK" class="num">{{ formatRupiah(row.booking_fee_snapshot) }}</td>
             <td data-label="Status SPK"><StatusBadge :label="spkLabel(row.status)" :tone="spkTone(row.status)" /></td>
+            <td data-label="Tahapan proses">
+              <StatusBadge v-if="spkStage(row.status, row.notary_status)" :label="SPK_STAGE_LABEL[spkStage(row.status, row.notary_status)!]" :tone="SPK_STAGE_TONE[spkStage(row.status, row.notary_status)!]" />
+              <span v-else class="mk-muted">-</span>
+            </td>
             <td data-label="Pembayaran SPK">
               <StatusBadge v-if="row.booking_payment_status" :label="paymentStatusLabel(row.booking_payment_status)" :tone="paymentStatusTone(row.booking_payment_status)" />
               <span v-else class="mk-muted">Belum ada</span>
@@ -76,6 +80,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { useRowFocus } from '@/composables/useRowFocus'
 import { getTeamMembers, listSpkRequests, type TeamMember } from '@/services/marketing/marketingCrmService'
 import { formatDate, formatRupiah, paymentStatusLabel, paymentStatusTone, spkLabel, spkTone } from '@/utils/marketingStatus'
+import { sortByRunningStage, spkStage, SPK_STAGE_LABEL } from '@/utils/spkStage'
 
 const props = defineProps<{ role: 'marketing' | 'head'; focusId?: number; focusStamp?: string }>()
 const { focusedId, focusRow } = useRowFocus()
@@ -90,6 +95,8 @@ const error = ref('')
 const status = ref<'all' | 'pending' | 'approved' | 'rejected'>('all')
 const search = ref('')
 const marketingId = ref('')
+
+const SPK_STAGE_TONE = { running: 'gold', 'not-started': 'neutral', done: 'success' } as const
 
 const statusOptions = [
   { value: 'all' as const, label: 'Semua' },
@@ -110,7 +117,10 @@ const base = computed(() => rows.value.filter((row) => {
   if (q && ![row.customer_name, row.spk_number, row.lot?.lot_number].filter(Boolean).join(' ').toLowerCase().includes(q)) return false
   return true
 }))
-const filtered = computed(() => base.value.filter((row) => matchStatus(row, status.value)))
+const filtered = computed(() => {
+  const matches = base.value.filter((row) => matchStatus(row, status.value))
+  return status.value === 'all' ? sortByRunningStage(matches, (row) => [row.status, row.notary_status]) : matches
+})
 function count(value: typeof status.value) {
   return base.value.filter((row) => matchStatus(row, value)).length
 }

@@ -16,8 +16,7 @@ import {
   actionSheetController,
   alertController,
   modalController,
-  popoverController,
-  useIonRouter
+  popoverController
 } from '@ionic/vue'
 
 import {
@@ -33,7 +32,8 @@ import CelebrationHost from '@/components/ui/CelebrationHost.vue'
 import ConfirmHost from '@/components/ui/ConfirmHost.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { App as CapacitorApp } from '@capacitor/app'
-const ionRouter = useIonRouter()
+import { useSmartBack } from '@/composables/useSmartBack'
+const { goBack } = useSmartBack()
 useClientProfileReminder()
 
 import {
@@ -233,11 +233,11 @@ let backButtonListener: Awaited<
   ReturnType<typeof CapacitorApp.addListener>
 > | null = null
 
-/** Halaman beranda tiap role: tombol Back di sini menutup aplikasi. */
+/** Layar awal dan beranda tiap role: hanya di sini tombol Back menutup aplikasi. */
 const ROOT_PATHS = new Set([
+  '/splash',
   '/home',
   '/welcome',
-  '/login',
   '/beranda-admin',
   '/beranda-owner',
   '/beranda-marketing',
@@ -275,19 +275,15 @@ async function handleAndroidBackButton(): Promise<void> {
   if (await dismissTopOverlay()) return
 
   // 2. Halaman beranda / root: keluar aplikasi.
-  if (ROOT_PATHS.has(router.currentRoute.value.path)) {
+  // Pratinjau CMS Admin juga memakai /home, tetapi Back di sana harus kembali, bukan keluar.
+  const { path, query } = router.currentRoute.value
+  if (ROOT_PATHS.has(path) && query.from !== 'cms') {
     await CapacitorApp.exitApp()
     return
   }
 
-  // 3. Halaman turunan: kembali ke halaman sebelumnya.
-  if (ionRouter.canGoBack()) {
-    ionRouter.back()
-    return
-  }
-
-  // 4. Tanpa riwayat: ke beranda bila tahu role-nya, selain itu tutup aplikasi.
-  await CapacitorApp.exitApp()
+  // 3. Selain itu: halaman sebelumnya; tanpa riwayat, ke beranda sesuai role.
+  goBack()
 }
 
 

@@ -37,6 +37,19 @@
                     android:path="/callback" />
             </intent-filter>
 
+            <!-- Link kavling yang dibagikan: https://<domain>/siteplan?kavling=<id> -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="${webHost}"
+                    android:pathPrefix="/siteplan" />
+            </intent-filter>
+
         </activity>
 
         <service

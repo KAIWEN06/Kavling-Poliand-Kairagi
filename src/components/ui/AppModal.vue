@@ -4,7 +4,7 @@
       v-if="modelValue"
       ref="rootRef"
       class="app-modal"
-      :class="[`app-modal--${variant}`, { 'app-modal--draggable': dismissable,'app-modal--no-footer': !showFooter, 'app-modal--slide': slideConfirm && showConfirm, 'app-modal--keyboard': keyboardHeight > 0 }]"
+      :class="[`app-modal--${variant}`, { 'app-modal--draggable': dismissable,'app-modal--no-footer': !showFooter, 'app-modal--slide': slideConfirm && showConfirm, 'app-modal--keyboard': keyboardOpen }]"
       :style="{ '--app-modal-keyboard-height': `${keyboardHeight}px` }"
       @pointerdown="handlePointerDown"
       @click.self="handleBackdrop"
@@ -108,12 +108,14 @@ let overscrollBeforeLock = ''
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Keyboard } from '@capacitor/keyboard'
+import { Capacitor } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
 import { IonIcon } from '@ionic/vue'
 import { closeOutline } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
 import SlideToConfirm from '@/components/ui/SlideToConfirm.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useBackToClose } from '@/composables/useBackStack'
 
 type ModalVariant = 'bottom-sheet' | 'dialog' | 'fullscreen'
 type ConfirmVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'neutral'
@@ -182,7 +184,9 @@ const emit = defineEmits<{
 
 const rootRef = ref<HTMLElement | null>(null)
 const dialogRef = ref<HTMLElement | null>(null)
+/** Ruang bawah yang masih tertutup keyboard dan harus dihindari modal sendiri. */
 const keyboardHeight = ref(0)
+const keyboardOpen = ref(false)
 let pluginKeyboardHeight = 0
 let keyboardListeners: PluginListenerHandle[] = []
 let modalActivation = 0
@@ -406,33 +410,64 @@ function unlockPage() {
   window.dispatchEvent(new CustomEvent('poliland-modal-mode', { detail: { active: false } }))
 }
 
+const FIELD_SELECTOR = 'input, textarea, select, [contenteditable="true"]'
+const REVEAL_MARGIN = 8
+
 /**
- * Android WebView (resize: none) menggulung dokumen saat input fokus sehingga overlay fixed
- * ikut terlempar. Kita kembalikan scroll ke 0, ikuti visualViewport, lalu tampilkan field di
- * dalam body modal (bukan menggeser seluruh modal).
+ * Di Android, MainActivity sudah mengecilkan WebView setinggi keyboard, jadi tinggi dari plugin
+ * tidak boleh dipakai lagi sebagai padding (modal akan terdorong dua kali). Hanya iOS (resize: none)
+ * yang WebView-nya tetap penuh. Browser biasa terbaca lewat visualViewport.
  */
 function syncViewport() {
   const vv = window.visualViewport
   if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0)
 
-  if (!vv) {
-    keyboardHeight.value = pluginKeyboardHeight
-    return
-  }
+  const covered = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0
+  const overlap = covered > 80 ? covered : 0
+  const uncovered = Capacitor.getPlatform() === 'ios' ? pluginKeyboardHeight : 0
 
-  const covered = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
-  keyboardHeight.value = Math.max(pluginKeyboardHeight, covered > 80 ? covered : 0)
+  keyboardHeight.value = Math.max(uncovered, overlap)
+  keyboardOpen.value = pluginKeyboardHeight > 0 || overlap > 0
+}
+
+/** Hanya body modal yang digulir; scrollIntoView bisa ikut menggeser halaman di belakang. */
+function revealField(target: HTMLElement) {
+  const body = target.closest<HTMLElement>('.app-modal__body')
+  if (!body) return
+
+  const view = body.getBoundingClientRect()
+  // Label pembungkus ikut ditampilkan selama masih muat.
+  const labelBox = target.closest('label')?.getBoundingClientRect()
+  const box = labelBox && labelBox.height <= view.height - REVEAL_MARGIN * 2
+    ? labelBox
+    : target.getBoundingClientRect()
+
+  if (box.top >= view.top + REVEAL_MARGIN && box.bottom <= view.bottom - REVEAL_MARGIN) return
+
+  body.scrollBy({
+    top: box.top - view.top - Math.max(REVEAL_MARGIN, (view.height - box.height) / 2),
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+  })
 }
 
 function revealFocusedField(event: FocusEvent) {
   const target = event.target
-  if (!(target instanceof HTMLElement)) return
-  if (!target.matches('input, textarea, select, [contenteditable="true"]')) return
+  if (!(target instanceof HTMLElement) || !target.matches(FIELD_SELECTOR)) return
   window.setTimeout(() => {
     if (document.activeElement !== target) return
     syncViewport()
-    target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+    revealField(target)
   }, 280)
+}
+
+/** Tinggi berubah saat keyboard muncul, juga ketika kolomnya sudah fokus lebih dulu. */
+function handleViewportResize() {
+  syncViewport()
+  window.requestAnimationFrame(() => {
+    const active = document.activeElement
+    if (!(active instanceof HTMLElement) || !active.matches(FIELD_SELECTOR)) return
+    if (dialogRef.value?.contains(active)) revealField(active)
+  })
 }
 
 async function activateModal() {
@@ -451,7 +486,8 @@ async function activateModal() {
   ;(focusable[0] || dialogRef.value)?.focus()
   document.addEventListener('keydown', handleDocumentKeydown)
   document.addEventListener('click', handleOutsideLayoutClick, true)
-  window.visualViewport?.addEventListener('resize', syncViewport)
+  window.visualViewport?.addEventListener('resize', handleViewportResize)
+  window.addEventListener('resize', handleViewportResize)
   window.visualViewport?.addEventListener('scroll', syncViewport)
   window.addEventListener('scroll', syncViewport, { passive: true })
   dialogRef.value?.addEventListener('focusin', revealFocusedField)
@@ -486,7 +522,8 @@ function deactivateModal() {
   document.removeEventListener('keydown', handleDocumentKeydown)
   document.removeEventListener('click', handleOutsideLayoutClick, true)
   drag = null
-  window.visualViewport?.removeEventListener('resize', syncViewport)
+  window.visualViewport?.removeEventListener('resize', handleViewportResize)
+  window.removeEventListener('resize', handleViewportResize)
   window.visualViewport?.removeEventListener('scroll', syncViewport)
   window.removeEventListener('scroll', syncViewport)
   dialogRef.value?.removeEventListener('focusin', revealFocusedField)
@@ -494,6 +531,7 @@ function deactivateModal() {
   keyboardListeners = []
   pluginKeyboardHeight = 0
   keyboardHeight.value = 0
+  keyboardOpen.value = false
   unlockPage()
   previousActiveElement.value?.focus()
   previousActiveElement.value = null
@@ -541,6 +579,8 @@ async function requestClose(reason: CloseReason) {
   if (reason === 'cancel') emit('cancel')
   emit('update:modelValue', false)
 }
+
+useBackToClose(() => props.modelValue, () => { void requestClose('escape') })
 
 /** Untuk tombol tutup buatan induk, agar tetap melewati konfirmasi. */
 defineExpose({ close: () => requestClose('close-button') })
@@ -741,8 +781,17 @@ onBeforeUnmount(() => {
   padding-bottom: 0;
 }
 
+/* Ruang tinggal sedikit saat mengetik: header dan footer dirapatkan agar lebih banyak kolom terlihat.
+   Tombol tetap 44px. */
+.app-modal--keyboard .app-modal__header {
+  min-height: 56px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
 .app-modal--keyboard .app-modal__footer {
-  padding-bottom: 12px;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .app-modal__body :deep(input),
@@ -849,7 +898,7 @@ onBeforeUnmount(() => {
 @media (min-width: 700px) {
   .app-modal--bottom-sheet {
     align-items: center;
-    padding: 24px;
+    padding: 24px 24px max(24px, var(--app-modal-keyboard-height, 0px));
   }
 
   .app-modal--bottom-sheet .app-modal__panel {

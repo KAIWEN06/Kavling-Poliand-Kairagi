@@ -131,7 +131,7 @@ import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { computed, onMounted, ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { arrowBackOutline, checkmarkCircleOutline, logoWhatsapp } from 'ionicons/icons'
-import { useRouter } from 'vue-router'
+import { useSmartBack } from '@/composables/useSmartBack'
 import { motion } from 'motion-v'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
 import CmsBackBar from '@/components/Admin/CmsBackBar.vue'
@@ -147,7 +147,6 @@ import { useCmsAdmin } from '@/composables/useCmsAdmin'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { MOTION_EASE_OUT } from '@/utils/motionTokens'
 
-const router = useRouter()
 const { isAdmin } = useCmsAdmin()
 const reduced = useReducedMotion()
 const heroLines = ['Membangun masa depan,', 'satu kavling demi kavling.']
@@ -186,10 +185,7 @@ async function load() {
   }
 }
 
-const goBack = () => {
-  if (window.history.length > 1) router.back()
-  else router.push('/home')
-}
+const { goBack } = useSmartBack(() => '/home')
 
 const contactWhatsapp = () => {
   const number = toWaNumber(whatsapp.value)

@@ -48,6 +48,7 @@ import {
   type ClientSpkNotaryStatus,
   type ClientSpkRecord,
 } from '@/services/clientSpkService'
+import { sortByRunningStage, spkStage, SPK_STAGE_LABEL } from '@/utils/spkStage'
 import { getLotsHeldBySpkSafe, lotHoldNote as buildLotHoldNote, type HeldLots } from '@/services/lotHoldService'
 
 const ionRouter = useIonRouter()
@@ -176,7 +177,7 @@ function onProcessLoaded(steps: SpkProcessStep[]) {
 
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase('id-ID')
-  return spkRecords.value.filter(record => {
+  const matches = spkRecords.value.filter(record => {
     const matchesStatus = matchesStatusFilter(record, selectedStatus.value)
     const haystack = [
       record.spkNumber, record.buyer.fullName, record.buyer.phone,
@@ -184,6 +185,9 @@ const filteredRecords = computed(() => {
     ].join(' ').toLocaleLowerCase('id-ID')
     return matchesStatus && (!query || haystack.includes(query))
   })
+  return selectedStatus.value === 'All'
+    ? sortByRunningStage(matches, record => [record.status, record.notaryStatus])
+    : matches
 })
 
 const pager = usePagination(filteredRecords, {
@@ -836,7 +840,7 @@ useRealtimeRefresh(
               <div v-if="record.status === 'Approved'" class="spk-notary-progress">
                 <span>Tahapan proses</span>
                 <strong :class="['spk-notary-status', notaryStatusClass(record.notaryStatus)]">
-                  {{ record.notaryStatus === 'Selesai' ? 'Selesai' : record.notaryStatus === 'Menunggu Diproses' ? 'Belum dimulai' : 'Sedang berjalan' }}
+                  {{ SPK_STAGE_LABEL[spkStage(record.status, record.notaryStatus) ?? 'not-started'] }}
                 </strong>
                 <p class="spk-notary-note">Ketuk kartu untuk melihat tahapan dan jadwalnya.</p>
               </div>
@@ -1105,7 +1109,7 @@ useRealtimeRefresh(
         </header>
         <section v-if="selectedRecord.status === 'Approved'" class="spk-detail-section spk-progress-section">
           <h3><ion-icon :icon="documentTextOutline" /> Tahapan proses</h3>
-          <SpkProcessTimeline :key="selectedRecord.id" :spk-id="selectedRecord.id" mode="view" @loaded="onProcessLoaded" />
+          <SpkProcessTimeline :key="selectedRecord.id" :spk-id="selectedRecord.id" :down-payment="selectedRecord.payment.downPaymentAmount" mode="view" @loaded="onProcessLoaded" />
         </section>
 
         <section class="spk-detail-section">
@@ -1208,7 +1212,7 @@ useRealtimeRefresh(
         >
           <h3><ion-icon :icon="documentTextOutline" /> Jadwal Pembayaran Disepakati</h3>
           <p class="spk-schedule-description">
-            Tanggal ini ditetapkan saat PPJB di notaris. Cicilan pertama jatuh di bulan setelah PPJB.
+            Tanggal ini ditetapkan saat PPJB di notaris. {{ (selectedRecord.payment.downPaymentAmount ?? 0) > 0 ? 'Cicilan pertama' : 'Cicilan kedua' }} jatuh di bulan setelah PPJB.
           </p>
 
           <div v-if="selectedRecord.schedules.length" class="spk-client-schedule-list">

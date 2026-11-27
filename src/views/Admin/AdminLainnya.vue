@@ -32,7 +32,7 @@ import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 
-type QuickAction = { label: string; icon: string; tone: 'green' | 'gold' | 'neutral'; route?: string; wide?: boolean }
+type QuickAction = { label: string; icon: string; tone: 'green' | 'gold' | 'neutral'; route?: string; query?: Record<string, string>; wide?: boolean }
 const router = useRouter()
 const toast = useToast()
 // Urutan dari atas ke bawah: jarang dipakai di atas, paling sering di bawah
@@ -44,31 +44,19 @@ const actions: QuickAction[] = [
   { label: 'Akses tim', icon: settingsOutline, tone: 'green', route: '/admin/akses-tim' },
   { label: 'Kelola konten', icon: gridOutline, tone: 'neutral', route: '/admin/konten' },
   { label: 'Denah 2D', icon: mapOutline, tone: 'green', route: '/admin/siteplan' },
-  { label: 'Tambah klien', icon: peopleOutline, tone: 'neutral', route: '/admin/pembeli' },
+  { label: 'Tambah klien', icon: peopleOutline, tone: 'neutral', route: '/admin/pembeli', query: { action: 'tambah' } },
   { label: 'Permintaan survei', icon: calendarOutline, tone: 'green', route: '/admin/survei' },
   { label: 'Pembayaran', icon: walletOutline, tone: 'gold', route: '/admin/keuangan' },
   { label: 'SPK', icon: documentTextOutline, tone: 'gold', route: '/admin/spk' },
 ]
 
-async function handleAction(action: QuickAction) {
+function handleAction(action: QuickAction) {
   if (action.route) {
-    await router.push(action.route)
-
-    if (action.label === 'Tambah klien') {
-      const deadline = Date.now() + 10000
-      while (Date.now() < deadline) {
-        const addButton = document.querySelector<HTMLButtonElement>('button[aria-label="Tambah klien"]')
-        if (
-          router.currentRoute.value.path === action.route &&
-          addButton?.getClientRects().length &&
-          getComputedStyle(addButton).visibility !== 'hidden'
-        ) {
-          addButton.click()
-          break
-        }
-        await new Promise((resolve) => window.setTimeout(resolve, 50))
-      }
-    }
+    // nt membuat halaman tujuan yang masih tersimpan di tumpukan Ionic membuka ulang formulirnya.
+    void router.push({
+      path: action.route,
+      query: action.query && { ...action.query, nt: String(Date.now()) },
+    })
     return
   }
   toast.info(`${action.label} akan tersedia pada tahap berikutnya.`)

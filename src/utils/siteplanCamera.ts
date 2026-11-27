@@ -107,6 +107,17 @@ export function frameRect(
   }
 }
 
+/* Zoom manual jarang pas: sedikit di bawah bingkai blok sudah terasa "di dalam blok". */
+const BLOCK_REACH = 0.85
+
+/* Blok yang sangat lebar bisa terbingkai hampir di skala awal; itu belum dihitung zoom. */
+const MIN_MANUAL_ZOOM = 1.2
+
+/** Benar bila zoom saat ini sudah setingkat tampilan blok, atau lebih dekat. */
+export function reachesBlockZoom(scale: number, blockScale: number, homeScale: number): boolean {
+  return scale >= Math.max(blockScale * BLOCK_REACH, homeScale * MIN_MANUAL_ZOOM)
+}
+
 /** Zoom berpusat pada titik layar (relatif terhadap tengah viewport). */
 export function zoomAround(camera: Camera, nextScale: number, pointX: number, pointY: number): Camera {
   const ratio = nextScale / camera.scale

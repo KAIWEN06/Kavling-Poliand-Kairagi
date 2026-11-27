@@ -276,6 +276,7 @@ import AppNotice from '@/components/ui/AppNotice.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useBackToClose } from '@/composables/useBackStack'
 import { IonIcon, IonSpinner } from '@ionic/vue'
 import {
   addOutline,
@@ -323,6 +324,7 @@ const sortMode = ref<'updated' | 'created'>('updated')
 const pinnedOnly = ref(false)
 const editing = ref(false)
 const menuNote = ref<CustomerNote | null>(null)
+useBackToClose(() => Boolean(menuNote.value), () => { menuNote.value = null })
 const historyNote = ref<CustomerNote | null>(null)
 const historyRows = ref<CustomerNoteHistory[]>([])
 const historyLoading = ref(false)

@@ -31,6 +31,7 @@
             @rotate="handleRotate"
             @map-click="handleMapClick"
             @select-block="openBlock"
+            @view-block="openBlock"
             @overview="showOverview"
             @zoomed-out="showOverview"
           />
@@ -239,10 +240,11 @@ const {
 } = useSiteplanNavigation(lots, selectedLot)
 
 function handleLotSelection(
-  lot: SiteplanLot | null
+  lot: SiteplanLot | null,
+  zoomedIntoBlock?: boolean
 ): void {
   if (lot && !loading.value) {
-    tapLot(lot)
+    tapLot(lot, zoomedIntoBlock)
   }
 }
 
@@ -273,16 +275,16 @@ let progressTarget =
   0
 
 
-/* Tautan yang dibagikan (?kavling=<id>) langsung membuka kavlingnya, sekali saja. */
-let sharedLotOpened = false
+/* Tautan yang dibagikan (?kavling=<id>) langsung membuka kavlingnya, sekali per tautan. */
+let openedSharedLot = ''
 
 watch(
-  [showLoading, lots],
+  [showLoading, lots, () => route.query.kavling],
   () => {
-    if (sharedLotOpened || showLoading.value || !lots.value.length) return
-    sharedLotOpened = true
     const id = String(route.query.kavling ?? '')
-    const lot = id ? lots.value.find((item) => String(item.id) === id) : undefined
+    if (!id || id === openedSharedLot || showLoading.value || !lots.value.length) return
+    openedSharedLot = id
+    const lot = lots.value.find((item) => String(item.id) === id)
     if (lot) openLot(lot)
   }
 )

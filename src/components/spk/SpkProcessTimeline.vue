@@ -17,7 +17,7 @@
       <header class="spt-summary" :class="{ 'spt-summary--done': allDone }">
         <div>
           <span class="spt-summary-label">{{ allDone ? 'Proses selesai' : 'Sekarang' }}</span>
-          <strong>{{ allDone ? 'Sertifikat sudah diserahkan' : SPK_STEP_INFO[current!.key].title }}</strong>
+          <strong>{{ allDone ? 'Sertifikat sudah diserahkan' : info(current!.key).title }}</strong>
         </div>
         <span class="spt-count">{{ doneCount }} dari {{ steps.length }} selesai</span>
       </header>
@@ -43,11 +43,11 @@
 
           <div class="spt-body">
             <div class="spt-head">
-              <h3>{{ SPK_STEP_INFO[step.key].title }}</h3>
+              <h3>{{ info(step.key).title }}</h3>
               <span class="spt-pill" :class="`spt-pill--${step.status}`">{{ SPK_STEP_STATUS_LABEL[step.status] }}</span>
             </div>
 
-            <p class="spt-summary-text">{{ SPK_STEP_INFO[step.key].summary }}</p>
+            <p class="spt-summary-text">{{ info(step.key).summary }}</p>
 
             <p v-if="step.status === 'done' && step.completedAt" class="spt-date">
               Selesai pada {{ formatDateTime(step.completedAt) }}
@@ -75,8 +75,8 @@
               {{ proofError }}
             </AppNotice>
 
-            <p v-if="SPK_STEP_INFO[step.key].requirement && step.status !== 'done'" class="spt-require">
-              {{ SPK_STEP_INFO[step.key].requirement }}
+            <p v-if="info(step.key).requirement && step.status !== 'done'" class="spt-require">
+              {{ info(step.key).requirement }}
             </p>
 
             <p v-if="step.status === 'ready' && mode === 'view'" class="spt-ready">
@@ -187,7 +187,6 @@ import AppModal from '@/components/ui/AppModal.vue'
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import { useCelebration } from '@/composables/useCelebration'
 import {
-  SPK_STEP_INFO,
   SPK_STEP_STATUS_LABEL,
   adminCompleteStep,
   adminMarkStepReady,
@@ -198,10 +197,18 @@ import {
   getSpkProcessSteps,
   PROOF_ACCEPT,
   validateProofFile,
+  spkPaymentPlan,
+  spkStepInfo,
   type SpkProcessStep,
+  type SpkStepKey,
 } from '@/services/spkProcessService'
 
-const props = withDefaults(defineProps<{ spkId: number; mode?: 'view' | 'admin' }>(), { mode: 'view' })
+const props = withDefaults(defineProps<{
+  spkId: number
+  /** Nominal uang muka transaksi; 0 atau null berarti tanpa uang muka. */
+  downPayment: number | null
+  mode?: 'view' | 'admin'
+}>(), { mode: 'view' })
 const emit = defineEmits<{ loaded: [steps: SpkProcessStep[]]; changed: [] }>()
 
 const { celebrate } = useCelebration()
@@ -212,6 +219,8 @@ const error = ref('')
 const current = computed(() => currentStep(steps.value))
 const doneCount = computed(() => steps.value.filter((s) => s.status === 'done').length)
 const allDone = computed(() => steps.value.length > 0 && !current.value)
+const plan = computed(() => spkPaymentPlan(steps.value, props.downPayment))
+const info = (key: SpkStepKey) => spkStepInfo(key, plan.value)
 
 async function load({ silent = false }: LoadOptions = {}) {
   if (!silent) loading.value = true
@@ -304,7 +313,7 @@ async function openProof(step: SpkProcessStep) {
 }
 
 const modalIntro = computed(() => {
-  const title = target.value ? SPK_STEP_INFO[target.value.key].title : ''
+  const title = target.value ? info(target.value.key).title : ''
   if (action.value === 'schedule') return `${title}. Klien dan pemasar akan menerima pemberitahuan tanggal ini.`
   if (action.value === 'ready') return `${title} sudah bisa diproses. Klien dan pemasar akan menerima pemberitahuan.`
   if (needsProof.value) return `${title} sudah dilakukan? Lampirkan bukti tanda terima. Klien dan pemasar bisa melihatnya.`
@@ -376,7 +385,7 @@ async function submit() {
     if (finished) {
       celebrate(allDone.value
         ? { title: 'Proses selesai', message: 'Sertifikat sudah diserahkan dan kavling resmi terjual.' }
-        : { title: 'Langkah selesai', message: SPK_STEP_INFO[finished.key].title })
+        : { title: 'Langkah selesai', message: info(finished.key).title })
     }
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : 'Perubahan gagal disimpan.'

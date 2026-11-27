@@ -23,9 +23,12 @@
 import { onBeforeUnmount, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { closeOutline } from 'ionicons/icons'
+import { useBackToClose } from '@/composables/useBackStack'
 
 const props = defineProps<{ open: boolean; url: string }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
+
+useBackToClose(() => props.open, () => emit('close'))
 
 watch(
   () => props.open,

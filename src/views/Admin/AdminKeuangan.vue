@@ -207,11 +207,11 @@
                     <label v-for="schedule in selectableSchedules" :key="schedule.id" class="payment-schedule-option" :class="{ 'payment-schedule-option--locked': !isScheduleSelectable(schedule.id) }">
                       <input type="checkbox" :checked="selectedScheduleIds.includes(schedule.id)" :disabled="!isScheduleSelectable(schedule.id)" @change="toggleSchedule(schedule.id)" />
                       <span class="payment-schedule-check"></span>
-                      <span class="payment-schedule-copy"><strong>Ke-{{ schedule.installment_number }}</strong><small>{{ formatShortDate(schedule.due_date) }}</small></span>
-                      <span class="payment-schedule-status" :class="`payment-schedule-status--${schedule.status.toLowerCase()}`">{{ schedule.due_date < todayDate ? 'Jatuh Tempo' : 'Mendatang' }}</span>
+                      <span class="payment-schedule-copy"><strong>Ke-{{ schedule.installment_number }}</strong><small>{{ scheduleDate(schedule) }}</small></span>
+                      <span class="payment-schedule-status" :class="`payment-schedule-status--${schedule.status.toLowerCase()}`">{{ isPastDue(schedule) ? 'Jatuh Tempo' : 'Mendatang' }}</span>
                       <strong class="payment-schedule-amount">{{ formatCurrency(schedule.amount) }}</strong>
                     </label>
-                    <div v-if="!selectableSchedules.length" class="proof-no-file">Tidak ada cicilan yang dapat dipilih.</div>
+                    <div v-if="!selectableSchedules.length" class="proof-no-file">{{ beforePpjb && selectedReportLot.downPayment > 0 ? 'Cicilan dibuka setelah PPJB di notaris selesai.' : beforePpjb ? 'Cicilan berikutnya dibuka setelah PPJB selesai.' : 'Tidak ada cicilan yang dapat dipilih.' }}</div>
                     <small v-if="fieldError('schedules')" class="field-error" role="alert" data-field-error>{{ fieldError('schedules') }}</small>
                   </template>
                   <div v-else class="instruction-field" :class="{ 'instruction-field--error': fieldError('amount') }"><label for="cash-payment-amount">Nominal Pembayaran (Rp)</label><input id="cash-payment-amount" v-model.number="manualPaymentAmount" type="number" min="1" :max="availableToPay" inputmode="numeric" placeholder="Contoh: 1500000" :aria-invalid="Boolean(fieldError('amount'))" aria-describedby="cash-payment-amount-hint" /><small id="cash-payment-amount-hint" class="field-hint" :class="{ 'field-error': fieldError('amount') }" :role="fieldError('amount') ? 'alert' : undefined" :data-field-error="fieldError('amount') ? '' : undefined">{{ fieldError('amount') || `Maksimal ${formatCurrency(availableToPay)}` }}</small></div>
@@ -501,8 +501,8 @@
               <StatusIllustration v-else-if="schedulesError" :variant="resolveErrorVariant(schedulesError)" size="sm" title="Jadwal cicilan gagal dimuat" :on-action="loadSchedulesForSelectedLot" />
               <article v-for="schedule in installmentSchedules" :key="schedule.id" class="installment-detail-row">
                 <span class="installment-detail-number">{{ schedule.installment_number }}</span>
-                <div><strong>{{ formatShortDate(schedule.due_date) }}</strong><small>Ke-{{ schedule.installment_number }} dari {{ installmentSchedules.length }}</small></div>
-                <div class="installment-detail-amount"><strong>{{ formatCurrency(schedule.amount) }}</strong><span :class="`installment-status installment-status--${schedule.status.toLowerCase()}`">{{ schedule.status === 'Paid' ? 'Lunas' : schedule.pending_payment ? 'Menunggu Verifikasi' : schedule.due_date < todayDate ? 'Jatuh Tempo' : 'Mendatang' }}</span></div>
+                <div><strong>{{ scheduleDate(schedule) }}</strong><small>Ke-{{ schedule.installment_number }} dari {{ installmentSchedules.length }}</small></div>
+                <div class="installment-detail-amount"><strong>{{ formatCurrency(schedule.amount) }}</strong><span :class="`installment-status installment-status--${schedule.status.toLowerCase()}`">{{ schedule.status === 'Paid' ? 'Lunas' : schedule.pending_payment ? 'Menunggu Verifikasi' : isPastDue(schedule) ? 'Jatuh Tempo' : 'Mendatang' }}</span></div>
               </article>
               <StatusIllustration v-if="!schedulesLoading && !schedulesError && !installmentSchedules.length" variant="empty-data" size="sm" title="Jadwal cicilan belum tersedia" description="Jadwal akan dibuat setelah transaksi cicilan terkonfirmasi." />
             </section>
@@ -787,9 +787,9 @@
         <template v-else-if="activeView === 'cancellations'">
           <section class="cancellation-review-page" aria-labelledby="cancellation-review-heading">
             <div class="ledger-heading">
-              <div><h1 id="cancellation-review-heading">Pengajuan Pembatalan</h1><p>Persetujuan melepaskan kaveling dan menyiapkan pengembalian 50% dari uang muka serta cicilan terkonfirmasi.</p></div>
+              <div><h1 id="cancellation-review-heading">Pembatalan Pembelian</h1></div>
             </div>
-            <div class="ledger-policy-note" role="note">Tanda jadi dan denda tidak termasuk dasar pengembalian. Transfer pengembalian dana harus dicatat terpisah dengan referensi bank dan bukti transfer.</div>
+            <CancellationDesk :pending-count="pendingCancellationCount" @changed="loadCancellationRequests({ silent: true })">
             <SkeletonRowList v-if="cancellationLoading" :rows="2" :fields="3" :badges="[3]" label="Memuat pengajuan" />
             <StatusIllustration
               v-else-if="cancellationError"
@@ -803,6 +803,7 @@
               <article v-for="request in cancellationPager.items" :key="request.id" class="cancellation-review-card">
                 <div class="cancellation-review-card__top"><div><span>Pengajuan #{{ request.id }} · {{ formatShortDate(request.created_at) }}</span><h2>{{ request.customer_name }}</h2><small>{{ request.customer_phone || 'Nomor kontak tidak tersedia' }}</small></div><strong>{{ request.lot_number }}<small>{{ request.block_name || 'Blok belum tersedia' }}</small></strong></div>
                 <p class="cancellation-review-reason">{{ request.reason }}</p>
+                <p class="cancellation-review-recipient">{{ request.recipient_account_number ? `Rekening: ${request.recipient_bank} ${request.recipient_account_number}, a.n. ${request.recipient_account_name}` : 'Rekening tujuan belum diisi.' }}</p>
                 <div class="cancellation-review-actions">
                   <button type="button" class="proof-reject-button" @click="openCancellationDecision(request, 'Rejected')">Tolak Pengajuan</button>
                   <button type="button" class="proof-verify-button" @click="openCancellationDecision(request, 'Approved')">Setujui Pembatalan</button>
@@ -810,6 +811,7 @@
               </article>
               <AppPagination v-model:page="cancellationPager.page" :total-pages="cancellationPager.totalPages" :total="cancellationPager.total" :page-size="cancellationPager.pageSize" label="Halaman pengajuan pembatalan" />
             </div>
+            </CancellationDesk>
           </section>
         </template>
 
@@ -1183,11 +1185,15 @@
       slide-confirm
       :slide-label="cancellationDecision === 'Approved' ? 'Geser untuk melepas kavling' : 'Geser untuk menolak'"
       :loading="cancellationDecisionSaving"
-      :confirm-disabled="cancellationDecisionNote.trim().length < 3"
+      :confirm-disabled="!cancellationDecisionReady"
       @confirm="saveCancellationDecision"
     >
       <div class="cancellation-decision-form">
-        <p v-if="cancellationDecision === 'Approved'">Kaveling akan dilepaskan. Hak pengembalian dana dihitung dari uang muka dan cicilan yang sudah terkonfirmasi, tanpa tanda jadi dan denda.</p>
+        <template v-if="cancellationDecision === 'Approved'">
+          <p>Kaveling dilepas dan SPK ditutup. Keputusan ini tidak bisa diurungkan.</p>
+          <CancellationBreakdown v-if="cancellationQuote" :quote="cancellationQuote" />
+          <p v-else-if="!cancellationDecisionError" role="status">Menghitung pengembalian...</p>
+        </template>
         <p v-else>Pengajuan ditolak dan transaksi serta kaveling tetap berjalan seperti semula.</p>
         <label for="cancellation-decision-note">Catatan keputusan Admin</label>
         <textarea id="cancellation-decision-note" v-model="cancellationDecisionNote" rows="3" maxlength="1000" placeholder="Tulis alasan dan tindak lanjut (minimal 3 karakter)." />
@@ -1227,7 +1233,9 @@ import { financialLedgerService, type FinancialLedgerEntry } from '@/services/Fi
 import { cashflowTrendForPeriod, currentMakassarDateTimeLocal, currentMakassarDay, isoToMakassarDateTimeLocal, makassarDateTimeLocalToIso, postedCashflowForRange, previousPeriodNoun, reportLoadRange, reportPeriod, shiftReportAnchor, summarizeCashflow, type ReportGranularity } from '@/utils/financialCashflow'
 import { buildCashflowPdfInput, buildReportPdf, formatPdfRupiah, type PdfReportInput } from '@/utils/financialPdf'
 import { saveBlobAsFile } from '@/utils/fileDownload'
-import { purchaseCancellationService, type PurchaseCancellationRequest } from '@/services/Finance/purchaseCancellationService'
+import { purchaseCancellationService, type CancellationQuote, type PurchaseCancellationRequest } from '@/services/Finance/purchaseCancellationService'
+import CancellationBreakdown from '@/components/finance/cancellation/CancellationBreakdown.vue'
+import CancellationDesk from '@/components/finance/cancellation/CancellationDesk.vue'
 import { paymentService, type InstallmentScheduleRecord, type PaymentDetail } from '@/services/Finance/paymentService'
 import { supabase } from '@/services/config/supabase'
 import {
@@ -1238,6 +1246,7 @@ import {
   selectableSequence,
   summarizeInstallmentProgress,
   validateSelectionOrder,
+  openBeforePpjb,
 } from '@/utils/installmentFormat'
 import AppModal from '@/components/ui/AppModal.vue'
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
@@ -1396,6 +1405,11 @@ const cancellationDecisionError = ref('')
 const cancellationDecisionNote = ref('')
 const cancellationDecision = ref<'Approved' | 'Rejected'>('Approved')
 const cancellationDecisionTarget = ref<PurchaseCancellationRequest | null>(null)
+const cancellationQuote = ref<CancellationQuote | null>(null)
+const cancellationDecisionReady = computed(() =>
+  cancellationDecisionNote.value.trim().length >= 3
+  && (cancellationDecision.value === 'Rejected'
+    || Boolean(cancellationQuote.value && !cancellationQuote.value.blockers.length)))
 const pendingCancellationCount = computed(() => cancellationRequests.value.length)
 type ReportTab = 'summary' | 'lots' | 'buyers'
 type ReportPayment = {
@@ -1532,7 +1546,18 @@ const refundProofPath = ref('')
 const refundProofSignedUrl = ref('')
 const refundProofError = ref('')
 const refundAmount = ref(0)
-const selectableSchedules = computed(() => selectableSequence(installmentSchedules.value))
+const beforePpjb = computed(() => installmentSchedules.value.some((item) => item.due_date_official === false))
+const selectableSchedules = computed(() => openBeforePpjb(
+  selectableSequence(installmentSchedules.value),
+  installmentSchedules.value,
+  Number(selectedReportLot.value?.downPayment ?? 0) > 0,
+))
+function scheduleDate(schedule: InstallmentScheduleRecord) {
+  return schedule.due_date_official === false ? 'Mengikuti PPJB' : formatShortDate(schedule.due_date)
+}
+function isPastDue(schedule: InstallmentScheduleRecord) {
+  return schedule.due_date_official !== false && schedule.due_date < todayDate
+}
 const selectedSchedules = computed(() => selectableSchedules.value.filter((item) => selectedScheduleIds.value.includes(item.id)))
 const selectedPaymentBank = computed(() => bankAccounts.value.find((bank) => bank.is_active && `Transfer ${bank.bank_name}` === newPaymentMethod.value) ?? null)
 const installmentProgress = computed(() => summarizeInstallmentProgress(installmentSchedules.value))
@@ -1999,16 +2024,29 @@ function openCancellationDecision(request: PurchaseCancellationRequest, decision
   cancellationDecisionNote.value = ''
   cancellationDecisionError.value = ''
   cancellationDecisionOpen.value = true
+  if (decision === 'Approved') void loadCancellationQuote(request)
+}
+
+async function loadCancellationQuote(request: PurchaseCancellationRequest) {
+  cancellationQuote.value = null
+  try {
+    const quote = await purchaseCancellationService.getQuote(request.transaction_id)
+    if (cancellationDecisionTarget.value?.id === request.id) cancellationQuote.value = quote
+  } catch (error: any) {
+    cancellationDecisionError.value = error?.message || 'Rincian pengembalian belum dapat dimuat.'
+  }
 }
 
 async function saveCancellationDecision() {
   const target = cancellationDecisionTarget.value
   const note = cancellationDecisionNote.value.trim()
-  if (!target || note.length < 3 || cancellationDecisionSaving.value) return
+  if (!target || !cancellationDecisionReady.value || cancellationDecisionSaving.value) return
   cancellationDecisionSaving.value = true
   cancellationDecisionError.value = ''
   try {
-    const refundId = await purchaseCancellationService.review(target.id, cancellationDecision.value, note)
+    const refundId = await purchaseCancellationService.review(
+      target.id, cancellationDecision.value, note,
+      cancellationDecision.value === 'Approved' ? cancellationQuote.value?.refund_amount ?? null : null)
     cancellationDecisionOpen.value = false
     showMessage(cancellationDecision.value === 'Approved'
       ? `Pembatalan disetujui. ${refundId ? `Pengajuan pengembalian dana #${refundId} dibuat.` : 'Pengembalian dana tidak diperlukan.'}`
@@ -2016,6 +2054,7 @@ async function saveCancellationDecision() {
     await loadCancellationRequests()
   } catch (error: any) {
     cancellationDecisionError.value = error?.message || 'Keputusan pembatalan gagal disimpan.'
+    if (cancellationDecision.value === 'Approved') await loadCancellationQuote(target)
   } finally {
     cancellationDecisionSaving.value = false
   }
@@ -3101,12 +3140,13 @@ useRealtimeRefresh(
 .cancellation-review-card__top h2 { margin: 2px 0 0; color: var(--text-primary); font-size: 16px; }
 .cancellation-review-card__top > strong { flex: 0 0 auto; text-align: right; font-size: 14px; }
 .cancellation-review-reason { margin: 0; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cancellation-review-recipient { margin: 0; color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
 .cancellation-review-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .cancellation-review-actions button { min-height: 42px; }
 .cancellation-decision-form { display: grid; gap: 12px; color: var(--text-primary); font-size: 12px; line-height: 1.55; }
 .cancellation-decision-form p { margin: 0; }
 .cancellation-decision-form label { font-weight: var(--font-weight-semibold); }
-.cancellation-decision-form textarea { width: 100%; min-height: 92px; padding: 11px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); font: inherit; resize: vertical; }
+.cancellation-decision-form textarea { width: 100%; min-height: 92px; padding: 11px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-primary); font: inherit; font-size: 16px; resize: vertical; }
 .cancellation-decision-form textarea:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 @media (max-width: 600px) {
   .ledger-heading { flex-direction: column; }

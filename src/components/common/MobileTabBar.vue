@@ -404,12 +404,26 @@ const route = useRoute()
    NAVIGATION
    ===================================================== */
 
+/* Beranda adalah dasar riwayat; tab lain ditumpuk agar Back kembali ke halaman sebelumnya. */
+const HOME_TABS = new Set([
+  '/home',
+  '/beranda-admin',
+  '/beranda-owner',
+  '/beranda-marketing',
+  '/beranda-kepala-marketing',
+  '/beranda-client',
+])
+
 function goTo(path: string) {
   if (route.path === path) {
     return
   }
 
-  ionRouter.replace(path)
+  if (HOME_TABS.has(path)) {
+    ionRouter.replace(path)
+  } else {
+    ionRouter.push(path)
+  }
 }
 
 

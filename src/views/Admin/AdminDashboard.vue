@@ -10,6 +10,7 @@ import {
   IonIcon,
   IonPage,
   onIonViewWillEnter,
+  useIonRouter,
 } from '@ionic/vue'
 import {
   checkmarkCircleOutline,
@@ -57,9 +58,12 @@ type QuickAction = {
   icon: string
   tone: 'green' | 'gold' | 'neutral'
   routeName?: string
+  /** Query untuk membuka tab atau formulir tertentu di halaman tujuan. */
+  query?: Record<string, string>
 }
 
 const router = useRouter()
+const ionRouter = useIonRouter()
 const lots = ref<SiteplanLot[]>([])
 const loadState = ref<LoadState>('loading')
 const loadError = ref('')
@@ -115,7 +119,7 @@ const quickActions: QuickAction[] = [
     description: 'Lihat dan kelola kaveling',
     icon: mapOutline,
     tone: 'green',
-    routeName: 'AdminKavling',
+    routeName: 'AdminSiteplan',
   },
   {
     label: 'Tambah klien',
@@ -123,6 +127,7 @@ const quickActions: QuickAction[] = [
     icon: peopleOutline,
     tone: 'neutral',
     routeName: 'AdminPembeli',
+    query: { action: 'tambah' },
   },
   {
     label: 'Pembayaran',
@@ -130,20 +135,21 @@ const quickActions: QuickAction[] = [
     icon: walletOutline,
     tone: 'gold',
     routeName: 'AdminKeuangan',
+    query: { tab: 'verification', status: 'pending' },
   },
   {
     label: 'Kelola konten',
     description: 'Perbarui informasi situs web',
     icon: gridOutline,
     tone: 'neutral',
-    routeName: 'AdminLainnya',
+    routeName: 'AdminKonten',
   },
   {
     label: 'Akses tim',
     description: 'Kelola akun dan peran',
     icon: settingsOutline,
     tone: 'green',
-    routeName: 'AdminLainnya',
+    routeName: 'AdminAksesTim',
   },
   {
     label: 'SPK',
@@ -393,7 +399,11 @@ function openQuickAction(action: QuickAction) {
   const target = router.getRoutes().find((route) => route.name === action.routeName)
   if (!target) return
 
-  void router.push({ name: action.routeName })
+  // nt: lihat openTask. Tanpa ini ketukan kedua tidak membuka ulang tab atau formulirnya.
+  void router.push({
+    name: action.routeName,
+    query: action.query && { ...action.query, nt: String(Date.now()) },
+  })
 }
 
 async function logout() {
@@ -402,7 +412,7 @@ async function logout() {
   loggingOut.value = true
   try {
     await authService.logout()
-    await router.replace('/login')
+    ionRouter.replace('/login')
   } finally {
     loggingOut.value = false
   }
