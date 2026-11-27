@@ -35,29 +35,18 @@ const { confirm } = useConfirm()
 const loggingOut = ref(false)
 const logoutError = ref('')
 
-// Hak Owner sama dengan Admin (lihat guards.ts), jadi halaman operasional Admin tetap bisa dibuka.
+// Owner hanya memantau; hak aksesnya diatur di router/access.ts.
 const GROUPS = [
   {
-    title: 'Pantau',
+    title: 'Data',
     items: [
-      { path: '/owner/data/pembeli', label: 'Data pembeli', hint: 'Status dan pemasar tiap klien' },
-      { path: '/owner/laporan?tab=marketing', label: 'Kinerja pemasar', hint: 'Klien, transaksi, dan konversi' },
-    ],
-  },
-  {
-    title: 'Kelola',
-    items: [
-      { path: '/admin/akses-tim', label: 'Akses tim', hint: 'Akun dan peran' },
-      { path: '/admin/keuangan', label: 'Keuangan', hint: 'Pembayaran dan buku kas' },
-      { path: '/admin/kavling', label: 'Data kaveling', hint: 'Harga, status, dan foto' },
-      { path: '/admin/pembeli', label: 'Kelola pembeli', hint: 'Tambah atau ubah data' },
-      { path: '/admin/konten', label: 'Konten situs web', hint: 'Informasi yang dilihat pengunjung' },
-      { path: '/admin/lainnya', label: 'Menu Admin lainnya', hint: 'Survei, ulasan, dan lainnya' },
+      { path: '/owner/data/pembeli', label: 'Data pembeli', hint: 'Siapa membeli kaveling yang mana' },
     ],
   },
   {
     title: 'Akun',
     items: [
+      { path: '/admin/akses-tim', label: 'Akses tim', hint: 'Akun Pemilik dan Admin' },
       { path: '/akun', label: 'Profil saya', hint: 'Foto, nama, dan kontak' },
       { path: '/pengaturan', label: 'Pengaturan', hint: 'Preferensi aplikasi' },
     ],

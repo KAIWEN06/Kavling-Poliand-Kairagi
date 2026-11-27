@@ -1223,7 +1223,7 @@ async function refreshAboutContent() {
   if (video) videoData.value = video
 }
 
-useRealtimeRefresh(['videos', 'media', 'contacts'], refreshAboutContent)
+useRealtimeRefresh(['videos', 'contacts'], refreshAboutContent)
 
 </script>
 

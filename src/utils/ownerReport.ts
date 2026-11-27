@@ -13,7 +13,6 @@ export interface OwnerSale {
   id: number
   customerId: number
   customerName: string
-  marketingName: string
   lotNumber: string
   block: string
   status: string
@@ -73,7 +72,6 @@ export function buildSales(customers: FinanceCustomerRecord[]): OwnerSale[] {
             id: Number(transaction.id),
             customerId: Number(customer.id),
             customerName: customer.full_name || 'Tanpa nama',
-            marketingName: one(customer.marketing)?.full_name || 'Tanpa pemasar',
             lotNumber: lot?.lot_number || `#${transaction.lot_id}`,
             block: block?.name || block?.code || 'Tanpa blok',
             status: transaction.status,
@@ -160,17 +158,31 @@ export function countBy<T>(rows: T[], key: (row: T) => string): Array<{ label: s
     .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'id-ID'))
 }
 
-/** CSV aman untuk spreadsheet: semua sel dikutip dan awalan rumus dinetralkan. */
-export function toCsv(rows: Array<Array<string | number>>): string {
-  return rows
-    .map((row) =>
-      row
-        .map((cell) => {
-          const text = String(cell ?? '')
-          const safe = typeof cell === 'string' && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
-          return `"${safe.replace(/"/g, '""')}"`
-        })
-        .join(','),
-    )
-    .join('\r\n')
+export interface BlockInventory {
+  block: string
+  available: number
+  booking: number
+  sold: number
+  total: number
+}
+
+/** Stok per blok dari status kaveling saat ini; status di luar tiga itu hanya masuk total. */
+export function blockInventory(rows: Array<{ block: string; status: string }>): BlockInventory[] {
+  const blocks = new Map<string, BlockInventory>()
+  rows.forEach(({ block, status }) => {
+    const entry = blocks.get(block) ?? { block, available: 0, booking: 0, sold: 0, total: 0 }
+    if (status === 'available' || status === 'booking' || status === 'sold') entry[status] += 1
+    entry.total += 1
+    blocks.set(block, entry)
+  })
+  return [...blocks.values()].sort((a, b) => a.block.localeCompare(b.block, 'id-ID', { numeric: true }))
+}
+
+/** Satu tahun penuh, atau satu bulan di tahun itu (1-12). */
+export function periodOfYear(year: number, month = 0): DateRange {
+  if (!month) return { from: `${year}-01-01`, to: `${year}-12-31` }
+  const prefix = `${year}-${String(month).padStart(2, '0')}`
+  // Hari terakhir harus tanggal yang benar-benar ada karena dipakai untuk kueri database.
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return { from: `${prefix}-01`, to: `${prefix}-${lastDay}` }
 }

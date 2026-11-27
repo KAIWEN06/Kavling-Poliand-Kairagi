@@ -26,10 +26,11 @@
         @focus="hover = index"
         @blur="hover = null"
       >
-        <span v-if="hover === index" class="mk-tip" role="tooltip">
+        <span v-if="!showValues && hover === index" class="mk-tip" role="tooltip">
           <b>{{ item.label }}</b>{{ format(item.value) }}
         </span>
         <span class="mk-col__track">
+          <span v-if="showValues && item.value" class="mk-col__value" :style="{ bottom: pct(item.value) }" aria-hidden="true">{{ format(item.value) }}</span>
           <span class="mk-col__bar" :style="{ height: pct(item.value) }" />
         </span>
         <span class="mk-col__label" :class="{ 'mk-col__label--hidden': !showTick(index) }">{{ item.short ?? item.label }}</span>
@@ -83,8 +84,10 @@ const props = withDefaults(
     formatter?: (value: number) => string
     labelHeader?: string
     valueHeader?: string
+    /** Angka selalu tampil di atas kolom karena ponsel tidak punya hover. Untuk angka pendek saja. */
+    showValues?: boolean
   }>(),
-  { subtitle: '', orientation: 'horizontal', formatter: undefined, labelHeader: 'Kategori', valueHeader: 'Nilai' },
+  { subtitle: '', orientation: 'horizontal', formatter: undefined, labelHeader: 'Kategori', valueHeader: 'Nilai', showValues: false },
 )
 
 const showTable = ref(false)
@@ -126,7 +129,8 @@ function showTick(index: number) {
 
 .mk-cols { display: flex; align-items: flex-end; gap: 2px; height: 180px; padding-top: 28px; position: relative; }
 .mk-col { flex: 1 1 0; min-width: 0; height: 100%; display: grid; grid-template-rows: 1fr auto; gap: 6px; position: relative; outline: none; }
-.mk-col__track { display: flex; align-items: flex-end; border-bottom: 1px solid var(--border-default); }
+.mk-col__value { position: absolute; left: 50%; transform: translate(-50%, -2px); color: var(--text-primary); font-size: var(--text-xs); font-weight: 700; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.mk-col__track { position: relative; display: flex; align-items: flex-end; border-bottom: 1px solid var(--border-default); }
 .mk-col__bar { width: 100%; max-width: 28px; margin: 0 auto; background: var(--green-700); border-radius: 4px 4px 0 0; min-height: 0; transform-origin: bottom; animation: bar-grow var(--dur-slow) var(--ease-out) both; transition: background var(--dur-fast) var(--ease-out); }
 .mk-col:focus-visible .mk-col__bar {
   background: var(--gold-700);

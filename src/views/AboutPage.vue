@@ -194,7 +194,7 @@ const contactWhatsapp = () => {
 
 onMounted(load)
 
-useRealtimeRefresh(['contacts', 'videos', 'media'], load)
+useRealtimeRefresh(['contacts', 'videos'], load)
 
 </script>
 

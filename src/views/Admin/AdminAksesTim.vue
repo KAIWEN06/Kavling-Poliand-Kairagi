@@ -127,12 +127,12 @@
           </header>
 
           <section class="team-stats" aria-label="Ringkasan anggota">
-            <article><span>Total anggota</span><strong>{{ number(members.length) }}</strong></article>
+            <article><span>Total anggota</span><strong>{{ number(scopedMembers.length) }}</strong></article>
             <article><span>Aktif</span><strong>{{ number(activeCount) }}</strong></article>
             <article><span>Nonaktif</span><strong>{{ number(inactiveCount) }}</strong></article>
           </section>
 
-          <div class="team-tabs" role="tablist" aria-label="Jenis anggota">
+          <div v-if="currentRole !== 'owner'" class="team-tabs" role="tablist" aria-label="Jenis anggota">
             <button type="button" role="tab" :aria-selected="activeTab === 'owner'" :class="{ selected: activeTab === 'owner' }" @click="activeTab = 'owner'">
               Pemilik <span>{{ ownerMembers.length }}</span>
             </button>
@@ -346,12 +346,14 @@ const editForm = reactive({
 })
 
 const canCreate = computed(() => currentRole.value === 'owner' || currentRole.value === 'admin')
-const availableCreateRoles = computed<TeamRole[]>(() => currentRole.value === 'owner' ? ['owner', 'admin', 'marketing'] : currentRole.value === 'admin' ? ['owner', 'marketing'] : [])
+const availableCreateRoles = computed<TeamRole[]>(() => currentRole.value === 'owner' ? ['admin', 'owner'] : currentRole.value === 'admin' ? ['owner', 'marketing'] : [])
 const ownerMembers = computed(() => members.value.filter((member) => member.role === 'owner'))
 const adminMembers = computed(() => members.value.filter((member) => member.role === 'admin'))
 const marketingMembers = computed(() => members.value.filter((member) => member.role === 'marketing'))
-const activeCount = computed(() => members.value.filter((member) => member.is_active).length)
-const inactiveCount = computed(() => members.value.length - activeCount.value)
+/* Pemilik hanya mengurus akun Pemilik dan Admin; tim pemasar diurus pihak operasional. */
+const scopedMembers = computed(() => currentRole.value === 'owner' ? members.value.filter((member) => member.role !== 'marketing') : members.value)
+const activeCount = computed(() => scopedMembers.value.filter((member) => member.is_active).length)
+const inactiveCount = computed(() => scopedMembers.value.length - activeCount.value)
 
 function matches(member: TeamMember) {
   const keyword = query.value.trim().toLowerCase()
@@ -423,7 +425,7 @@ async function load({ silent = false }: LoadOptions = {}) {
     if (currentRole.value !== 'owner' && currentRole.value !== 'admin') throw new Error('Anda tidak memiliki akses ke halaman ini.')
     members.value = await teamManagementService.list()
     pageError.value = ''
-    await loadOverview({ silent })
+    if (currentRole.value !== 'owner') await loadOverview({ silent })
   } catch (cause) {
     if (!silent) pageError.value = cause instanceof Error ? cause.message : 'Data anggota gagal dimuat.'
   } finally {

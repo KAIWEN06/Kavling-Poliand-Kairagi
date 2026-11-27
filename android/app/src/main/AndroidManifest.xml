@@ -78,5 +78,7 @@
     <!-- Android 13+ (API 33): izin runtime untuk menampilkan notifikasi. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Hanya Android 7-9: menyimpan unduhan ke folder Download. Android 10+ memakai MediaStore. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
 </manifest>

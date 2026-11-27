@@ -268,7 +268,7 @@
         </AppButton>
       </footer>
 
-      <footer v-else-if="props.variant === 'admin'" class="detail-footer detail-footer--admin">
+      <footer v-else-if="props.variant === 'admin' && !isOwnerPanel" class="detail-footer detail-footer--admin">
         <AppButton
           type="button"
           variant="primary"
@@ -522,6 +522,8 @@ const { profile } = useCurrentUser()
 const toast = useToast()
 
 const isAdminView = computed(() => props.variant === 'admin')
+/* Pemilik melihat data seperti Admin, tetapi tidak mengelola kaveling. */
+const isOwnerPanel = computed(() => router.currentRoute.value.path.startsWith('/owner/'))
 
 /* Survei dan pembelian adalah alur pengunjung/Client. Bagi staf Marketing tombolnya
    berakhir di /login lalu dipantulkan ke beranda, jadi tidak ditampilkan. */

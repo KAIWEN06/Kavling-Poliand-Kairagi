@@ -101,6 +101,8 @@ export interface ClientListItem {
   address: string | null
   province_name: string | null
   city_name: string | null
+  district_name?: string | null
+  village_name?: string | null
   marketing_id: string | null
   marketing_name: string | null
   crm_status: CrmStatus
@@ -127,7 +129,7 @@ export async function listClients(): Promise<ClientListItem[]> {
   const { data, error } = await supabase
     .from('customers')
     .select(`
-      id, full_name, phone, whatsapp_phone, email, address, province_name, city_name,
+      id, full_name, phone, whatsapp_phone, email, address, province_name, city_name, district_name, village_name,
       marketing_id, crm_status, last_contacted_at, created_at,
       marketing:profiles!customers_marketing_id_fkey (id, full_name),
       customer_interests (
@@ -155,6 +157,8 @@ export async function listClients(): Promise<ClientListItem[]> {
       address: row.address,
       province_name: row.province_name,
       city_name: row.city_name,
+      district_name: row.district_name,
+      village_name: row.village_name,
       marketing_id: row.marketing_id,
       marketing_name: marketing?.full_name ?? null,
       crm_status: row.crm_status ?? 'Baru',

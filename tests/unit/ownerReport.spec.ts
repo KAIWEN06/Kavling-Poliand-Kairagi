@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { availableYears, buildPayments, buildSales, countBy, monthlySeries, summarizeSales, toCsv } from '@/utils/ownerReport'
+import { availableYears, blockInventory, buildPayments, buildSales, countBy, monthlySeries, periodOfYear, summarizeSales } from '@/utils/ownerReport'
 import type { FinanceCustomerRecord } from '@/types/finance'
 
 const customer = {
@@ -24,7 +24,6 @@ describe('ownerReport', () => {
   it('menghitung penjualan tanpa pemasar dan mengabaikan yang dibatalkan', () => {
     const sales = buildSales([customer])
     expect(sales).toHaveLength(1)
-    expect(sales[0].marketingName).toBe('Tanpa pemasar')
     // Booking fee dan pembayaran yang belum dikonfirmasi tidak mengurangi pokok.
     expect(summarizeSales(sales)).toEqual({ units: 1, booked: 1, paidOff: 0, contractValue: 100, remaining: 70 })
   })
@@ -40,7 +39,22 @@ describe('ownerReport', () => {
     expect(countBy(['b', 'a', 'b'], (value) => value)).toEqual([{ label: 'b', value: 2 }, { label: 'a', value: 1 }])
   })
 
-  it('menetralkan awalan rumus dan mengutip sel CSV', () => {
-    expect(toCsv([['=1+1', 'a "b"', -5]])).toBe(`"'=1+1","a ""b""","-5"`)
+  it('menghitung stok per blok dan mengurutkan nama blok secara alami', () => {
+    const rows = [
+      { block: 'B10', status: 'sold' },
+      { block: 'B2', status: 'available' },
+      { block: 'B2', status: 'booking' },
+      { block: 'B2', status: 'lainnya' },
+    ]
+    expect(blockInventory(rows)).toEqual([
+      { block: 'B2', available: 1, booking: 1, sold: 0, total: 3 },
+      { block: 'B10', available: 0, booking: 0, sold: 1, total: 1 },
+    ])
+  })
+
+  it('membuat rentang tahun dan bulan dengan tanggal akhir yang sah', () => {
+    expect(periodOfYear(2026)).toEqual({ from: '2026-01-01', to: '2026-12-31' })
+    expect(periodOfYear(2028, 2)).toEqual({ from: '2028-02-01', to: '2028-02-29' })
+    expect(periodOfYear(2026, 4).to).toBe('2026-04-30')
   })
 })

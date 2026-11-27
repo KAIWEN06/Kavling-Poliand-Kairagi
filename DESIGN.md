@@ -280,7 +280,7 @@ Komponen input standar untuk teks, email, telepon, dan kata sandi.
 
 - Keenam peran (_Public, Client, Marketing, Admin, Kepala Bagian, Owner_) berbagi tipografi, token warna, sistem grid 8pt, standar aksesibilitas, dan API komponen bersama.
 - Struktur menu, kepadatan informasi (_information density_), dan alur kerja tetap dibedakan sesuai tanggung jawab masing-masing peran.
-- **Owner** berfokus pada pemantauan tingkat perusahaan: ringkasan penjualan, pendapatan, pembayaran, komisi, performa marketing, perkembangan proyek, dan laporan. Akses utamanya bersifat pemantauan dan pengambilan keputusan strategis; hak mutasi data operasional diberikan hanya jika memang dibutuhkan dan disetujui.
+- **Owner** hanya memantau perkembangan penjualan: kaveling terjual, dipesan, dan tersedia (total dan per blok), nilai kontrak, uang masuk, sisa tagihan, serta data pembeli. Owner tidak terlibat dalam jual beli, jadi data tenaga marketing, calon pembeli, tindak lanjut, dan komisi tidak ditampilkan (urusan Kepala Bagian). Satu-satunya halaman Admin yang boleh dibuka adalah Akses tim untuk akun Pemilik dan Admin; aturannya ada di `src/router/access.ts`. Menu bawah: Beranda, Kaveling, Penjualan, Lainnya. Angka disajikan sebagai tabel dan grafik yang terbaca di ponsel tanpa hover dan tanpa geser ke samping.
 - **Kepala Bagian** berfokus pada pengawasan operasional harian: memantau pekerjaan Admin dan Marketing, meninjau calon client, memantau transaksi dan pembayaran, mengevaluasi performa tim, serta melakukan persetujuan operasional sesuai kewenangannya.
 - **Admin** berfokus pada pelaksanaan dan pengelolaan data operasional sesuai hak akses yang diberikan.
 - **ContactPage (`ContactPage.vue`)**: Mengambil data terverifikasi dari tabel `contacts` di Supabase (`whatsapp`, `phone`, `email`, `address`, `maps_url`, dan tautan media sosial HTTP/HTTPS). Jangan menampilkan nilai placeholder atau tombol lokasi mati jika data belum tersedia di database.
@@ -461,11 +461,16 @@ Rasio dihitung dengan rumus WCAG 2.x. Teks normal minimal 4,5:1, teks besar (24p
 | `--on-forest` `#F4F1E8` (ringkasan Ajukan SPK) | `--surface-forest` `#243D1E` | 10,6 | Lolos |
 | `--poliland-gold-soft` `#F4D69A` (cicilan per bulan) | `--surface-forest` `#243D1E` | 8,5 | Lolos |
 | `--poliland-gold-text` `#805708` (harga kaveling) | `--gold-50` `#FBF4E4` | 5,8 | Lolos |
+| `--poliland-gold-soft` `#F4D69A` (label daerah teratas, Asal pembeli) | titik paling terang pancaran emas di atas `--surface-forest` | 5,9 | Lolos |
+| Putih / `--on-forest` (nama dan alamat daerah teratas) | titik paling terang pancaran emas di atas `--surface-forest` | 8,3 / 7,3 | Lolos |
 | `--text-secondary` `#5F5F66` | `--gold-50` `#FBF4E4` | 5,8 | Lolos |
 | `--danger-text` `#A8322D` (galat, alamat kosong) | `--danger-bg` `#FBE7E6` | 5,6 | Lolos |
 | `--danger-text` `#A8322D` | `--surface-muted` `#F5F3EE` | 6,0 | Lolos |
 | `--poliland-green` `#355A2C` (pilihan aktif) | `--green-50` `#EEF3EA` | 7,0 | Lolos |
 | `--danger-text` `#A8322D` (status "Terlambat" di pemilih kavling) | putih | 6,7 | Lolos |
+| `#E8837C` (bar "Terjual" Beranda Owner, non-teks) | `--green-800` `#2B4824` | 3,9 | Lolos 3:1; bukan untuk teks kecil |
+| `#8FAF82` (bar "Tersedia" Beranda Owner, non-teks) | `--green-800` `#2B4824` | 4,2 | Lolos 3:1; bukan untuk teks kecil |
+| `--text-secondary` `#5F5F66` (baris blok terpilih) | `--green-50` `#EEF3EA` | 5,6 | Lolos |
 
 Aturan tambahan:
 

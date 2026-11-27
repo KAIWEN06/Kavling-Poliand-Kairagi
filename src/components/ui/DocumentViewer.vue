@@ -112,6 +112,8 @@ import {
   refreshOutline,
   removeOutline,
 } from 'ionicons/icons'
+import { useToast } from '@/composables/useToast'
+import { saveBlobAsFile } from '@/utils/fileDownload'
 
 const props = withDefaults(
   defineProps<{
@@ -128,6 +130,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{ (e: 'close'): void; (e: 'retry'): void }>()
+const toast = useToast()
 
 /* ---------- Konfigurasi gerak (satu tempat) ---------- */
 const MIN_SCALE = 1 // 100% = pas di kanvas
@@ -324,18 +327,10 @@ async function download() {
   try {
     const res = await fetch(props.url)
     if (!res.ok) throw new Error(String(res.status))
-    const blob = await res.blob()
-    const href = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = href
-    a.download = props.fileName || 'dokumen'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    window.setTimeout(() => URL.revokeObjectURL(href), 4000)
-  } catch {
-    // Server tanpa CORS atau jaringan putus: buka berkas asli di tab baru.
-    window.open(props.url, '_blank', 'noopener')
+    toast.success(await saveBlobAsFile(await res.blob(), props.fileName || 'dokumen'))
+  } catch (cause) {
+    console.error('[DocumentViewer] Unduhan gagal:', cause)
+    toast.error('Berkas belum dapat diunduh. Periksa koneksi, lalu coba lagi.')
   } finally {
     downloading.value = false
   }

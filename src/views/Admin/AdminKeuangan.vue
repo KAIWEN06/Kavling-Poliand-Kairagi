@@ -2175,9 +2175,9 @@ async function exportReport() {
   try {
     const blob = await buildReportPdf(buildPdfInput())
     const suffix = activeReportTab.value === 'summary' ? `${reportGranularity.value}-${reportRange.value.start}_${reportRange.value.end}` : currentMakassarDay()
-    await saveBlobAsFile(blob, `laporan-${activeReportTab.value}-poliland-${suffix}.pdf`)
+    toast.success(await saveBlobAsFile(blob, `laporan-${activeReportTab.value}-poliland-${suffix}.pdf`))
   } catch (error: any) {
-    if (!/cancel|dismiss/i.test(String(error?.message ?? ''))) pdfError.value = error?.message || 'PDF gagal dibuat. Coba lagi.'
+    pdfError.value = error?.message || 'PDF gagal dibuat. Coba lagi.'
   } finally {
     pdfExporting.value = false
   }

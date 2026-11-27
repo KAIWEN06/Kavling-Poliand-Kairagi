@@ -305,8 +305,7 @@ const headTabs = [
 const ownerTabs = [
   { path: '/beranda-owner', label: 'Beranda', icon: homeOutline },
   { path: '/owner/kavling', label: 'Kaveling', icon: gridOutline },
-  { path: '/owner/statistik', label: 'Statistik', icon: pulseOutline },
-  { path: '/owner/laporan', label: 'Laporan', icon: barChartOutline },
+  { path: '/owner/penjualan', label: 'Penjualan', icon: barChartOutline },
   { path: '/owner/lainnya', label: 'Lainnya', icon: menuOutline },
 ]
 
@@ -329,9 +328,8 @@ const TAB_CHILDREN: Record<string, string[]> = {
     '/marketing/komisi', '/akun', '/pengaturan',
   ],
   '/beranda-owner': [],
-  '/owner/kavling': ['/owner/siteplan', '/admin/kavling'],
-  '/owner/statistik': [],
-  '/owner/laporan': [],
+  '/owner/kavling': ['/owner/siteplan'],
+  '/owner/penjualan': [],
   '/owner/lainnya': ['/owner/data', '/admin', '/akun', '/pengaturan'],
   '/beranda-kepala-marketing': [],
   '/kepala-marketing/clients': [],
@@ -362,7 +360,6 @@ const props = withDefaults(
   },
 )
 
-/* /admin/kavling termasuk tab Kaveling, jadi tidak ikut menyalakan Lainnya. */
 const isOwner = computed(() =>
   props.variant === 'owner' ||
   (props.variant === 'admin' && Boolean(route.path) && readIdentity()?.role === 'owner'),
@@ -473,8 +470,6 @@ function goTo(path: string) {
 
 function isActive(path: string) {
 
-  if (path === '/owner/lainnya' && route.path.startsWith('/admin/kavling')) return false
-
   const children = TAB_CHILDREN[path]
   if (children) {
     return [path, ...children].some(
@@ -529,8 +524,9 @@ function isActive(path: string) {
 
   /* min-content: label terpanjang (mis. "Tindak lanjut") mendapat ruang penuh
      tanpa terpotong elipsis; sisa ruang tetap dibagi rata. */
-  grid-template-columns:
-    repeat(5, minmax(min-content, 1fr));
+  grid-auto-flow: column;
+
+  grid-auto-columns: minmax(min-content, 1fr);
 
   align-items: stretch;
 

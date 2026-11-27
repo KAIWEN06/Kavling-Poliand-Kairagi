@@ -42,11 +42,13 @@ export async function getSPKReview(
         .eq('transaction_id', transactionId)
         .maybeSingle(),
 
+      // Diisi otomatis oleh trigger setiap status SPK berubah.
       supabase
-        .from('spk_review_activity')
+        .from('spk_request_status_history')
         .select('*, profiles:changed_by(full_name)')
         .eq('spk_request_id', spkId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }),
     ])
 
   ;[request, transaction, schedules, commission, history].forEach(result =>

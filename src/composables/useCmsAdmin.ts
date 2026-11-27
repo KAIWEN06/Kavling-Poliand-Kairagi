@@ -3,7 +3,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '@/services/config/supabase'
 
 /** Peran yang boleh mengubah konten website dari halaman publik. */
-const EDITOR_ROLES = new Set(['admin', 'superadmin', 'owner'])
+const EDITOR_ROLES = new Set(['admin', 'superadmin'])
 
 /**
  * Status Admin untuk halaman publik: tombol Edit hanya muncul bagi Admin yang sedang login,

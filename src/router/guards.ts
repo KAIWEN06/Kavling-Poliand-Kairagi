@@ -3,6 +3,7 @@ import { isAuthRetryableFetchError } from '@supabase/supabase-js'
 import { authService, type UserRole } from '@/services/auth/authService'
 import { forgetIdentity, readIdentity } from '@/services/auth/lastIdentity'
 import { consumePostLoginRedirect, setPostLoginRedirect } from '@/services/auth/postLoginRedirect'
+import { canAccessRoute } from '@/router/access'
 
 // Denah milik tiap role, untuk tautan "Bagikan kavling" yang dibuka saat masih login.
 const SITEPLAN_BY_ROLE: Record<Exclude<UserRole, 'client'>, string> = {
@@ -63,7 +64,7 @@ export function setupAuthGuards(router: Router) {
         const home = authService.getRoleHomePath(role)
         if (home) {
           // Pengecualian: Admin yang membuka "Lihat di situs web" dari halaman Konten.
-          if (isGuestSite && (role === 'admin' || role === 'owner')) {
+          if (isGuestSite && role === 'admin') {
             if (to.query.from === 'cms') return true
             if (from.query.from === 'cms') {
               // Pindah menu di dalam pratinjau tetap dihitung sebagai pratinjau.
@@ -91,8 +92,7 @@ export function setupAuthGuards(router: Router) {
         if (!role) return { name: 'Login', query: { error: 'role_missing' } }
         // Owner punya berandanya sendiri; tombol "kembali ke beranda" di halaman Admin diarahkan ke sana.
         if (role === 'owner' && to.name === 'BerandaAdmin') return '/beranda-owner'
-        const roleAllowed = role === requiredRole || (requiredRole === 'admin' && role === 'owner')
-        if (!roleAllowed) {
+        if (!canAccessRoute(role, requiredRole, to.name)) {
           return authService.getRoleHomePath(role) ?? { name: 'Login' }
         }
       } catch {

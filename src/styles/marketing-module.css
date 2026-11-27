@@ -56,6 +56,12 @@
   min-width: 0;
 }
 
+/* Kartu selebar penuh di ponsel, dua kolom di layar lebar. */
+.mk-grid > .mk-wide { grid-column: 1 / -1; }
+@media (min-width: 720px) {
+  .mk-grid > .mk-wide { grid-column: span 2; }
+}
+
 .mk-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -251,6 +257,13 @@ textarea.mk-input { min-height: 96px; resize: vertical; }
   .mk-table--stack td.mk-cell-main::before { content: none; }
   .mk-table--stack .num { text-align: right; }
 }
+
+/* Tabel dua kolom: tetap tabel di ponsel, keterangan ditumpuk di bawah teks utama. */
+.mk-table--duo td { vertical-align: top; }
+.mk-table--duo td strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.mk-table--duo td small { display: block; margin-top: 2px; color: var(--text-secondary); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.mk-table--duo td .ui-badge { margin-top: 6px; }
+.mk-table--duo td.num small { white-space: nowrap; }
 
 .mk-muted { color: var(--text-secondary); font-size: var(--text-xs); }
 .mk-strong { font-weight: 600; }

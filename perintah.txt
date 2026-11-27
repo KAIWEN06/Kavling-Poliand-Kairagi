@@ -1,70 +1,26 @@
-# Knowledge Base: Arsitektur UI/UX, Psikologi Perilaku, & Sistem Konversi Aplikasi Pembelian Kavling
+PEDOMAN DESAIN APLIKASI RAMAH PENGGUNA (USER-FRIENDLY UI/UX)
 
-## 1. Prinsip Dasar & Tujuan Produk
-* **Karakteristik Produk:** Properti bernilai tinggi dengan siklus keputusan panjang. Pengguna membutuhkan rasa aman tinggi terkait legalitas, kondisi fisik lokasi, dan kejelasan skema pembayaran sebelum memutuskan *booking*.
-* **Prinsip Desain Utama:** Mengutamakan transparansi, kepercayaan (*high-trust*), dan ergonomi *mobile-first*. Dilarang menggunakan *dark patterns* (misalnya *countdown* palsu atau biaya tersembunyi).
-* **Tujuan Konversi:** Mempermudah proses eksplorasi peta *siteplan* hingga pengajuan Surat Pemesanan Kavling (SPK) dan *booking* dengan friksi seminimal mungkin.
+1. PRINSIP INTI & PENDEKATAN PENGGUNA
+- Berpusat pada Pengguna (User-Centered Design): Rancang setiap fitur, alur, dan tampilan berdasarkan perspektif, kebutuhan, kebiasaan, dan masalah nyata pengguna, bukan berdasarkan kemudahan pengembang.
+- Aksesibilitas Universal (Universal Usability): Pastikan antarmuka dapat digunakan oleh semua kalangan tanpa memandang usia, latar belakang, tingkat keahlian teknologi, maupun keterbatasan fisik. Sediakan teks alternatif (alt-text) untuk gambar, dukungan navigasi keyboard, ukuran teks yang nyaman dibaca, serta rasio kontras warna yang memadai.
 
----
+2. STRUKTUR VISUAL, KONSISTENSI & KESEDERHANAAN
+- Kesederhanaan (Simplicity): Prioritaskan konten dan fitur inti. Pangkas elemen dekoratif, teks, atau langkah yang tidak perlu agar antarmuka tidak terasa ramai atau membingungkan.
+- Konsistensi (Consistency): Gunakan bahasa desain yang seragam di seluruh halaman. Pastikan tata letak, skema warna, tipografi, ikon, terminologi, serta perilaku tombol dan interaksi bekerja dengan cara yang sama dan dapat diprediksi.
+- Familiaritas (Familiarity): Manfaatkan pola desain dan elemen antarmuka yang sudah umum dikenal pengguna (seperti posisi menu standar atau ikon universal) untuk mempercepat adaptasi dan menghindari kebingungan akibat kebaruan yang terlalu asing.
+- Hierarki Visual & Visibilitas: Pastikan elemen penting dan tombol aksi utama (Call-to-Action) terlihat jelas dan menonjol melalui pengaturan ukuran, posisi logis, serta warna yang kontras.
 
-## 2. Eksplorasi & Rekomendasi Cerdas (Algoritma Ringan)
-* **Logika Penyaringan & Rekomendasi:** Sistem menyaring dan merekomendasikan blok atau unit kavling secara relevan berdasarkan:
-  * Preferensi luas tanah dan rentang anggaran pengguna.
-  * Karakteristik posisi unit (tipe *hook*, dekat fasilitas umum, lebar jalan, atau arah hadap).
-  * Riwayat interaksi pengguna (unit yang sering dilihat atau disimpan ke favorit).
-* **Kurasi Pilihan (Mengatasi *Paradox of Choice*):** Untuk mencegah kebingungan akibat terlalu banyak pilihan unit (*analysis paralysis*), kelompokkan kavling dengan label kurasi yang jelas seperti *"Paling Banyak Dilirik Minggu Ini"*, *"Dekat Fasilitas Umum"*, atau *"Rekomendasi Investasi"*.
+3. NAVIGASI, EFISIENSI & PENGURANGAN BEBAN KOGNITIF
+- Navigasi Jelas & Logis: Susun arsitektur informasi dengan struktur menu yang mudah ditebak. Gunakan label yang deskriptif dan istilah umum sehari-hari, hindari jargon teknis.
+- Kurangi Beban Memori Jangka Pendek: Jangan memaksa pengguna mengingat informasi dari satu layar ke layar lain. Sediakan petunjuk visual yang selalu terlihat, indikator lokasi (seperti breadcrumb), serta opsi pilihan langsung daripada mengharuskan pengguna mengetik dari awal.
+- Efisiensi Alur & Pintasan: Sederhanakan alur pengguna (user flow) dan formulir agar tujuan tercapai dengan jumlah langkah dan input seminimal mungkin (gunakan autofill, dropdown, atau pilihan cepat). Sediakan jalan pintas (shortcuts atau gesture) bagi pengguna yang sudah berpengalaman.
 
----
+4. INTERAKSI, UMPAN BALIK & KENDALI PENGGUNA
+- Umpan Balik Informatif (Informative Feedback): Setiap aksi pengguna harus mendapatkan respons sistem yang instan, jelas, dan terlihat (misalnya indikator loading, perubahan status, atau animasi konfirmasi) sehingga pengguna selalu tahu apa yang sedang terjadi.
+- Kejelasan Akhir Proses (Closure): Rancang setiap alur interaksi dengan awal, proses, dan akhir yang tegas. Tampilkan pesan konfirmasi penyelesaian yang jelas dan arahkan pengguna ke langkah berikutnya.
+- Kendali Penuh & Pembatalan Aksi: Berikan pengguna kendali penuh atas sistem. Hindari alur yang memaksa atau pop-up yang sulit ditutup. Selalu sediakan mekanisme pembatalan atau pemulihan yang mudah diakses (seperti tombol Undo, Back, atau Cancel) agar pengguna merasa aman saat bereksplorasi.
 
-## 3. Penerapan Psikologi Keputusan (Etis & High-Trust)
-* **Social Proof & Authority:**
-  * Penanda status ketersediaan unit (*Tersedia*, *Booking*, *Terjual*) secara *real-time* langsung di peta *siteplan*.
-  * Indikator jumlah peminat yang sedang melihat atau memantau unit tertentu.
-  * Lencana (*badge*) status legalitas yang jelas (SHM, pecah sertifikat, siap AJB).
-* **Scarcity Alami:** Menampilkan informasi sisa unit per blok atau kuota promo harga perdana secara faktual tanpa batas waktu palsu.
-* **Anchoring & Transparansi Biaya:** Menyajikan perbandingan berdampingan antara skema *Cash Keras*, *Cash Bertahap*, dan *Cicilan/KPR*—lengkap dengan rincian DP, estimasi cicilan bulanan, serta estimasi biaya notaris/AJB agar tidak terjadi kejutan biaya (*price shock*).
-* **Endowment Effect (Rasa Memiliki Sebelum Membeli):** Membangun keterikatan emosional melalui fitur simulasi bangun rumah di atas kavling pilihan, penamaan daftar favorit (misalnya *"Kavling Impian Keluarga"*), dan fitur perbandingan 2–3 unit favorit.
-* **Sunk Cost & Komitmen Bertahap:** Menggunakan *progress bar* tahapan yang transparan (*Pilih Unit → Pengajuan SPK → Tanda Tangan & Tanda Jadi → Proses Notaris/AJB*) agar pengguna melihat kemajuan proses secara jelas dan termotivasi menyelesaikannya.
-* **Trust Sequencing:** Menampilkan bukti legalitas, status sertifikat, profil pengembang, dan progres lahan terlebih dahulu sebelum menyodorkan rincian harga besar.
-
----
-
-## 4. Struktur Halaman, Visualisasi & Ergonomi UI (Mobile-First)
-* **Tata Letak Interaktif:** Mengombinasikan peta *siteplan* visual dengan kartu ringkasan unit di bagian bawah layar (*bottom sheet*) saat unit dipilih.
-* **Progressive Disclosure (Hierarki Informasi Bertahap):**
-  * *Layar Awal:* Menampilkan informasi inti (kode unit, harga, luas tanah, status ketersediaan, dan visual lokasi).
-  * *Layar Diperluas:* Menampilkan spesifikasi teknis detail, rincian simulasi pembayaran, dan dokumen legalitas.
-* **Visualisasi Imersif (*Uncertainty Reduction*):**
-  * Tampilan panorama 360° langsung dari titik kavling untuk memperlihatkan arah hadap, lebar jalan depan unit, dan lingkungan sekitar.
-  * Informasi konteks lingkungan (*hyperlocal insights*) berupa jarak nyata ke fasilitas penting (akses jalan utama, sekolah, pusat kota).
-* **Microcopy & Ergonomi:**
-  * Penempatan tombol aksi utama di area jangkauan jempol (*thumb zone*).
-  * Menggunakan Bahasa Indonesia yang jelas, ramah, dan menenangkan untuk tombol aksi (contoh: *"Ajukan Booking Kavling"*, *"Simulasi Cicilan"*, *"Jadwalkan Survei Lokasi"*).
-* **Optimasi Performa:** Menggunakan kompresi gambar modern (WebP/AVIF) dan *lazy loading* aset peta agar waktu muat cepat dan tidak memutus niat transaksi pengguna seluler.
-
----
-
-## 5. Sistem Notifikasi Retensi & Transaksional (*Event-Driven*)
-Notifikasi pada aplikasi kavling harus menjaga wibawa dan menghindari pengiriman massal berlebihan (*spam*) yang memicu kejenuhan (*notification fatigue*).
-
-### Mekanisme Teknis
-* **Event-Driven Triggers:** Dipicu otomatis oleh aksi spesifik pengguna (melihat unit yang sama berulang kali, menyimpan kavling ke favorit, atau perubahan status administrasi).
-* **Send-Time Optimization (STO):** Menjadwalkan pengiriman pada jam-jam saat pengguna paling aktif membuka ponsel.
-* **Behavioral Segmentation & Frequency Capping:** Mengelompokkan pengguna berdasarkan tahap minat (eksplorasi, *booking*, proses berkas) dan membatasi kuota notifikasi harian.
-* **Deep Linking & Rich Media:** Mengetuk notifikasi langsung membuka layar spesifik (detail kavling terkait, halaman SPK, atau jadwal survei) dengan pratinjau visual dan tombol aksi cepat.
-
-### Psikologi & Pemicu Notifikasi Kavling
-* **Hook Model & Hyper-Personalization:** Menyebutkan kode blok/unit spesifik yang diminati pengguna agar terasa relevan.
-* **Loss Aversion & Zeigarnik Effect:** Mengingatkan proses yang belum tuntas atau berkurangnya sisa unit pada blok yang diminati secara faktual.
-* **Kategori Pemicu Utama:**
-  1. *Minat Tinggi (Browse/Wishlist Alert):* Saat unit di blok favorit mulai menipis atau ada peminat lain mengajukan *booking*.
-  2. *Progres & Tenggat Administrasi:* Saat SPK disetujui, pengingat jadwal tanda tangan fisik SPK/*booking fee*, atau pembaruan tahap notaris/AJB.
-  3. *Pengingat Jadwal Survei:* Dikirim H-1 dan beberapa jam sebelum jadwal kunjungan lapangan beserta tautan peta lokasi.
-* **Soft Prompt Izin Notifikasi:** Meminta izin notifikasi secara kontekstual setelah pengguna menyukai unit atau mengajukan SPK (bukan saat pertama kali membuka aplikasi).
-
----
-
-## 6. Pengukuran Data & Penyelamatan Konversi (CRO)
-* **Funnel & Drop-Off Analytics:** Memantau titik henti pengguna di setiap tahap (eksplorasi → kalkulator cicilan → pengajuan SPK) untuk mendeteksi hambatan informasi atau kebingungan skema biaya.
-* **Behavioral Telemetry & A/B Testing:** Mengamati area layar yang sering diketuk (*heatmap*/*rage clicks*) serta menguji variasi *microcopy* tombol dan tata letak kalkulator cicilan.
-* **Human Handoff yang Mulus (*Warm Lead Routing*):** Jika pengguna berulang kali membuka simulasi cicilan atau berhenti di tengah pengisian SPK, sediakan tombol bantuan cepat ke admin/marketing yang otomatis membawa data unit yang sedang dilihat agar pengguna tidak perlu menjelaskan ulang dari awal.
+5. PENANGANAN KESALAHAN, TEKS (UX WRITING) & PERFORMA
+- Pencegahan & Penanganan Kesalahan Sederhana: Rancang validasi input untuk mencegah kesalahan fatal sejak awal. Jika kesalahan terjadi, tampilkan pesan error dalam bahasa manusia yang sopan, mudah dipahami (hindari kode error teknis), dan sertakan panduan solusi untuk memperbaikinya.
+- UX Writing (Microcopy) yang Jelas: Tulis label tombol, instruksi, dan notifikasi secara singkat, lugas, spesifik, dan berorientasi pada tindakan agar pengguna tidak ragu sebelum mengeklik.
+- Kecepatan & Responsivitas: Pastikan aplikasi ringan, memuat data dengan cepat, dan tata letaknya beradaptasi secara optimal di berbagai ukuran layar maupun perangkat.

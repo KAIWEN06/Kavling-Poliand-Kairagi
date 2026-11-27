@@ -19,6 +19,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Plugin lokal harus didaftarkan sebelum super.onCreate().
         registerPlugin(CustomNotificationPlugin.class);
+        registerPlugin(FileSaverPlugin.class);
         super.onCreate(savedInstanceState);
         applySystemBarInsets();
     }

@@ -65,8 +65,7 @@ const SPKClientPage = () => import('@/views/client/SPKClientPage.vue')
 const SettingsPage = () => import('@/views/account/SettingsPage.vue')
 const BerandaOwnerPage = () => import('@/views/owner/BerandaOwnerPage.vue')
 const KavlingOwnerPage = () => import('@/views/owner/KavlingOwnerPage.vue')
-const StatistikOwnerPage = () => import('@/views/owner/StatistikOwnerPage.vue')
-const LaporanOwnerPage = () => import('@/views/owner/LaporanOwnerPage.vue')
+const PenjualanOwnerPage = () => import('@/views/owner/PenjualanOwnerPage.vue')
 const LainnyaOwnerPage = () => import('@/views/owner/LainnyaOwnerPage.vue')
 const OwnerDataPage = () => import('@/views/owner/OwnerDataPage.vue')
 import { setupAuthGuards } from '@/router/guards'
@@ -138,16 +137,16 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'owner' },
   },
   {
-    path: '/owner/statistik',
-    name: 'StatistikOwner',
-    component: StatistikOwnerPage,
+    path: '/owner/penjualan',
+    name: 'PenjualanOwner',
+    component: PenjualanOwnerPage,
     meta: { requiresAuth: true, role: 'owner' },
   },
+  // Statistik dan Laporan digabung ke Penjualan; tautan lama tetap bekerja.
+  { path: '/owner/statistik', redirect: '/owner/penjualan' },
   {
     path: '/owner/laporan',
-    name: 'LaporanOwner',
-    component: LaporanOwnerPage,
-    meta: { requiresAuth: true, role: 'owner' },
+    redirect: (to) => ({ path: '/owner/penjualan', query: to.query.tab === 'payments' ? { tab: 'payments' } : {} }),
   },
   {
     path: '/owner/lainnya',

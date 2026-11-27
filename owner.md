@@ -1,5 +1,11 @@
 # OWNER PANEL – SISTEM POLILAND
 
+> **Keputusan terbaru (27 November 2026), menggantikan bagian yang bertentangan di bawah:**
+> Owner hanya memantau perkembangan kaveling dan penjualan. Owner tidak setara Admin dan tidak terlibat dalam proses jual beli.
+> - Data tenaga marketing, calon pembeli, tindak lanjut, dan komisi tidak ditampilkan (urusan Kepala Bagian). Ini menggantikan bagian 3C, 3G, dan butir serupa lainnya.
+> - Menu bawah menjadi empat: Beranda, Kaveling, Penjualan (gabungan Statistik dan Laporan), Lainnya.
+> - Satu-satunya halaman Admin yang boleh dibuka adalah Akses tim, untuk akun Pemilik dan Admin.
+
 Dokumen ini menjadi acuan pengembangan **Role Owner PoliLand** di Codex. Isinya menggabungkan tugas dan tanggung jawab Owner, hak akses, struktur halaman, spesifikasi UI/UX, design system berdasarkan halaman Client, serta ketentuan integrasi database.
 
 ---

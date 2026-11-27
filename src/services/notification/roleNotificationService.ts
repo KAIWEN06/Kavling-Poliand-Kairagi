@@ -1,4 +1,5 @@
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core'
+import { canAccessRoute } from '@/router/access'
 import { CustomNotification, type NotificationClickEvent } from '@/plugins/customNotification'
 import { authService, type UserRole } from '@/services/auth/authService'
 import { ROLE_LABEL } from '@/services/profile/profileService'
@@ -104,8 +105,7 @@ async function safeRouteFor(role: UserRole, requested: string | undefined | null
   const required = resolved.matched
     .map((record) => record.meta.role)
     .find((value): value is string => typeof value === 'string')
-  const allowed = !required || required === role || (required === 'admin' && role === 'owner')
-  return allowed ? requested : home
+  return canAccessRoute(role, required, resolved.name) ? requested : home
 }
 
 /** Layar pembuka tidak boleh tertinggal di bawah tujuan: tombol Back harus kembali ke beranda. */
