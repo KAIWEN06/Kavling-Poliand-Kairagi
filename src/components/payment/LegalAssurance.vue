@@ -7,7 +7,7 @@ import { documentTextOutline, homeOutline, shieldCheckmarkOutline } from 'ionico
 const FACTS = [
   { icon: shieldCheckmarkOutline, text: 'SHM telah Pecah Per Unit Kavling' },
   { icon: homeOutline, text: 'Peruntukan Lokasi Untuk Pemukiman' },
-  { icon: documentTextOutline, text: 'Gratis SHM atas nama pembeli' },
+  { icon: documentTextOutline, text: 'Gratis SHM Atas Nama Pembeli' },
 ]
 </script>
 

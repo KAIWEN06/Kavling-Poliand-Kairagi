@@ -3,7 +3,7 @@
   <GlobalMobileHeader v-if="variant !== 'default' || profile" />
 
   <!-- Situs publik, belum login: merek + tombol masuk. -->
-  <ion-header v-else class="app-header" :translucent="false">
+  <ion-header v-else class="app-header ion-no-border" :translucent="false">
     <ion-toolbar>
       <div class="header-content">
         <div class="brand">
@@ -17,7 +17,7 @@
         </div>
 
         <AppButton class="submit-button" expand="block" color="primary" @click="ionRouter.push('/login')">
-          <span>MASUK</span>
+          <span>Masuk</span>
         </AppButton>
       </div>
     </ion-toolbar>
@@ -57,11 +57,10 @@ const { profile } = useCurrentUser()
   position: sticky;
   top: 0;
   z-index: 20;
-  box-shadow: 0 1px 8px rgb(45 45 45 / 5%);
 }
 
 .app-header ion-toolbar {
-  --background: var(--surface-muted);
+  --background: var(--surface-primary);
   --min-height: 68px;
   --border-width: 0 0 1px 0;
   --border-color: var(--border-default);
@@ -73,6 +72,21 @@ const { profile } = useCurrentUser()
   height: 68px;
   align-items: center;
   justify-content: space-between;
+}
+
+.submit-button {
+  margin: 0;
+  min-height: 44px;
+  text-transform: none;
+  letter-spacing: 0;
+  --box-shadow: none;
+  box-shadow: none;
+}
+
+.submit-button :deep(ion-button),
+.submit-button :deep(button) {
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .brand {

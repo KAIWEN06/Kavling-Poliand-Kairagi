@@ -1,9 +1,9 @@
 <template>
-  <ion-page>
+  <ion-page class="pl-client">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content :fullscreen="true">
-      <div class="detail-page client-detail-page">
+      <div :class="['detail-page', 'client-detail-page', { 'detail-page--bare': loading || loadError || !lot }]">
         <PageBackButton fallback="/client/kavling" label="Daftar kaveling" />
 
         <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat info kaveling" />
@@ -21,11 +21,7 @@
           <section class="survey-card panel" aria-labelledby="survey-heading">
             <div class="survey-header">
               <div class="survey-heading">
-                <div class="survey-icon" aria-hidden="true">
-                  <ion-icon :icon="calendarOutline" />
-                </div>
                 <div class="survey-title-wrap">
-                  <span class="eyebrow">Kunjungan Lokasi</span>
                   <h2 id="survey-heading">Jadwal Survei</h2>
                   <p>Atur kunjungan langsung ke lokasi kaveling bersama tim kami.</p>
                 </div>
@@ -301,7 +297,6 @@
 
             <div class="client-lot-title">
               <div>
-                <span class="eyebrow">INFO KAVELING</span>
                 <h1>{{ lot.lot_number }}</h1>
                 <p>{{ blockLabel }}</p>
               </div>
@@ -440,6 +435,11 @@
           <RecommendedLots :key="lot.id" :lot-id="Number(lot.id)" class="similar-lots" />
         </template>
       </div>
+
+      <!-- Hanya setelah isi tampil; di bawah layar pendek footer terlihat sebagai pita terpotong. -->
+      <div v-if="!loading && !loadError && lot" class="detail-footer" aria-hidden="true">
+        <SceneBackdrop class="detail-footer__scene" height="100%" :sway="false" />
+      </div>
     </ion-content>
 
     <MobileTabBar variant="client" />
@@ -447,6 +447,7 @@
 </template>
 
 <script setup lang="ts">
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
 import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { useToast } from '@/composables/useToast'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
@@ -858,7 +859,7 @@ function formatArea(value: number | string | null | undefined) {
 function formatWhatsAppMessage(includeSchedule: boolean) {
   const lotNumber = lot.value?.lot_number || `ID ${lotId.value}`
   const lines = [
-    'Halo Admin PoliLand Kairagi, mau tanya soal kaveling ini ya.',
+    'Halo kak, mau tanya soal kaveling ini ya.',
     `Kaveling: ${lotNumber}`,
   ]
   if (includeSchedule) {
@@ -1095,18 +1096,11 @@ useRealtimeRefresh(
 
 </script>
 
+<style scoped src="../../theme/kavling-detail.css"></style>
+
 <style scoped>
 .similar-lots {
   margin-top: 20px;
-}
-
-.detail-page {
-  display: flex;
-  flex-direction: column;
-  padding: 12px 16px calc(112px + var(--safe-bottom));
-  background: var(--app-background, #faf9f6);
-  color: var(--text-primary, #252525);
-  font-family: var(--font-primary, var(--ion-font-family, 'Plus Jakarta Sans', sans-serif));
 }
 
 .client-detail-page .hero-card {
@@ -1123,10 +1117,6 @@ useRealtimeRefresh(
 
 .hero-legal {
   margin-top: 12px;
-}
-
-.hero-share {
-  margin-top: 8px;
 }
 
 .client-detail-page .detail-tabs {
@@ -1149,25 +1139,6 @@ useRealtimeRefresh(
 
 .back-action {
   margin: 0;
-}
-
-.panel,
-.hero-card {
-  background: var(--surface-primary, #ffffff);
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-card, 16px);
-  box-shadow: 0 2px 8px rgba(37, 37, 37, 0.04);
-}
-
-.panel {
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.hero-card {
-  overflow: hidden;
-  padding: 14px;
-  margin-bottom: 16px;
 }
 
 .single-line-btn {
@@ -1364,14 +1335,6 @@ useRealtimeRefresh(
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
-}
-
-.survey-heading h2 {
-  margin: 0 0 2px;
-  color: var(--text-primary, #252525);
-  font-size: 17px;
-  font-weight: 800;
-  line-height: 1.25;
 }
 
 .survey-heading p,
@@ -1780,15 +1743,6 @@ textarea.form-control {
   font-size: 18px;
 }
 
-/* --- Kartu Kavling & Detail --- */
-.hero-image-wrap {
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--radius-control, 12px);
-  aspect-ratio: 16 / 9;
-  background: var(--surface-muted, #f5f3ee);
-}
-
 .hero-image-wrap--sold {
   display: grid;
   place-items: center;
@@ -1816,30 +1770,6 @@ textarea.form-control {
 
 .spec-strip--single { grid-template-columns: 1fr; }
 
-.hero-image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  cursor: pointer;
-}
-
-.image-placeholder,
-.panorama-empty {
-  display: flex;
-  height: 100%;
-  min-height: 160px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 20px;
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-muted, #f5f3ee);
-  color: var(--text-secondary, #63636a);
-  text-align: center;
-}
-
 .image-placeholder-mascot,
 .panorama-empty-mascot {
   width: min(170px, 60%);
@@ -1856,19 +1786,6 @@ textarea.form-control {
   width: min(180px, 60%);
   height: auto;
   object-fit: contain;
-}
-
-.image-expand,
-.preview-expand {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  margin: 0;
-  --padding-start: 0;
-  --padding-end: 0;
 }
 
 .client-lot-title {
@@ -1890,39 +1807,6 @@ textarea.form-control {
   margin: 0;
   color: var(--text-secondary, #63636a);
   font-size: 12.5px;
-}
-
-.spec-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 12px;
-  padding: 12px 4px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-muted, #f5f3ee);
-}
-
-.spec-strip > div {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 0 4px;
-  text-align: center;
-}
-
-.spec-strip > div + div {
-  border-left: 1px solid var(--border-default, #eae7e0);
-}
-
-.spec-strip span,
-.price-summary span {
-  color: var(--text-secondary, #63636a);
-  font-size: 11px;
-}
-
-.spec-strip strong {
-  font-size: 13.5px;
 }
 
 .status-pill {
@@ -2033,79 +1917,6 @@ textarea.form-control {
   font-size: 11px;
   line-height: 1.5;
   text-align: center;
-}
-
-.detail-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0 0 14px;
-  padding: 4px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-primary, #ffffff);
-}
-
-.detail-tabs button {
-  min-height: 44px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--text-secondary, #63636a);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 150ms ease-out, color 150ms ease-out;
-}
-
-.detail-tabs button.active {
-  background: color-mix(in srgb, var(--poliland-green, #355a2c) 11%, transparent);
-  color: var(--poliland-green, #355a2c);
-  font-weight: 700;
-}
-
-.tab-content {
-  min-height: 200px;
-}
-
-.panel h2 {
-  margin: 0 0 14px;
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.info-list {
-  margin: 0;
-}
-
-.info-list > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--border-default, #eae7e0);
-  font-size: 13px;
-}
-
-.info-list > div:last-child {
-  border-bottom: 0;
-}
-
-.info-list dt {
-  color: var(--text-secondary, #63636a);
-}
-
-.info-list dd {
-  margin: 0;
-  max-width: 58%;
-  font-weight: 600;
-  text-align: right;
-  overflow-wrap: anywhere;
 }
 
 .contact-panel {
@@ -2357,4 +2168,30 @@ textarea.form-control {
     flex: 0 0 300px;
   }
 }
+
+/* ---------- penyesuaian Client di atas gaya bersama ---------- */
+.detail-page { display: flex; flex-direction: column; padding: 12px 20px 8px; background: var(--surface-primary); color: var(--text-primary); font-family: var(--font-ui); }
+/* Tanpa footer (memuat atau gagal) isi tetap di atas tab bar. */
+.detail-page--bare { padding-bottom: calc(96px + var(--safe-bottom)); }
+ion-content { --padding-bottom: 0px; }
+.client-detail-page .similar-lots { order: 5; margin-bottom: 20px; }
+
+.detail-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hero-image { cursor: pointer; }
+.panorama-empty { min-height: 180px; border-radius: 16px; }
+
+.survey-card { padding: 0; }
+.status-pill.sold { background: color-mix(in srgb, var(--status-danger) 11%, white); color: color-mix(in srgb, var(--status-danger) 70%, black); }
+
+.price-summary span { color: var(--text-secondary); font-size: 12px; }
+.client-price-summary { align-items: center; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-card); box-shadow: var(--shadow-sm); }
+.client-price-summary .promo-price strong { color: var(--poliland-green); font-family: var(--font-display); font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.client-lot-title h1 { font-size: 26px; }
+
+/* Ajakan bertanya tetap satu kotak, tanpa garis emas judul section. */
+.contact-panel { padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); }
+.contact-panel h2 { margin: 0 0 5px; font-size: 17px; }
+.contact-panel h2::after { content: none; }
+
+@media (max-width: 340px) { .detail-page { padding-inline: 16px; } .detail-tabs { margin-inline: -16px; } }
 </style>

@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
   left: 0;
   z-index: 10000;
   width: 100%;
-  padding-bottom: var(--safe-bottom);
+  /* Safe area diurus tab bar sendiri agar latarnya menempel sampai tepi layar. */
   pointer-events: none;
 }
 

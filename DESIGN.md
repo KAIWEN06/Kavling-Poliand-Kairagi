@@ -329,6 +329,8 @@ Sebelum menyelesaikan pembaruan UI/UX maupun fitur data:
 
 ## 12. Bahasa Visual Welcome (Halaman Publik)
 
+> Beranda publik dan panel Admin sudah memakai pola lembar putih. Untuk keduanya, dan untuk halaman baru, ikuti `.claude/skills/poliland-design/SKILL.md`. §12.1–12.5 hanya berlaku untuk Welcome dan halaman yang belum dipindahkan. §12.6 tetap berlaku di semua halaman.
+
 Halaman publik (Welcome, Beranda, Siteplan, Galeri, Progress dan detailnya, Tentang, Kontak) memakai satu bahasa visual. Pengguna yang masuk dari Welcome tidak boleh merasa pindah ke aplikasi lain.
 
 ### 12.1 Unsur tetap

@@ -1,40 +1,18 @@
 <template>
-  <ion-page>
+  <ion-page class="pl-client">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
     <AppPullRefresh scoped :refresh-handler="refreshAll" />
 
-    <ion-content :fullscreen="true">
+    <ion-content :fullscreen="true" :scroll-events="true" @ionScroll="syncMaket">
 
       <div class="kv-page">
         
-        <!-- SITEPLAN (komponen yang sama dengan beranda) -->
+        <!-- DENAH (maket yang sama dengan beranda) -->
         <Reveal :order="1">
-          <section class="kv-siteplan" aria-labelledby="siteplan-heading">
-            <div class="kv-map-head">
-              <h2 id="siteplan-heading">
-                <ion-icon :icon="mapOutline" aria-hidden="true" />
-                Denah PoliLand
-              </h2>
-            </div>
-  
-            <div class="kv-siteplan-card">
-              <div class="kv-mini-siteplan">
-                <img :src="siteplanImage" alt="Denah PoliLand Kairagi" class="kv-siteplan-image" />
-                <div ref="siteplanLayer" class="kv-siteplan-layer" v-html="siteplanSvg" />
-              </div>
-  
-              <div class="kv-siteplan-legend" aria-label="Legenda status kaveling">
-                <span><i class="available"></i>Tersedia</span>
-                <span><i class="booking"></i>Dipesan</span>
-                <span><i class="sold"></i>Terjual</span>
-              </div>
-  
-              <AppButton variant="primary" expand="block" class="kv-siteplan-button" @click="openFullMap">
-                Lihat Denah
-                <ion-icon :icon="chevronForwardOutline" aria-hidden="true" />
-              </AppButton>
-            </div>
+          <section class="kv-siteplan" aria-label="Denah">
+            <SectionHeader title="Denah" />
+            <KavlingMaket ref="maketRef" :lots="siteplanLots" @goToSiteplan="openFullMap" />
           </section>
         </Reveal>
 
@@ -170,7 +148,7 @@
           <p v-if="searchHint" class="kv-hint" role="status">{{ searchHint }}</p>
         </div>
 
-        <!-- FILTER STATUS -->
+        <!-- FILTER STATUS: satu bar angka, tiap kolom bisa diketuk -->
         <div class="kv-chips" role="group" aria-label="Filter status kaveling">
           <button
             v-for="chip in chips"
@@ -180,20 +158,24 @@
             :aria-pressed="statusFilter === chip.key"
             @click="statusFilter = chip.key"
           >
-            <span v-if="chip.key !== 'all'" :class="['kv-dot', chip.key]" aria-hidden="true"></span>
-            {{ chip.label }} ({{ chip.count }})
-          </button>
-          <button
-            v-if="nearLotIds.size"
-            type="button"
-            :class="['kv-chip', { active: nearOnly }]"
-            :aria-pressed="nearOnly"
-            @click="nearOnly = !nearOnly"
-          >
-            <ion-icon :icon="locationOutline" aria-hidden="true" />
-            Dekat fasilitas
+            <strong class="kv-chip-count">{{ chip.count }}</strong>
+            <span class="kv-chip-label">
+              <span v-if="chip.key !== 'all'" :class="['kv-dot', chip.key]" aria-hidden="true"></span>
+              {{ chip.label }}
+            </span>
           </button>
         </div>
+
+        <button
+          v-if="nearLotIds.size"
+          type="button"
+          :class="['kv-nearby', { active: nearOnly }]"
+          :aria-pressed="nearOnly"
+          @click="nearOnly = !nearOnly"
+        >
+          <ion-icon :icon="locationOutline" aria-hidden="true" />
+          Dekat fasilitas
+        </button>
 
         <!-- LOADING -->
         <SkeletonLotList v-if="loading || refreshing" :count="4" />
@@ -210,20 +192,18 @@
         <template v-else>
           <!-- LIST HEAD -->
           <div id="kv-list-top" class="kv-list-head">
-            <h2>
-              Daftar Kaveling
-            </h2>
-
-            <div class="kv-sort">
-              <ion-icon :icon="swapVerticalOutline" class="kv-sort-lead" aria-hidden="true" />
-              <select v-model="sortModel" aria-label="Urutkan daftar kaveling" :disabled="proximityActive">
-                <option v-if="proximityActive" value="nearest">Paling mendekati</option>
-                <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-              <ion-icon :icon="chevronDownOutline" class="kv-sort-caret" aria-hidden="true" />
-            </div>
+            <SectionHeader title="Daftar kaveling">
+              <div class="kv-sort">
+                <ion-icon :icon="swapVerticalOutline" class="kv-sort-lead" aria-hidden="true" />
+                <select v-model="sortModel" aria-label="Urutkan daftar kaveling" :disabled="proximityActive">
+                  <option v-if="proximityActive" value="nearest">Paling mendekati</option>
+                  <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <ion-icon :icon="chevronDownOutline" class="kv-sort-caret" aria-hidden="true" />
+              </div>
+            </SectionHeader>
           </div>
 
           <p v-if="proximityActive" class="kv-note">Diurutkan dari yang paling mendekati pencarian.</p>
@@ -270,6 +250,9 @@
 
                   <!-- AKSI: baris sendiri di bawah harga -->
                   <div class="kv-actions">
+                    <!-- Sama dengan halaman detail: kavling terjual tidak bisa disimpan. -->
+                    <FavoriteButton v-if="lot.status !== 'sold'" :lot-id="lot.id" :lot-label="lot.number" compact />
+
                     <button
                       v-if="lot.status !== 'sold'"
                       type="button"
@@ -311,6 +294,11 @@
           />
         </template>
       </div>
+
+      <!-- Penutup: bukit dan matahari seperti beranda -->
+      <div class="kv-footer" aria-hidden="true">
+        <SceneBackdrop class="kv-footer__scene" height="100%" :sway="false" />
+      </div>
     </ion-content>
 
     <MobileTabBar variant="client" />
@@ -322,7 +310,7 @@ import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeR
 import SkeletonLotList from '@/components/ui/skeletons/SkeletonLotList.vue'
 import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
 import Reveal from '@/components/ui/Reveal.vue'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import AppPagination from '@/components/ui/AppPagination.vue'
 import { usePagination } from '@/composables/usePagination'
 import {
@@ -336,7 +324,6 @@ import {
   searchOutline,
   closeOutline,
   optionsOutline,
-  mapOutline,
   swapVerticalOutline,
   chevronDownOutline,
   shareSocialOutline,
@@ -354,12 +341,13 @@ import {
 import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
-import AppButton from '@/components/ui/AppButton.vue'
+import KavlingMaket from '@/components/home/KavlingMaket.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
 import { useFavorites } from '@/composables/useFavorites'
+import FavoriteButton from '@/components/client/FavoriteButton.vue'
 import RecommendedLots from '@/components/client/RecommendedLots.vue'
 import { formatDistance, lotHighlightService, type LotHighlight } from '@/services/lotHighlightService'
-import siteplanImage from '@/assets/siteplan/Siteplan.webp'
-import siteplanSvg from '@/assets/siteplan/LOTS_WITH_ID.svg?raw'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import { useSiteplan } from '@/composables/useSiteplant'
@@ -369,7 +357,6 @@ import LotSurveyMarker from '@/components/common/LotSurveyMarker.vue'
 import LotSurveyBanner from '@/components/common/LotSurveyBanner.vue'
 import { pinSurveyLots, surveyService, type LotSurveyInfo } from '@/services/surveyService'
 import { dimensionDistance, parseDimension, parseNumber, parsePrice } from '@/services/Admin/LotsearchService'
-import { getLotId, getLotStatusColor } from '@/utils/siteplan'
 import { lotShareContent } from '@/utils/shareLot'
 import { useShareLot } from '@/composables/useShareLot'
 
@@ -436,49 +423,8 @@ onIonViewWillEnter(async () => {
 
 /* siteplan: sumber data yang sama dengan halaman beranda */
 const { lots: siteplanLots, reload: reloadSiteplan } = useSiteplan()
-const siteplanLayer = ref<HTMLElement | null>(null)
-
-function renderSiteplanLayers() {
-  const svg = siteplanLayer.value?.querySelector('svg')
-  if (!svg) return
-
-  siteplanLots.value.forEach((lot) => {
-    const id = getLotId(lot)
-    const polygon = svg.querySelector(`#${CSS.escape(id)}`) as SVGElement | null
-    if (!polygon) return
-    polygon.style.setProperty('fill', getLotStatusColor(lot), 'important')
-    polygon.style.setProperty('stroke', '#A7A7A7', 'important')
-    polygon.style.setProperty('stroke-width', '1.2', 'important')
-  })
-
-  svg.querySelector('#client-lot-label-layer')?.remove()
-  const labelLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  labelLayer.setAttribute('id', 'client-lot-label-layer')
-
-  siteplanLots.value.forEach((lot) => {
-    const polygon = svg.querySelector(`#${CSS.escape(getLotId(lot))}`) as SVGGraphicsElement | null
-    if (!polygon || !lot.lot_number) return
-    const box = polygon.getBBox()
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    label.setAttribute('x', String(box.x + box.width / 2))
-    label.setAttribute('y', String(box.y + box.height / 2))
-    label.setAttribute('text-anchor', 'middle')
-    label.setAttribute('dominant-baseline', 'middle')
-    label.setAttribute('font-size', '12')
-    label.setAttribute('font-weight', '700')
-    label.setAttribute('fill', '#1A1A1A')
-    label.setAttribute('pointer-events', 'none')
-    label.textContent = String(lot.lot_number).replace(/^LOT[_-]?/i, '')
-    labelLayer.appendChild(label)
-  })
-
-  svg.appendChild(labelLayer)
-}
-
-watch(siteplanLots, async () => {
-  await nextTick()
-  renderSiteplanLayers()
-}, { deep: true, immediate: true })
+const maketRef = ref<InstanceType<typeof KavlingMaket> | null>(null)
+const syncMaket = () => maketRef.value?.sync()
 
 const lots = ref<Lot[]>([])
 const surveyByLot = ref<Map<number, LotSurveyInfo>>(new Map())
@@ -953,439 +899,10 @@ useRealtimeRefresh(
 
 </script>
 
+<style scoped src="../../theme/kavling-list.css"></style>
+
 <style scoped>
-.kv-page {
-  padding: 16px 16px calc(112px + var(--safe-bottom));
-  background: var(--app-background);
-  font-family: var(--font-primary);
-  color: var(--text-primary);
-}
-
-.kv-title {
-  margin: 0 0 14px;
-  font-size: 22px;
-  line-height: 1.2;
-  font-weight: var(--font-weight-extrabold);
-  letter-spacing: -0.3px;
-}
-
-h2 {
-  margin: 0;
-}
-
-/* ---------- search ---------- */
-.kv-search {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 52px;
-  padding: 0 4px 0 14px;
-  background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-control);
-}
-
-.kv-search:focus-within {
-  border-color: var(--poliland-green);
-  outline: 2px solid var(--poliland-green);
-  outline-offset: 1px;
-}
-
-.kv-search-icon {
-  flex-shrink: 0;
-  margin-right: 6px;
-  font-size: 20px;
-  color: var(--text-secondary);
-}
-
-.kv-search input {
-  flex: 1;
-  min-width: 0;
-  height: 48px;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 15px;
-}
-
-.kv-search input::placeholder {
-  color: var(--text-secondary);
-}
-
-.kv-bar-static {
-  flex: 1;
-  min-width: 0;
-  font-size: 15px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
-
-.kv-bar-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: calc(var(--radius-control) - 2px);
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.kv-filter-btn {
-  color: var(--text-primary);
-  background: var(--surface-muted);
-}
-
-.kv-filter-btn.tuned {
-  background: var(--status-success-bg);
-  color: var(--poliland-green);
-}
-
-.kv-filter-btn.open {
-  background: var(--poliland-green);
-  color: #fff;
-}
-
-.kv-bar-btn:focus-visible,
-.kv-type:focus-visible,
-.kv-chip:focus-visible,
-.kv-link:focus-visible,
-.kv-icon-btn:focus-visible,
-.kv-detail:focus-visible,
-.kv-sort:focus-within {
-  outline: 3px solid var(--poliland-green);
-  outline-offset: 2px;
-}
-
-/* panel jenis pencarian */
-.kv-panel {
-  margin-top: 8px;
-  padding: 14px;
-  background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
-}
-
-.kv-panel-label {
-  margin: 0 0 8px;
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.kv-types {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.kv-type {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-control);
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 13px;
-  font-weight: var(--font-weight-semibold);
-  text-align: left;
-  cursor: pointer;
-}
-
-.kv-type.active {
-  border-color: var(--poliland-green);
-  background: var(--status-success-bg);
-  color: var(--poliland-green);
-}
-
-.kv-type-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--surface-muted);
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-}
-
-.kv-panel-help {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--text-secondary);
-}
-
-/* rentang harga */
-.kv-range-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.kv-range-field label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.kv-range-input {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 0 12px;
-  background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-control);
-}
-
-.kv-range-input:focus-within {
-  border-color: var(--poliland-green);
-  outline: 2px solid var(--poliland-green);
-  outline-offset: 1px;
-}
-
-.kv-range-input span {
-  flex-shrink: 0;
-  font-size: 13px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
-}
-
-.kv-range-input input {
-  flex: 1;
-  min-width: 0;
-  height: 44px;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 15px;
-}
-
-.kv-range-input input::placeholder {
-  color: var(--text-secondary);
-}
-
-.kv-mode,
-.kv-hint,
-.kv-note {
-  margin: 8px 2px 0;
-  font-size: 12.5px;
-  line-height: 1.4;
-}
-
-.kv-mode,
-.kv-note {
-  color: var(--text-secondary);
-}
-
-.kv-mode strong {
-  color: var(--text-primary);
-}
-
-.kv-hint {
-  color: color-mix(in srgb, var(--status-danger) 70%, black);
-}
-
-.kv-note {
-  margin: 0 2px 10px;
-}
-
-/* ---------- chips ---------- */
-.kv-chips {
-  display: flex;
-  gap: 8px;
-  margin: 12px -16px 16px;
-  padding: 0 16px 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.kv-chips::-webkit-scrollbar {
-  display: none;
-}
-
-.kv-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  flex-shrink: 0;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border-default);
-  border-radius: 999px;
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 13px;
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-}
-
-.kv-near {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--poliland-green, #355a2c);
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.kv-chip.active {
-  background: var(--poliland-green);
-  border-color: var(--poliland-green);
-  color: #fff;
-}
-
-.kv-chip.active:focus-visible {
-  outline-color: var(--text-primary);
-}
-
-/* ---------- dots ---------- */
-.kv-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.kv-dot.available { background: var(--poliland-green); }
-.kv-dot.booked { background: var(--poliland-gold); }
-.kv-dot.sold { background: var(--status-danger); }
-
-.kv-chip.active .kv-dot {
-  box-shadow: 0 0 0 2px #fff;
-}
-
-/* ---------- card base ---------- */
-.kv-card {
-  background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
-}
-
-/* ---------- siteplan ---------- */
-.kv-siteplan {
-  margin-bottom: 22px;
-}
-
-.kv-siteplan-card {
-  margin-top: 14px;
-  padding: 16px;
-  background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-}
-
-.kv-siteplan-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 15px;
-}
-
-.kv-siteplan-eyebrow {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--poliland-gold-text);
-  font-size: 9px;
-  font-weight: var(--font-weight-extrabold);
-  letter-spacing: 1px;
-}
-
-.kv-siteplan-card-head h3 {
-  margin: 2px 0 0;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: var(--font-weight-extrabold);
-}
-
-.kv-siteplan-card-head > ion-icon {
-  color: var(--poliland-green);
-  font-size: 22px;
-}
-
-.kv-mini-siteplan {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  aspect-ratio: 1252 / 1257;
-  padding: 10px;
-  border-radius: var(--radius-control);
-  background: var(--surface-muted);
-  overflow: hidden;
-}
-
-.kv-siteplan-image,
-.kv-siteplan-layer {
-  position: absolute;
-  inset: 10px;
-  width: calc(100% - 20px);
-  height: calc(100% - 20px);
-  border-radius: 8px;
-}
-
-.kv-siteplan-image { display: block; object-fit: contain; }
-.kv-siteplan-layer { pointer-events: none; }
-.kv-siteplan-layer :deep(svg) { display: block; width: 100%; height: 100%; overflow: visible; }
-.kv-siteplan-layer :deep(path) { vector-effect: non-scaling-stroke; }
-
-.kv-siteplan-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 13px;
-  margin-top: 13px;
-}
-
-.kv-siteplan-legend span {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--text-secondary);
-  font-size: 9px;
-}
-
-.kv-siteplan-legend i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-.kv-siteplan-legend .available { background: var(--poliland-green); }
-.kv-siteplan-legend .booking { background: var(--poliland-gold); }
-.kv-siteplan-legend .sold { background: var(--status-danger); }
-
-.kv-reco {
-  margin-bottom: 14px;
-}
-
+/* Tambahan khusus Client: favorit, rekomendasi, fasilitas, dan kavling yang ditahan. */
 .kv-favorites {
   display: flex;
   min-height: 52px;
@@ -1393,10 +910,10 @@ h2 {
   gap: 10px;
   margin-bottom: 12px;
   padding: 0 14px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-primary, #fff);
-  color: var(--text-primary, #252525);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
@@ -1404,383 +921,58 @@ h2 {
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform var(--dur-fast, 150ms) var(--ease-spring, ease-out);
+  transition: transform var(--dur-fast) var(--ease-spring);
 }
-
-.kv-favorites:active {
-  transform: scale(0.98);
-}
-
-.kv-favorites:focus-visible {
-  outline: 3px solid var(--poliland-green, #355a2c);
-  outline-offset: 2px;
-}
-
-.kv-favorites > ion-icon:first-child {
-  color: #b13a3a;
-  font-size: 20px;
-}
-
+.kv-favorites:active { transform: scale(0.97); }
+.kv-favorites:focus-visible,
+.kv-nearby:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+.kv-favorites > ion-icon:first-child { color: var(--danger-text); font-size: 20px; }
 .kv-favorites strong {
   min-width: 24px;
   padding: 3px 7px;
-  border-radius: var(--radius-pill, 999px);
-  background: var(--status-success-bg, #eef5ec);
-  color: var(--poliland-green, #355a2c);
+  border-radius: var(--radius-pill);
+  background: var(--green-50);
+  color: var(--poliland-green);
   font-size: 12px;
   text-align: center;
 }
+.kv-favorites__go { margin-left: auto; color: var(--text-secondary); }
 
-.kv-favorites__go {
-  margin-left: auto;
-  color: var(--text-secondary, #5f5f66);
+.kv-reco { margin-bottom: 14px; }
+
+/* Bar status sudah memberi jarak bawah; tombol fasilitas menempel di bawahnya. */
+.kv-nearby {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: -16px 0 20px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
+.kv-nearby.active { border-color: var(--poliland-green); background: var(--green-50); color: var(--poliland-green); font-weight: 700; }
+
+.kv-lot-info p.kv-near {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--poliland-green);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.kv-badge.held { background: color-mix(in srgb, var(--poliland-gold) 20%, white); color: var(--poliland-gold-text-soft); }
+.kv-hold { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--poliland-gold) 14%, white); color: var(--poliland-gold-text-soft); font-size: 12px; font-weight: 700; }
 
 @media (prefers-reduced-motion: reduce) {
   .kv-favorites { transition: none; }
   .kv-favorites:active { transform: none; }
-}
-
-.kv-siteplan-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  min-height: 44px;
-  margin-top: 14px;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: var(--poliland-gold);
-  color: #fff;
-  font: inherit;
-  font-size: 12px;
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-
-.kv-siteplan-button:focus-visible {
-  outline: 3px solid var(--poliland-green);
-  outline-offset: 2px;
-}
-
-.kv-map-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.kv-map-head h2,
-.kv-list-head h2 {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: var(--font-weight-bold);
-}
-
-.kv-map-head h2 ion-icon {
-  font-size: 18px;
-  color: var(--poliland-green);
-}
-
-.kv-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 44px;
-  padding: 0 6px;
-  border: 0;
-  background: transparent;
-  color: var(--poliland-green);
-  font: inherit;
-  font-size: 13px;
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-
-.kv-link ion-icon {
-  font-size: 16px;
-}
-
-/* ---------- list head + urutan ---------- */
-.kv-list-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 2px 12px;
-  margin-bottom: 8px;
-}
-
-.kv-count {
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: var(--font-weight-semibold);
-}
-
-.kv-sort {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  border-radius: var(--radius-control);
-  color: var(--poliland-green);
-}
-
-.kv-sort select {
-  appearance: none;
-  -webkit-appearance: none;
-  min-height: 44px;
-  padding: 0 22px 0 24px;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 13px;
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-
-.kv-sort select:disabled {
-  color: var(--text-secondary);
-  opacity: 1;
-  cursor: default;
-}
-
-.kv-sort select:focus {
-  outline: 0;
-}
-
-.kv-sort select option {
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.kv-sort-lead,
-.kv-sort-caret {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 15px;
-  pointer-events: none;
-}
-
-.kv-sort-lead { left: 4px; }
-.kv-sort-caret { right: 4px; font-size: 13px; }
-
-.kv-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* ---------- lot card ---------- */
-.kv-lot {
-  padding: 14px;
-}
-
-.kv-lot-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.kv-num {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-control);
-  border: 1px solid;
-  font-size: 14px;
-  font-weight: var(--font-weight-bold);
-}
-
-.kv-num.available { background: var(--status-success-bg); border-color: var(--poliland-green); color: var(--poliland-green); }
-.kv-num.booked { background: color-mix(in srgb, var(--poliland-gold) 18%, white); border-color: var(--poliland-gold); color: var(--poliland-gold-text-soft); }
-.kv-num.sold { background: color-mix(in srgb, var(--status-danger) 10%, white); border-color: var(--status-danger); color: color-mix(in srgb, var(--status-danger) 70%, black); }
-
-.kv-lot-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.kv-lot-info h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: var(--font-weight-bold);
-}
-
-.kv-lot-info p {
-  margin: 3px 0 0;
-  font-size: 12.5px;
-  line-height: 1.35;
-  color: var(--text-secondary);
-}
-
-.kv-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  padding: 5px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: var(--font-weight-bold);
-}
-
-.kv-badge ion-icon {
-  font-size: 14px;
-}
-
-.kv-lot--survey {
-  border-color: var(--poliland-gold);
-  box-shadow: inset 4px 0 0 var(--poliland-gold);
-}
-
-.kv-badge.available { background: var(--status-success-bg); color: var(--poliland-green); }
-.kv-badge.booked { background: color-mix(in srgb, var(--poliland-gold) 20%, white); color: var(--poliland-gold-text-soft); }
-.kv-badge.held { background: color-mix(in srgb, var(--poliland-gold) 20%, white); color: var(--poliland-gold-text-soft); }
-.kv-hold { margin: 0; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--poliland-gold) 14%, white); color: var(--poliland-gold-text-soft); font-size: 12px; font-weight: 700; }
-.kv-badge.sold { background: color-mix(in srgb, var(--status-danger) 11%, white); color: color-mix(in srgb, var(--status-danger) 70%, black); }
-
-/* ---------- harga + aksi: dua baris terpisah ---------- */
-.kv-lot-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-default);
-}
-
-.kv-money {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.kv-money-label {
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.kv-money-row {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-}
-
-.kv-money-row strong {
-  font-size: 18px;
-  font-weight: var(--font-weight-extrabold);
-  letter-spacing: -0.2px;
-}
-
-.kv-money-empty {
-  color: var(--text-secondary);
-  font-weight: var(--font-weight-semibold) !important;
-}
-
-.kv-money-old {
-  font-size: 12.5px;
-  color: var(--text-secondary);
-}
-
-.kv-person {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
-.kv-person ion-icon {
-  flex-shrink: 0;
-  margin-top: 1px;
-  font-size: 15px;
-}
-
-.kv-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.kv-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-control);
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font-size: 20px;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.kv-icon-btn:active,
-.kv-detail:active {
-  background: var(--surface-muted);
-}
-
-.kv-detail {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  gap: 2px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: var(--surface-muted);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 14px;
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-
-.kv-detail-inline {
-  flex: 0 0 auto;
-}
-
-.kv-detail ion-icon {
-  font-size: 16px;
-}
-
-/* ---------- loading / empty / error ---------- */
-
-/* ---------- 320px ---------- */
-@media (max-width: 360px) {
-  .kv-lot-top { flex-wrap: wrap; }
-  .kv-badge { margin-left: 56px; }
-  .kv-types { grid-template-columns: 1fr; }
-  .kv-range-row { grid-template-columns: 1fr; }
 }
 </style>

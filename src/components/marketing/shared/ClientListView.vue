@@ -98,18 +98,22 @@
       title="Belum ada klien"
       :description="isHead ? 'Klien muncul setelah dicatat pemasar atau Admin, atau mendaftar sendiri.' : 'Tekan tombol + untuk mulai.'"
     />
-    <StatusIllustration
+    <section
       v-else-if="!filtered.length"
-      variant="no-result"
-      title="Klien tidak ditemukan"
-      description="Ubah kata kunci atau filter."
-      :on-action="resetFilters"
-    />
+      class="cl-no-result"
+      role="status"
+      aria-label="Klien tidak ditemukan"
+    >
+      <ion-icon class="cl-no-result__mascot" :icon="searchOutline" aria-hidden="true" />
+      <h2>Klien tidak ditemukan</h2>
+      <p>Ubah kata kunci atau filter.</p>
+      <button type="button" class="cl-no-result__action" @click="resetFilters">Hapus filter</button>
+    </section>
 
     <template v-else>
       <div class="cl-list-head">
-        <h2>{{ isHead ? 'Semua klien' : 'Klien saya' }}</h2>
-        <span aria-live="polite">{{ filtered.length }}</span>
+        <h2>{{ isHead ? 'Semua klien' : 'Daftar klien' }}</h2>
+        <span aria-live="polite">{{ filtered.length }}<template v-if="!isHead"> klien</template></span>
       </div>
 
       <div id="client-list-top" class="cl-list" role="list" aria-label="Daftar klien">
@@ -425,4 +429,46 @@ useRealtimeRefresh(
   .cl-card:active, .cl-chip:active, .cl-fab:active, .cl-filter-toggle:active { transform: none; }
 }
 @keyframes cl-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Marketing: mengikuti halaman Klien admin (AdminPembeli.vue). Kepala Marketing tidak terkena. */
+.pl-marketing .cl-search-row { order: -3; grid-template-columns: minmax(0, 1fr) 52px; }
+.pl-marketing .cl-search { min-height: 52px; }
+.pl-marketing .cl-search button { width: 44px; height: 44px; }
+.pl-marketing .cl-filter-toggle { width: 52px; height: 52px; }
+.pl-marketing .cl-filters { order: -2; }
+
+/* Bar angka: nilai di atas label, bisa digeser. */
+.pl-marketing .cl-chips { order: -1; gap: 0; margin: 14px 0 4px; padding: 4px; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-primary); box-shadow: var(--shadow-sm); }
+.pl-marketing .cl-chip { display: flex; flex: 1 0 76px; flex-direction: column-reverse; align-items: center; justify-content: flex-end; gap: 2px; min-height: 58px; padding: 8px 4px; border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary); line-height: 1.3; white-space: normal; }
+.pl-marketing .cl-chip + .cl-chip { box-shadow: -1px 0 0 var(--border-default); }
+.pl-marketing .cl-chip span { margin: 0; color: var(--poliland-green); font-family: var(--font-display); font-size: 20px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pl-marketing .cl-chip.active { background: var(--green-50); color: var(--poliland-green); font-weight: var(--font-weight-bold); box-shadow: inset 0 -3px 0 var(--poliland-green); }
+.pl-marketing .cl-chip:focus-visible { outline-offset: -3px; }
+
+.pl-marketing .cl-list-head { margin: 24px 0 14px; align-items: flex-end; }
+.pl-marketing .cl-list-head h2 { font-size: 24px; font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; }
+.pl-marketing .cl-list-head h2::after { content: ''; display: block; width: 40px; height: 3px; margin-top: 8px; border-radius: 999px; background: var(--poliland-gold); }
+.pl-marketing .cl-list-head span { font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Kartu: avatar, isi, panah; status dan WhatsApp di baris bawah. */
+.pl-marketing .cl-card { grid-template-columns: 44px minmax(0, 1fr) 18px; column-gap: 12px; row-gap: 8px; box-shadow: var(--shadow-sm); }
+.pl-marketing .cl-avatar { grid-column: 1; grid-row: 1; align-self: start; width: 44px; height: 44px; border-radius: 14px; font-size: 14px; }
+.pl-marketing .cl-details { grid-column: 2; grid-row: 1; }
+.pl-marketing .cl-details h3 { margin-bottom: 3px; font-size: 15px; }
+.pl-marketing .cl-details p,
+.pl-marketing .cl-details small { font-size: 12px; line-height: 1.55; }
+.pl-marketing .cl-side { grid-column: 2; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.pl-marketing .cl-chevron { grid-column: 3; grid-row: 1 / span 2; }
+
+.pl-marketing .cl-no-result { display: grid; justify-items: center; gap: 8px; padding: 32px 0; text-align: center; }
+.pl-marketing .cl-no-result__mascot { color: var(--poliland-green); font-size: 40px; }
+.pl-marketing .cl-no-result h2 { margin: 0; font-size: 20px; }
+.pl-marketing .cl-no-result p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+.pl-marketing .cl-no-result__action {
+  min-height: 44px; margin-top: 4px; padding: 0 18px;
+  border: 1px solid var(--poliland-green); border-radius: var(--radius-control);
+  background: var(--surface-primary); color: var(--poliland-green);
+  font: inherit; font-size: 14px; font-weight: var(--font-weight-bold); cursor: pointer;
+}
+.pl-marketing .cl-no-result__action:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 </style>

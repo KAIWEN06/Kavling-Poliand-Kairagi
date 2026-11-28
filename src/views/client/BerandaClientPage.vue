@@ -28,7 +28,9 @@ import RecommendedLots from '@/components/client/RecommendedLots.vue'
 import PurchaseJourney from '@/components/client/PurchaseJourney.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import PageHeader from '@/components/ui/PageHeader.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import HomeMenu from '@/components/home/HomeMenu.vue'
+import type { MenuIllustrationName } from '@/components/home/MenuIllustration.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import StatusBadge, { type BadgeTone } from '@/components/ui/StatusBadge.vue'
@@ -223,7 +225,34 @@ const recentPayments = computed(() => overview.value?.payments.slice(0, 5) ?? []
 
 const today = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
 
+/* Menu hanya berisi tujuan client yang bisa dibuka langsung tanpa ID. */
+const menuItems: { id: MenuIllustrationName; label: string; gold?: boolean }[] = [
+  { id: 'denah', label: 'Denah' },
+  { id: 'lokasi', label: 'Kaveling', gold: true },
+  { id: 'favorit', label: 'Favorit' },
+  { id: 'pembayaran', label: 'Pembayaran', gold: true },
+  { id: 'spk', label: 'SPK', gold: true },
+  { id: 'akun', label: 'Akun' },
+]
+const menuRoutes: Partial<Record<MenuIllustrationName, string>> = {
+  denah: '/client/siteplan',
+  lokasi: '/client/kavling',
+  favorit: '/client/favorit',
+  spk: '/client/dokumen',
+  akun: '/akun',
+}
+const menuPlay = ref(false)
+
+function openMenu(id: MenuIllustrationName) {
+  // Pembayaran membawa kaveling yang sedang dipilih.
+  if (id === 'pembayaran') return openPayments()
+  const path = menuRoutes[id]
+  if (path) goTo(path)
+}
+
 onMounted(() => {
+  // Dua frame agar menu punya keadaan awal untuk dianimasikan.
+  requestAnimationFrame(() => requestAnimationFrame(() => { menuPlay.value = true }))
   void loadClientName()
 })
 
@@ -258,21 +287,23 @@ useRealtimeRefresh(
 </script>
 
 <template>
-  <ion-page>
+  <ion-page class="pl-client">
     <app-header variant="client" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content class="client-content" :fullscreen="true">
       <main class="dash">
-        <Reveal :order="0">
-          <PageHeader :title="`Halo, ${clientName}`" :subtitle="`Pantau proses pembelian kavling Anda di PoliLand Kairagi. ${today}.`">
-            <template #actions>
-              <AppButton size="small" fill="outline" @click="goTo('/client/kavling')">Lihat kaveling</AppButton>
-              <button type="button" class="icon-btn" aria-label="Keluar dari akun" @click="logout">
-                <ion-icon :icon="logOutOutline" aria-hidden="true" />
-              </button>
-            </template>
-          </PageHeader>
-        </Reveal>
+        <section class="banner" aria-labelledby="banner-title">
+          <div class="banner__top">
+            <p class="banner__date">{{ today }}</p>
+            <button type="button" class="banner__logout" aria-label="Keluar dari akun" @click="logout">
+              <ion-icon :icon="logOutOutline" aria-hidden="true" />
+            </button>
+          </div>
+          <h1 id="banner-title" class="banner__title">Halo, {{ clientName }}</h1>
+          <button type="button" class="banner__cta" @click="goTo('/client/kavling')">Lihat kaveling</button>
+        </section>
+
+        <HomeMenu class="dash__menu" :play="menuPlay" :items="menuItems" label="Menu pembeli" @select="openMenu" />
 
         <Reveal v-if="!initialLoading && !purchaseError && entries.length > 1" :order="1" class="dash__block">
           <PurchasePicker :entries="entries" :selected-key="selected?.key ?? ''" @select="pickedKey = $event" />
@@ -419,8 +450,8 @@ useRealtimeRefresh(
             </Reveal>
 
             <Reveal v-if="overview && remaining > 0" :order="4">
-              <section class="card bank" aria-labelledby="bank-title">
-                <h2 id="bank-title" class="card__title">Rekening tujuan transfer</h2>
+              <section class="bank" aria-label="Rekening tujuan transfer">
+                <SectionHeader title="Rekening transfer" />
 
                 <div v-if="banksState === 'loading'" class="skel" role="status" aria-label="Memuat rekening tujuan">
                   <Skeleton height="132px" border-radius="14px" />
@@ -464,11 +495,10 @@ useRealtimeRefresh(
 
           <!-- RIWAYAT PEMBAYARAN -->
           <Reveal v-if="!spkOnly" :order="5" class="area-history">
-            <section class="card" aria-labelledby="history-title">
-              <div class="card__head">
-                <h2 id="history-title" class="card__title">Riwayat pembayaran</h2>
+            <section aria-label="Riwayat pembayaran">
+              <SectionHeader title="Riwayat pembayaran">
                 <button type="button" class="link" @click="openPayments(recentPayments[0]?.id)">Lihat semua</button>
-              </div>
+              </SectionHeader>
 
               <ul v-if="recentPayments.length" class="list">
                 <li v-for="payment in recentPayments" :key="payment.id" class="pay">
@@ -506,12 +536,12 @@ useRealtimeRefresh(
 </template>
 
 <style scoped>
-.client-content { --background: var(--app-background); }
+.client-content { --background: var(--surface-primary); }
 
 .dash {
   width: min(100%, var(--container-max));
   margin-inline: auto;
-  padding: var(--space-4) var(--page-gutter) calc(var(--bottom-nav-h) + var(--space-12) + var(--safe-bottom));
+  padding: 0 var(--space-5) calc(var(--bottom-nav-h) + var(--space-12) + var(--safe-bottom));
   color: var(--text-primary);
   font-family: var(--font-ui);
 }
@@ -571,23 +601,26 @@ useRealtimeRefresh(
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-.icon-btn {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--surface-primary);
-  color: var(--text-secondary);
-  font-size: 20px;
-  cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+/* ---------- banner (sama dengan Beranda Admin) ---------- */
+.banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: var(--space-3) calc(var(--space-2) * -1) 0;
+  padding: var(--space-3) var(--space-5) var(--space-5);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(203, 160, 68, 0.3), rgba(203, 160, 68, 0) 62%),
+    var(--surface-forest);
+  color: var(--on-forest);
 }
-@media (hover: hover) and (pointer: fine) {
-  .icon-btn:hover { color: var(--danger-text); border-color: var(--status-danger); }
-}
-.icon-btn:active { transform: scale(0.94); }
+.banner__top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); width: 100%; }
+.banner__date { margin: 0; color: var(--poliland-gold-soft); font-size: var(--text-sm); }
+.banner__logout { display: grid; flex-shrink: 0; place-items: center; width: 44px; height: 44px; margin-right: calc(var(--space-2) * -1); border: 1px solid rgba(244, 241, 232, 0.3); border-radius: var(--radius-control); background: transparent; color: var(--on-forest); font-size: 20px; cursor: pointer; }
+.banner__title { margin: var(--space-2) 0 0; font-family: var(--font-display); font-size: clamp(27px, 7.6vw, 38px); font-weight: 650; line-height: 1.12; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.banner__cta { min-height: 44px; margin-top: var(--space-4); padding: 0 var(--space-5); border: 0; border-radius: var(--radius-control); background: var(--poliland-gold); color: var(--ink); font: 700 14px/1 var(--font-ui); cursor: pointer; }
+.banner__logout, .banner__cta { touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.dash__menu { margin: 0 calc(var(--space-3) * -1) var(--space-3); }
 
 /* ---------- card ---------- */
 .card {
@@ -602,9 +635,6 @@ useRealtimeRefresh(
   font: inherit;
   text-align: left;
 }
-.card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
-.card__title { margin: 0; font-size: var(--text-lg); font-weight: 700; }
-.count { display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--green-100); color: var(--green-700); font-size: var(--text-sm); font-weight: 700; }
 .link { min-height: 44px; padding: 0 var(--space-2); border: 0; background: none; color: var(--green-700); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) {
   .link:hover { text-decoration: underline; }
@@ -617,38 +647,33 @@ useRealtimeRefresh(
   container-type: inline-size;
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-5);
-  border-radius: var(--radius-lg);
-  background: var(--surface-forest);
-  color: var(--on-forest);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-sm);
 }
 .hero__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
 .hero__lot { min-width: 0; display: grid; gap: var(--space-1); }
-.hero__title { margin: 0; font-size: var(--text-3xl); line-height: var(--leading-tight); color: var(--on-forest); overflow-wrap: anywhere; }
-.hero__meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); color: var(--on-forest-muted); font-size: var(--text-sm); }
+.hero__title { margin: 0; font-size: var(--text-3xl); line-height: var(--leading-tight); color: var(--text-primary); overflow-wrap: anywhere; }
+.hero__meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); color: var(--text-secondary); font-size: var(--text-sm); }
 
 /* Nominal rupiah tidak boleh patah. Di kartu sempit: total memakai lebar penuh,
    sisa menjadi satu baris di bawahnya. Ukuran huruf mengikuti lebar kartu. */
-.hero__money { display: grid; gap: var(--space-3); }
-.hero__money div { display: grid; gap: var(--space-1); min-width: 0; }
-.hero__money div + div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1) var(--space-3); }
-.hero__money small { color: var(--on-forest-muted); font-size: var(--text-xs); }
-.hero__money strong { white-space: nowrap; line-height: 1.15; color: var(--gold-100); font-size: 1.75rem; font-size: clamp(1.375rem, 9cqi, 2rem); }
-.hero__money .hero__remaining { color: var(--on-forest); font-size: 1.25rem; font-size: clamp(1.0625rem, 6cqi, 1.375rem); }
-@container (min-width: 480px) {
-  .hero__money { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
-  .hero__money div + div { display: grid; justify-content: stretch; align-content: start; }
-  .hero__money strong,
-  .hero__money .hero__remaining { font-size: clamp(1.375rem, 5cqi, 1.875rem); }
-}
+.hero__money { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); text-align: center; }
+.hero__money div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 2px; min-width: 0; padding: 0 4px; }
+.hero__money div + div { border-left: 1px solid var(--border-default); }
+.hero__money small { color: var(--text-secondary); font-size: var(--text-xs); }
+.hero__money strong { white-space: nowrap; line-height: 1.15; color: var(--poliland-green); font-size: 1.125rem; font-size: clamp(0.9375rem, 5.4cqi, 1.5rem); font-variant-numeric: tabular-nums; }
+.hero__money .hero__remaining { color: var(--text-primary); }
 
-.hero__bar { height: 10px; overflow: hidden; border-radius: var(--radius-pill); background: rgba(244, 241, 232, 0.12); }
-.hero__fill { display: block; width: 100%; height: 100%; border-radius: var(--radius-pill); background: var(--gold-500); transition: transform var(--dur-slow) var(--ease-out); }
-.hero__foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin-top: calc(var(--space-2) * -1); color: var(--on-forest-muted); font-size: var(--text-sm); }
+.hero__bar { height: 8px; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface-muted); }
+.hero__fill { display: block; width: 100%; height: 100%; border-radius: var(--radius-pill); background: var(--poliland-green); transition: transform var(--dur-slow) var(--ease-out); }
+.hero__foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin-top: calc(var(--space-2) * -1); color: var(--text-secondary); font-size: var(--text-sm); }
 
-.hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding-top: var(--space-3); border-top: 1px solid rgba(244, 241, 232, 0.14); }
-.hero__note { color: var(--gold-100); font-size: var(--text-sm); }
-.hero__link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: auto; padding: 0 var(--space-2); border: 0; background: none; color: var(--gold-100); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border-default); }
+.hero__note { color: var(--poliland-gold-text); font-size: var(--text-sm); }
+.hero__link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: auto; padding: 0 var(--space-2); border: 0; background: none; color: var(--poliland-green); font: inherit; font-size: var(--text-sm); font-weight: 700; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) {
   .hero__link:hover { text-decoration: underline; }
 }
@@ -664,20 +689,20 @@ useRealtimeRefresh(
 .next__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--text-secondary); font-size: var(--text-sm); }
 
 /* ---------- umpan balik sentuh ---------- */
-.icon-btn, .link, .hero__link, .next { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+.link, .hero__link, .next { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
 .link, .hero__link { transition: transform var(--dur-instant) var(--ease-out); }
 .link:active, .hero__link:active { transform: scale(0.97); }
 
 @media (prefers-reduced-motion: reduce) {
-  .icon-btn, .link, .hero__link, .late-link, .next, .bank__copy, .hero__fill { transition: none; }
-  .icon-btn:active, .link:active, .hero__link:active, .late-link:active, .next:not(.next--done):active, .bank__copy:active { transform: none; }
+  .link, .hero__link, .late-link, .next, .bank__copy, .hero__fill { transition: none; }
+  .link:active, .hero__link:active, .late-link:active, .next:not(.next--done):active, .bank__copy:active { transform: none; }
 }
 
 /* ---------- list rows ---------- */
 .list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 /* ---------- rekening tujuan ---------- */
-.bank { display: grid; gap: var(--space-3); }
-.bank__item { display: grid; justify-items: start; gap: 2px; min-width: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-muted); }
+.bank { display: grid; }
+.bank__item { display: grid; justify-items: start; gap: 2px; min-width: 0; padding: var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); }
 .bank__name { color: var(--green-700); font-size: var(--text-sm); font-weight: 700; }
 .bank__number { max-width: 100%; font-size: var(--text-2xl); line-height: var(--leading-tight); overflow-wrap: anywhere; user-select: all; }
 .bank__item small { color: var(--text-secondary); font-size: var(--text-sm); overflow-wrap: anywhere; }
@@ -690,7 +715,8 @@ useRealtimeRefresh(
 .bank__empty { display: grid; justify-items: start; gap: var(--space-2); margin: 0; color: var(--text-secondary); font-size: var(--text-sm); }
 
 /* ---------- riwayat ---------- */
-.pay { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 60px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--surface-muted); }
+.pay { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 60px; padding: var(--space-2) 0; }
+.pay + .pay { border-top: 1px solid var(--border-default); }
 .pay__copy { display: grid; min-width: 0; gap: 2px; }
 .pay__copy strong { font-size: var(--text-md); font-weight: 600; overflow-wrap: anywhere; }
 .pay__copy small { color: var(--text-secondary); font-size: var(--text-sm); }

@@ -1,28 +1,30 @@
 <template>
-  <ion-page class="admin-buyers-page">
+  <ion-page class="pl-admin admin-buyers-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
     <AppPullRefresh scoped :refresh-handler="refreshCustomers" />
 
     <ion-content :fullscreen="true">
+      <div class="page-wrap">
       <main class="buyers-content">
+        <div class="buyers-search">
+          <ion-icon :icon="searchOutline" aria-hidden="true" />
+          <input v-model="query" type="search" placeholder="Cari nama, nomor HP, atau kaveling..." />
+          <button v-if="query" type="button" aria-label="Hapus pencarian" @click="query = ''">
+            <ion-icon :icon="closeOutline" aria-hidden="true" />
+          </button>
+        </div>
+
         <div class="buyers-filters" role="group" aria-label="Filter klien">
           <button
             v-for="filter in filters"
             :key="filter.value"
             type="button"
             :class="['buyers-filter', { active: selectedFilter === filter.value }]"
+            :aria-pressed="selectedFilter === filter.value"
             @click="selectedFilter = filter.value"
           >
             {{ filter.label }} <span>{{ filterCount(filter.value) }}</span>
-          </button>
-        </div>
-
-        <div class="buyers-search">
-          <ion-icon :icon="searchOutline" aria-hidden="true" />
-          <input v-model="query" type="search" placeholder="Cari nama, nomor HP, atau kaveling..." />
-          <button v-if="query" type="button" aria-label="Hapus pencarian" @click="query = ''">
-            <ion-icon :icon="closeOutline" aria-hidden="true" />
           </button>
         </div>
 
@@ -36,10 +38,9 @@
         </div>
 
         <template v-else>
-          <div class="buyers-list-head">
-            <h2>Daftar klien</h2>
-            <span>{{ filteredCustomers.length }}</span>
-          </div>
+          <SectionHeader title="Daftar klien">
+            <span class="buyers-count">{{ filteredCustomers.length }} klien</span>
+          </SectionHeader>
 
           <section v-if="filteredCustomers.length" id="buyers-list-top" class="buyers-list" aria-label="Daftar klien">
             <article v-for="customer in pager.items" :key="customer.id" class="buyer-card" tabindex="0" @click="openCustomer(customer.id)" @keydown.enter.self="openCustomer(customer.id)">
@@ -47,7 +48,7 @@
               <div class="buyer-details">
                 <h3>{{ customer.full_name }}</h3>
                 <p>Telepon: {{ customer.phone || '—' }}</p><p>WhatsApp: {{ customer.whatsapp_phone || '—' }}</p>
-                <small>{{ customer.statusLabel }} · {{ formatDate(customer.created_at) }}</small>
+                <small>Terdaftar: {{ formatDate(customer.created_at) }}</small>
                 <small v-if="customer.registrationSource" class="buyer-source">
                   <ion-icon :icon="personOutline" aria-hidden="true" /> Asal data: {{ customer.registrationSource }}
                 </small>
@@ -59,7 +60,7 @@
           </section>
 
           <div v-else-if="!filteredCustomers.length" class="buyers-state">
-            <ion-icon :icon="peopleOutline" aria-hidden="true" />
+            <img class="buyers-empty-mascot" :src="noResultsMascot" alt="Maskot pencarian tanpa hasil" />
             <strong>Klien tidak ditemukan</strong>
             <p>Coba ubah kata kunci atau filter yang dipilih.</p>
           </div>
@@ -77,6 +78,10 @@
           </button>
         </template>
       </main>
+        <div v-if="!loading && !refreshing && !errorMessage" class="page-footer" aria-hidden="true">
+          <SceneBackdrop class="page-footer__scene" height="100%" :sway="false" />
+        </div>
+      </div>
     </ion-content>
 
     <MobileTabBar variant="admin" />
@@ -181,6 +186,8 @@ import AppPullRefresh from '@/components/common/AppPullRefresh.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { customerService } from '@/services/marketing/customerService'
 import ClientForm from '@/components/client-form/ClientForm.vue'
@@ -194,6 +201,7 @@ import {
 } from '@/utils/clientDraft'
 import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.webp'
 import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.webp'
+import noResultsMascot from '@/assets/mascot/3D Mascot Search_ No Results.png'
 
 type FilterValue = 'all' | 'prospect' | 'follow-up' | 'reviewed' | 'buyer'
 type Customer = {
@@ -541,84 +549,53 @@ useRealtimeRefresh(
 </script>
 
 <style scoped>
-.admin-buyers-page { --buyers-bg: var(--app-background); font-family: var(--font-primary); color: var(--text-primary); }
-.buyers-content { min-height: 100%; padding: 22px 16px calc(112px + var(--safe-bottom)); background: var(--buyers-bg); }
-.buyers-intro h1 { margin: 0; font-size: 24px; letter-spacing: -0.5px; font-weight: var(--font-weight-extrabold); }
-.buyers-intro p { max-width: 340px; margin: 6px 0 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }
-.buyers-filters { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 14px; padding: 0 16px 2px; }
+ion-content { --padding-bottom: 0px; }
+.admin-buyers-page { font-family: var(--font-ui, var(--font-primary)); color: var(--text-primary); }
+.page-wrap { display: flex; flex-direction: column; min-height: 100%; }
+.page-footer { position: relative; flex: 0 0 auto; margin-top: auto; height: calc(200px + var(--safe-bottom)); overflow: hidden; background: linear-gradient(180deg, var(--surface-primary, #fff) 0%, var(--pl-paper, #f9f5ec) 55%); }
+.page-footer__scene :deep(.sun) { top: 0; right: -90px; width: 260px; height: 200px; background: radial-gradient(closest-side, rgba(244, 214, 154, 0.7), rgba(244, 214, 154, 0)); }
+.buyers-content { flex: 1 0 auto; padding: 16px 20px 24px; background: var(--surface-primary); }
+
+.buyers-search { display: flex; align-items: center; gap: 9px; min-height: 52px; padding: 0 4px 0 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
+.buyers-search:focus-within { border-color: var(--poliland-green); outline: 2px solid var(--poliland-green); outline-offset: 1px; }
+.buyers-search > ion-icon { flex-shrink: 0; color: var(--text-secondary); font-size: 20px; }
+.buyers-search input { min-width: 0; width: 100%; flex: 1; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 16px; }
+.buyers-search button { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; background: transparent; color: var(--text-secondary); font-size: 20px; }
+
+/* Bar angka seperti beranda: nilai di atas label, bisa digeser. */
+.buyers-filters { display: flex; margin: 14px 0 28px; padding: 4px; overflow-x: auto; scrollbar-width: none; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-primary); box-shadow: var(--shadow-sm); }
 .buyers-filters::-webkit-scrollbar { display: none; }
-.buyers-filter { min-height: 40px; padding: 0 13px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 12px; white-space: nowrap; }
-.buyers-filter span { margin-left: 4px; color: var(--text-secondary); }
-.buyers-filter.active { border-color: var(--poliland-gold); background: var(--poliland-gold-soft); color: var(--text-primary); }
-.buyers-filter.active span { color: var(--poliland-gold-text-soft); }
-.buyers-search { display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 10px 0 13px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
-.buyers-search > ion-icon { color: var(--text-secondary); font-size: 18px; }
-.buyers-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 16px; }
-.buyers-search button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; background: transparent; color: var(--text-secondary); }
-.buyers-list-head { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 10px; }
-.buyers-list-head h2 { margin: 0; font-size: 16px; font-weight: var(--font-weight-bold); }
-.buyers-list-head span { color: var(--text-secondary); font-size: 12px; font-weight: var(--font-weight-bold); }
+.buyers-filter { display: flex; flex: 1 0 76px; flex-direction: column-reverse; align-items: center; justify-content: flex-end; gap: 2px; min-height: 58px; padding: 8px 4px; border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; line-height: 1.3; cursor: pointer; }
+.buyers-filter + .buyers-filter { box-shadow: -1px 0 0 var(--border-default); }
+.buyers-filter span { color: var(--poliland-green); font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-size: 20px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.buyers-filter.active { background: var(--green-50, #eef3ea); color: var(--poliland-green); font-weight: var(--font-weight-bold); box-shadow: inset 0 -3px 0 var(--poliland-green); }
+.buyers-filter:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: -3px; }
+
+.buyers-count { color: var(--text-secondary); font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
 .buyers-list { display: grid; gap: 12px; }
-.buyer-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 12px; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
-.buyer-avatar { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; font-size: 13px; font-weight: var(--font-weight-bold); }
-.buyer-avatar.mint, .buyer-status.mint { background: var(--status-success-bg); color: var(--poliland-green); }
-.buyer-avatar.gold, .buyer-status.gold { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
-.buyer-avatar.rose, .buyer-status.rose { background: color-mix(in srgb, var(--status-danger) 11%, white); color: var(--status-danger); }
-.buyer-avatar.blue, .buyer-status.blue { background: color-mix(in srgb, var(--poliland-green) 10%, white); color: var(--poliland-green); }
-.buyer-details { min-width: 0; }
-.buyer-details h3 { margin: 0 0 2px; font-size: 14px; font-weight: var(--font-weight-bold); }
-.buyer-details p, .buyer-details small { display: block; margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
-.buyer-source { color: var(--poliland-gold-text-soft) !important; }
-.buyer-source ion-icon { vertical-align: -2px; }
-.buyer-status { align-self: start; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: var(--font-weight-bold); white-space: nowrap; }
-.buyer-chevron { color: var(--text-secondary); font-size: 18px; }
+.buyer-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) 18px; align-items: center; column-gap: 12px; row-gap: 8px; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); box-shadow: var(--shadow-sm); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.buyer-card:active { transform: scale(0.98); }
 .buyer-card:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
-.buyer-detail { margin-top: 14px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
-.buyer-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.buyer-detail-kicker { color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-bold); letter-spacing: .4px; text-transform: uppercase; }
-.buyer-detail h2 { margin: 4px 0 0; font-size: 18px; }
-.buyer-detail-head button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--surface-muted); color: var(--text-secondary); }
-.buyer-detail-grid { display: grid; gap: 8px; margin-top: 14px; }
-.buyer-detail-grid p { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
-.buyer-detail-grid strong { display: block; margin-bottom: 2px; color: var(--text-primary); font-size: 11px; }
-.buyer-detail-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-default); }
-.buyer-detail-section h3 { margin: 0 0 8px; font-size: 13px; }
-.buyer-detail-section ul { display: grid; gap: 7px; margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 12px; }
-.buyer-detail-section li small { display: block; margin-top: 2px; color: var(--text-secondary); }
-.buyer-detail-muted { margin: 0; color: var(--text-secondary); font-size: 12px; }
-.buyers-add { margin-top: 16px; --border-radius: var(--radius-control); }
-.buyers-add ion-icon { margin-right: 5px; font-size: 19px; }
-.buyers-add-floating {
-  position: fixed;
-  right: 16px;
-  bottom: calc(92px + var(--safe-bottom));
-  z-index: 9000;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  margin: 0;
-  min-height: 52px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  appearance: none;
-  --border-radius: 50%;
-  background: var(--poliland-green);
-  color: #fff;
-  font: inherit;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgb(37 37 37 / 16%);
-}
-.buyers-add-floating ion-icon { margin: 0; font-size: 24px; }
+.buyer-avatar { grid-column: 1; grid-row: 1; align-self: start; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; font-size: 14px; font-weight: var(--font-weight-bold); }
+.buyer-avatar.mint, .buyer-status.mint, .buyer-avatar.blue, .buyer-status.blue { background: var(--green-50, #eef3ea); color: var(--poliland-green); }
+.buyer-avatar.gold, .buyer-status.gold { background: var(--gold-50, #fbf5e6); color: var(--poliland-gold-text); }
+.buyer-avatar.rose, .buyer-status.rose { background: color-mix(in srgb, var(--status-danger) 11%, white); color: color-mix(in srgb, var(--status-danger) 70%, black); }
+.buyer-details { grid-column: 2; grid-row: 1; min-width: 0; overflow-wrap: anywhere; }
+.buyer-details h3 { margin: 0 0 3px; font-size: 15px; font-weight: var(--font-weight-bold); }
+.buyer-details p, .buyer-details small { display: block; margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.55; }
+.buyer-source { color: var(--poliland-gold-text) !important; }
+.buyer-source ion-icon { vertical-align: -2px; }
+.buyer-status { grid-column: 2; grid-row: 2; justify-self: start; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: var(--font-weight-bold); white-space: nowrap; }
+.buyer-chevron { grid-column: 3; grid-row: 1 / span 2; color: var(--text-secondary); font-size: 18px; }
+
+.buyers-add-floating { position: fixed; right: 16px; bottom: calc(92px + var(--safe-bottom)); z-index: 9000; display: grid; place-items: center; width: 52px; height: 52px; margin: 0; padding: 0; border: 0; border-radius: 50%; appearance: none; background: var(--poliland-green); color: #fff; cursor: pointer; box-shadow: var(--shadow-md); }
+.buyers-add-floating ion-icon { font-size: 24px; }
 .buyers-add-floating:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 3px; }
-.buyers-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 38px 18px; text-align: center; border: 1px dashed var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
+.buyers-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 38px 8px; text-align: center; }
 .buyers-state ion-icon { font-size: 28px; color: var(--poliland-green); }
+.buyers-empty-mascot { display: block; width: min(180px, 70%); height: 140px; object-fit: contain; }
 .buyers-state p { margin: 0; color: var(--text-secondary); font-size: 13px; }
-@media (max-width: 360px) {
-  .buyer-card { grid-template-columns: 40px minmax(0, 1fr) 12px; gap: 8px; }
-  .buyer-status { grid-column: 2; justify-self: start; grid-row: 2; }
-  .buyers-add-floating { right: 12px; }}
 
 .customer-delete-check { display: grid; gap: 10px; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
 .customer-delete-check p { margin: 0; }
@@ -627,7 +604,8 @@ useRealtimeRefresh(
 .customer-delete-usage-alert img { display: block; width: 84px; height: 84px; object-fit: contain; }
 .customer-delete-usage-alert > div { display: grid; gap: 8px; min-width: 0; }
 .customer-delete-usage-alert ul { margin: 0; }
-
 .customer-delete-ready { display: grid; justify-items: center; gap: 8px; text-align: center; }
 .customer-delete-ready img { display: block; width: 100px; height: 100px; object-fit: contain; }
+
+@media (prefers-reduced-motion: reduce) { .buyer-card:active { transform: none; } }
 </style>

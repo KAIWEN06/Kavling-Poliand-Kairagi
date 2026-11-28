@@ -1,5 +1,5 @@
 <template>
-  <ion-page class="team-page">
+  <ion-page class="pl-admin pl-sheet team-page">
     <AppHeader
       variant="admin"
       title="PoliLand Kairagi"
@@ -7,6 +7,7 @@
     />
 
     <ion-content :fullscreen="true">
+      <AdminPageFill>
       <main class="team-shell">
         <PageBackButton v-if="!selectedMarketing && (currentRole === 'admin' || currentRole === 'owner')" :fallback="currentRole === 'owner' ? '/owner/lainnya' : '/admin/lainnya'" />
 
@@ -21,7 +22,7 @@
               <span v-else>{{ initials(selectedMarketing) }}</span>
             </div>
             <div class="detail-heading__copy">
-              <h1>{{ selectedMarketing.full_name || 'Tanpa nama' }}</h1>Kinerja pemasar
+              <h1>{{ selectedMarketing.full_name || 'Tanpa nama' }}</h1>
               <p>{{ selectedMarketing.email || 'Email tidak tersedia' }}</p>
               <span :class="['status-pill', selectedMarketing.is_active ? 'is-active' : 'is-inactive']">
                 {{ selectedMarketing.is_active ? 'Aktif' : 'Nonaktif' }}
@@ -78,7 +79,7 @@
                   <div><span>Belum dibayarkan</span><strong>{{ currency(marketingDetail.metrics.pending_commission) }}</strong></div>
                   <div><span>Sudah dibayarkan</span><strong>{{ currency(marketingDetail.metrics.paid_commission) }}</strong></div>
                 </div>
-                <p class="helper-text">Komisi dihitung dari tabel marketing_commissions. Status Cancelled tidak dimasukkan ke total.</p>
+                <p class="helper-text">Komisi yang dibatalkan tidak masuk total.</p>
               </div>
             </template>
           </section>
@@ -205,6 +206,7 @@
 
         </template>
       </main>
+      </AdminPageFill>
     </ion-content>
 
     <MobileTabBar v-if="currentRole === 'admin' || currentRole === 'owner'" variant="admin" />
@@ -285,6 +287,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AdminPageFill from '@/components/common/AdminPageFill.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import { authService, type UserRole } from '@/services/auth/authService'
@@ -620,19 +623,19 @@ useRealtimeRefresh(
 .page-heading { display: flex; flex-direction: column; align-items: stretch; gap: 14px; margin-bottom: 18px; }
 .page-heading h1, .detail-heading h1 { margin: 0; color: var(--text-primary); font-size: 23px; font-weight: 700; letter-spacing: -0.035em; }
 .page-heading p:last-child { margin: 5px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
-.eyebrow { margin: 0 0 4px; color: var(--poliland-green); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.eyebrow { margin: 0 0 4px; color: var(--poliland-green); font-size:11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .page-heading :deep(ion-button), .page-heading :deep(button) { width: 100%; min-height: 44px; }
 .team-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-bottom: 18px; }
 .team-stats article { min-width: 0; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .team-stats span, .team-stats strong { display: block; }
-.team-stats span { color: var(--text-secondary); font-size: 10px; }
+.team-stats span { color: var(--text-secondary); font-size:11px; }
 .team-stats strong { margin-top: 7px; font-size: 23px; font-weight: 700; }
 .team-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 4px; margin-bottom: 16px; border: 1px solid var(--border-default); border-radius: 14px; background: var(--surface-muted); }
 .team-tabs button { display: flex; justify-content: center; align-items: center; gap: 7px; min-height: 42px; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: 600; }
 .team-tabs button.selected { background: var(--surface-primary); color: var(--poliland-green); box-shadow: 0 1px 3px rgb(0 0 0 / 7%); }
-.team-tabs button span, .count-pill { padding: 2px 7px; border-radius: 20px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; }
+.team-tabs button span, .count-pill { padding: 2px 7px; border-radius: 20px; background: var(--surface-muted); color: var(--text-secondary); font-size:11px; }
 .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-.filters label, .form-label { display: grid; gap: 6px; color: var(--text-secondary); font-size: 10px; font-weight: 600; }
+.filters label, .form-label { display: grid; gap: 6px; color: var(--text-secondary); font-size:11px; font-weight: 600; }
 .search-field { grid-column: 1 / -1; }
 .search-field > div { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-secondary); }
 .search-field input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 12px; }
@@ -649,13 +652,13 @@ useRealtimeRefresh(
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .member-main { min-width: 0; display: grid; gap: 3px; }
 .member-main strong { overflow: hidden; color: var(--text-primary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.member-main span, .member-main small { overflow: hidden; color: var(--text-secondary); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.member-main span, .member-main small { overflow: hidden; color: var(--text-secondary); font-size:11px; text-overflow: ellipsis; white-space: nowrap; }
 .member-meta { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.role-pill, .status-pill { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border-radius: 20px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; font-weight: 600; }
+.role-pill, .status-pill { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border-radius: 20px; background: var(--surface-muted); color: var(--text-secondary); font-size:11px; font-weight: 600; }
 .role-pill--owner { color: var(--poliland-green); background: #E8EEE5; }
 .status-pill.is-active { color: var(--poliland-green); background: #E8EEE5; }
 .status-pill.is-inactive { color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 11%, white); }
-.text-action { min-height: 36px; padding: 0 9px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 10px; }
+.text-action { min-height: 36px; padding: 0 9px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size:11px; }
 .text-action:disabled { opacity: .5; }
 .marketing-card { display: grid; gap: 12px; }
 .marketing-card__identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -664,10 +667,10 @@ useRealtimeRefresh(
 .marketing-metrics > div { min-width: 0; padding: 9px; border-radius: 11px; background: var(--surface-muted); }
 .marketing-metrics strong, .marketing-metrics span { display: block; }
 .marketing-metrics strong { overflow: hidden; color: var(--text-primary); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
-.marketing-metrics span { margin-top: 3px; color: var(--text-secondary); font-size: 9px; }
-.marketing-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 10px; }
+.marketing-metrics span { margin-top: 3px; color: var(--text-secondary); font-size:11px; }
+.marketing-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--text-secondary); font-size:11px; }
 .marketing-card__actions { display: flex; align-items: center; gap: 8px; }
-.detail-action, .back-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size: 10px; font-weight: 700; }
+.detail-action, .back-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-primary); color: var(--poliland-green); font: inherit; font-size:11px; font-weight: 700; }
 .state-card { padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 .state-card--error { color: var(--status-danger); }
 .state-card button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 9px; background: var(--surface-primary); }
@@ -678,16 +681,16 @@ useRealtimeRefresh(
 .avatar--large { width: 58px; height: 58px; font-size: 17px; }
 .detail-heading__copy { min-width: 0; }
 .detail-heading h1 { font-size: 19px; }
-.detail-heading__copy > p:not(.eyebrow) { overflow: hidden; margin: 3px 0 7px; color: var(--text-secondary); font-size: 10px; text-overflow: ellipsis; }
+.detail-heading__copy > p:not(.eyebrow) { overflow: hidden; margin: 3px 0 7px; color: var(--text-secondary); font-size:11px; text-overflow: ellipsis; }
 .profile-information { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
 .profile-information div { min-width: 0; padding: 11px; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-primary); }
 .profile-information span, .profile-information strong { display: block; }
-.profile-information span { color: var(--text-secondary); font-size: 9px; }
-.profile-information strong { overflow-wrap: anywhere; margin-top: 4px; color: var(--text-primary); font-size: 10px; font-weight: 600; }
+.profile-information span { color: var(--text-secondary); font-size:11px; }
+.profile-information strong { overflow-wrap: anywhere; margin-top: 4px; color: var(--text-primary); font-size:11px; font-weight: 600; }
 .section-heading--filter select { width: 112px; min-height: 38px; }
 .metric-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
 .metric-card { min-width: 0; padding: 12px; border: 1px solid var(--border-default); border-radius: 13px; background: var(--surface-primary); }
-.metric-card span, .metric-card small { display: block; color: var(--text-secondary); font-size: 9px; }
+.metric-card span, .metric-card small { display: block; color: var(--text-secondary); font-size:11px; }
 .metric-card strong { display: block; overflow: hidden; margin: 6px 0 3px; color: var(--text-primary); font-size: 21px; text-overflow: ellipsis; white-space: nowrap; }
 .metric-card--wide { grid-column: 1 / -1; }
 .metric-card--wide strong { font-size: 20px; }
@@ -695,36 +698,36 @@ useRealtimeRefresh(
 .conversion-card__heading { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; }
 .progress-track { height: 8px; overflow: hidden; margin: 9px 0 7px; border-radius: 10px; background: var(--surface-muted); }
 .progress-track span { display: block; height: 100%; border-radius: inherit; background: var(--poliland-green); }
-.conversion-card small, .helper-text { color: var(--text-secondary); font-size: 9px; line-height: 1.5; }
+.conversion-card small, .helper-text { color: var(--text-secondary); font-size:11px; line-height: 1.5; }
 .transaction-summary, .commission-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
 .transaction-summary div, .commission-breakdown div { padding: 11px; border-radius: 12px; background: var(--surface-muted); }
 .transaction-summary span, .commission-breakdown span, .transaction-summary strong, .commission-breakdown strong { display: block; }
-.transaction-summary span, .commission-breakdown span { color: var(--text-secondary); font-size: 9px; }
+.transaction-summary span, .commission-breakdown span { color: var(--text-secondary); font-size:11px; }
 .transaction-summary strong, .commission-breakdown strong { margin-top: 4px; font-size: 13px; }
 .commission-section { margin-top: 18px; }
 .commission-total { padding: 14px; border-radius: 13px; background: #E8EEE5; }
 .commission-total span, .commission-total strong { display: block; color: var(--poliland-green); }
-.commission-total span { font-size: 10px; }
+.commission-total span { font-size:11px; }
 .commission-total strong { margin-top: 5px; font-size: 22px; }
 .helper-text { margin: 8px 0 0; }
 .client-card { display: grid; gap: 10px; }
 .client-card__top { display: flex; align-items: center; gap: 10px; }
 .client-card__identity { min-width: 0; display: grid; gap: 3px; }
 .client-card__identity strong { font-size: 11px; }
-.client-card__identity span, .client-card__identity small { overflow: hidden; color: var(--text-secondary); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.client-card__identity span, .client-card__identity small { overflow: hidden; color: var(--text-secondary); font-size:11px; text-overflow: ellipsis; white-space: nowrap; }
 .client-transactions { display: grid; gap: 7px; padding-top: 9px; border-top: 1px solid var(--border-default); }
 .transaction-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .transaction-row > div { display: grid; gap: 3px; }
-.transaction-row strong { font-size: 10px; }
-.transaction-row small, .no-transaction { color: var(--text-secondary); font-size: 9px; }
+.transaction-row strong { font-size:11px; }
+.transaction-row small, .no-transaction { color: var(--text-secondary); font-size:11px; }
 .no-transaction { margin: 0; }
-.transaction-status, .commission-status { padding: 4px 7px; border-radius: 20px; background: var(--surface-muted); color: var(--text-secondary); font-size: 9px; white-space: nowrap; }
+.transaction-status, .commission-status { padding: 4px 7px; border-radius: 20px; background: var(--surface-muted); color: var(--text-secondary); font-size:11px; white-space: nowrap; }
 .transaction-status.sold, .commission-status.paid { background: #E8EEE5; color: var(--poliland-green); }
 .transaction-status.cancelled, .commission-status.cancelled { background: color-mix(in srgb, var(--status-danger) 11%, white); color: var(--status-danger); }
 .commission-row { display: flex; justify-content: space-between; gap: 10px; }
 .commission-row > div:first-child { min-width: 0; display: grid; gap: 4px; }
-.commission-row strong { font-size: 10px; }
-.commission-row small { color: var(--text-secondary); font-size: 9px; }
+.commission-row strong { font-size:11px; }
+.commission-row small { color: var(--text-secondary); font-size:11px; }
 .commission-row__amount { display: grid; justify-items: end; align-content: start; gap: 6px; white-space: nowrap; }
 .create-form { display: grid; gap: 12px; }
 .edit-description { margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
@@ -744,7 +747,7 @@ useRealtimeRefresh(
 .date-field input:disabled { opacity: .6; }
 .security-note { padding: 11px; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-muted); }
 .security-note strong { display: block; margin-bottom: 4px; font-size: 11px; }
-.security-note p { margin: 0; color: var(--text-secondary); font-size: 10px; line-height: 1.5; }
+.security-note p { margin: 0; color: var(--text-secondary); font-size:11px; line-height: 1.5; }
 
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 @media (min-width: 700px) {

@@ -1,0 +1,146 @@
+/* =====================================================================
+   Tampilan bersama halaman Admin, Client, dan Marketing (mengikuti perintah.txt).
+   Aktif lewat class `pl-admin` pada ion-page. Hanya presentasi.
+   Modal yang dipindah Ionic ke luar halaman tidak terkena.
+   ===================================================================== */
+
+/* Satu lembar putih. Halaman memakai --app-background, jadi cukup token ini. */
+:is(.pl-admin, .pl-client, .pl-marketing) {
+  --app-background: var(--surface-primary, #fff);
+}
+:is(.pl-admin, .pl-client, .pl-marketing) ion-content {
+  --background: var(--surface-primary, #fff);
+}
+
+/* Header putih rata dengan garis 1px, tanpa bayangan. */
+:is(.pl-admin, .pl-client, .pl-marketing) .gmh.app-header { box-shadow: none; }
+:is(.pl-admin, .pl-client, .pl-marketing) .gmh.app-header ion-toolbar { --background: var(--surface-primary, #fff); }
+
+/* Judul serif. */
+:is(.pl-admin, .pl-client, .pl-marketing) h1:not(.sr-only):not(.visually-hidden),
+:is(.pl-admin, .pl-client, .pl-marketing) section h2 {
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+/* Garis emas pendek di bawah judul halaman. */
+:is(.pl-admin, .pl-client, .pl-marketing).team-page main h1::after,
+:is(.pl-admin, .pl-client, .pl-marketing).cms-page main h1::after,
+:is(.pl-admin, .pl-client, .pl-marketing).merge-page main h1::after,
+:is(.pl-admin, .pl-client, .pl-marketing).reviews-admin main h1::after,
+:is(.pl-admin, .pl-client, .pl-marketing) .ui-page-header__title::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--poliland-gold, #cba044);
+}
+
+/* Sentuhan. `scale` terpisah dari `transform`, jadi tidak menimpa transform milik halaman. */
+:is(.pl-admin, .pl-client, .pl-marketing) button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+:is(.pl-admin, .pl-client, .pl-marketing) button:active:not(:disabled) { scale: 0.97; }
+
+/* Di bawah 16px, iOS memperbesar halaman saat input difokuskan. */
+@media (pointer: coarse) {
+  :is(.pl-admin, .pl-client, .pl-marketing) :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+    font-size: 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.pl-admin, .pl-client, .pl-marketing) button:active:not(:disabled) { scale: none; }
+}
+
+/* =====================================================================
+   Halaman Admin satu lembar (class `pl-sheet`), mengikuti beranda.
+   ===================================================================== */
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet { font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif); }
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet ion-content { --padding-bottom: 0px; }
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  padding: 16px 20px 24px;
+  background: var(--surface-primary, #fff);
+}
+
+/* Judul serif; judul section diberi garis emas pendek. */
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main h1 { font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-weight: 650; letter-spacing: -0.02em; }
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.section-heading, .section-head, .spk-list-head, .nav-group, .panel, .review-panel, .mnt__card) h2 {
+  color: var(--text-primary, #252525);
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.section-heading, .section-head, .spk-list-head, .nav-group, .panel, .review-panel, .mnt__card) h2::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--poliland-gold, #cba044);
+}
+
+/* Ringkasan angka: satu bar berpembatas 1px, nilai di atas label. */
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.team-stats, .spk-stats) {
+  gap: 0;
+  padding: 4px;
+  border: 1px solid var(--border-default, #eae7e0);
+  border-radius: 12px;
+  background: var(--surface-primary, #fff);
+  box-shadow: var(--shadow-sm);
+}
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.team-stats article, .spk-stat) {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary, #5f5f66);
+  text-align: center;
+  box-shadow: none;
+}
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.team-stats article, .spk-stat) + :is(article, .spk-stat) { box-shadow: -1px 0 0 var(--border-default, #eae7e0); }
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.team-stats, .spk-stats) span { margin: 0; color: var(--text-secondary, #5f5f66); font-size: 12px; }
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.team-stats, .spk-stats) strong {
+  margin: 0;
+  color: var(--poliland-green, #355a2c);
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
+  font-size: 22px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main .spk-stat.spk-stat-active { background: var(--green-50, #eef3ea); box-shadow: inset 0 -3px 0 var(--poliland-green, #355a2c); }
+
+/* Filter dan tab: tinggi 44px, pilihan aktif hijau muda. */
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.team-tabs, .tabs, .survey-filters, .spk-filters, .spk-source-filters, .mnt__periods) button { min-height: 44px; font-size: 12px; }
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.tabs, .survey-filters, .spk-filters, .spk-source-filters) button { border-radius: 999px; }
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main :is(.team-tabs button.selected, .tabs button.active, .survey-filter.active, .spk-filters button.active, .spk-source-filters button.active) {
+  border-color: var(--poliland-green, #355a2c);
+  background: var(--green-50, #eef3ea);
+  color: var(--poliland-green, #355a2c);
+  font-weight: 700;
+}
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main .survey-filter.active span { color: var(--poliland-green, #355a2c); }
+/* Deretan filter yang melebar sampai tepi mengikuti jarak samping 20px. */
+:is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main .survey-filters { margin-inline: -20px; padding-inline: 20px; }
+
+@media (min-width: 900px) {
+  :is(.pl-admin, .pl-client, .pl-marketing).pl-sheet main { max-width: 1100px; margin-inline: auto; }
+}
+
+/* Tab bar Client melayang di atas isi: sisakan ruang bawah. */
+.pl-client.pl-sheet main { padding-bottom: calc(110px + var(--safe-bottom)); }

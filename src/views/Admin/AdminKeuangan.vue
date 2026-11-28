@@ -1,10 +1,11 @@
 <template>
-  <ion-page class="admin-finance-page">
+  <ion-page class="pl-admin admin-finance-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
     <AppPullRefresh scoped :refresh-handler="refreshTransactions" />
 
     <ion-content :fullscreen="true">
+      <div class="page-wrap">
       <main class="finance-shell">
         <div v-if="paymentPage === 'none'" class="finance-nav">
           <nav class="finance-areas" role="tablist" aria-label="Area keuangan">
@@ -649,7 +650,7 @@
               <template v-if="activeReportTab === 'summary'">
                 <section class="report-total-card report-total-card--monthly">
                   <div class="report-total-top">
-                    <span><ion-icon :icon="walletOutline" aria-hidden="true" /> PEMASUKAN BRUTO ({{ selectedMonthLabel.toUpperCase() }})</span>
+                    <span><ion-icon :icon="walletOutline" aria-hidden="true" /> Pemasukan bruto · {{ selectedMonthLabel }}</span>
                     <span v-if="monthComparison !== null" class="report-growth" :class="{ 'report-growth--down': monthComparison < 0 }">
                       {{ monthComparison >= 0 ? '↑' : '↓' }} {{ Math.abs(monthComparison).toFixed(1) }}% vs {{ previousPeriodNounLabel }}
                     </span>
@@ -1206,6 +1207,10 @@
         </AppModal>
 
       </main>
+        <div v-if="paymentPage === 'none' && !loading && !refreshing && !errorMessage" class="page-footer" aria-hidden="true">
+          <SceneBackdrop class="page-footer__scene" height="100%" :sway="false" />
+        </div>
+      </div>
     </ion-content>
     <MobileTabBar variant="admin" />
     <AppModal
@@ -1243,6 +1248,7 @@ import AppNotice from '@/components/ui/AppNotice.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast, type ToastTone } from '@/composables/useToast'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
 import { resolveErrorVariant } from '@/components/ui/state/stateRegistry'
 import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
@@ -3198,7 +3204,7 @@ useRealtimeRefresh(
 .ledger-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .ledger-totals article { display: grid; gap: 7px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .ledger-count { grid-column: 1 / -1; margin: 0; color: var(--text-secondary); font-size: 11px; }
-.ledger-totals span { color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
+.ledger-totals span { color: var(--text-secondary); font-size: 11px; line-height: 1.4; }
 .ledger-totals strong { color: var(--text-primary); font-size: 16px; overflow-wrap: anywhere; }
 .cancellation-review-page { display: grid; gap: 16px; }
 .cancellation-request-list { display: grid; gap: 12px; }
@@ -3244,15 +3250,15 @@ useRealtimeRefresh(
 .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .panel-heading h2 { margin: 0; color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-bold); }
 .panel-heading p { margin: 5px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
-.panel-period { flex: 0 0 auto; padding: 5px 8px; border-radius: 8px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); }
+.panel-period { flex: 0 0 auto; padding: 5px 8px; border-radius: 8px; background: var(--surface-muted); color: var(--text-secondary); font-size: 11px; font-weight: var(--font-weight-semibold); }
 .monthly-chart { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-height: 176px; margin-top: 18px; padding-top: 8px; }
 .chart-column { display: grid; grid-template-rows: 20px minmax(70px, 1fr) 16px auto; justify-items: center; gap: 6px; min-width: 0; }
-.chart-value { max-width: 100%; overflow: hidden; color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.chart-value { max-width: 100%; overflow: hidden; color: var(--text-secondary); font-size: 11px; font-weight: var(--font-weight-semibold); text-overflow: ellipsis; white-space: nowrap; }
 .chart-track { display: flex; width: min(100%, 48px); height: 100%; align-items: flex-end; gap: 2px; overflow: hidden; border-radius: 8px 8px 3px 3px; background: var(--surface-muted); }
 .chart-bar { display: block; width: 100%; min-height: 0; border-radius: 7px 7px 2px 2px; background: var(--poliland-green); transition: height var(--dur-base) var(--ease-out); }
 .chart-bar--income, .chart-bar--expense { width: calc(50% - 1px); flex: 0 0 calc(50% - 1px); }
 .chart-bar--expense { background: var(--status-danger); }
-.chart-label { color: var(--text-secondary); font-size: 10px; text-transform: capitalize; }
+.chart-label { color: var(--text-secondary); font-size: 11px; text-transform: capitalize; }
 .report-search { display: flex; flex: 0 1 220px; align-items: center; gap: 7px; min-width: 130px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 10px; color: var(--text-secondary); }
 .report-search ion-icon { flex: 0 0 auto; font-size: 16px; }
 .report-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 11px; }
@@ -3270,7 +3276,7 @@ useRealtimeRefresh(
 .bank-account-identity { min-width: 0; }
 .bank-name-line { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .bank-name-line h2 { margin: 0; color: var(--text-primary); font-size: 15px; font-weight: var(--font-weight-semibold); }
-.bank-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 99px; background: var(--status-success-bg); color: var(--poliland-green); font-size: 10px; }
+.bank-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 99px; background: var(--status-success-bg); color: var(--poliland-green); font-size: 11px; }
 .bank-status > span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .bank-status--inactive { background: var(--surface-muted); color: var(--text-secondary); }
 .bank-account-number { display: block; margin-top: 4px; color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-semibold); letter-spacing: .015em; overflow-wrap: anywhere; }
@@ -3281,7 +3287,7 @@ useRealtimeRefresh(
 @media (hover: hover) and (pointer: fine) {
   .bank-icon-action:hover { background: var(--surface-muted); }
 }
-.bank-account-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 12px; color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
+.bank-account-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 12px; color: var(--text-secondary); font-size: 11px; line-height: 1.4; }
 .bank-primary-label { display: inline-flex; align-items: center; gap: 4px; color: var(--poliland-gold-text-soft); font-weight: var(--font-weight-semibold); }
 .bank-primary-label ion-icon { font-size: 13px; }
 .bank-inactive-label { color: var(--status-danger); }
@@ -3301,11 +3307,11 @@ useRealtimeRefresh(
 .instruction-field input, .instruction-field textarea, .instruction-step input { width: 100%; min-width: 0; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 12px; }
 .instruction-field input { min-height: 44px; padding: 0 12px; }
 .instruction-field textarea { min-height: 104px; padding: 11px 12px; line-height: 1.6; resize: vertical; }
-.instruction-field small { color: var(--text-secondary); font-size: 10px; }
+.instruction-field small { color: var(--text-secondary); font-size: 11px; }
 .instruction-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
 .instruction-section-heading h2 { margin: 0; font-size: 13px; }
 .instruction-section-heading p { margin: 4px 0 0; color: var(--text-secondary); font-size: 11px; }
-.instruction-section-heading > span { flex: 0 0 auto; color: var(--text-secondary); font-size: 10px; }
+.instruction-section-heading > span { flex: 0 0 auto; color: var(--text-secondary); font-size: 11px; }
 .instruction-steps { display: grid; gap: 8px; }
 .instruction-step { display: grid; grid-template-columns: 28px minmax(0, 1fr) 36px; align-items: center; gap: 8px; min-width: 0; padding: 7px 8px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
 .instruction-step-number { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 50%; background: var(--status-success-bg); color: var(--poliland-green); font-size: 11px; font-weight: var(--font-weight-bold); }
@@ -3319,7 +3325,7 @@ useRealtimeRefresh(
 .instruction-publish-toggle input { flex: 0 0 auto; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--poliland-green); }
 .instruction-publish-toggle strong, .instruction-publish-toggle small { display: block; }
 .instruction-publish-toggle strong { color: var(--text-primary); font-size: 11px; }
-.instruction-publish-toggle small { margin-top: 4px; color: var(--text-secondary); font-size: 10px; line-height: 1.45; }
+.instruction-publish-toggle small { margin-top: 4px; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
 .instruction-actions { display: grid; gap: 9px; }
 .instruction-save { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 16px; border: 1px solid var(--poliland-gold); border-radius: var(--radius-control); background: var(--poliland-gold); color: #252525; font: inherit; font-size: 12px; font-weight: var(--font-weight-bold); cursor: pointer; }
 .instruction-save ion-icon { font-size: 17px; }
@@ -3334,8 +3340,8 @@ useRealtimeRefresh(
 .finance-tabs { display: flex; gap: 8px; margin-top: 18px; overflow-x: auto; scrollbar-width: none; }.finance-tabs::-webkit-scrollbar { display: none; }
 .finance-tabs button { min-height: 42px; padding: 0 13px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); white-space: nowrap; cursor: pointer; }.finance-tabs button span { margin-left: 4px; }.finance-tabs button.active { border-color: var(--poliland-gold); background: var(--poliland-gold-soft); color: var(--text-primary); }
 .finance-search { display: flex; align-items: center; gap: 9px; min-height: 46px; margin-top: 12px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }.finance-search > ion-icon { color: var(--text-secondary); font-size: 18px; }.finance-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 13px; }.finance-search button { display: grid; width: 32px; height: 32px; place-items: center; border: 0; background: transparent; color: var(--text-secondary); }
-.transaction-list { display: grid; gap: 12px; margin-top: 16px; }.transaction-card { min-width: 0; padding: 15px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }.transaction-head { display: flex; align-items: center; gap: 10px; }.customer-mark { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 12px; font-size: 12px; font-weight: var(--font-weight-bold); }.customer-mark--pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }.customer-mark--verified { background: var(--status-success-bg); color: var(--poliland-green); }.customer-mark--overdue { background: color-mix(in srgb, var(--status-danger) 11%, white); color: var(--status-danger); }.transaction-customer { min-width: 0; flex: 1; }.transaction-customer h2 { margin: 0; font-size: 14px; }.transaction-customer p { margin: 3px 0 0; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }.status-badge { flex: 0 0 auto; padding: 5px 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 10px; font-weight: var(--font-weight-semibold); }.status-badge--pending { color: var(--poliland-gold-text); background: var(--poliland-gold-soft); }.status-badge--verified { color: var(--poliland-green); background: var(--status-success-bg); }.status-badge--overdue { color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 10%, white); }
-.transaction-details { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); }.transaction-details strong { display: block; margin-top: 4px; font-size: 18px; }.transaction-details time { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 10px; text-align: right; }.transaction-actions { display: flex; gap: 8px; margin-top: 12px; }.transaction-actions button { min-height: 44px; padding: 0 12px; border-radius: var(--radius-control); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.spk-link-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; color: var(--poliland-green); border-color: var(--poliland-green); }
+.transaction-list { display: grid; gap: 12px; margin-top: 16px; }.transaction-card { min-width: 0; padding: 15px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }.transaction-head { display: flex; align-items: center; gap: 10px; }.customer-mark { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 12px; font-size: 12px; font-weight: var(--font-weight-bold); }.customer-mark--pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }.customer-mark--verified { background: var(--status-success-bg); color: var(--poliland-green); }.customer-mark--overdue { background: color-mix(in srgb, var(--status-danger) 11%, white); color: var(--status-danger); }.transaction-customer { min-width: 0; flex: 1; }.transaction-customer h2 { margin: 0; font-size: 14px; }.transaction-customer p { margin: 3px 0 0; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }.status-badge { flex: 0 0 auto; padding: 5px 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 11px; font-weight: var(--font-weight-semibold); }.status-badge--pending { color: var(--poliland-gold-text); background: var(--poliland-gold-soft); }.status-badge--verified { color: var(--poliland-green); background: var(--status-success-bg); }.status-badge--overdue { color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 10%, white); }
+.transaction-details { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); }.transaction-details strong { display: block; margin-top: 4px; font-size: 18px; }.transaction-details time { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 11px; text-align: right; }.transaction-actions { display: flex; gap: 8px; margin-top: 12px; }.transaction-actions button { min-height: 44px; padding: 0 12px; border-radius: var(--radius-control); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }.spk-link-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; color: var(--poliland-green); border-color: var(--poliland-green); }
 .spk-link-action:active { transform: scale(0.97); }
 .primary-action { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--poliland-green); background: var(--poliland-green); color: #fff; }.quiet-action { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-secondary); }.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
@@ -3356,7 +3362,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
   .report-total-card { padding: 13px; }
   .report-total-card > strong { font-size: 19px; }
   .monthly-chart { gap: 6px; }
-  .chart-value { font-size: 9px; }
+  .chart-value { font-size: 11px; }
 }
 @media (max-width: 360px) {.transaction-details { align-items: flex-start; flex-direction: column; }.transaction-details time { text-align: left; } }
 .report-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 10px 0 16px; }
@@ -3366,11 +3372,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-total-card--monthly .report-total-top > span:first-child { display: inline-flex; align-items: center; gap: 7px; }
 .report-total-card--monthly .report-total-top ion-icon { padding: 7px; border-radius: 9px; background: var(--surface-muted); color: var(--poliland-gold-text); font-size: 17px; }
 .report-total-card--monthly > strong { color: var(--text-primary); font-size: clamp(23px, 6vw, 29px); letter-spacing: -.04em; }
-.report-growth { flex: 0 0 auto; padding: 5px 7px; border-radius: 7px; background: var(--status-success-bg); color: var(--poliland-green); font-size: 10px; }
+.report-growth { flex: 0 0 auto; padding: 5px 7px; border-radius: 7px; background: var(--status-success-bg); color: var(--poliland-green); font-size: 11px; }
 .report-growth--down { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
 .report-income-sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .report-income-sources > div { min-width: 0; padding: 11px; border-radius: var(--radius-control); background: var(--surface-muted); }
-.report-income-sources span, .report-income-sources small { display: block; color: var(--text-secondary); font-size: 10px; }
+.report-income-sources span, .report-income-sources small { display: block; color: var(--text-secondary); font-size: 11px; }
 .report-income-sources span { display: flex; align-items: center; gap: 5px; }
 .report-income-sources strong { display: block; margin: 6px 0 3px; color: var(--text-primary); font-size: 14px; overflow-wrap: anywhere; }
 .report-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
@@ -3382,7 +3388,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .monthly-chart--dense .chart-value{ display: none; }
 .monthly-chart--dense .chart-column { grid-template-rows: minmax(70px, 1fr) 16px; }
 .monthly-chart--dense .chart-track { width: min(100%, 22px); }
-.monthly-chart--dense .chart-label { font-size: 9px; }
+.monthly-chart--dense .chart-label { font-size: 11px; }
 .report-toolbar--period { flex-direction: column; align-items: stretch; }
 .report-period { display: grid; gap: 8px; }
 .report-granularity { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 999px; background: var(--surface-muted); }
@@ -3398,19 +3404,19 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 
 .export-button ion-spinner { width: 16px; height: 16px; }
 .chart-bar--peak { background: var(--poliland-gold); }
-.report-panel .panel-period { padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-primary); font-size: 10px; }
+.report-panel .panel-period { padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-primary); font-size: 11px; }
 .report-recent-section { display: grid; gap: 10px; margin-top: 24px; }
 .report-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .report-section-heading h2 { margin: 0; font-size: 15px; }
-.report-section-heading > span { color: var(--text-secondary); font-size: 10px; }
+.report-section-heading > span { color: var(--text-secondary); font-size: 11px; }
 .report-recent-card { display: flex; min-width: 0; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .report-recent-icon { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: var(--surface-muted); color: var(--text-secondary); font-size: 19px; }
 .report-recent-icon.is-confirmed { background: var(--status-success-bg); color: var(--poliland-green); }
 .report-recent-icon.is-outflow { background: color-mix(in srgb, var(--status-danger) 12%, var(--surface-primary)); color: var(--status-danger); }
 .report-recent-main { flex: 1; min-width: 0; }
 .report-recent-main strong { display: block; font-size: 12px; }
-.report-recent-main p { margin: 3px 0; color: var(--text-secondary); font-size: 10px; overflow-wrap: anywhere; }
-.report-recent-main small, .report-recent-amount small { color: var(--text-secondary); font-size: 9px; }
+.report-recent-main p { margin: 3px 0; color: var(--text-secondary); font-size: 11px; overflow-wrap: anywhere; }
+.report-recent-main small, .report-recent-amount small { color: var(--text-secondary); font-size: 11px; }
 .report-recent-amount { flex: 0 0 auto; text-align: right; }
 .report-recent-amount strong { display: block; font-size: 12px; white-space: nowrap; }
 .report-text-confirmed { color: var(--poliland-green) !important; }
@@ -3419,7 +3425,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-list-intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin: 18px 0 12px; }
 .report-list-intro h1 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
 .report-list-intro p { max-width: 270px; margin: 4px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
-.report-list-intro > span { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; }
+.report-list-intro > span { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 11px; }
 .report-search--full { width: 100%; min-height: 44px; margin: 0 0 14px; }
 .report-search--full input { min-width: 0; }
 .report-search--full button { display: grid; flex: 0 0 32px; width: 32px; height: 32px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); }
@@ -3427,18 +3433,18 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-lot-card, .report-buyer-card { min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); box-shadow: 0 3px 12px rgb(37 37 37 / 4%); }
 .report-lot-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .report-lot-card-heading h2 { margin: 0; font-size: 13px; }
-.report-lot-card-heading p { margin: 4px 0 0; color: var(--text-secondary); font-size: 10px; }
+.report-lot-card-heading p { margin: 4px 0 0; color: var(--text-secondary); font-size: 11px; }
 .report-lot-card-heading p strong { color: var(--text-primary); font-weight: var(--font-weight-medium); }
-.report-lot-status { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 9px; font-weight: var(--font-weight-semibold); }
+.report-lot-status { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 11px; font-weight: var(--font-weight-semibold); }
 .report-lot-status--paid { background: var(--status-success-bg); color: var(--poliland-green); }
 .report-lot-status--ongoing { background: var(--surface-muted); color: var(--text-secondary); }
 .report-lot-status--cancelled { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
 .report-lot-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 13px 0; padding: 12px 8px; border-radius: var(--radius-control); background: var(--surface-muted); }
 .report-lot-metrics > div { min-width: 0; text-align: center; }
-.report-lot-metrics span { display: block; color: var(--text-secondary); font-size: 9px; }
+.report-lot-metrics span { display: block; color: var(--text-secondary); font-size: 11px; }
 .report-lot-metrics strong { display: block; margin-top: 4px; color: var(--text-primary); font-size: 11px; overflow-wrap: anywhere; }
-.report-lot-progress-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 10px; }
-.report-lot-progress-label > strong { color: var(--text-primary); font-size: 10px; text-align: right; }
+.report-lot-progress-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 11px; }
+.report-lot-progress-label > strong { color: var(--text-primary); font-size: 11px; text-align: right; }
 .report-lot-progress-label small { color: var(--text-secondary); font-weight: var(--font-weight-regular); }
 .report-progress-track { height: 7px; overflow: hidden; margin-top: 7px; border-radius: 999px; background: var(--border-default); }
 .report-progress-track > span { display: block; height: 100%; border-radius: inherit; background: var(--poliland-gold); }
@@ -3449,15 +3455,15 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-buyer-avatar { display: grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; border-radius: 50%; background: var(--surface-muted); color: var(--poliland-gold-text-soft); font-size: 12px; font-weight: var(--font-weight-bold); }
 .report-buyer-identity { flex: 1; min-width: 0; }
 .report-buyer-identity h2 { margin: 0; font-size: 13px; }
-.report-buyer-identity p { margin: 3px 0 0; color: var(--text-secondary); font-size: 10px; }
-.report-buyer-count { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--status-success-bg); color: var(--poliland-green); font-size: 9px; }
+.report-buyer-identity p { margin: 3px 0 0; color: var(--text-secondary); font-size: 11px; }
+.report-buyer-count { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--status-success-bg); color: var(--poliland-green); font-size: 11px; }
 .report-buyer-balance { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); }
-.report-buyer-balance span { display: block; color: var(--text-secondary); font-size: 9px; }
+.report-buyer-balance span { display: block; color: var(--text-secondary); font-size: 11px; }
 .report-buyer-balance strong { display: block; margin-top: 4px; font-size: 11px; overflow-wrap: anywhere; }
 .report-buyer-lots { display: grid; gap: 7px; margin-top: 11px; }
-.report-buyer-lots span { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 10px; }
+.report-buyer-lots span { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 11px; }
 .report-buyer-lots ion-icon { font-size: 13px; }
-.report-buyer-lots small { color: var(--text-secondary); font-size: 9px; }
+.report-buyer-lots small { color: var(--text-secondary); font-size: 11px; }
 .report-detail-back { margin: 16px 0; }
 .report-detail-back button { display: inline-flex; min-height: 40px; align-items: center; gap: 5px; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 12px; cursor: pointer; }
 .report-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 16px; }
@@ -3469,29 +3475,29 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-lot-identity h2 { margin: 0; font-size: 15px; }
 .report-lot-identity p { margin: 4px 0 0; color: var(--text-secondary); font-size: 11px; }
 .report-contact-row { padding: 11px; border-radius: var(--radius-control); background: var(--surface-muted); }
-.report-contact-row span, .report-contact-row small { display: block; color: var(--text-secondary); font-size: 10px; }
+.report-contact-row span, .report-contact-row small { display: block; color: var(--text-secondary); font-size: 11px; }
 .report-contact-row strong { display: block; margin: 3px 0; font-size: 13px; }
 .report-detail-section-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .report-detail-section-title h2 { margin: 0; font-size: 14px; }
-.report-detail-section-title > span { color: var(--text-secondary); font-size: 10px; }
+.report-detail-section-title > span { color: var(--text-secondary); font-size: 11px; }
 .report-balance-box { padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); }
-.report-balance-top, .report-balance-meta { display: flex; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 10px; }
+.report-balance-top, .report-balance-meta { display: flex; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 11px; }
 .report-balance-top span:last-child { color: var(--poliland-green); }
 .report-balance-box > strong { display: block; margin: 7px 0 10px; font-size: 22px; letter-spacing: -.03em; }
 .report-balance-meta b { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
 .report-detail-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.report-detail-stats span { display: block; color: var(--text-secondary); font-size: 10px; }
+.report-detail-stats span { display: block; color: var(--text-secondary); font-size: 11px; }
 .report-detail-stats strong { display: block; margin-top: 4px; font-size: 12px; }
-.report-installment-info { display: grid; grid-template-columns: 1fr auto; gap: 9px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; }
-.report-installment-info strong { color: var(--text-primary); font-size: 10px; text-align: right; }
+.report-installment-info { display: grid; grid-template-columns: 1fr auto; gap: 9px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-secondary); font-size: 11px; }
+.report-installment-info strong { color: var(--text-primary); font-size: 11px; text-align: right; }
 .report-detail-history { display: grid; gap: 10px; margin: 20px 0; }
 .report-payment-history-card { padding: 13px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .report-payment-history-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .report-payment-status-group { display: grid; justify-items: end; gap: 4px; }
 .report-payment-history-top strong, .report-payment-history-top small { display: block; }
-.report-payment-history-top strong { color: var(--poliland-gold-text); font-size: 10px; }
-.report-payment-history-top small { margin-top: 3px; color: var(--text-secondary); font-size: 9px; }
-.report-payment-status { flex: 0 0 auto; padding: 5px 7px; border-radius: 999px; background: var(--surface-muted); font-size: 9px; }
+.report-payment-history-top strong { color: var(--poliland-gold-text); font-size: 11px; }
+.report-payment-history-top small { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
+.report-payment-status { flex: 0 0 auto; padding: 5px 7px; border-radius: 999px; background: var(--surface-muted); font-size: 11px; }
 .report-payment-status--confirmed { background: var(--status-success-bg); color: var(--poliland-green); }
 .report-payment-status--pending { background: var(--poliland-gold-soft); color: var(--poliland-gold-text-soft); }
 .report-payment-status--rejected { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
@@ -3499,15 +3505,15 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .report-payment-history-amount { margin: 10px 0 6px; font-size: 20px; font-weight: var(--font-weight-bold); }
 .report-payment-history-meta span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .report-payment-history-meta span:last-child { flex: 0 0 auto; }
-.report-payment-history-meta { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 9px; border-bottom: 1px solid var(--border-default); color: var(--text-secondary); font-size: 10px; }
-.report-payment-history-card p { margin: 9px 0 0; color: var(--text-secondary); font-size: 10px; }
+.report-payment-history-meta { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 9px; border-bottom: 1px solid var(--border-default); color: var(--text-secondary); font-size: 11px; }
+.report-payment-history-card p { margin: 9px 0 0; color: var(--text-secondary); font-size: 11px; }
 .report-detail-back button:focus-visible, .report-detail-button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 @media (max-width: 600px) {
   .report-toolbar { justify-content: space-between; }
   .report-toolbar .export-button { width: auto; }
-  .report-lot-metrics strong { font-size: 10px; }
+  .report-lot-metrics strong { font-size: 11px; }
   .report-recent-card { align-items: flex-start; }
-  .report-recent-amount strong { font-size: 10px; }
+  .report-recent-amount strong { font-size: 11px; }
 }
 @media (max-width: 360px) {
   .report-income-sources { gap: 6px; }
@@ -3519,14 +3525,14 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .payment-plans-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 14px 2px 14px; }
 .payment-plans-heading h1 { margin: 0; color: var(--text-primary); font-size: 18px; font-weight: var(--font-weight-bold); letter-spacing: -.02em; }
 .payment-plans-description { max-width: 460px; margin: 5px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
-.payment-plans-count { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 10px; }
+.payment-plans-count { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 11px; }
 .payment-plan-list { display: grid; gap: 9px; }
 .payment-plan-card { display: grid; gap: 15px; padding: 14px 12px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); box-shadow: 0 2px 8px rgb(35 35 35 / 3%); }
 .payment-plan-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .payment-plan-tenor { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .payment-plan-calendar { display: none; }
 .payment-plan-tenor h2 { margin: 0; color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-semibold); }
-.payment-plan-months { color: var(--text-secondary); font-size: 10px; }
+.payment-plan-months { color: var(--text-secondary); font-size: 11px; }
 .payment-plan-card-bottom { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; }
 .payment-plan-margin { display: flex; min-height: 30px; align-items: center; justify-content: center; padding: 4px 12px; border-radius: var(--radius-control); background: var(--poliland-gold-soft); color: var(--poliland-gold-text); font-size: 14px; font-weight: var(--font-weight-bold); }
 .payment-plan-actions { display: flex; align-items: center; gap: 6px; }
@@ -3539,7 +3545,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .payment-plan-delete-content { display: grid; justify-items: center; gap: 10px; padding: 6px 0 10px; text-align: center; }
 .payment-plan-delete-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--status-danger) 9%, white); color: var(--status-danger); font-size: 22px; }
 .payment-plan-delete-content p { margin: 0; color: var(--text-primary); font-size: 13px; line-height: 1.5; }
-.payment-plan-delete-content small { color: var(--text-secondary); font-size: 10px; line-height: 1.5; }
+.payment-plan-delete-content small { color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 @media (max-width: 600px) {
   .payment-plans-page { padding-top: 28px; }
   .payment-plans-heading { align-items: flex-start; }
@@ -3559,19 +3565,19 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .proof-status-banner--rejected { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
 .proof-status-icon { display: grid; flex: 0 0 36px; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: color-mix(in srgb, currentColor 14%, white); font-size: 20px; }
 .proof-status-banner strong { flex: 1; font-size: 13px; }
-.proof-status-banner time { padding: 6px 9px; border-radius: 999px; background: var(--surface-primary); color: var(--text-secondary); font-size: 10px; white-space: nowrap; }
+.proof-status-banner time { padding: 6px 9px; border-radius: 999px; background: var(--surface-primary); color: var(--text-secondary); font-size: 11px; white-space: nowrap; }
 .proof-info-card, .proof-total-card, .proof-file-card, .payment-step-card { overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); box-shadow: 0 2px 8px rgb(35 35 35 / 3%); }
 .proof-info-card { padding: 15px; }
 .proof-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
 .proof-card-heading h1, .proof-file-card h2 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 14px; }
 .proof-card-heading h1 ion-icon, .proof-file-card h2 ion-icon { color: var(--poliland-gold-text); font-size: 19px; }
-.proof-reference { display: inline-flex; max-width: 58%; align-items: center; gap: 5px; padding: 6px 8px; overflow: hidden; border: 0; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font: inherit; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.proof-reference { display: inline-flex; max-width: 58%; align-items: center; gap: 5px; padding: 6px 8px; overflow: hidden; border: 0; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font: inherit; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .proof-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 12px; }
 .proof-info-grid > div { min-width: 0; }
-.proof-info-grid span, .proof-info-grid small { display: block; color: var(--text-secondary); font-size: 10px; }
+.proof-info-grid span, .proof-info-grid small { display: block; color: var(--text-secondary); font-size: 11px; }
 .proof-info-grid strong { display: block; margin: 3px 0; color: var(--text-primary); font-size: 13px; overflow-wrap: anywhere; }
 .proof-total-card { display: grid; gap: 7px; padding: 16px; }
-.proof-eyebrow { color: var(--text-secondary); font-size: 10px; letter-spacing: .03em; }
+.proof-eyebrow { color: var(--text-secondary); font-size: 11px; letter-spacing: .03em; }
 .proof-total-card > strong { color: var(--poliland-gold-text); font-size: clamp(24px, 7vw, 30px); letter-spacing: -.04em; }
 .proof-total-card > p { margin: 0 0 5px; color: var(--text-secondary); font-size: 11px; }
 .proof-allocation-list { display: grid; gap: 0; padding: 7px 10px; border-radius: var(--radius-control); background: var(--surface-muted); }
@@ -3580,7 +3586,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .proof-file-card { display: grid; gap: 13px; padding: 15px; }
 .proof-preview { display: grid; min-height: 190px; justify-items: center; align-content: center; gap: 10px; padding: 12px; border: 0; border-radius: var(--radius-control); background: var(--surface-muted); cursor: zoom-in; }
 .proof-preview img { display: block; max-width: 100%; max-height: 280px; object-fit: contain; border-radius: 5px; }
-.proof-preview small { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); font-size: 10px; }
+.proof-preview small { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); font-size: 11px; }
 .proof-pdf-preview { display: grid; justify-items: center; gap: 8px; color: var(--poliland-gold-text); font-size: 14px; }
 .proof-pdf-preview ion-icon { font-size: 46px; }
 .proof-no-file { padding: 14px; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-secondary); font-size: 11px; text-align: center; }
@@ -3613,7 +3619,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .proof-refund-heading div { display: grid; gap: 3px; }
 .proof-refund-heading span, .proof-refund-details dt { color: var(--text-secondary); font-size: 11px; }
 .proof-refund-heading strong { font-size: 14px; }
-.refund-status-badge { min-height: 28px; padding: 6px 9px; border-radius: var(--radius-control); background: var(--poliland-gold-soft); color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-semibold); }
+.refund-status-badge { min-height: 28px; padding: 6px 9px; border-radius: var(--radius-control); background: var(--poliland-gold-soft); color: var(--poliland-gold-text); font-size: 11px; font-weight: var(--font-weight-semibold); }
 .refund-status-badge--done { background: var(--status-success-bg); color: var(--poliland-green); }
 .proof-refund-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .proof-refund-details div { display: grid; gap: 3px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-muted); }
@@ -3624,7 +3630,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .refund-field input:focus-visible, .refund-field textarea:focus-visible { outline: 3px solid color-mix(in srgb, var(--poliland-green) 35%, transparent); outline-offset: 2px; }
 .refund-field textarea { resize: vertical; }
 .refund-upload { display: grid; gap: 6px; min-height: 44px; padding: 10px 12px; border: 1px dashed var(--border-default); border-radius: var(--radius-control); font-size: 11px; }
-.refund-upload input { min-height: 44px; font-size: 10px; }
+.refund-upload input { min-height: 44px; font-size: 11px; }
 .refund-upload span { color: var(--text-secondary); }
 
 .proof-refund-submit { min-height: 46px; border: 0; border-radius: var(--radius-control); background: var(--poliland-green); color: #fff; font: inherit; font-size: 12px; font-weight: var(--font-weight-semibold); cursor: pointer; }
@@ -3637,16 +3643,16 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .payment-step-card > header > span { display: grid; flex: 0 0 30px; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: var(--poliland-gold-soft); color: var(--poliland-gold-text); font-size: 12px; font-weight: var(--font-weight-bold); }
 .payment-step-card > header strong, .payment-step-card > header small { display: block; }
 .payment-step-card > header strong { font-size: 13px; }
-.payment-step-card > header small { margin-top: 3px; color: var(--text-secondary); font-size: 10px; }
+.payment-step-card > header small { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
 .payment-step-body { display: grid; gap: 12px; padding: 14px; }
-.payment-step-body > label:not(.payment-schedule-option):not(.payment-proof-upload) { color: var(--text-secondary); font-size: 10px; }
+.payment-step-body > label:not(.payment-schedule-option):not(.payment-proof-upload) { color: var(--text-secondary); font-size: 11px; }
 .payment-identity-row { display: flex; align-items: center; gap: 10px; padding: 11px; border-radius: var(--radius-control); background: var(--surface-muted); }
 .payment-identity-icon { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: var(--poliland-gold-soft); color: var(--poliland-gold-text); font-size: 18px; }
 .payment-identity-icon--lot { background: var(--status-success-bg); color: var(--poliland-green); }
 .payment-identity-row > div { min-width: 0; }
 .payment-identity-row strong, .payment-identity-row small { display: block; }
 .payment-identity-row strong { font-size: 12px; }
-.payment-identity-row small { margin-top: 3px; color: var(--text-secondary); font-size: 10px; }
+.payment-identity-row small { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
 .payment-price-summary { display: grid; gap: 8px; padding: 12px; border-radius: var(--radius-control); background: var(--surface-muted); }
 .payment-price-summary span { display: flex; justify-content: space-between; gap: 10px; color: var(--text-secondary); font-size: 11px; }
 .payment-price-summary strong { color: var(--text-primary); text-align: right; }
@@ -3664,12 +3670,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .payment-schedule-copy { min-width: 0; }
 .payment-schedule-copy strong, .payment-schedule-copy small { display: block; }
 .payment-schedule-copy strong { font-size: 11px; }
-.payment-schedule-copy small { margin-top: 3px; color: var(--text-secondary); font-size: 10px; }
-.payment-schedule-status { grid-column: 2; justify-self: start; margin-top: -4px; padding: 3px 6px; border-radius: 6px; background: var(--surface-primary); color: var(--text-secondary); font-size: 9px; }
+.payment-schedule-copy small { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
+.payment-schedule-status { grid-column: 2; justify-self: start; margin-top: -4px; padding: 3px 6px; border-radius: 6px; background: var(--surface-primary); color: var(--text-secondary); font-size: 11px; }
 .payment-schedule-status--overdue { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
 .payment-schedule-amount { grid-column: 3; grid-row: 1 / span 2; font-size: 11px; white-space: nowrap; }
 .payment-total-summary { display: grid; gap: 7px; margin-top: 5px; padding: 14px; border-radius: var(--radius-card); background: var(--poliland-gold-soft); color: var(--poliland-gold-text); }
-.payment-total-summary > span { font-size: 10px; }
+.payment-total-summary > span { font-size: 11px; }
 .payment-total-summary > strong { font-size: 12px; }
 .payment-total-summary > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 5px; }
 .payment-total-summary > div span { font-size: 12px; font-weight: var(--font-weight-semibold); }
@@ -3684,7 +3690,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .payment-proof-upload > span:nth-of-type(2) { flex: 1; min-width: 0; }
 .payment-proof-upload strong, .payment-proof-upload small { display: block; overflow-wrap: anywhere; }
 .payment-proof-upload strong { font-size: 11px; }
-.payment-proof-upload small { margin-top: 3px; color: var(--text-secondary); font-size: 9px; }
+.payment-proof-upload small { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
 .payment-proof-upload button { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 0; background: transparent; color: var(--text-secondary); font-size: 19px; cursor: pointer; }
 .payment-save-button { width: 100%; min-height: 49px; box-shadow: 0 3px 8px rgb(35 35 35 / 10%); }
 .payment-save-button:disabled, .proof-review-actions button:disabled { opacity: .55; cursor: not-allowed; }
@@ -3693,23 +3699,23 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .installment-detail-number { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: var(--status-success-bg); color: var(--poliland-green); font-size: 11px; font-weight: var(--font-weight-semibold); }
 .installment-detail-row > div:nth-child(2) strong, .installment-detail-row > div:nth-child(2) small { display: block; }
 .installment-detail-row > div:nth-child(2) strong { font-size: 11px; }
-.installment-detail-row > div:nth-child(2) small { margin-top: 3px; color: var(--text-secondary); font-size: 10px; }
+.installment-detail-row > div:nth-child(2) small { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
 .installment-detail-amount { display: grid; justify-items: end; gap: 4px; }
 .installment-detail-amount > strong { font-size: 11px; white-space: nowrap; }
-.installment-status { padding: 3px 6px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 9px; }
+.installment-status { padding: 3px 6px; border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); font-size: 11px; }
 .installment-status--paid { background: var(--status-success-bg); color: var(--poliland-green); }
 .installment-status--overdue { background: color-mix(in srgb, var(--status-danger) 10%, white); color: var(--status-danger); }
 .installment-status--pending { background: var(--surface-muted); color: var(--text-secondary); }
 .report-contact-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.report-contact-action { display: inline-flex; min-height: 36px; align-items: center; gap: 5px; padding: 0 9px; border-radius: 9px; background: var(--surface-primary); color: var(--text-primary); font-size: 10px; text-decoration: none; white-space: nowrap; }
-.report-proof-link { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; margin-top: 10px; padding: 0; border: 0; background: transparent; color: var(--poliland-gold-text); font: inherit; font-size: 10px; font-weight: var(--font-weight-semibold); cursor: pointer; }
+.report-contact-action { display: inline-flex; min-height: 36px; align-items: center; gap: 5px; padding: 0 9px; border-radius: 9px; background: var(--surface-primary); color: var(--text-primary); font-size: 11px; text-decoration: none; white-space: nowrap; }
+.report-proof-link { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; margin-top: 10px; padding: 0; border: 0; background: transparent; color: var(--poliland-gold-text); font: inherit; font-size: 11px; font-weight: var(--font-weight-semibold); cursor: pointer; }
 .report-add-payment-button { width: min(100%, 280px); min-height: 48px; margin: 24px auto 8px; border-radius: 999px; box-shadow: 0 4px 10px rgb(35 35 35 / 10%); }
 @media (max-width: 360px) {
   .proof-info-grid { gap: 13px 8px; }
   .proof-card-heading { align-items: flex-start; flex-direction: column; }
   .proof-reference { max-width: 100%; }
   .payment-schedule-option { grid-template-columns: 18px minmax(0, 1fr) auto; gap: 6px; padding: 8px; }
-  .payment-schedule-amount { font-size: 10px; }
+  .payment-schedule-amount { font-size: 11px; }
 }
 
 .finance-skeleton { display: grid; gap: 12px; }
@@ -3814,4 +3820,59 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .ledger-journal li { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; padding: 10px; border-radius: var(--radius-control); background: var(--surface-muted); font-size: 12px; }
 .ledger-journal li strong { grid-column: 1 / -1; overflow-wrap: anywhere; }
 .ledger-journal li span { color: var(--text-secondary); }
+
+/* ---------- Tampilan mengikuti beranda ---------- */
+ion-content { --padding-bottom: 0px; }
+.admin-finance-page { font-family: var(--font-ui, var(--font-primary)); }
+.page-wrap { display: flex; flex-direction: column; min-height: 100%; }
+.finance-shell { box-sizing: border-box; flex: 1 0 auto; width: 100%; padding: 16px 20px 24px; background: var(--surface-primary); }
+/* Footer selalu di dasar halaman, juga saat isinya pendek. */
+.page-footer { position: relative; flex: 0 0 auto; height: calc(200px + var(--safe-bottom)); overflow: hidden; background: linear-gradient(180deg, var(--surface-primary, #fff) 0%, var(--pl-paper, #f9f5ec) 55%); }
+.page-footer__scene :deep(.sun) { top: 0; right: -90px; width: 260px; height: 200px; background: radial-gradient(closest-side, rgba(244, 214, 154, 0.7), rgba(244, 214, 154, 0)); }
+
+/* Navigasi: area memakai bar berpembatas 1px, bagian memakai pil hijau. */
+.finance-nav { margin: -16px -20px 18px; padding: 12px 20px 10px; background: var(--surface-primary); }
+.finance-areas { gap: 0; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-primary); box-shadow: var(--shadow-sm); }
+.finance-area { border-radius: 9px; color: var(--text-secondary); }
+.finance-area + .finance-area { box-shadow: -1px 0 0 var(--border-default); }
+.finance-area ion-icon { font-size: 20px; }
+.finance-area--active { background: var(--green-50, #eef3ea); color: var(--poliland-green); font-weight: var(--font-weight-bold); box-shadow: inset 0 -3px 0 var(--poliland-green); }
+.finance-subnav button.is-active { border-color: var(--poliland-green); background: var(--poliland-green); color: #fff; }
+
+.finance-tabs { margin-top: 0; }
+.finance-tabs button { min-height: 44px; border-radius: 999px; }
+.finance-tabs button.active { border-color: var(--poliland-green); background: var(--green-50, #eef3ea); color: var(--poliland-green); font-weight: var(--font-weight-bold); }
+.finance-search { min-height: 52px; }
+.finance-search:focus-within { border-color: var(--poliland-green); outline: 2px solid var(--poliland-green); outline-offset: 1px; }
+
+/* Judul section serif dengan garis emas pendek. */
+.panel-heading h2, .report-section-heading h2, .report-detail-section-title h2, .payment-plans-heading h1, .cancellation-review-page .ledger-heading h1, .instruction-section-heading h2 {
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-size: 22px; font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; color: var(--text-primary);
+}
+.panel-heading h2::after, .report-section-heading h2::after, .report-detail-section-title h2::after, .payment-plans-heading h1::after, .cancellation-review-page .ledger-heading h1::after, .instruction-section-heading h2::after {
+  content: ''; display: block; width: 40px; height: 3px; margin-top: 8px; border-radius: 999px; background: var(--poliland-gold);
+}
+
+/* Angka utama. */
+.report-total-card--monthly > strong, .report-metric-card > strong, .ledger-totals dd, .finance-figures__total dd, .transaction-details strong {
+  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-weight: 650; letter-spacing: -0.01em;
+}
+.report-total-card--monthly { box-shadow: var(--shadow-sm); }
+.report-total-card--monthly > strong { color: var(--poliland-green); font-size: clamp(28px, 8vw, 34px); }
+.report-total-card--monthly .report-total-top { flex-wrap: wrap; font-size: 12px; }
+.report-total-card--monthly .report-total-top ion-icon { background: var(--gold-50, #fbf5e6); }
+/* Dua sumber pemasukan dalam satu bar. */
+.report-income-sources { gap: 0; border: 1px solid var(--border-default); border-radius: 12px; }
+.report-income-sources > div { padding: 11px 12px; border-radius: 0; background: transparent; }
+.report-income-sources > div + div { border-left: 1px solid var(--border-default); }
+.report-income-sources span, .report-income-sources small { font-size: 12px; }
+.report-metric-card > strong { color: var(--poliland-green); }
+.transaction-details strong { font-size: 17px; }
+
+.report-panel { margin-top: 24px; padding: 0; border: 0; border-radius: 0; }
+.transaction-card, .report-lot-card, .report-buyer-card, .report-recent-card, .report-detail-card, .payment-plan-card, .ledger-item, .bank-account-card, .cancellation-review-card, .payment-step-card { box-shadow: var(--shadow-sm); }
+.report-granularity { background: var(--green-50, #eef3ea); }
+.report-granularity button { min-height: 44px; }
+.report-granularity button.is-active { color: var(--poliland-green); font-weight: var(--font-weight-bold); }
+.finance-shell button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <ion-page class="profile-page">
+  <ion-page :class="['profile-page', { 'pl-marketing': isMarketing }]">
     <AppHeader variant="admin" />
 
     <ion-content class="account-content" :fullscreen="true">
@@ -72,7 +72,7 @@
 
           <!-- Kartu Formulir -->
           <section class="account-card" aria-label="Formulir informasi pribadi">
-            <h2 class="card-section-title">Informasi Pribadi</h2>
+            <h2 class="card-section-title">Informasi pribadi</h2>
 
             <form class="profile-form" @submit.prevent="saveInfo">
               <div class="form-field">
@@ -91,7 +91,7 @@
                 </ion-item>
               </div>
 
-              <div class="form-field">
+              <div v-if="!isMarketing" class="form-field">
                 <ion-label class="field-label">Email</ion-label>
                 <ion-item lines="none" class="input-item input-item--readonly">
                   <ion-input :value="profile.email || '-'" readonly aria-label="Email" />
@@ -99,7 +99,7 @@
               </div>
 
               <div class="form-grid">
-                <div class="form-field">
+                <div v-if="!isMarketing" class="form-field">
                   <ion-label class="field-label">Peran</ion-label>
                   <ion-item lines="none" class="input-item input-item--readonly">
                     <ion-input :value="roleLabel || '-'" readonly aria-label="Peran" />
@@ -120,7 +120,7 @@
               <ion-button class="save-button" type="submit" expand="block" :disabled="!dirty || saving">
                 <ion-spinner v-if="saving" slot="start" name="crescent" />
                 <ion-icon v-else slot="start" :icon="saveOutline" />
-                {{ saving ? 'Menyimpan...' : 'Simpan Perubahan' }}
+                {{ saving ? 'Menyimpan...' : 'Simpan perubahan' }}
               </ion-button>
             </form>
           </section>
@@ -128,7 +128,7 @@
           <!-- Kartu Sesi & Keluar Akun -->
           <section class="account-card account-session-card" aria-label="Pengaturan sesi akun">
             <div class="session-copy">
-              <h2 class="card-section-title">Sesi Akun</h2>
+              <h2 class="card-section-title">Sesi akun</h2>
               <p class="session-desc">
                 Keluar dari akun jika Anda menggunakan perangkat bersama atau ingin berganti akun.
               </p>
@@ -222,6 +222,8 @@ const tabVariant = computed(() => {
       return 'public'
   }
 })
+
+const isMarketing = computed(() => profile.value?.role === 'marketing')
 
 const showLogoutConfirm = ref(false)
 
@@ -786,4 +788,19 @@ async function saveAvatar(file: File) {
 .input-item--readonly {
   opacity: 0.8;
 }
+
+/* Marketing: satu lembar putih (perintah.txt). Role lain tidak terkena. */
+.pl-marketing .account-content { --padding-bottom: 0px; }
+.pl-marketing .account-page { gap: 24px; padding: 16px 20px calc(120px + var(--safe-bottom)); font-family: var(--font-ui); }
+.pl-marketing .account-card { padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+.pl-marketing .card-section-title { font-family: var(--font-display); font-size: 22px; font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; }
+.pl-marketing .card-section-title::after { content: ''; display: block; width: 40px; height: 3px; margin-top: 8px; border-radius: 999px; background: var(--poliland-gold); }
+.pl-marketing .profile-name { font-family: var(--font-display); font-size: 22px; font-weight: 650; white-space: normal; overflow-wrap: anywhere; }
+.pl-marketing .profile-email { white-space: normal; overflow-wrap: anywhere; }
+.pl-marketing .avatar-change-btn { min-height: 44px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.pl-marketing .avatar-change-btn:active:not(:disabled) { transform: scale(0.97); }
+.pl-marketing .input-item { --min-height: 48px; }
+.pl-marketing .input-item ion-input { font-size: 16px; }
+.pl-marketing .save-button { --box-shadow: none; }
+.pl-marketing .logout-button { min-height: 48px; }
 </style>

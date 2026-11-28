@@ -2,6 +2,7 @@
   <div
     v-show="!detailOpen && !keyboardVisible && !modalVisible"
     class="mobile-footer"
+    :class="{ 'is-docked': isDocked }"
   >
 
     <div class="bottom-nav">
@@ -36,7 +37,7 @@
           :class="['nav-item', { active: isActive('/beranda-admin') }]"
           @click="goTo('/beranda-admin')"
         >
-          <span class="icon-wrap"><ion-icon :icon="homeOutline" /></span>
+          <span class="icon-wrap"><ion-icon :icon="isActive('/beranda-admin') ? home : homeOutline" aria-hidden="true" /></span>
           <span class="nav-label">Beranda</span>
         </button>
 
@@ -45,7 +46,7 @@
           :class="['nav-item', { active: isActive('/admin/kavling') }]"
           @click="goTo('/admin/kavling')"
         >
-          <span class="icon-wrap"><ion-icon :icon="gridOutline" /></span>
+          <span class="icon-wrap"><ion-icon :icon="isActive('/admin/kavling') ? grid : gridOutline" aria-hidden="true" /></span>
           <span class="nav-label">Kaveling</span>
         </button>
 
@@ -54,7 +55,7 @@
           :class="['nav-item', { active: isActive('/admin/pembeli') }]"
           @click="goTo('/admin/pembeli')"
         >
-          <span class="icon-wrap"><ion-icon :icon="peopleOutline" /></span>
+          <span class="icon-wrap"><ion-icon :icon="isActive('/admin/pembeli') ? people : peopleOutline" aria-hidden="true" /></span>
           <span class="nav-label">Klien</span>
         </button>
 
@@ -63,7 +64,7 @@
           :class="['nav-item', { active: isActive('/admin/keuangan') }]"
           @click="goTo('/admin/keuangan')"
         >
-          <span class="icon-wrap"><ion-icon :icon="walletOutline" /></span>
+          <span class="icon-wrap"><ion-icon :icon="isActive('/admin/keuangan') ? wallet : walletOutline" aria-hidden="true" /></span>
           <span class="nav-label">Keuangan</span>
         </button>
 
@@ -72,7 +73,7 @@
           :class="['nav-item', { active: isActive('/admin/lainnya') }]"
           @click="goTo('/admin/lainnya')"
         >
-          <span class="icon-wrap"><ion-icon :icon="menuOutline" /></span>
+          <span class="icon-wrap"><ion-icon :icon="isActive('/admin/lainnya') ? menu : menuOutline" aria-hidden="true" /></span>
           <span class="nav-label">Lainnya</span>
         </button>
 
@@ -85,7 +86,7 @@
     :class="['nav-item', { active: isActive('/beranda-client') }]"
     @click="goTo('/beranda-client')"
   >
-    <span class="icon-wrap"><ion-icon :icon="homeOutline" /></span>
+    <span class="icon-wrap"><ion-icon :icon="isActive('/beranda-client') ? home : homeOutline" aria-hidden="true" /></span>
     <span class="nav-label">Beranda</span>
   </button>
 
@@ -94,7 +95,7 @@
     :class="['nav-item', { active: isActive('/client/kavling') }]"
     @click="goTo('/client/kavling')"
   >
-    <span class="icon-wrap"><ion-icon :icon="gridOutline" /></span>
+    <span class="icon-wrap"><ion-icon :icon="isActive('/client/kavling') ? grid : gridOutline" aria-hidden="true" /></span>
     <span class="nav-label">Kaveling</span>
   </button>
 
@@ -103,7 +104,7 @@
     :class="['nav-item', { active: isActive('/client/pembayaran') }]"
     @click="goTo('/client/pembayaran')"
   >
-    <span class="icon-wrap"><ion-icon :icon="documentTextOutline" /></span>
+    <span class="icon-wrap"><ion-icon :icon="isActive('/client/pembayaran') ? documentText : documentTextOutline" aria-hidden="true" /></span>
     <span class="nav-label">Pembayaran</span>
   </button>
 
@@ -112,7 +113,7 @@
     :class="['nav-item', { active: isActive('/client/dokumen') }]"
     @click="goTo('/client/dokumen')"
   >
-    <span class="icon-wrap"><ion-icon :icon="documentsOutline" /></span>
+    <span class="icon-wrap"><ion-icon :icon="isActive('/client/dokumen') ? documents : documentsOutline" aria-hidden="true" /></span>
     <span class="nav-label">SPK</span>
   </button>
 
@@ -121,7 +122,7 @@
     :class="['nav-item', { active: isActive('/akun') }]"
     @click="goTo('/akun')"
   >
-    <span class="icon-wrap"><ion-icon :icon="personOutline" /></span>
+    <span class="icon-wrap"><ion-icon :icon="isActive('/akun') ? person : personOutline" aria-hidden="true" /></span>
     <span class="nav-label">Akun</span>
   </button>
 </template>
@@ -154,7 +155,7 @@
           :aria-current="isActive(item.path) ? 'page' : undefined"
           @click="goTo(item.path)"
         >
-          <span class="icon-wrap"><ion-icon :icon="item.icon" aria-hidden="true" /></span>
+          <span class="icon-wrap"><ion-icon :icon="isActive(item.path) ? item.activeIcon : item.icon" aria-hidden="true" /></span>
           <span class="nav-label">{{ item.label }}</span>
         </button>
       </template>
@@ -176,7 +177,7 @@
           @click="goTo('/home')"
         >
           <span class="icon-wrap">
-            <ion-icon :icon="homeOutline" />
+            <ion-icon :icon="isActive('/home') ? home : homeOutline" aria-hidden="true" />
           </span>
 
           <span class="nav-label">
@@ -195,7 +196,7 @@
           @click="goTo('/siteplan')"
         >
           <span class="icon-wrap">
-            <ion-icon :icon="mapOutline" />
+            <ion-icon :icon="isActive('/siteplan') ? map : mapOutline" aria-hidden="true" />
           </span>
 
           <span class="nav-label">
@@ -214,7 +215,7 @@
           @click="goTo('/progress')"
         >
           <span class="icon-wrap">
-            <ion-icon :icon="constructOutline" />
+            <ion-icon :icon="isActive('/progress') ? construct : constructOutline" aria-hidden="true" />
           </span>
 
           <span class="nav-label">
@@ -233,7 +234,7 @@
           @click="goTo('/gallery')"
         >
           <span class="icon-wrap">
-            <ion-icon :icon="imagesOutline" />
+            <ion-icon :icon="isActive('/gallery') ? images : imagesOutline" aria-hidden="true" />
           </span>
 
           <span class="nav-label">
@@ -252,7 +253,7 @@
           @click="goTo('/contact')"
         >
           <span class="icon-wrap">
-            <ion-icon :icon="callOutline" />
+            <ion-icon :icon="isActive('/contact') ? call : callOutline" aria-hidden="true" />
           </span>
 
           <span class="nav-label">
@@ -277,6 +278,15 @@ import { Keyboard } from '@capacitor/keyboard'
 import type { PluginListenerHandle } from '@capacitor/core'
 
 import {
+  home,
+  map,
+  construct,
+  images,
+  call,
+  grid,
+  people,
+  wallet,
+  menu,
   homeOutline,
   mapOutline,
   constructOutline,
@@ -290,6 +300,10 @@ import {
   menuOutline,
   walletOutline,
   peopleOutline,
+  checkmarkDone,
+  documentText,
+  documents,
+  person,
   pulseOutline,
   barChartOutline,
 } from 'ionicons/icons'
@@ -310,11 +324,11 @@ const ownerTabs = [
 ]
 
 const marketingTabs = [
-  { path: '/beranda-marketing', label: 'Beranda', icon: homeOutline },
-  { path: '/kavling', label: 'Kaveling', icon: gridOutline },
-  { path: '/marketing/clients', label: 'Klien', icon: peopleOutline },
-  { path: '/marketing/tindak-lanjut', label: 'Tindak lanjut', icon: checkmarkDoneOutline },
-  { path: '/marketing/more', label: 'Lainnya', icon: menuOutline },
+  { path: '/beranda-marketing', label: 'Beranda', icon: homeOutline, activeIcon: home },
+  { path: '/kavling', label: 'Kaveling', icon: gridOutline, activeIcon: grid },
+  { path: '/marketing/clients', label: 'Klien', icon: peopleOutline, activeIcon: people },
+  { path: '/marketing/tindak-lanjut', label: 'Tindak lanjut', icon: checkmarkDoneOutline, activeIcon: checkmarkDone },
+  { path: '/marketing/more', label: 'Lainnya', icon: menuOutline, activeIcon: menu },
 ]
 
 /* Tab Marketing menyala untuk rutenya sendiri, anak rutenya, dan halaman turunan di bawah. */
@@ -363,6 +377,18 @@ const props = withDefaults(
 const isOwner = computed(() =>
   props.variant === 'owner' ||
   (props.variant === 'admin' && Boolean(route.path) && readIdentity()?.role === 'owner'),
+)
+
+/** Tab bar menempel rata untuk situs publik, Admin, Client, dan Marketing. Peran lain tetap melayang. */
+const isDocked = computed(() =>
+  !isOwner.value && (
+    props.variant === 'public' ||
+    props.variant === 'admin' ||
+    props.variant === 'client' ||
+    props.variant === 'marketing' ||
+    route.path.startsWith('/admin/') ||
+    route.path.startsWith('/client/')
+  ),
 )
 
 const detailOpen = ref(false)
@@ -740,6 +766,36 @@ function isActive(path: string) {
   transform: scale(0.96);
 }
 
+
+/* =====================================================
+   PUBLIK, ADMIN, CLIENT, dan MARKETING: menempel rata di bawah. Aktif = ikon terisi + label hijau.
+   ===================================================== */
+
+@media (max-width: 1023px) {
+  .mobile-footer.is-docked {
+    --tab-bar-height: 60px;
+    padding: 0;
+  }
+
+  .is-docked .bottom-nav {
+    padding: 0 4px calc(2px + var(--safe-bottom));
+    border-width: 1px 0 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .is-docked .nav-item { height: 59px; transition: color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+  .is-docked .nav-item .icon-wrap,
+  .is-docked .nav-item.active .icon-wrap { width: 28px; height: 28px; background: transparent; transition: none; }
+  .is-docked .nav-item ion-icon,
+  .is-docked .nav-item.active ion-icon { font-size: 22px; transform: none; transition: none; }
+  .is-docked .nav-label { line-height: 1.35; transition: none; }
+  .is-docked .nav-item.active::after { content: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item:active { transform: none; }
+}
 
 /* =====================================================
    DESKTOP / TABLET LANDSCAPE (>= 1024px): sidebar kiri

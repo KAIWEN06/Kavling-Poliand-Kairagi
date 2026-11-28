@@ -19,7 +19,6 @@ import {
   informationCircleOutline,
   locationOutline,
   mailOutline,
-  mapOutline,
   peopleOutline,
   personOutline,
   walletOutline,
@@ -39,6 +38,7 @@ import {
 } from '@/services/clientSpkService'
 import { lotService, type LotRecord } from '@/services/lotService'
 import { supabase } from '@/services/config/supabase'
+import { bankAccountService, type BankAccountRecord } from '@/services/Finance/bankAccountService'
 import { DEFAULT_SPK_BOOKING_FEE } from '@/services/Finance/paymentService'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
 import SpkOrderTerms from '@/components/spk/SpkOrderTerms.vue'
@@ -68,7 +68,10 @@ const useDownPayment = ref(false)
 const downPaymentManual = ref(false)
 const downPaymentPreset = ref<number | null>(null)
 const customDpPercent = ref(30)
-const accountCopied = ref(false)
+const bankAccounts = ref<BankAccountRecord[]>([])
+const banksState = ref<'loading' | 'ready' | 'error'>('loading')
+const copiedAccountId = ref<string | null>(null)
+let copiedTimer: number | undefined
 const documentError = ref('')
 const saveError = ref('')
 const saving = ref(false)
@@ -363,13 +366,30 @@ function handleDownPaymentInput(event: Event) {
   }
 }
 
-async function copyBankAccount() {
-  const accountNumber = '021-8899-234'
+/* Rekening tujuan diatur Admin; tidak ada nomor cadangan di kode. */
+async function loadBankAccounts({ silent = false } = {}) {
+  if (!silent) banksState.value = 'loading'
   try {
-    await navigator.clipboard.writeText(accountNumber)
-    accountCopied.value = true
-    window.setTimeout(() => {
-      accountCopied.value = false
+    bankAccounts.value = await bankAccountService.getActiveBankAccounts()
+    banksState.value = 'ready'
+  } catch (error) {
+    console.error('[SPK Klien] Gagal memuat rekening tujuan:', error)
+    // Pembaruan senyap yang gagal tidak menghapus rekening yang sudah tampil.
+    if (!silent) banksState.value = 'error'
+  }
+}
+
+function formatAccountNumber(value: string) {
+  return value.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim()
+}
+
+async function copyBankAccount(account: BankAccountRecord) {
+  try {
+    await navigator.clipboard.writeText(account.account_number.replace(/\s+/g, ''))
+    copiedAccountId.value = account.id
+    window.clearTimeout(copiedTimer)
+    copiedTimer = window.setTimeout(() => {
+      copiedAccountId.value = null
     }, 1800)
   } catch (error) {
     console.error('[SPK Klien] Gagal menyalin nomor rekening:', error)
@@ -532,6 +552,7 @@ onMounted(() => {
   void identityForm.load()
   void addressGate.refresh()
   void loadAvailableBookingFees()
+  void loadBankAccounts()
 })
 
 /* Kembali dari halaman Akun: ambil lagi alamat dan identitas yang baru dilengkapi. */
@@ -557,6 +578,9 @@ async function refreshLotAvailability() {
   }
 }
 
+/* Rekening diperbarui terpisah agar tetap jalan walau kaveling gagal dimuat ulang. */
+useRealtimeRefresh(['bank_accounts'], () => loadBankAccounts({ silent: banksState.value === 'ready' }))
+
 useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability, {
   pauseWhen: () => lotLoading.value || saving.value || submissionComplete.value,
 })
@@ -564,7 +588,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 </script>
 
 <template>
-  <ion-page class="client-spk-page">
+  <ion-page class="pl-client client-spk-page">
     <AppHeader variant="client" />
 
     <ion-content class="client-spk-content" :fullscreen="true">
@@ -572,8 +596,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
         <PageBackButton fallback="/client/kavling" label="Kaveling" />
         <header class="spk-page-heading">
           <div>
-            <span class="spk-eyebrow">PENGAJUAN PEMBELIAN</span>
-            <h1>{{ submissionComplete ? 'SPK Berhasil Dikirim' : 'Formulir Pembuatan SPK' }}</h1>
+            <h1>{{ submissionComplete ? 'SPK berhasil dikirim' : 'Formulir SPK' }}</h1>
             <p>
               {{ submissionComplete
                 ? 'Pengajuan Anda tersimpan dan menunggu pemeriksaan admin.'
@@ -606,10 +629,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
         <template v-else-if="lot">
           <section class="spk-card" aria-labelledby="buyer-title">
             <div class="spk-card-heading">
-              <span class="spk-heading-icon">
-                <ion-icon :icon="personOutline" aria-hidden="true" />
-              </span>
-              <h2 id="buyer-title">Informasi Pembeli</h2>
+              <h2 id="buyer-title">Informasi pembeli</h2>
             </div>
 
             <div class="spk-card-body buyer-fields">
@@ -712,10 +732,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
           <section class="spk-card" aria-labelledby="lot-title">
             <div class="spk-card-heading">
-              <span class="spk-heading-icon">
-                <ion-icon :icon="mapOutline" aria-hidden="true" />
-              </span>
-              <h2 id="lot-title">Informasi Kaveling</h2>
+              <h2 id="lot-title">Informasi kaveling</h2>
             </div>
 
             <div class="spk-card-body lot-form-body">
@@ -751,11 +768,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
           <section class="spk-card" aria-labelledby="payment-confirmation-title">
             <div class="spk-card-heading spk-payment-heading">
-              <span class="spk-heading-icon">
-                <ion-icon :icon="walletOutline" aria-hidden="true" />
-              </span>
               <div>
-                <h2 id="payment-confirmation-title">Konfirmasi Pembayaran</h2>
+                <h2 id="payment-confirmation-title">Pembayaran</h2>
                 <p>Pilih skema pembelian. Pembayaran saat pengajuan adalah tanda jadi.</p>
               </div>
             </div>
@@ -917,26 +931,44 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
               <section v-if="showTransferAccount" class="spk-transfer-card" aria-labelledby="transfer-account-title">
                 <div class="spk-transfer-heading">
-                  <h3 id="transfer-account-title">Rekening Tujuan Transfer</h3>
-                  <span>Resmi Pengembang</span>
+                  <h3 id="transfer-account-title">Rekening tujuan transfer</h3>
                 </div>
 
-                <div class="spk-bank-card">
-                  <div class="spk-bank-name-row">
-                    <span class="spk-bank-mark">BCA</span>
-                    <div>
-                      <strong>Bank BCA (Rekening Utama)</strong>
-                      <span>a/n PT PoliLand Kairagi</span>
+                <p v-if="banksState === 'loading'" class="spk-plan-message" role="status">
+                  Memuat rekening tujuan...
+                </p>
+                <AppNotice
+                  v-else-if="banksState === 'error'"
+                  tone="error"
+                  message="Rekening belum dapat dimuat. Jangan mentransfer sebelum nomornya tampil."
+                  action-label="Coba lagi"
+                  @action="loadBankAccounts()"
+                />
+                <AppNotice v-else-if="!bankAccounts.length" tone="warning">
+                  Admin belum mencantumkan rekening. Tanyakan dulu sebelum mentransfer.
+                </AppNotice>
+                <template v-else>
+                  <div v-for="account in bankAccounts" :key="account.id" class="spk-bank-card">
+                    <div class="spk-bank-name-row">
+                      <div>
+                        <strong>{{ account.bank_name }}</strong>
+                        <span>a.n. {{ account.account_holder }}</span>
+                        <span v-if="account.description">{{ account.description }}</span>
+                      </div>
+                    </div>
+                    <div class="spk-account-number-row">
+                      <strong>{{ formatAccountNumber(account.account_number) }}</strong>
+                      <button
+                        type="button"
+                        :aria-label="`Salin nomor rekening ${account.bank_name}`"
+                        @click="copyBankAccount(account)"
+                      >
+                        <ion-icon :icon="copiedAccountId === account.id ? checkmarkOutline : copyOutline" aria-hidden="true" />
+                        {{ copiedAccountId === account.id ? 'Tersalin' : 'Salin' }}
+                      </button>
                     </div>
                   </div>
-                  <div class="spk-account-number-row">
-                    <strong>021-8899-234</strong>
-                    <button type="button" @click="copyBankAccount">
-                      <ion-icon :icon="accountCopied ? checkmarkOutline : copyOutline" aria-hidden="true" />
-                      {{ accountCopied ? 'Tersalin' : 'Salin' }}
-                    </button>
-                  </div>
-                </div>
+                </template>
 
                 <div class="spk-transfer-breakdown">
                   <div>
@@ -944,7 +976,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
                     <strong>{{ formatCurrency(transferAmount) }}</strong>
                   </div>
                   <div class="spk-transfer-total">
-                    <span>Total Wajib Ditransfer Sekarang</span>
+                    <span>Total transfer sekarang</span>
                     <strong>{{ formatCurrency(transferAmount) }}</strong>
                   </div>
                   <small>Tanda jadi terpisah dari uang muka. Uang muka atau pelunasan dilakukan setelah SPK disetujui.</small>
@@ -959,9 +991,6 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
             aria-labelledby="reuse-title"
           >
             <div class="spk-card-heading">
-              <span class="spk-heading-icon">
-                <ion-icon :icon="walletOutline" aria-hidden="true" />
-              </span>
               <div>
                 <h2 id="reuse-title">Tanda jadi sebelumnya</h2>
                 <p>Gunakan pembayaran yang sudah dikonfirmasi bagian Keuangan tanpa transfer atau verifikasi ulang.</p>
@@ -1015,11 +1044,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
           <section class="spk-card" aria-labelledby="documents-title">
             <div class="spk-card-heading spk-documents-heading">
-              <span class="spk-heading-icon">
-                <ion-icon :icon="documentTextOutline" aria-hidden="true" />
-              </span>
               <div>
-                <h2 id="documents-title">Dokumen Pendukung</h2>
+                <h2 id="documents-title">Dokumen pendukung</h2>
                 <p>KTP dan KK wajib. NPWP opsional. Bukti transfer tanda jadi wajib kecuali menggunakan tanda jadi sebelumnya.</p>
               </div>
             </div>
@@ -1054,7 +1080,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
                       @change="updateDocument(field.key, $event)"
                     />
                     <ion-icon :icon="cloudUploadOutline" aria-hidden="true" />
-                    {{ documents[field.key] ? 'Ganti File' : 'Pilih File' }}
+                    {{ documents[field.key] ? 'Ganti file' : 'Pilih file' }}
                   </label>
                   <span v-if="documents[field.key]" class="spk-file-name">
                     {{ documents[field.key]?.name }}
@@ -1106,38 +1132,33 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 </template>
 
 <style scoped>
-.client-spk-page,
-.client-spk-content {
-  --background: var(--app-background, #faf9f6);
-  color: var(--text-primary, #252525);
-  font-family: var(--font-primary, var(--ion-font-family, sans-serif));
+
+.client-spk-page, .client-spk-content {
+  --background: var(--surface-primary);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
 }
 
 .spk-shell {
   display: grid;
   width: min(100%, 760px);
-  gap: 16px;
+  gap: 28px;
   margin: 0 auto;
-  padding: 18px 16px calc(106px + var(--safe-bottom));
+  padding: 12px 20px calc(106px + var(--safe-bottom));
 }
 
 .spk-page-heading {
   padding: 2px 2px 4px;
 }
 
-.spk-eyebrow {
-  color: var(--poliland-gold-text-soft, #805708);
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold, 600);
-  letter-spacing: 0.08em;
-}
-
 .spk-page-heading h1 {
-  margin: 5px 0 6px;
-  color: var(--text-primary, #252525);
-  font-size: clamp(21px, 3.8vw, 26px);
-  font-weight: var(--font-weight-bold, 700);
-  line-height: 1.25;
+  margin: 0 0 6px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(27px, 7.6vw, 34px);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
 }
 
 .spk-page-heading p {
@@ -1148,67 +1169,43 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-card {
-  overflow: hidden;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 14px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 3px 10px rgb(37 37 37 / 7%);
+  min-width: 0;
 }
 
 .spk-card-heading {
-  display: flex;
-  min-height: 68px;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  background: var(--surface-muted, #fbf8f2);
-}
-
-.spk-heading-icon,
-.spk-document-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--poliland-gold-soft, #f7edd5);
-}
-
-.spk-heading-icon {
-  width: 48px;
-  height: 48px;
-}
-
-.spk-heading-icon ion-icon {
-  font-size: 24px;
+  margin-bottom: 14px;
 }
 
 .spk-card-heading h2 {
   margin: 0;
-  color: var(--poliland-gold-text-soft, #805708);
-  font-size: 17px;
-  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
-.spk-documents-heading {
-  align-items: flex-start;
+.spk-card-heading h2::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--poliland-gold);
 }
 
-.spk-documents-heading .spk-heading-icon {
-  margin-top: 2px;
-}
-
-.spk-documents-heading p {
-  margin: 5px 0 0;
-  color: var(--text-secondary, #717178);
-  font-size: 12px;
-  line-height: 1.45;
+.spk-card-heading p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .spk-card-body {
   display: grid;
   gap: 14px;
-  padding: 16px;
 }
 
 .buyer-fields {
@@ -1228,10 +1225,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
   font-weight: var(--font-weight-semibold, 600);
 }
 
-.spk-field > label span,
-.spk-label-row label span,
-.spk-document-heading em {
-  color: var(--status-danger, #d94b45);
+.spk-field > label span, .spk-label-row label span, .spk-document-heading em {
+  color: var(--danger-text);
   font-style: normal;
 }
 
@@ -1248,21 +1243,21 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
   align-items: center;
   gap: 12px;
   padding: 0 13px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 4px rgb(37 37 37 / 7%);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
 }
 
 .spk-input-wrap:focus-within {
-  border-color: var(--poliland-gold, #cba044);
-  outline: 3px solid rgb(203 160 68 / 16%);
+  border-color: var(--poliland-green);
+  outline: 2px solid var(--poliland-green);
+  outline-offset: 1px;
 }
 
 .spk-input-wrap > ion-icon {
   flex: 0 0 auto;
-  color: var(--poliland-gold-text-soft, #a27c35);
-  font-size: 21px;
+  color: var(--poliland-green);
+  font-size: 20px;
 }
 
 .spk-input-wrap input,
@@ -1313,9 +1308,9 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
   height: 40px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 50%;
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--poliland-gold-soft, #f7edd5);
+  border-radius: var(--radius-control);
+  color: var(--poliland-green);
+  background: var(--green-50);
 }
 
 .spk-lot-summary-icon ion-icon {
@@ -1341,12 +1336,12 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 .spk-lot-status {
   flex: 0 0 auto;
   margin-left: auto;
-  padding: 7px 10px;
+  padding: 6px 10px;
   border-radius: 999px;
-  color: var(--poliland-green, #355a2c);
-  background: var(--status-success-bg, #eaf7ef);
-  font-size: 11px;
-  font-weight: var(--font-weight-medium, 500);
+  color: var(--poliland-green);
+  background: var(--green-50);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .spk-select-wrap select {
@@ -1399,8 +1394,9 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-scheme-options button.selected {
-  border-color: var(--poliland-green, #355a2c);
-  background: var(--status-success-bg, #eaf7ef);
+  border-color: var(--poliland-green);
+  color: var(--poliland-green);
+  background: var(--green-50);
 }
 
 .scheme-radio {
@@ -1425,10 +1421,9 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 .spk-payment-lot-card {
   display: grid;
   gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: #fbfaf7;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
 }
 
 .spk-payment-lot-title {
@@ -1510,8 +1505,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
 .spk-dp-help {
   margin-top: -8px;
-  color: var(--text-secondary, #717178);
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -1523,15 +1518,15 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
 .spk-dp-presets button {
   min-width: 0;
-  min-height: 42px;
+  min-height: 44px;
   padding: 6px 8px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: 11px;
-  color: var(--poliland-green, #355a2c);
-  background: #fff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  color: var(--poliland-green);
+  background: var(--surface-primary);
   font: inherit;
   font-size: 13px;
-  font-weight: var(--font-weight-bold, 700);
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1553,11 +1548,11 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 .spk-installment-estimate {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 7px 12px;
+  gap: 8px 12px;
   padding: 12px;
-  border-radius: 10px;
-  color: var(--text-secondary, #717178);
-  background: #f3f5ef;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: var(--green-50);
   font-size: 12px;
 }
 
@@ -1574,18 +1569,19 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
 .spk-transfer-card {
   display: grid;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 18px);
-  background: #fff;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .spk-transfer-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .spk-transfer-heading h3 {
@@ -1595,41 +1591,15 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
   font-weight: var(--font-weight-semibold, 600);
 }
 
-.spk-transfer-heading > span {
-  flex: 0 0 auto;
-  padding: 6px 10px;
-  border-radius: 999px;
-  color: #fff;
-  background: #c9a753;
-  font-size: 10px;
-  font-weight: var(--font-weight-semibold, 600);
-}
-
 .spk-bank-card {
   display: grid;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 18px;
-  background: #f0ede5;
+  gap: 12px;
 }
 
 .spk-bank-name-row {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.spk-bank-mark {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  color: #c6a45d;
-  background: #fff;
-  font-size: 14px;
-  font-weight: var(--font-weight-bold, 700);
 }
 
 .spk-bank-name-row > div {
@@ -1639,12 +1609,12 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-bank-name-row strong {
-  color: #30332e;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .spk-bank-name-row div > span {
-  color: #656760;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1654,32 +1624,34 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px;
-  border-radius: 14px;
-  background: #fff;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
 }
 
 .spk-account-number-row > strong {
-  color: #30332e;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
   font-size: clamp(15px, 4.4vw, 19px);
   letter-spacing: 0.04em;
 }
 
 .spk-account-number-row button {
   display: inline-flex;
-  min-height: 38px;
+  min-height: 44px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 11px;
-  border: 0;
-  border-radius: 999px;
-  color: #5e584f;
-  background: #f0e8dc;
+  padding: 0 12px;
+  border: 1px solid var(--poliland-green);
+  border-radius: var(--radius-control);
+  color: var(--poliland-green);
+  background: var(--surface-primary);
   font: inherit;
   font-size: 12px;
-  font-weight: var(--font-weight-semibold, 600);
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1690,7 +1662,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 .spk-transfer-breakdown {
   display: grid;
   gap: 12px;
-  color: #5d605b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1702,7 +1674,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-transfer-breakdown strong {
-  color: #30332e;
+  color: var(--text-primary);
   text-align: right;
 }
 
@@ -1716,9 +1688,11 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-transfer-total strong {
-  color: #c6a45d;
+  color: var(--poliland-green);
+  font-family: var(--font-display);
   font-size: 20px;
-  font-weight: var(--font-weight-bold, 700);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 
 .spk-tenor-options {
@@ -1743,9 +1717,9 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-tenor-options button.selected {
-  border-color: var(--poliland-gold, #cba044);
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--surface-muted, #fbf8f2);
+  border-color: var(--poliland-green);
+  color: var(--poliland-green);
+  background: var(--green-50);
 }
 
 .tenor-radio {
@@ -1757,7 +1731,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-tenor-options button.selected .tenor-radio {
-  border: 5px solid var(--poliland-gold, #cba044);
+  border: 5px solid var(--poliland-green);
 }
 
 .spk-tenor-options button > span:last-child {
@@ -1771,8 +1745,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-tenor-options small {
-  color: var(--text-secondary, #717178);
-  font-size: 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 
 .spk-plan-message,
@@ -1840,11 +1814,14 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-document-icon {
+  display: grid;
   width: 36px;
   height: 36px;
-}
-
-.spk-document-icon ion-icon {
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-control);
+  color: var(--poliland-green);
+  background: var(--green-50);
   font-size: 18px;
 }
 
@@ -1860,25 +1837,25 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-document-heading small {
-  color: var(--text-secondary, #717178);
-  font-size: 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 
 .spk-file-picker {
   position: relative;
   display: flex;
-  min-height: 38px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 7px;
   padding: 0 8px;
   overflow: hidden;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: 9px;
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--surface-primary, #fff);
-  font-size: 11px;
-  font-weight: var(--font-weight-medium, 500);
+  border: 1px solid var(--poliland-green);
+  border-radius: var(--radius-control);
+  color: var(--poliland-green);
+  background: var(--surface-primary);
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1897,21 +1874,20 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-file-picker:focus-within {
-  outline: 3px solid rgb(203 160 68 / 28%);
+  outline: 3px solid var(--poliland-green);
   outline-offset: 2px;
 }
 
 .spk-file-name {
   overflow: hidden;
-  color: var(--text-secondary, #717178);
-  font-size: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.spk-inline-error,
-.spk-error-text {
-  color: var(--status-danger, #d94b45);
+.spk-inline-error, .spk-error-text {
+  color: var(--danger-text);
 }
 
 .spk-state {
@@ -1958,14 +1934,14 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-state button {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 16px;
   border: 0;
-  border-radius: var(--radius-control, 12px);
+  border-radius: var(--radius-control);
   color: #fff;
-  background: var(--poliland-green, #355a2c);
+  background: var(--poliland-green);
   font: inherit;
-  font-weight: var(--font-weight-medium, 500);
+  font-weight: 700;
 }
 
 .spk-action-bar {
@@ -1976,19 +1952,18 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 .spk-save-button {
   display: flex;
   width: min(100%, 760px);
-  min-height: 56px;
+  min-height: 52px;
   align-items: center;
   justify-content: center;
   gap: 10px;
   margin: 0 auto;
   border: 0;
-  border-radius: var(--radius-control, 12px);
+  border-radius: var(--radius-control);
   color: #fff;
-  background: var(--poliland-gold, #cba044);
-  box-shadow: 0 4px 10px rgb(150 106 18 / 15%);
+  background: var(--poliland-green);
   font: inherit;
-  font-size: 16px;
-  font-weight: var(--font-weight-semibold, 600);
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -2009,12 +1984,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
 @media (max-width: 560px) {
   .spk-shell {
-    gap: 14px;
-    padding: 14px 12px calc(106px + var(--safe-bottom));
-  }
-
-  .spk-card-body {
-    padding: 14px;
+    gap: 24px;
+    padding-inline: 16px;
   }
 
   .spk-payment-lot-card,
@@ -2022,17 +1993,8 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
     padding: 13px;
   }
 
-  .spk-bank-card {
-    gap: 12px;
-    padding: 12px;
-  }
-
   .spk-transfer-heading h3 {
     font-size: 15px;
-  }
-
-  .spk-account-number-row {
-    padding: 10px;
   }
 
   .spk-account-number-row button {
@@ -2054,7 +2016,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 
   .spk-lot-status {
     padding: 6px 8px;
-    font-size: 10px;
+    font-size: 11px;
   }
 }
 
@@ -2103,13 +2065,14 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
 }
 
 .spk-reuse-clear {
-  margin-top: 12px;
+  min-height: 44px;
+  margin-top: 4px;
   border: 0;
   background: transparent;
   color: var(--poliland-green);
   font: inherit;
   font-size: 13px;
-  font-weight: var(--font-weight-bold);
+  font-weight: 700;
   cursor: pointer;
 }
 </style>

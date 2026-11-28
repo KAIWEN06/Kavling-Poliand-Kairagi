@@ -80,7 +80,7 @@ defineExpose({ refresh })
 
     <label class="pref__row">
       <span>
-        <strong>Kabari kavling yang cocok</strong>
+        <strong>Kabari kaveling yang cocok</strong>
         <small>Saat harga turun atau tersedia lagi. Paling sering sekali dalam 3 hari.</small>
       </span>
       <input

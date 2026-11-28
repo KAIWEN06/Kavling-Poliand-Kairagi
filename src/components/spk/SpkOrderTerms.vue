@@ -8,7 +8,7 @@ defineEmits<{ 'update:modelValue': [value: boolean] }>()
 const TERMS = [
   'Pihak Kedua menyatakan telah menentukan Unit Kavling dan memesan Kavling sebagaimana tercantum dalam dokumen ini.',
   'Pihak Pertama telah menerima Booking Fee / Tanda Jadi sebagai bukti keseriusan dan pengikatan awal atas pemesanan Kavling yang disebutkan di atas.',
-  'Sejak pembayaran Booking Fee / Tanda Jadi diterima dan SPK ini ditandatangani, Kavling yang dipesan akan ditandai dalam status Booked selama masa pemesanan yang disepakati.',
+  'Sejak pembayaran Booking Fee / Tanda Jadi diterima dan SPK ini ditandatangani, Kavling yang dipesan akan ditandai dalam status Dipesan selama masa pemesanan yang disepakati.',
   'Booking Fee / Tanda Jadi tidak diperhitungkan sebagai bagian dari Harga Pembelian Unit Kavling.',
   'Pembayaran Uang Muka, atau Cicilan Pertama bagi pembelian tanpa Uang Muka, dan Penandatanganan PPJB Notaris dilakukan sebelum masa berlaku SPK ini berakhir.',
   'Apabila Pihak Kedua gagal melaksanakan Penandatanganan PPJB dan pembayaran Uang Muka, atau Cicilan Pertama bagi pembelian tanpa Uang Muka, sesuai waktu yang telah disepakati, maka SPK ini secara otomatis batal dan biaya Booking Fee / Tanda Jadi tidak dikembalikan kepada Pihak Kedua.',

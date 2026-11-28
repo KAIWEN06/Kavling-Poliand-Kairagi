@@ -1,150 +1,136 @@
 <template>
-  <ion-page class="marketing-page">
+  <ion-page class="pl-marketing marketing-page">
     <AppHeader variant="marketing" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content :fullscreen="false" class="marketing-content">
       <main class="dash">
-        <Reveal :order="0">
-          <PageHeader :title="`Halo, ${marketingName}`" :subtitle="`Marketing · ${today}`" />
-        </Reveal>
+        <!-- 1. Banner -->
+        <section class="banner" aria-labelledby="banner-title">
+          <p class="banner__date">{{ today }}</p>
+          <h1 id="banner-title" class="banner__title">Halo, {{ marketingName }}</h1>
+          <button type="button" class="banner__cta" @click="goTo('/marketing/siteplan')">Lihat denah</button>
+        </section>
+
+        <!-- 2. Bar komisi -->
+        <button type="button" class="commission" aria-label="Lihat detail komisi" @click="goToCommission">
+          <span class="commission__total">
+            <strong>{{ formattedCommission }}</strong>
+            <small>Komisi bulan ini</small>
+          </span>
+          <span class="commission__split">
+            <span>
+              <b>{{ formatRupiahShort(s.commission_pending) }}</b>
+              <small>Menunggu</small>
+            </span>
+            <span>
+              <b>{{ formatRupiahShort(s.commission_paid) }}</b>
+              <small>Dibayarkan</small>
+            </span>
+          </span>
+        </button>
+
+        <!-- 3. Menu -->
+        <HomeMenu class="dash__menu" :play="menuPlay" :items="menuItems" label="Menu Marketing" @select="openMenu" />
 
         <SurveyAgendaCard variant="marketing" />
 
-        <div class="dash__grid">
-          <!-- KOMISI -->
-          <Reveal :order="1" class="area-commission">
-            <button type="button" class="commission" @click="goToCommission">
-              <span class="commission__label">Komisi bulan ini</span>
-              <strong class="commission__value t-figure">{{ formattedCommission }}</strong>
-              <span class="commission__split">
-                <span>
-                  <small>Menunggu</small>
-                  <b class="t-num">{{ formatRupiahShort(s.commission_pending) }}</b>
-                </span>
-                <span>
-                  <small>Dibayarkan</small>
-                  <b class="t-num">{{ formatRupiahShort(s.commission_paid) }}</b>
-                </span>
-              </span>
-              <span class="commission__go">Lihat detail <span aria-hidden="true">›</span></span>
-            </button>
-          </Reveal>
+        <!-- 4. Tenggat pembayaran -->
+        <Reveal v-if="dueNotices.length" :order="1">
+          <section class="block" aria-label="Tenggat pembayaran">
+            <SectionHeader title="Tenggat pembayaran">
+              <button type="button" class="link" @click="goTo('/marketing/pembayaran?tab=schedules')">Lihat jadwal</button>
+            </SectionHeader>
+            <ul class="rows">
+              <li v-for="(n, index) in dueNotices" :key="index" class="due">
+                <div class="due__top">
+                  <strong>{{ n.title }} · {{ n.customer_name || 'Klien' }}</strong>
+                  <StatusBadge size="sm" :tone="severityTone(n.severity)" :label="severityLabel(n.severity)" />
+                </div>
+                <span class="due__body">{{ n.body }}</span>
+              </li>
+            </ul>
+          </section>
+        </Reveal>
 
-          <!-- TENGGAT PEMBAYARAN -->
-          <Reveal v-if="dueNotices.length" :order="2" class="area-due">
-            <section class="card" aria-labelledby="due-title">
-              <div class="card__head">
-                <h2 id="due-title" class="card__title">Tenggat pembayaran</h2>
-                <button type="button" class="link" @click="goTo('/marketing/pembayaran?tab=schedules')">Lihat jadwal</button>
-              </div>
-              <ul class="rows">
-                <li v-for="(n, index) in dueNotices" :key="index" class="due" :class="`due--${n.severity}`">
-                  <div class="due__top">
-                    <strong>{{ n.title }} · {{ n.customer_name || 'Klien' }}</strong>
-                    <StatusBadge size="sm" :tone="severityTone(n.severity)" :label="severityLabel(n.severity)" />
-                  </div>
-                  <span class="due__body">{{ n.body }}</span>
-                </li>
-              </ul>
-            </section>
-          </Reveal>
+        <!-- 5. Klien -->
+        <Reveal :order="2">
+          <section class="block" aria-label="Klien">
+            <SectionHeader title="Klien">
+              <button type="button" class="link" @click="goTo('/marketing/clients')">Lihat semua</button>
+            </SectionHeader>
 
-          <!-- PIPELINE -->
-          <Reveal :order="3" class="area-pipeline">
-            <section class="card" aria-labelledby="pipeline-title">
-              <div class="card__head">
-                <h2 id="pipeline-title" class="card__title">Klien</h2>
-                <button type="button" class="link" @click="goTo('/marketing/clients')">Semua klien</button>
+            <AppNotice v-if="reportError" tone="error">
+              {{ reportError }}
+            </AppNotice>
+
+            <div v-if="reportLoading && !report" role="status" aria-label="Memuat ringkasan klien">
+              <Skeleton height="148px" border-radius="12px" />
+            </div>
+
+            <template v-else>
+              <div class="funnel" role="img" :aria-label="funnelDescription">
+                <span
+                  v-for="stage in pipelineStages"
+                  v-show="stage.value > 0"
+                  :key="stage.key"
+                  class="funnel__seg"
+                  :class="`funnel__seg--${stage.key}`"
+                  :style="{ flexGrow: stage.value }"
+                ></span>
               </div>
 
-              <AppNotice v-if="reportError" tone="error">
-                {{ reportError }}
-              </AppNotice>
-
-              <template v-if="reportLoading && !report">
-                <div class="skel-grid" role="status" aria-label="Memuat ringkasan klien">
-                  <Skeleton v-for="n in 8" :key="n" height="104px" border-radius="14px" />
-                </div>
-              </template>
-
-              <template v-else>
-                <div class="funnel" role="img" :aria-label="funnelDescription">
-                  <span
-                    v-for="stage in pipelineStages"
-                    v-show="stage.value > 0"
-                    :key="stage.key"
-                    class="funnel__seg"
-                    :class="`funnel__seg--${stage.key}`"
-                    :style="{ flexGrow: stage.value }"
-                  ></span>
-                </div>
-
-                <div class="stat-grid">
-                  <StatCard label="Total" :value="s.total_clients ?? '–'" clickable @open="goTo('/marketing/clients')" />
-                  <StatCard label="Baru bulan ini" :value="s.new_clients ?? '–'" clickable @open="goTo(newClientsPath)" />
-                  <StatCard label="Belum dihubungi" :value="crm('Baru') + crm('Belum Dihubungi')" clickable @open="goTo('/marketing/clients?crm=group:uncontacted')" />
-                  <StatCard label="Ditindaklanjuti" :value="crm('Sudah Dihubungi') + crm('Follow-up')" clickable @open="goTo('/marketing/clients?crm=group:followup')" />
-                  <StatCard label="Berminat" :value="crm('Berminat') + crm('Survey Lokasi') + crm('Negosiasi')" clickable @open="goTo('/marketing/clients?crm=group:interested')" />
-                  <StatCard label="Pengajuan" :value="crm('Pengajuan')" clickable @open="goTo('/marketing/clients?crm=Pengajuan')" />
-                  <StatCard label="Berhasil" :value="crm('Berhasil')" clickable @open="goTo('/marketing/clients?crm=Berhasil')" />
-                  <StatCard label="Tidak lanjut" :value="crm('Tidak Lanjut')" clickable @open="goTo('/marketing/clients?crm=Tidak%20Lanjut')" />
-                </div>
-              </template>
-            </section>
-          </Reveal>
-
-          <!-- PINTASAN -->
-          <Reveal :order="4" class="area-shortcuts">
-            <section class="card" aria-labelledby="shortcut-title">
-              <h2 id="shortcut-title" class="card__title">Pintasan</h2>
-              <div class="shortcuts">
-                <button v-for="item in shortcuts" :key="item.path" type="button" class="shortcut" @click="goTo(item.path)">
-                  <span class="shortcut__icon"><IonIcon :icon="item.icon" aria-hidden="true" /></span>
-                  <span class="shortcut__label">{{ item.label }}</span>
+              <div class="stat-grid">
+                <button v-for="item in clientStats" :key="item.label" type="button" class="stat" @click="goTo(item.path)">
+                  <strong>{{ item.value }}</strong>
+                  <span>{{ item.label }}</span>
                 </button>
               </div>
-            </section>
-          </Reveal>
+            </template>
+          </section>
+        </Reveal>
 
-          <!-- AKTIVITAS -->
-          <Reveal :order="5" class="area-activity">
-            <section class="card" aria-labelledby="activity-title">
-              <div class="card__head">
-                <h2 id="activity-title" class="card__title">Aktivitas terbaru</h2>
-                <button type="button" class="link" @click="goTo('/marketing/tindak-lanjut')">Lihat semua</button>
-              </div>
+        <!-- 6. Aktivitas -->
+        <Reveal :order="3">
+          <section class="block" aria-label="Aktivitas terbaru">
+            <SectionHeader title="Aktivitas terbaru">
+              <button type="button" class="link" @click="goTo('/marketing/tindak-lanjut')">Lihat semua</button>
+            </SectionHeader>
 
-              <div v-if="!activitiesLoaded" class="skel-list" role="status" aria-label="Memuat aktivitas">
-                <Skeleton v-for="n in 3" :key="n" height="64px" border-radius="14px" />
-              </div>
+            <div v-if="!activitiesLoaded" class="skel-list" role="status" aria-label="Memuat aktivitas">
+              <Skeleton v-for="n in 3" :key="n" height="64px" border-radius="12px" />
+            </div>
 
-              <ul v-else-if="activities.length" class="rows">
-                <li v-for="activity in activities" :key="activity.id" class="activity">
-                  <span class="activity__avatar" aria-hidden="true">{{ activity.initials }}</span>
-                  <span class="activity__copy">
-                    <strong>{{ activity.name }}</strong>
-                    <small>{{ activity.description }}</small>
-                  </span>
-                  <span class="activity__meta">
-                    <StatusBadge size="sm" :tone="activityTone(activity.statusType)" :label="activity.status" />
-                    <time class="t-num">{{ activity.time }}</time>
-                  </span>
-                </li>
-              </ul>
+            <ul v-else-if="activities.length" class="rows">
+              <li v-for="activity in activities" :key="activity.id" class="activity">
+                <span class="activity__avatar" aria-hidden="true">{{ activity.initials }}</span>
+                <span class="activity__copy">
+                  <strong>{{ activity.name }}</strong>
+                  <small>{{ activity.description }}</small>
+                </span>
+                <span class="activity__meta">
+                  <StatusBadge size="sm" :tone="activityTone(activity.statusType)" :label="activity.status" />
+                  <time class="t-num">{{ activity.time }}</time>
+                </span>
+              </li>
+            </ul>
 
-              <EmptyState
-                v-else
-                kind="clients"
-                compact
-                title="Belum ada aktivitas"
-                description="Klien baru dan tindak lanjut muncul di sini."
-              >
-                <AppButton size="small" @click="goTo('/marketing/clients/new')">Tambah klien</AppButton>
-              </EmptyState>
-            </section>
-          </Reveal>
-        </div>
+            <EmptyState
+              v-else
+              kind="clients"
+              compact
+              title="Belum ada aktivitas"
+              description="Klien baru dan tindak lanjut muncul di sini."
+            >
+              <AppButton size="small" @click="goTo('/marketing/clients/new')">Tambah klien</AppButton>
+            </EmptyState>
+          </section>
+        </Reveal>
       </main>
+
+      <!-- Penutup: bukit dan matahari seperti beranda -->
+      <div class="dash-footer" aria-hidden="true">
+        <SceneBackdrop class="dash-footer__scene" height="100%" :sway="false" />
+      </div>
     </ion-content>
 
     <MobileTabBar variant="marketing" />
@@ -158,15 +144,8 @@ import AppNotice from '@/components/ui/AppNotice.vue'
 import {
   IonPage,
   IonContent,
-  IonIcon,
   useIonRouter,
 } from '@ionic/vue'
-import {
-  documentTextOutline,
-  gitNetworkOutline,
-  personAddOutline,
-  walletOutline,
-} from 'ionicons/icons'
 
 import { computed, onMounted, ref } from 'vue'
 import SurveyAgendaCard from '@/components/common/SurveyAgendaCard.vue'
@@ -175,10 +154,12 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import PageHeader from '@/components/ui/PageHeader.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
+import HomeMenu from '@/components/home/HomeMenu.vue'
+import type { MenuIllustrationName } from '@/components/home/MenuIllustration.vue'
 import Reveal from '@/components/ui/Reveal.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
-import StatCard from '@/components/ui/StatCard.vue'
 import StatusBadge, { type BadgeTone } from '@/components/ui/StatusBadge.vue'
 
 import { supabase } from '@/services/config/supabase'
@@ -290,15 +271,47 @@ const funnelDescription = computed(() =>
   `Sebaran klien: ${pipelineStages.value.map((stage) => `${stage.label} ${stage.value}`).join(', ')}.`,
 )
 
-const shortcuts = [
-  { label: 'Tambah klien', path: '/marketing/clients/new', icon: personAddOutline },
-  { label: 'Denah', path: '/marketing/siteplan', icon: gitNetworkOutline },
-  { label: 'Status SPK', path: '/marketing/pengajuan', icon: documentTextOutline },
-  { label: 'Pembayaran', path: '/marketing/pembayaran', icon: walletOutline },
-]
-
 const monthRange = periodRange('month')
 const newClientsPath = `/marketing/clients?from=${monthRange.from}&to=${monthRange.to}`
+
+const clientStats = computed(() => [
+  { label: 'Total', value: s.value.total_clients ?? '–', path: '/marketing/clients' },
+  { label: 'Baru bulan ini', value: s.value.new_clients ?? '–', path: newClientsPath },
+  { label: 'Belum dihubungi', value: crm('Baru') + crm('Belum Dihubungi'), path: '/marketing/clients?crm=group:uncontacted' },
+  { label: 'Ditindak\u00adlanjuti', value: crm('Sudah Dihubungi') + crm('Follow-up'), path: '/marketing/clients?crm=group:followup' },
+  { label: 'Berminat', value: crm('Berminat') + crm('Survey Lokasi') + crm('Negosiasi'), path: '/marketing/clients?crm=group:interested' },
+  { label: 'Pengajuan', value: crm('Pengajuan'), path: '/marketing/clients?crm=Pengajuan' },
+  { label: 'Berhasil', value: crm('Berhasil'), path: '/marketing/clients?crm=Berhasil' },
+  { label: 'Tidak lanjut', value: crm('Tidak Lanjut'), path: '/marketing/clients?crm=Tidak%20Lanjut' },
+])
+
+/* ---------- menu ikon ---------- */
+const menuItems: { id: MenuIllustrationName; label: string; gold?: boolean }[] = [
+  { id: 'denah', label: 'Denah' },
+  { id: 'lokasi', label: 'Kaveling', gold: true },
+  { id: 'tim', label: 'Klien' },
+  { id: 'klien', label: 'Tambah klien', gold: true },
+  { id: 'spk', label: 'Status SPK', gold: true },
+  { id: 'pembayaran', label: 'Pembayaran' },
+  { id: 'minat', label: 'Komisi', gold: true },
+  { id: 'ulasan', label: 'Tindak lanjut' },
+]
+const menuRoutes: Partial<Record<MenuIllustrationName, string>> = {
+  denah: '/marketing/siteplan',
+  lokasi: '/kavling',
+  tim: '/marketing/clients',
+  klien: '/marketing/clients/new',
+  spk: '/marketing/pengajuan',
+  pembayaran: '/marketing/pembayaran',
+  minat: '/marketing/komisi',
+  ulasan: '/marketing/tindak-lanjut',
+}
+const menuPlay = ref(false)
+
+function openMenu(id: MenuIllustrationName) {
+  const path = menuRoutes[id]
+  if (path) goTo(path)
+}
 
 
 /* =====================================================
@@ -376,6 +389,8 @@ async function loadDueNotices() {
 }
 
 onMounted(() => {
+  // Dua frame agar menu punya keadaan awal untuk dianimasikan.
+  requestAnimationFrame(() => requestAnimationFrame(() => { menuPlay.value = true }))
   loadMarketingName()
   void loadReport({ ...monthRange, marketingId: null })
   void loadActivities()
@@ -404,151 +419,84 @@ useRealtimeRefresh(
 
 
 <style scoped>
-.public-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 var(--space-3);
-  margin: var(--space-3) 0 0;
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border-default);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-}
-.public-links .link { min-height: 44px; }
-
-.marketing-content { --background: var(--app-background); }
+.marketing-content { --background: var(--surface-primary); --padding-bottom: 0px; }
 .marketing-content::part(scroll) { overflow-x: hidden; }
 
 .dash {
-  width: min(100%, var(--container-max));
+  width: min(100%, 720px);
   margin-inline: auto;
-  padding: var(--space-4) var(--page-gutter) calc(var(--bottom-nav-h) + var(--space-12) + var(--safe-bottom));
+  padding: 0 20px 8px;
   color: var(--text-primary);
   font-family: var(--font-ui);
 }
 
-.dash__grid {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'commission' 'due' 'pipeline' 'shortcuts' 'activity';
-}
-.area-commission { grid-area: commission; }
-.area-due { grid-area: due; }
-.area-pipeline { grid-area: pipeline; }
-.area-shortcuts { grid-area: shortcuts; }
-.area-activity { grid-area: activity; }
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+button:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
 
-@media (min-width: 1024px) {
-  .dash { padding: var(--space-6) var(--space-8) var(--space-12); }
-  .dash__grid {
-    gap: var(--space-5);
-    grid-template-columns: minmax(0, 1fr) 340px;
-    grid-template-areas:
-      'commission due'
-      'pipeline shortcuts'
-      'activity shortcuts';
-  }
-}
-
-/* ---------- card ---------- */
-.card {
-  min-width: 0;
-  padding: var(--space-4);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  background: var(--surface-primary);
-}
-.card__head {
+/* ---------- banner (sama dengan Beranda Admin) ---------- */
+.banner {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-  margin-bottom: var(--space-3);
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 12px -8px 0;
+  padding: 16px 20px 20px;
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(203, 160, 68, 0.3), rgba(203, 160, 68, 0) 62%),
+    var(--surface-forest);
+  color: var(--on-forest);
 }
-.card__title { margin: 0; font-size: var(--text-lg); font-weight: 700; line-height: var(--leading-snug); }
-.card > .card__title { margin-bottom: var(--space-3); }
-.link {
-  min-height: 44px;
-  padding: 0 var(--space-2);
-  border: 0;
-  background: none;
-  color: var(--green-700);
+.banner__date { margin: 0; color: var(--poliland-gold-soft); font-size: var(--text-sm); }
+.banner__title { margin: 8px 0 0; font-family: var(--font-display); font-size: clamp(27px, 7.6vw, 38px); font-weight: 650; line-height: 1.12; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.banner__cta { min-height: 44px; margin-top: 16px; padding: 0 20px; border: 0; border-radius: var(--radius-control); background: var(--poliland-gold); color: var(--ink); font: 700 14px/1 var(--font-ui); cursor: pointer; }
+.banner__cta:focus-visible { outline-color: #fff; }
+
+/* ---------- bar komisi: nilai di atas label ---------- */
+.commission {
+  display: block;
+  width: calc(100% + 16px);
+  margin: 10px -8px 0;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
   font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  text-align: center;
   cursor: pointer;
 }
+.commission span { display: block; min-width: 0; }
+.commission small { display: block; font-size: 12px; }
+.commission strong,
+.commission b { display: block; color: var(--poliland-green); font-family: var(--font-display); font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.commission .commission__total { padding: 12px 8px; }
+.commission strong { font-size: 26px; line-height: 1.15; }
+.commission .commission__split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--border-default); }
+.commission__split > span { padding: 10px 6px; }
+.commission__split > span + span { border-left: 1px solid var(--border-default); }
+.commission b { font-size: 18px; }
+.commission:active { transform: scale(0.99); }
+
+.dash__menu { margin: 0 -12px 8px; }
+.block { padding-top: 24px; }
+
+.link { min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--poliland-green); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) {
   .link:hover { text-decoration: underline; }
 }
 
-/* ---------- komisi (panel penekanan) ---------- */
-.commission {
-  display: grid;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-5);
-  border: 0;
-  border-radius: var(--radius-lg);
-  background: var(--surface-forest);
-  color: var(--on-forest);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: transform var(--dur-instant) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
-}
-@media (hover: hover) { .commission:hover { box-shadow: var(--shadow-md); } }
-.commission:active { transform: scale(0.99); }
-.commission__label { color: var(--on-forest-muted); font-size: var(--text-md); font-weight: 600; }
-.commission__value {
-  font-size: clamp(2rem, 1.5rem + 2.6vw, 3.25rem);
-  line-height: 1.05;
-  color: var(--gold-100);
-  overflow-wrap: anywhere;
-}
-.commission__split {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-8);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid rgba(244, 241, 232, 0.14);
-}
-.commission__split span { display: grid; gap: 2px; }
-.commission__split small { color: var(--on-forest-muted); font-size: var(--text-xs); }
-.commission__split b { font-size: var(--text-lg); font-weight: 600; }
-.commission__go { margin-top: var(--space-1); color: var(--gold-100); font-size: var(--text-sm); font-weight: 600; }
+/* ---------- baris data dipisah garis tipis ---------- */
+.rows { margin: 0; padding: 0; list-style: none; }
+.rows > li + li { border-top: 1px solid var(--border-default); }
 
-/* ---------- list rows ---------- */
-.rows { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.due { display: grid; gap: 4px; padding: 12px 0; }
+.due__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.due__top strong { min-width: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.due__body { color: var(--text-secondary); font-size: 13px; line-height: 1.45; }
 
-.due {
-  display: grid;
-  gap: var(--space-1);
-  padding: var(--space-3);
-  border-left: 3px solid var(--text-tertiary);
-  border-radius: var(--radius-sm);
-  background: var(--surface-muted);
-}
-.due--danger { border-left-color: var(--status-danger); background: var(--danger-bg); }
-.due--warning { border-left-color: var(--gold-500); background: var(--warning-bg); }
-.due__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
-.due__top strong { font-size: var(--text-md); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.due__body { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.4; }
-
-/* ---------- pipeline ---------- */
-.funnel {
-  display: flex;
-  gap: 3px;
-  height: 10px;
-  margin-bottom: var(--space-4);
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--surface-sunken);
-}
+/* ---------- klien ---------- */
+.funnel { display: flex; gap: 3px; height: 8px; margin-bottom: 12px; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface-muted); }
 .funnel__seg { min-width: 6px; border-radius: var(--radius-pill); flex-basis: 0; transition: flex-grow var(--dur-slow) var(--ease-out); }
 .funnel__seg--new { background: var(--border-strong); }
 .funnel__seg--followup { background: #7FA6F0; }
@@ -557,74 +505,33 @@ useRealtimeRefresh(
 .funnel__seg--won { background: var(--green-800); }
 .funnel__seg--lost { background: #E58B84; }
 
-.stat-grid, .skel-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 720px) { .stat-grid, .skel-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.skel-list { display: grid; gap: var(--space-3); }
+/* Delapan angka dalam satu kotak 4x2 berpembatas 1px. */
+.stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--border-default); border-radius: 12px; background: var(--border-default); }
+.stat { display: flex; min-width: 0; min-height: 70px; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px; border: 0; background: var(--surface-primary); color: var(--text-secondary); font: inherit; cursor: pointer; }
+.stat strong { color: var(--poliland-green); font-family: var(--font-display); font-size: 20px; font-weight: 650; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.stat span { max-width: 100%; font-size: 11px; line-height: 1.3; text-align: center; hyphens: manual; overflow-wrap: break-word; }
+.stat:active { background: var(--green-50); }
+.stat:focus-visible { outline-offset: -3px; }
 
-/* ---------- pintasan ---------- */
-.shortcuts { display: grid; gap: var(--space-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 560px) { .shortcuts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (min-width: 1024px) { .shortcuts { grid-template-columns: 1fr; } }
-.shortcut {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: var(--space-2);
-  min-height: 84px;
-  padding: var(--space-3) var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font: inherit;
-  cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
-}
-@media (hover: hover) and (pointer: fine) {
-  .shortcut:hover { border-color: var(--green-500); }
-}
-.shortcut:active { transform: scale(0.97); }
-.shortcut__icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
-  background: var(--green-100);
-  color: var(--green-700);
-  font-size: 20px;
-}
-.shortcut__label { font-size: var(--text-sm); font-weight: 600; text-align: center; line-height: 1.25; }
-@media (min-width: 1024px) {
-  .shortcut { grid-template-columns: 40px 1fr; justify-items: start; min-height: 60px; padding: var(--space-2) var(--space-3); }
-  .shortcut__label { text-align: left; font-size: var(--text-md); }
-}
+.skel-list { display: grid; gap: 12px; }
 
 /* ---------- aktivitas ---------- */
-.activity {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 64px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--surface-muted);
-}
-.activity__avatar {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-pill);
-  background: var(--green-100);
-  color: var(--green-700);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
+.activity { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 64px; padding: 10px 0; }
+.activity__avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-pill); background: var(--green-50); color: var(--poliland-green); font-size: 13px; font-weight: 700; }
 .activity__copy { display: grid; min-width: 0; gap: 2px; }
-.activity__copy strong { font-size: var(--text-md); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.activity__copy small { color: var(--text-secondary); font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.activity__meta { display: grid; justify-items: end; gap: var(--space-1); }
-.activity__meta time { color: var(--text-secondary); font-size: var(--text-xs); white-space: nowrap; }
+.activity__copy strong { overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.activity__copy small { overflow: hidden; color: var(--text-secondary); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.activity__meta { display: grid; justify-items: end; gap: 4px; }
+.activity__meta time { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+
+/* ---------- footer: sama dengan beranda ---------- */
+.dash-footer { position: relative; height: calc(200px + var(--safe-bottom)); overflow: hidden; background: linear-gradient(180deg, var(--surface-primary) 0%, var(--pl-paper) 55%); }
+.dash-footer__scene :deep(.sun) { top: 0; right: -90px; width: 260px; height: 200px; background: radial-gradient(closest-side, rgba(244, 214, 154, 0.7), rgba(244, 214, 154, 0)); }
+
+@media (max-width: 360px) { .dash { padding-inline: 16px; } .banner, .commission { margin-inline: -4px; } .commission { width: calc(100% + 8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel__seg { transition: none; }
+  .commission:active { transform: none; }
+}
 </style>

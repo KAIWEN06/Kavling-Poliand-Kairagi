@@ -1,7 +1,8 @@
 <template>
-  <ion-page class="admin-spk-page">
+  <ion-page class="pl-admin pl-sheet admin-spk-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
+      <AdminPageFill>
       <main class="spk-shell">
         <Reveal :order="1">
           <section class="spk-stats" aria-label="Ringkasan pengajuan SPK">
@@ -87,6 +88,7 @@
       <button class="spk-create-btn spk-create-fab" type="button" aria-label="Buat SPK" title="Buat SPK" @click="openCreateForm">
         <ion-icon :icon="addOutline" />
       </button>
+      </AdminPageFill>
     </ion-content>
     <MobileTabBar variant="admin" />
 
@@ -472,6 +474,7 @@ import {
   closeOutline, documentTextOutline, downloadOutline, eyeOutline, searchOutline,
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AdminPageFill from '@/components/common/AdminPageFill.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -1215,13 +1218,13 @@ useRealtimeRefresh(
 .admin-spk-page { --background: var(--ion-background-color, #f7f8f5); }
 .spk-shell { width: min(100%, 900px); margin: 0 auto; padding: 24px 18px calc(110px + var(--safe-bottom)); color: var(--ion-text-color, #243126); }
 .spk-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:22px; }
-.spk-eyebrow { margin:0 0 6px; color:var(--poliland-gold-text, #966a12); font-size:10px; font-weight:800; letter-spacing:.13em; }
+.spk-eyebrow { margin:0 0 6px; color:var(--poliland-gold-text, #966a12); font-size:11px; font-weight:800; letter-spacing:.13em; }
 .spk-heading h1 { margin:0; font-size:26px; font-weight:800; letter-spacing:-.04em; }
 .spk-subtitle { margin:7px 0 0; color:#788078; font-size:12px; line-height:1.5; }
 .spk-refresh { display:flex; align-items:center; gap:6px; border:1px solid #e4e8e1; background:#fff; color:#355a2c; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:700; white-space:nowrap; }
 .spk-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; margin-bottom:20px; }
 .spk-stat { text-align:left; min-width:0; border:1px solid #e8ebe5; background:#fff; border-radius:15px; padding:13px 12px; color:#69736a; }
-.spk-stat span { display:block; font-size:10px; line-height:1.3; }
+.spk-stat span { display:block; font-size:11px; line-height:1.3; }
 .spk-stat strong { display:block; margin-top:8px; color:#243126; font-size:23px; font-weight:800; }
 .spk-stat-active { border-color:#78936d; box-shadow:0 0 0 2px #355a2c12; }
 .spk-toolbar { display:grid; gap:12px; margin-bottom:19px; }
@@ -1229,18 +1232,18 @@ useRealtimeRefresh(
 .spk-search input { flex:1; min-width:0; border:0; outline:0; background:transparent; color:#263329; font:inherit; font-size:12px; }
 .spk-search button { border:0; background:transparent; color:#788078; font-size:18px; }
 .spk-filters { display:flex; gap:7px; overflow-x:auto; padding-bottom:3px; scrollbar-width:none; }
-.spk-filters button { flex:0 0 auto; border:1px solid #e5e9e2; border-radius:999px; background:#fff; color:#6e786e; padding:8px 12px; font-size:10px; font-weight:700; }
+.spk-filters button { flex:0 0 auto; border:1px solid #e5e9e2; border-radius:999px; background:#fff; color:#6e786e; padding:8px 12px; font-size:11px; font-weight:700; }
 .spk-filters button.active { border-color:#355a2c; background:#355a2c; color:#fff; }
 .spk-list-head { display:flex; align-items:center; justify-content:space-between; margin:0 2px 11px; }
 .spk-list-head h2 { margin:0; font-size:14px; font-weight:800; }
-.spk-list-head span { color:#899188; font-size:10px; }
+.spk-list-head span { color:#899188; font-size:11px; }
 .spk-list { display:grid; gap:11px; }
 .spk-card { border:1px solid #e9ece6; border-radius:17px; background:#fff; padding:15px; box-shadow:0 4px 16px #24312608; }
 .spk-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
 .spk-card-top>div { display:grid; gap:4px; }
 .spk-number { color:#355a2c; font-size:12px; font-weight:800; }
-.spk-card time { color:#929a91; font-size:10px; }
-.spk-status { display:inline-flex; align-items:center; border-radius:999px; padding:6px 9px; font-size:9px; font-weight:800; white-space:nowrap; }
+.spk-card time { color:#929a91; font-size:11px; }
+.spk-status { display:inline-flex; align-items:center; border-radius:999px; padding:6px 9px; font-size:11px; font-weight:800; white-space:nowrap; }
 .status-submitted,.status-under-review { background:#fff4d9; color:#91630d; }
 .status-approved { background:#e8f4e7; color:#2e6b36; }
 .status-rejected { background:#fcebea; color:#a63e38; }
@@ -1251,15 +1254,15 @@ useRealtimeRefresh(
 .spk-avatar { display:grid; place-items:center; width:40px; height:40px; flex:0 0 40px; border-radius:13px; background:#edf3e9; color:#355a2c; font-size:12px; font-weight:800; }
 .spk-person-info { display:grid; gap:3px; min-width:0; }
 .spk-person-info strong { font-size:13px; }
-.spk-person-info span,.spk-person-info small { color:#778176; font-size:10px; }
+.spk-person-info span,.spk-person-info small { color:#778176; font-size:11px; }
 .spk-card-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; border-top:1px solid #eff1ed; padding-top:12px; }
 .spk-card-meta div { display:grid; gap:4px; min-width:0; }
-.spk-card-meta span { color:#929a91; font-size:9px; }
-.spk-card-meta strong { overflow-wrap:anywhere; font-size:10px; }
-.spk-card-meta small { color:#818a80; font-size:9px; }
-.spk-rejection-preview { border-radius:9px; background:#fff4f3; color:#8c3c37; padding:9px; font-size:10px; line-height:1.5; }
+.spk-card-meta span { color:#929a91; font-size:11px; }
+.spk-card-meta strong { overflow-wrap:anywhere; font-size:11px; }
+.spk-card-meta small { color:#818a80; font-size:11px; }
+.spk-rejection-preview { border-radius:9px; background:#fff4f3; color:#8c3c37; padding:9px; font-size:11px; line-height:1.5; }
 .spk-card-actions { display:flex; align-items:center; gap:7px; margin-top:14px; padding-top:11px; border-top:1px solid #eff1ed; }
-.spk-card-actions button { display:inline-flex; align-items:center; justify-content:center; gap:5px; border-radius:9px; padding:9px 11px; font-size:10px; font-weight:800; }
+.spk-card-actions button { display:inline-flex; align-items:center; justify-content:center; gap:5px; border-radius:9px; padding:9px 11px; font-size:11px; font-weight:800; }
 .spk-detail-btn { margin-right:auto; border:0; background:transparent; color:#355a2c; padding-left:0!important; }
 .spk-reject-btn { border:1px solid #f0d6d4; background:#fff; color:#a63e38; }
 .spk-approve-btn { border:1px solid #355a2c; background:#355a2c; color:#fff; }
@@ -1273,15 +1276,15 @@ useRealtimeRefresh(
 .spk-detail { display:grid; gap:17px; padding-bottom:15px; }
 .spk-detail-banner { display:flex; justify-content:space-between; align-items:center; gap:10px; border-radius:13px; background:#f3f6f0; padding:13px; }
 .spk-detail-banner div { display:grid; gap:4px; }
-.spk-detail-banner div span { color:#788276; font-size:10px; }
+.spk-detail-banner div span { color:#788276; font-size:11px; }
 .spk-detail-banner div strong { color:#355a2c; font-size:14px; }
 .spk-detail-section { display:grid; gap:10px; }
 .spk-detail-section h3 { margin:0; font-size:13px; font-weight:800; }
 .spk-booking-summary { display:grid; gap:9px; border:1px solid #e7ece3; border-radius:12px; background:#fbfcfa; padding:12px; }
 .spk-booking-summary>div { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-.spk-booking-summary span { color:#7b8679; font-size:10px; }
+.spk-booking-summary span { color:#7b8679; font-size:11px; }
 .spk-booking-summary strong { color:#2e3b2e; font-size:11px; text-align:right; }
-.spk-approval-hint,.spk-approval-ready { margin:0; border-radius:9px; padding:9px; font-size:10px; line-height:1.45; }
+.spk-approval-hint,.spk-approval-ready { margin:0; border-radius:9px; padding:9px; font-size:11px; line-height:1.45; }
 .spk-approval-hint { background:#fff4d9; color:#91630d; }
 .spk-approval-ready { background:#e8f4e7; color:#2e6b36; }
 .spk-booking-action { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; min-height:44px; margin-top:2px; border:1px solid #355a2c; border-radius:10px; background:#355a2c; color:#fff; font:inherit; font-size:11px; font-weight:800; cursor:pointer; }
@@ -1293,15 +1296,15 @@ useRealtimeRefresh(
 .spk-detail-section dl { display:grid; gap:0; margin:0; border:1px solid #edf0eb; border-radius:12px; padding:0 12px; }
 .spk-detail-section dl div { display:grid; grid-template-columns: minmax(105px, .8fr) 1.2fr; gap:12px; padding:10px 0; border-bottom:1px solid #f0f2ee; }
 .spk-detail-section dl div:last-child { border:0; }
-.spk-detail-section dt { color:#899188; font-size:10px; }
+.spk-detail-section dt { color:#899188; font-size:11px; }
 .spk-detail-section dd { margin:0; color:#303b31; font-size:11px; font-weight:650; overflow-wrap:anywhere; }
 .spk-no-docs { color:#899188; font-size:11px; }
 .spk-document { display:flex; align-items:center; gap:10px; border:1px solid #edf0eb; border-radius:12px; padding:10px; }
 .spk-doc-icon { display:grid; place-items:center; width:35px; height:35px; border-radius:10px; background:#f1f5ed; color:#355a2c; font-size:18px; }
 .spk-doc-info { display:grid; gap:3px; min-width:0; flex:1; }
 .spk-doc-info strong { font-size:11px; }
-.spk-doc-info span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#899188; font-size:9px; }
-.spk-document button { display:flex; align-items:center; gap:4px; border:0; background:#edf3e9; color:#355a2c; border-radius:8px; padding:8px 10px; font-size:10px; font-weight:800; }
+.spk-doc-info span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#899188; font-size:11px; }
+.spk-document button { display:flex; align-items:center; gap:4px; border:0; background:#edf3e9; color:#355a2c; border-radius:8px; padding:8px 10px; font-size:11px; font-weight:800; }
 .spk-rejection-full { border-radius:12px; background:#fff3f2; padding:12px; color:#8d3d37; font-size:11px; }
 .spk-rejection-full p { margin:6px 0 0; line-height:1.5; }
 .spk-detail-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; padding-top:6px; }
@@ -1312,16 +1315,16 @@ useRealtimeRefresh(
 .spk-reject-form label { display:grid; gap:7px; margin-top:13px; color:#354135; font-weight:700; }
 .spk-reject-form label b { color:#b13d36; }
 .spk-reject-form textarea { width:100%; resize:vertical; border:1px solid #dfe5dc; border-radius:10px; padding:11px; color:#263329; background:#fff; font:inherit; font-weight:400; outline-color:#78936d; }
-.spk-reject-form small { display:block; text-align:right; color:#929a91; font-size:10px; }
+.spk-reject-form small { display:block; text-align:right; color:#929a91; font-size:11px; }
 @media (min-width:700px) { .spk-shell { padding:32px 28px 60px; } .spk-stats { gap:13px; } .spk-stat { padding:17px; } .spk-card { padding:19px; }}
-@media (max-width:390px) { .spk-shell { padding-inline:13px; } .spk-stats { gap:6px; } .spk-stat { padding:10px 8px; } .spk-stat strong { font-size:20px; } .spk-card-meta { gap:5px; } .spk-card-meta strong { font-size:9px; }}
+@media (max-width:390px) { .spk-shell { padding-inline:13px; } .spk-stats { gap:6px; } .spk-stat { padding:10px 8px; } .spk-stat strong { font-size:20px; } .spk-card-meta { gap:5px; } .spk-card-meta strong { font-size:11px; }}
 
 .spk-heading-actions { display:flex; align-items:center; gap:7px; }
 .spk-create-btn { display:flex; align-items:center; gap:6px; border:1px solid #355a2c; background:#355a2c; color:#fff; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; white-space:nowrap; }
 .spk-create-fab { position:fixed; z-index:20; right:calc(18px + var(--safe-right)); bottom:calc(88px + var(--safe-bottom)); display:grid; place-items:center; width:56px; height:56px; padding:0; border:0; border-radius:50%; box-shadow:0 5px 16px #24312640; }
 .spk-create-fab ion-icon { font-size:27px; }
-.spk-source-filters { display:flex; align-items:center; flex-wrap:wrap; gap:6px; color:#899188; font-size:10px; }
-.spk-source-filters button { border:1px solid #e5e9e2; border-radius:999px; background:#fff; color:#6e786e; padding:7px 11px; font-size:10px; font-weight:700; }
+.spk-source-filters { display:flex; align-items:center; flex-wrap:wrap; gap:6px; color:#899188; font-size:11px; }
+.spk-source-filters button { border:1px solid #e5e9e2; border-radius:999px; background:#fff; color:#6e786e; padding:7px 11px; font-size:11px; font-weight:700; }
 .spk-source-filters button.active { border-color:#355a2c; background:#edf3e9; color:#355a2c; }
 .spk-create-form { display:grid; gap:17px; }
 .spk-create-intro { margin:0; color:var(--text-secondary); font-size:var(--font-size-xs); line-height:1.5; }
@@ -1343,9 +1346,9 @@ useRealtimeRefresh(
   }}
 .spk-lot-option:focus-visible { outline:3px solid var(--poliland-green); outline-offset:2px; }
 .spk-lot-option > span:nth-child(2) { display:grid; min-width:0; gap:3px; }
-.spk-lot-option small { color:var(--text-secondary); font-size:10px; }
-.spk-lot-option > b { color:var(--text-primary); font-size:10px; text-align:right; white-space:nowrap; }
-.spk-interest-badge { display:inline-flex; align-items:center; min-height:20px; margin-left:4px; padding:2px 7px; border-radius:999px; background:var(--poliland-gold-soft); color:var(--poliland-gold-text); font-size:9px; font-style:normal; vertical-align:1px; }
+.spk-lot-option small { color:var(--text-secondary); font-size:11px; }
+.spk-lot-option > b { color:var(--text-primary); font-size:11px; text-align:right; white-space:nowrap; }
+.spk-interest-badge { display:inline-flex; align-items:center; min-height:20px; margin-left:4px; padding:2px 7px; border-radius:999px; background:var(--poliland-gold-soft); color:var(--poliland-gold-text); font-size:11px; font-style:normal; vertical-align:1px; }
 .spk-lot-check { display:grid; width:24px; height:24px; place-items:center; border:1px solid var(--border-default); border-radius:7px; background:var(--surface-primary); color:var(--poliland-green); font-weight:800; }
 .spk-lot-option.selected .spk-lot-check { border-color:var(--poliland-green); background:var(--poliland-green); color:#fff; }
 .spk-lot-empty { margin:0; padding:16px; color:var(--text-secondary); font-size:11px; text-align:center; }
@@ -1363,38 +1366,38 @@ useRealtimeRefresh(
 .spk-dp-warning { margin:0; color:#A12C22; font-size:11px; font-weight:700; line-height:1.4; }
 .spk-create-blocker { margin:0; padding:10px 12px; border-radius:var(--radius-sm,10px); background:var(--status-success-bg,#E8EEE4); color:var(--poliland-green,#355A2C); font-size:12px; font-weight:700; line-height:1.45; }
 .spk-upload-field { border:1px dashed #cfd8ca; border-radius:11px; padding:11px; }
-.spk-upload-field input { width:100%; font-size:10px; }
+.spk-upload-field input { width:100%; font-size:11px; }
 .spk-upload-field small { color:#8a9488; font-weight:400; }
 
 @media (max-width:390px) { .spk-refresh { justify-content:center; } .spk-create-fab { right:calc(14px + var(--safe-right)); bottom:calc(84px + var(--safe-bottom)); }}
 
 .spk-price-summary,.spk-dp-panel,.spk-payment-result { display:grid; gap:10px; border:1px solid #e7ece3; border-radius:12px; background:#fbfcfa; padding:12px; }
 .spk-price-summary>div,.spk-summary-row,.spk-payment-result>div { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-.spk-price-summary span,.spk-summary-row span,.spk-payment-result span { color:#7b8679; font-size:10px; }
+.spk-price-summary span,.spk-summary-row span,.spk-payment-result span { color:#7b8679; font-size:11px; }
 .spk-price-summary strong,.spk-summary-row strong,.spk-payment-result strong { color:#2e3b2e; font-size:11px; text-align:right; }
 .spk-dp-panel>label { display:grid; gap:7px; }
 .spk-dp-shortcuts { display:flex; gap:7px; }
-.spk-dp-shortcuts button { flex:1; border:1px solid #dfe7da; border-radius:9px; background:#fff; color:#355a2c; padding:8px; font-size:10px; font-weight:800; }
+.spk-dp-shortcuts button { flex:1; border:1px solid #dfe7da; border-radius:9px; background:#fff; color:#355a2c; padding:8px; font-size:11px; font-weight:800; }
 .spk-payment-result .spk-monthly-value { color:#355a2c; font-size:14px; }
 .spk-payment-result .spk-total-row { border-top:1px solid #e5ebe1; padding-top:10px; }
 .spk-payment-result .spk-total-row strong { color:#355a2c; font-size:15px; }
-.spk-payment-result small,.spk-payment-hint { color:#879184; font-size:10px; line-height:1.5; }
+.spk-payment-result small,.spk-payment-hint { color:#879184; font-size:11px; line-height:1.5; }
 
 .spk-customer-picker { display:grid; grid-auto-rows:max-content; gap:6px; max-height:190px; overflow:auto; }
 .spk-customer-option { display:grid; gap:4px; width:100%; min-height:44px; padding:10px; text-align:left; border:1px solid #e3e9df; border-radius:10px; background:#fff; color:#2e3b2e; cursor:pointer; }
 .spk-customer-option.selected { border-color:#55784b; background:#f1f6ee; }
-.spk-customer-option small,.spk-customer-state { color:#818a80; font-size:10px; }
-.spk-customer-sources { display:flex; align-items:center; flex-wrap:wrap; gap:6px; color:#788276; font-size:10px; }
-.spk-customer-sources button { min-height:44px; border:1px solid #dfe7da; border-radius:9px; padding:8px 11px; background:#fff; color:#50604e; font-size:10px; font-weight:800; cursor:pointer; }
+.spk-customer-option small,.spk-customer-state { color:#818a80; font-size:11px; }
+.spk-customer-sources { display:flex; align-items:center; flex-wrap:wrap; gap:6px; color:#788276; font-size:11px; }
+.spk-customer-sources button { min-height:44px; border:1px solid #dfe7da; border-radius:9px; padding:8px 11px; background:#fff; color:#50604e; font-size:11px; font-weight:800; cursor:pointer; }
 .spk-customer-sources button.active { border-color:#355a2c; background:#edf3e9; color:#355a2c; }
 .spk-customer-option:focus-visible,.spk-customer-sources button:focus-visible,.spk-add-customer-toggle:focus-visible,.spk-add-customer-save:focus-visible,.spk-cancel-customer:focus-visible { outline:3px solid #78936d; outline-offset:2px; }
 .spk-add-customer-toggle,.spk-add-customer-save,.spk-cancel-customer { min-height:44px; border:1px solid #355a2c; border-radius:9px; padding:10px; background:#fff; color:#355a2c; font-size:11px; font-weight:800; cursor:pointer; }
 .spk-new-customer-form { display:grid; gap:12px; }
-.spk-selected-customer { display:grid; gap:5px; padding:11px; border-radius:10px; background:#f1f6ee; color:#50604e; font-size:10px; }
+.spk-selected-customer { display:grid; gap:5px; padding:11px; border-radius:10px; background:#f1f6ee; color:#50604e; font-size:11px; }
 .spk-cancel-customer { width:100%; }
 .spk-lot-payment-card { display:grid; gap:9px; padding:12px; border:1px solid #e5e9e2; border-radius:12px; background:#fff; }
 .spk-lot-payment-card>strong { font-size:12px; color:#355a2c; }
-.spk-lot-payment-card label { display:grid; gap:5px; font-size:10px; }
+.spk-lot-payment-card label { display:grid; gap:5px; font-size:11px; }
 .spk-lot-payment-card input,.spk-lot-payment-card select { width:100%; min-height:40px; border:1px solid #dfe5dc; border-radius:9px; padding:9px; background:#fff; color:#263329; }
 
 /* Pengembalian Booking Fee — mengikuti design system Modern-Natural */
@@ -1412,7 +1415,7 @@ useRealtimeRefresh(
   border-radius:14px; background:#f4f3ec; color:#355a2c; font-size:21px;
 }
 .spk-refund-heading>div:last-child { min-width:0; }
-.spk-refund-eyebrow { display:block; margin-bottom:3px; color:#966a12; font-size:9px; font-weight:800; letter-spacing:.09em; }
+.spk-refund-eyebrow { display:block; margin-bottom:3px; color:#966a12; font-size:11px; font-weight:800; letter-spacing:.09em; }
 .spk-refund-heading h3 { color:#252525; font-size:15px; }
 .spk-refund-heading p { margin:4px 0 0; color:#717178; font-size:11px; line-height:1.45; }
 .spk-refund-amount-card {
@@ -1420,9 +1423,9 @@ useRealtimeRefresh(
   padding:14px; border:1px solid #eae7e0; border-radius:13px; background:#f5f3ee;
 }
 .spk-refund-amount-card>div { display:grid; gap:5px; }
-.spk-refund-amount-card>div span { color:#717178; font-size:10px; }
+.spk-refund-amount-card>div span { color:#717178; font-size:11px; }
 .spk-refund-amount-card>div strong { color:#252525; font-size:20px; font-weight:800; letter-spacing:-.03em; }
-.spk-refund-status { display:inline-flex; align-items:center; gap:5px; min-height:28px; padding:5px 9px; border-radius:999px; font-size:10px; font-weight:750; }
+.spk-refund-status { display:inline-flex; align-items:center; gap:5px; min-height:28px; padding:5px 9px; border-radius:999px; font-size:11px; font-weight:750; }
 .spk-refund-status.is-refunded { background:#eaf2e7; color:#355a2c; }
 .spk-refund-status.is-pending { background:#fbf1d9; color:#966a12; }
 .spk-refund-success { display:flex; align-items:flex-start; gap:10px; padding:12px; border:1px solid #dce9d7; border-radius:12px; background:#f2f7ef; }
@@ -1432,7 +1435,7 @@ useRealtimeRefresh(
 .spk-refund-info { display:grid; gap:0; padding:0 12px; border:1px solid #eae7e0; border-radius:12px; }
 .spk-refund-info>div { display:grid; grid-template-columns:minmax(105px,.8fr) 1.2fr; gap:12px; padding:11px 0; border-bottom:1px solid #eeece6; }
 .spk-refund-info>div:last-child { border-bottom:0; }
-.spk-refund-info span { color:#717178; font-size:10px; }
+.spk-refund-info span { color:#717178; font-size:11px; }
 .spk-refund-info strong,.spk-refund-info p { margin:0; color:#252525; font-size:11px; font-weight:650; overflow-wrap:anywhere; }
 .spk-refund-proof-button {
   display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:46px;
@@ -1442,7 +1445,7 @@ useRealtimeRefresh(
 .spk-refund-proof-button ion-icon:last-child { margin-left:auto; }
 .spk-refund-guidance { display:flex; align-items:flex-start; gap:9px; padding:11px; border:1px solid #eadfbd; border-radius:11px; background:#fbf6e9; color:#805d19; }
 .spk-refund-guidance ion-icon { flex:0 0 17px; margin-top:1px; font-size:17px; }
-.spk-refund-guidance p { margin:0; font-size:10px; line-height:1.55; }
+.spk-refund-guidance p { margin:0; font-size:11px; line-height:1.55; }
 .spk-refund-form { display:grid; gap:13px; }
 .spk-refund-form>label { display:grid; gap:7px; color:#252525; font-size:11px; font-weight:700; }
 .spk-refund-form label>span:first-child b { color:#d94b45; }
@@ -1457,11 +1460,11 @@ useRealtimeRefresh(
 .spk-refund-file-picker { display:flex; align-items:center; gap:10px; min-height:68px; padding:10px; border:1px dashed #c9d2c2; border-radius:12px; background:#fafbf8; }
 .spk-refund-upload-icon { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; border-radius:10px; background:#edf3e9; color:#355a2c; font-size:18px; }
 .spk-refund-file-copy { display:grid; flex:1; min-width:0; gap:4px; }
-.spk-refund-file-copy strong { overflow:hidden; color:#303b31; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
-.spk-refund-file-copy small { color:#717178; font-size:9px; font-weight:400; }
-.spk-refund-choose { display:grid; place-items:center; min-height:36px; padding:0 10px; border-radius:9px; background:#355a2c; color:#fff; font-size:10px; font-weight:750; }
+.spk-refund-file-copy strong { overflow:hidden; color:#303b31; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+.spk-refund-file-copy small { color:#717178; font-size:11px; font-weight:400; }
+.spk-refund-choose { display:grid; place-items:center; min-height:36px; padding:0 10px; border-radius:9px; background:#355a2c; color:#fff; font-size:11px; font-weight:750; }
 
-.spk-refund-footnote { margin:-5px 0 0; color:#717178; font-size:9px; line-height:1.5; }
+.spk-refund-footnote { margin:-5px 0 0; color:#717178; font-size:11px; line-height:1.5; }
 .spk-refund-proof-button:focus-visible,.spk-refund-file-picker:focus-within { outline:3px solid rgba(53,90,44,.25); outline-offset:2px; }
 @media (max-width:360px) {
   .spk-refund-section { padding:12px; }

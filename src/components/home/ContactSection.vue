@@ -58,7 +58,7 @@
         type="button"
         @click="router.push('/contact')"
       >
-        Semua kontak
+        kontak
         <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
       </button>
     </div>

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AdminPageFill from '@/components/common/AdminPageFill.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppNotice from '@/components/ui/AppNotice.vue'
@@ -41,10 +42,11 @@ onIonViewWillEnter(() => void loadFunnel())
 </script>
 
 <template>
-  <ion-page>
+  <ion-page class="pl-admin pl-sheet">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content :fullscreen="true">
+      <AdminPageFill>
       <main class="mnt">
         <Reveal :order="0">
           <PageHeader title="Minat pembeli" show-back back-fallback="/admin/lainnya" back-label="Lainnya" />
@@ -84,6 +86,7 @@ onIonViewWillEnter(() => void loadFunnel())
           </section>
         </Reveal>
       </main>
+      </AdminPageFill>
     </ion-content>
 
     <MobileTabBar variant="admin" />

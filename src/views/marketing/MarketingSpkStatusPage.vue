@@ -1,10 +1,8 @@
 <template>
-  <MarketingPageLayout title="Status SPK" subtitle="Pantau pengajuan dan alasan jika ditolak." show-back back-route="/marketing/more" @refresh="view?.reload()">
+  <MarketingPageLayout title="Status SPK" footer show-back back-route="/marketing/more" @refresh="view?.reload()">
     <Reveal :order="1">
       <SpkListView ref="view" role="marketing" :focus-id="Number(query.spkId) || undefined" :focus-stamp="String(query.nt ?? '')" @open-client="(id) => router.push(`/marketing/clients/${id}`)" />
     </Reveal>
-    <!-- Ruang agar baris terakhir tidak tertutup tombol tetap. -->
-    <div class="spk-fab-spacer" aria-hidden="true" />
     <template #fixed>
       <!-- Form SPK Marketing selalu terikat ke satu kaveling, jadi mulai dari daftar kaveling. -->
       <button slot="fixed" type="button" class="spk-apply-fab" @click="router.push('/kavling')">
@@ -30,7 +28,6 @@ const view = ref<InstanceType<typeof SpkListView> | null>(null)
 </script>
 
 <style scoped>
-.spk-fab-spacer { height: 72px; }
 /* Putih di atas --poliland-green (#355A2C): 8,3:1. */
 .spk-apply-fab {
   position: fixed;

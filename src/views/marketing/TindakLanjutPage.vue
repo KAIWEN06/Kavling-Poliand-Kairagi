@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Tindak lanjut" @refresh="refresh">
+  <MarketingPageLayout title="Tindak lanjut" footer @refresh="refresh">
     <AppNotice v-if="loadError" tone="error">
       {{ loadError }}
     </AppNotice>
@@ -12,9 +12,7 @@
       </EmptyState>
     </section>
 
-    <form v-else-if="customers.length" class="mk-card followup-form" novalidate @submit.prevent="saveFollowup">
-      <h2>Catat tindak lanjut</h2>
-
+    <form v-else-if="customers.length" class="mk-card followup-form" aria-label="Catat tindak lanjut" novalidate @submit.prevent="saveFollowup">
       <label class="mk-field">
         <span>Klien</span>
         <select v-model.number="selectedCustomerId" class="mk-input" @change="formError = ''">
@@ -65,9 +63,7 @@
     </form>
 
     <section class="mk-section" aria-labelledby="history-title">
-      <div class="mk-section-head">
-        <h2 id="history-title">Riwayat</h2>
-      </div>
+      <SectionHeader id="history-title" title="Riwayat" />
 
       <SkeletonCardList v-if="loadingHistory" :count="3" :lines="2" label="Memuat riwayat" />
 
@@ -97,6 +93,7 @@ import MarketingPageLayout from '@/components/marketing/shared/MarketingPageLayo
 import AppButton from '@/components/ui/AppButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { useToast } from '@/composables/useToast'
 import { followupLabel, formatDate } from '@/utils/marketingStatus'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -373,12 +370,15 @@ useRealtimeRefresh(
 </script>
 
 <style scoped>
-.followup-form { display: grid; gap: var(--space-3); }
-.followup-form h2 { margin: 0; font-size: var(--text-lg); }
+/* Satu lembar putih (perintah.txt). */
+section.mk-card { padding: var(--space-3) 0; border: 0; border-radius: 0; }
+
+.followup-form { display: grid; gap: var(--space-3); padding: 0; border: 0; border-radius: 0; }
 .followup-open { justify-self: start; padding: 0; }
 
-.followup-list { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
-.followup-item { display: grid; gap: 4px; }
+.followup-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.followup-item { display: grid; gap: 4px; padding: 14px 0; border: 0; border-bottom: 1px solid var(--border-default); border-radius: 0; }
+.followup-item:last-child { border-bottom: 0; }
 .followup-item__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
 .followup-item__top strong { min-width: 0; overflow-wrap: anywhere; font-size: var(--text-md); }
 .followup-item p { margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; font-size: var(--text-sm); line-height: 1.5; }

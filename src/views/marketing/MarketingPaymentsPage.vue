@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Pembayaran" subtitle="Status pembayaran dan jadwal cicilan klien Anda." show-back back-route="/marketing/more" @refresh="view?.reload()">
+  <MarketingPageLayout title="Pembayaran" footer show-back back-route="/marketing/more" @refresh="view?.reload()">
     <Reveal :order="1">
       <PaymentMonitorView ref="view" role="marketing" :focus-id="Number(query.paymentId) || undefined" :focus-stamp="String(query.nt ?? '')" :initial-tab="initialTab" @open-client="(id) => router.push(`/marketing/clients/${id}`)" />
     </Reveal>

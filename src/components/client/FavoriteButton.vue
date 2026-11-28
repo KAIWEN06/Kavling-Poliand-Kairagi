@@ -4,7 +4,8 @@ import { IonIcon } from '@ionic/vue'
 import { heart, heartOutline } from 'ionicons/icons'
 import { useFavorites } from '@/composables/useFavorites'
 
-const props = defineProps<{ lotId: number; lotLabel?: string }>()
+/** `compact`: hati saja, seukuran tombol ikon di kartu daftar. */
+const props = defineProps<{ lotId: number; lotLabel?: string; compact?: boolean }>()
 
 const { status, load, toggle, isFavorite } = useFavorites()
 const saved = computed(() => isFavorite(props.lotId))
@@ -24,13 +25,13 @@ function onClick() {
     v-if="status === 'ready'"
     type="button"
     class="fav"
-    :class="{ 'is-saved': saved, 'is-popping': justSaved && saved }"
+    :class="{ 'is-saved': saved, 'is-popping': justSaved && saved, 'fav--compact': compact }"
     :aria-pressed="saved"
     :aria-label="lotLabel ? `Favorit kavling ${lotLabel}` : 'Favorit'"
     @click="onClick"
   >
     <ion-icon :icon="saved ? heart : heartOutline" aria-hidden="true" />
-    <span>{{ saved ? 'Tersimpan' : 'Simpan' }}</span>
+    <span v-if="!compact">{{ saved ? 'Tersimpan' : 'Simpan' }}</span>
   </button>
 </template>
 
@@ -64,6 +65,18 @@ function onClick() {
 
 .fav.is-saved {
   border-color: #b13a3a;
+}
+
+.fav--compact {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-width: 1px;
+  border-radius: var(--radius-control, 12px);
+}
+
+.fav--compact ion-icon {
+  font-size: 22px;
 }
 
 .fav:active {

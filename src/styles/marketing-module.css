@@ -349,3 +349,53 @@ textarea.mk-input { min-height: 96px; resize: vertical; }
 .mk-timeline li:last-child { border-left-color: transparent; padding-bottom: 0; }
 .mk-timeline strong { display: block; font-size: var(--text-md); }
 .mk-timeline p { margin: 4px 0 0; font-size: var(--text-sm); color: var(--text-primary); white-space: pre-wrap; }
+
+/* =====================================================================
+   Peran Marketing saja (perintah.txt). Kepala Marketing tidak terkena.
+   ===================================================================== */
+
+/* Ringkasan angka: satu bar berpembatas 1px, bisa digeser. */
+.pl-marketing .mk-grid:has(> .ui-stat) {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.pl-marketing .mk-grid > .ui-stat.ui-stat {
+  display: flex;
+  flex: 1 0 96px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  min-height: 64px;
+  padding: 10px 6px;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  text-align: center;
+  transform: none;
+  box-shadow: none;
+}
+.pl-marketing .mk-grid > .ui-stat.ui-stat + .ui-stat { box-shadow: -1px 0 0 var(--border-default); }
+.pl-marketing .mk-grid > .ui-stat.ui-stat:active { background: var(--green-50); }
+.pl-marketing .mk-grid > .ui-stat.ui-stat:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: -3px; }
+.pl-marketing .mk-grid > .ui-stat .ui-stat__value.ui-stat__value { order: 1; color: var(--poliland-green); font-size: 18px; }
+.pl-marketing .mk-grid > .ui-stat .ui-stat__label.ui-stat__label { order: 2; color: var(--text-secondary); font-size: 12px; }
+.pl-marketing .mk-grid > .ui-stat .ui-stat__hint.ui-stat__hint { order: 3; color: var(--text-secondary); font-size: 11px; }
+
+.pl-marketing .mk-chip[aria-pressed='true'] { border-color: var(--poliland-green); background: var(--green-50); color: var(--poliland-green); font-weight: 700; }
+
+.pl-marketing .mk-subhead { margin-top: 12px; font-size: 22px; }
+.pl-marketing .mk-subhead::after,
+.pl-marketing .mk-section-head h2::after { content: ''; display: block; width: 40px; height: 3px; margin-top: 8px; border-radius: 999px; background: var(--poliland-gold); }
+
+/* Di ponsel, baris tabel jadi daftar rata tanpa bingkai luar. */
+@media (max-width: 719px) {
+  .pl-marketing .mk-table-wrap:has(> .mk-table--stack) { border: 0; border-radius: 0; }
+  .pl-marketing .mk-table--stack tr { padding: 14px 0; }
+}

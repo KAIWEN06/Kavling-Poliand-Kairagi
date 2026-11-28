@@ -15,29 +15,27 @@ import {
 import {
   checkmarkCircleOutline,
   documentTextOutline,
-  gridOutline,
   peopleOutline,
-  refreshOutline,
-  settingsOutline,
   walletOutline,
   timeOutline,
-  mapOutline,
   logOutOutline,
-  arrowForwardOutline,
+  chevronForwardOutline,
 } from 'ionicons/icons'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import SurveyAgendaCard from '@/components/common/SurveyAgendaCard.vue'
+import HomeMenu from '@/components/home/HomeMenu.vue'
+import type { MenuIllustrationName } from '@/components/home/MenuIllustration.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import PageHeader from '@/components/ui/PageHeader.vue'
-import Reveal from '@/components/ui/Reveal.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
+import ScrollReveal from '@/components/ui/ScrollReveal.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
-import StatCard from '@/components/ui/StatCard.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getLots, type SiteplanLot } from '@/services/siteplanService'
-import { normalizeLotStatus } from '@/utils/siteplan'
+import { getLotStatusColor, normalizeLotStatus } from '@/utils/siteplan'
 import { authService } from '@/services/auth/authService'
 import { customerService } from '@/services/marketing/customerService'
 import { getAdminSPKRequests, type AdminSPKRequest } from '@/services/Admin/spkAdminService'
@@ -53,11 +51,10 @@ type InventoryStatus = {
 }
 
 type QuickAction = {
+  id: MenuIllustrationName
   label: string
-  description: string
-  icon: string
-  tone: 'green' | 'gold' | 'neutral'
-  routeName?: string
+  gold?: boolean
+  routeName: string
   /** Query untuk membuka tab atau formulir tertentu di halaman tujuan. */
   query?: Record<string, string>
 }
@@ -68,13 +65,14 @@ const lots = ref<SiteplanLot[]>([])
 const loadState = ref<LoadState>('loading')
 const loadError = ref('')
 const loggingOut = ref(false)
-const refreshing = ref(false)
 const buyerDataLoading = ref(true)
 const buyerDataError = ref('')
 const dashboardCustomers = ref<any[]>([])
 const pendingSpks = ref<AdminSPKRequest[]>([])
 const spkError = ref('')
 const installmentInfo = ref(new Map<number, PaymentInstallmentInfo>())
+const menuPlay = ref(false)
+let menuFrame = 0
 let requestSequence = 0
 let isUnmounted = false
 
@@ -113,61 +111,29 @@ const inventory = computed<InventoryStatus[]>(() => {
   }))
 })
 
+/** Warna status sama dengan denah. Warna saja tidak cukup, jadi label selalu ikut tampil. */
+const statusColor = (status: InventoryStatus['key']) => getLotStatusColor({ status })
+
 const quickActions: QuickAction[] = [
-  {
-    label: 'Denah 2D',
-    description: 'Lihat dan kelola kaveling',
-    icon: mapOutline,
-    tone: 'green',
-    routeName: 'AdminSiteplan',
-  },
-  {
-    label: 'Tambah klien',
-    description: 'Daftarkan calon pembeli',
-    icon: peopleOutline,
-    tone: 'neutral',
-    routeName: 'AdminPembeli',
-    query: { action: 'tambah' },
-  },
-  {
-    label: 'Pembayaran',
-    description: 'Periksa transaksi masuk',
-    icon: walletOutline,
-    tone: 'gold',
-    routeName: 'AdminKeuangan',
-    query: { tab: 'verification', status: 'pending' },
-  },
-  {
-    label: 'Kelola konten',
-    description: 'Perbarui informasi situs web',
-    icon: gridOutline,
-    tone: 'neutral',
-    routeName: 'AdminKonten',
-  },
-  {
-    label: 'Akses tim',
-    description: 'Kelola akun dan peran',
-    icon: settingsOutline,
-    tone: 'green',
-    routeName: 'AdminAksesTim',
-  },
-  {
-    label: 'SPK',
-    description: 'Kelola surat pemesanan',
-    icon: documentTextOutline,
-    tone: 'gold',
-    routeName: 'AdminSPK',
-  },
+  { id: 'denah', label: 'Denah', routeName: 'AdminSiteplan' },
+  { id: 'klien', label: 'Tambah klien', gold: true, routeName: 'AdminPembeli', query: { action: 'tambah' } },
+  { id: 'pembayaran', label: 'Pembayaran', routeName: 'AdminKeuangan', query: { tab: 'verification', status: 'pending' } },
+  { id: 'spk', label: 'SPK', gold: true, routeName: 'AdminSPK' },
+  { id: 'survei', label: 'Survei', gold: true, routeName: 'AdminSurvei' },
+  { id: 'konten', label: 'Konten', routeName: 'AdminKonten' },
+  { id: 'ulasan', label: 'Ulasan', gold: true, routeName: 'AdminUlasan' },
+  { id: 'tim', label: 'Akses tim', routeName: 'AdminAksesTim' },
 ]
 
-const availableQuickActions = computed(() =>
-  quickActions.map((action) => ({
-    ...action,
-    available: action.routeName
-      ? router.getRoutes().some((route) => route.name === action.routeName)
-      : false,
-  })),
-)
+const menuItems = computed(() => {
+  const routeNames = new Set(router.getRoutes().map((route) => route.name))
+  return quickActions.map(({ id, label, gold, routeName }) => ({
+    id,
+    label,
+    gold,
+    disabled: !routeNames.has(routeName),
+  }))
+})
 
 const inventoryDescription = computed(() => {
   const [available, booking, sold] = inventory.value
@@ -179,6 +145,12 @@ const buyerStats = computed(() => ({
   buyers: dashboardCustomers.value.filter((customer) => customer.lot_transactions?.some((transaction: any) => transaction.status === 'Sold')).length,
   followUps: dashboardCustomers.value.filter((customer) => !customer.lot_transactions?.some((transaction: any) => transaction.status === 'Sold') && ((customer.customer_notes?.length ?? 0) > 0 || (customer.customer_interests?.length ?? 0) > 0)).length,
 }))
+
+const clientColumns = computed(() => [
+  { label: 'Prospek aktif', hint: 'Belum membeli', value: buyerStats.value.prospects },
+  { label: 'Pembeli', hint: 'Transaksi terjual', value: buyerStats.value.buyers },
+  { label: 'Tindak lanjut', hint: 'Ada catatan atau minat', value: buyerStats.value.followUps },
+])
 
 type ActionTask = {
   id: string
@@ -357,11 +329,8 @@ async function loadInventory(forceRefresh = false, { silent = false }: LoadOptio
   const hasExistingData = lots.value.length > 0
   if (!silent) loadError.value = ''
 
-  if (silent && hasExistingData) {
-    // Pembaruan otomatis: tampilan lama tetap ada sampai data baru tiba.
-  } else if (forceRefresh && hasExistingData) {
-    refreshing.value = true
-  } else {
+  // Pembaruan otomatis atau paksa: tampilan lama tetap ada sampai data baru tiba.
+  if (!((silent || forceRefresh) && hasExistingData)) {
     loadState.value = 'loading'
   }
 
@@ -386,18 +355,12 @@ async function loadInventory(forceRefresh = false, { silent = false }: LoadOptio
       loadError.value =
         error instanceof Error ? error.message : 'Data inventaris tidak dapat dimuat.'
     }
-  } finally {
-    if (!isUnmounted && requestId === requestSequence) {
-      refreshing.value = false
-    }
   }
 }
 
-function openQuickAction(action: QuickAction) {
-  if (!action.routeName) return
-
-  const target = router.getRoutes().find((route) => route.name === action.routeName)
-  if (!target) return
+function openQuickAction(id: MenuIllustrationName) {
+  const action = quickActions.find((item) => item.id === id)
+  if (!action || !router.getRoutes().some((route) => route.name === action.routeName)) return
 
   // nt: lihat openTask. Tanpa ini ketukan kedua tidak membuka ulang tab atau formulirnya.
   void router.push({
@@ -419,6 +382,10 @@ async function logout() {
 }
 
 onMounted(() => {
+  // Satu frame setelah tampil, agar menu punya keadaan awal untuk dianimasikan.
+  menuFrame = requestAnimationFrame(() => {
+    menuFrame = requestAnimationFrame(() => { menuPlay.value = true })
+  })
   void loadInventory()
   void loadBuyerData()
 })
@@ -429,6 +396,7 @@ onIonViewWillEnter(() => {
 })
 
 onBeforeUnmount(() => {
+  cancelAnimationFrame(menuFrame)
   isUnmounted = true
   requestSequence += 1
 })
@@ -444,133 +412,95 @@ useRealtimeRefresh(
 </script>
 
 <template>
-  <ion-page>
+  <ion-page class="pl-admin">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content class="dashboard-content" :fullscreen="false">
       <main class="dash">
-        <Reveal :order="0">
-          <PageHeader title="Selamat datang, Admin" :subtitle="today">
-            <template #actions>
-              <button
-                type="button"
-                class="icon-btn"
-                :disabled="loggingOut"
-                :aria-label="loggingOut ? 'Sedang keluar' : 'Keluar dari akun'"
-                @click="logout"
-              >
-                <IonIcon :icon="logOutOutline" aria-hidden="true" />
-              </button>
-            </template>
-          </PageHeader>
-        </Reveal>
+        <!-- 1. Banner -->
+        <section class="banner" aria-labelledby="banner-title">
+          <div class="banner__top">
+            <p class="banner__date">{{ today }}</p>
+            <button
+              type="button"
+              class="banner__logout"
+              :disabled="loggingOut"
+              :aria-label="loggingOut ? 'Sedang keluar' : 'Keluar dari akun'"
+              @click="logout"
+            >
+              <IonIcon :icon="logOutOutline" aria-hidden="true" />
+            </button>
+          </div>
+          <h1 id="banner-title" class="banner__title">Selamat datang, Admin</h1>
+          <button type="button" class="banner__cta" @click="openQuickAction('denah')">Lihat denah</button>
+        </section>
 
-        <SurveyAgendaCard variant="admin" />
+        <!-- 2. Bar status kaveling -->
+        <section class="inventory" aria-labelledby="inventory-title">
+          <h2 id="inventory-title" class="sr-only">Inventaris kaveling</h2>
 
-        <div class="dash__grid">
-          <!-- INVENTARIS -->
-          <Reveal :order="1" class="area-inv">
-            <section aria-labelledby="inventory-title">
-              <template v-if="loadState === 'success'">
-                <div class="inv">
-                  <div class="inv__head">
-                    <h2 id="inventory-title" class="inv__title">Inventaris kaveling</h2>
-                  </div>
+          <div v-if="loadState === 'loading'" role="status" aria-label="Memuat inventaris">
+            <Skeleton height="98px" border-radius="12px" />
+          </div>
 
-                  <div class="inv__body">
-                    <div class="inv__total">
-                      <strong class="inv__number t-figure">{{ totalUnits.toLocaleString('id-ID') }}</strong>
-                      <span class="inv__caption">unit kaveling terdaftar</span>
-                    </div>
-
-                    <ul class="inv__list">
-                      <li v-for="item in inventory" :key="item.key" class="inv__row" :class="`inv__row--${item.key}`">
-                        <span class="inv__dot" aria-hidden="true"></span>
-                        <span class="inv__label">{{ item.label }}</span>
-                        <strong class="inv__value t-num">{{ item.value.toLocaleString('id-ID') }}</strong>
-                        <span class="inv__pct t-num">{{ item.percentage.toLocaleString('id-ID') }}%</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div class="inv__bar" role="img" :aria-label="inventoryDescription">
-                    <span
-                      v-for="item in inventory"
-                      :key="item.key"
-                      v-show="item.percentage > 0"
-                      :class="`inv__seg inv__seg--${item.key}`"
-                      :style="{ width: `${item.percentage}%` }"
-                    ></span>
-                  </div>
-
-                  <p v-if="loadError" class="inv__warn" role="status">
-                    Data terakhir tetap ditampilkan. Pembaruan terbaru gagal dimuat.
-                  </p>
+          <template v-else-if="loadState === 'success'">
+            <div class="bar">
+              <dl class="bar__cols">
+                <div v-for="item in inventory" :key="item.key" class="bar__col">
+                  <dt>
+                    <span class="bar__dot" :style="{ background: statusColor(item.key) }" aria-hidden="true"></span>
+                    {{ item.label }}
+                  </dt>
+                  <dd class="bar__value">{{ item.value.toLocaleString('id-ID') }}</dd>
+                  <dd class="bar__note">{{ item.percentage.toLocaleString('id-ID') }}%</dd>
                 </div>
-              </template>
-
-              <div v-else class="card">
-                <h2 id="inventory-title" class="card__title">Inventaris kaveling</h2>
-
-                <div v-if="loadState === 'loading'" class="skel-inv" role="status" aria-live="polite" aria-label="Memuat inventaris">
-                  <Skeleton width="38%" height="44px" border-radius="8px" />
-                  <Skeleton height="12px" border-radius="6px" />
-                  <div class="skel-row">
-                    <Skeleton height="52px" /><Skeleton height="52px" /><Skeleton height="52px" />
-                  </div>
-                </div>
-
-                <AppNotice v-else-if="loadState === 'error'" tone="error" title="Inventaris belum dapat dimuat">
-                  <p>{{ loadError }}</p>
-<AppButton size="small" @click="loadInventory(true)">Coba lagi</AppButton>
-                </AppNotice>
-
-                <EmptyState
-                  v-else
-                  kind="lots"
-                  compact
-                  title="Belum ada kaveling terdaftar"
-                  description="Data inventaris akan muncul setelah kaveling ditambahkan."
-                />
+              </dl>
+              <div class="bar__meter" role="img" :aria-label="inventoryDescription">
+                <span
+                  v-for="item in inventory"
+                  v-show="item.percentage > 0"
+                  :key="item.key"
+                  :style="{ width: `${item.percentage}%`, background: statusColor(item.key) }"
+                ></span>
               </div>
-            </section>
-          </Reveal>
+            </div>
+            <p v-if="loadError" class="inventory__warn" role="status">
+              Data terakhir tetap ditampilkan. Pembaruan terbaru gagal dimuat.
+            </p>
+          </template>
 
-          <!-- STATISTIK CALON PEMBELI -->
-          <Reveal :order="2" class="area-buyers">
-            <section class="card" aria-labelledby="buyers-title">
-              <div class="card__head">
-                <h2 id="buyers-title" class="card__title">Calon pembeli</h2>
-                <span class="card__meta t-num">{{ dashboardCustomers.length }} pembeli</span>
-              </div>
+          <AppNotice v-else-if="loadState === 'error'" tone="error" title="Inventaris belum dapat dimuat">
+            <p>{{ loadError }}</p>
+            <AppButton size="small" @click="loadInventory(true)">Coba lagi</AppButton>
+          </AppNotice>
 
-              <div v-if="buyerDataLoading" class="stat-grid" role="status" aria-label="Memuat statistik pembeli">
-                <Skeleton height="96px" border-radius="14px" />
-                <Skeleton height="96px" border-radius="14px" />
-                <Skeleton height="96px" border-radius="14px" />
-              </div>
-              <AppNotice v-else-if="buyerDataError" tone="error" title="Statistik belum dapat dimuat">
-                <p>{{ buyerDataError }}</p>
-<AppButton size="small" @click="loadBuyerData()">Coba lagi</AppButton>
-              </AppNotice>
-              <div v-else class="stat-grid">
-                <StatCard label="Prospek aktif" :value="buyerStats.prospects" hint="Belum melakukan pembelian" />
-                <StatCard label="Pembeli" :value="buyerStats.buyers" hint="Transaksi terjual" />
-                <StatCard label="Tindak lanjut" :value="buyerStats.followUps" hint="Memiliki catatan" />
-              </div>
-            </section>
-          </Reveal>
+          <EmptyState
+            v-else
+            kind="lots"
+            compact
+            title="Belum ada kaveling terdaftar"
+            description="Data inventaris akan muncul setelah kaveling ditambahkan."
+          />
+        </section>
 
-          <!-- PERLU DITINDAKLANJUTI -->
-          <Reveal :order="3" class="area-tasks">
-            <section class="card" aria-labelledby="tasks-title">
-              <div class="card__head">
-                <h2 id="tasks-title" class="card__title">Perlu ditindaklanjuti</h2>
-                <span v-if="!buyerDataLoading && actionTasks.length" class="card__meta t-num">{{ actionTasks.length }} tugas</span>
-              </div>
+        <!-- 3. Menu pintas -->
+        <HomeMenu :play="menuPlay" :items="menuItems" label="Menu admin" @select="openQuickAction" />
+
+        <!-- Tidak tampil sama sekali bila tidak ada jadwal. -->
+        <div class="agenda-slot">
+          <SurveyAgendaCard variant="admin" />
+        </div>
+
+        <!-- 4. Isi -->
+        <div class="dash__sections">
+          <ScrollReveal class="area-tasks">
+            <section class="block">
+              <SectionHeader title="Perlu ditindaklanjuti">
+                <span v-if="!buyerDataLoading && actionTasks.length" class="block__meta">{{ actionTasks.length }} tugas</span>
+              </SectionHeader>
 
               <div v-if="buyerDataLoading" class="skel-list" role="status" aria-label="Memuat tugas operasional">
-                <Skeleton v-for="n in 3" :key="n" height="60px" border-radius="14px" />
+                <Skeleton v-for="n in 3" :key="n" height="72px" border-radius="12px" />
               </div>
 
               <template v-else>
@@ -586,13 +516,13 @@ useRealtimeRefresh(
                         <span class="row__icon" :class="{ 'row__icon--danger': task.isLate, 'row__icon--gold': task.type === 'spk' }">
                           <IonIcon :icon="task.type === 'spk' ? documentTextOutline : (task.isLate ? timeOutline : walletOutline)" aria-hidden="true" />
                         </span>
-                        <span class="row__copy row__copy--wrap">
+                        <span class="row__copy">
                           <strong>{{ task.title }}</strong>
                           <small>{{ task.detail }}</small>
                           <small>{{ task.customerName }}</small>
+                          <StatusBadge v-if="task.isLate" class="row__badge" size="sm" tone="danger" label="Lewat 30 hari" />
                         </span>
-                        <StatusBadge v-if="task.isLate" size="sm" tone="danger" label="Lewat 30 hari" />
-                        <IonIcon class="row__chev" :icon="arrowForwardOutline" aria-hidden="true" />
+                        <IonIcon class="row__chev" :icon="chevronForwardOutline" aria-hidden="true" />
                       </button>
                     </li>
                   </ul>
@@ -608,55 +538,56 @@ useRealtimeRefresh(
                 />
               </template>
             </section>
-          </Reveal>
+          </ScrollReveal>
 
-          <!-- AKSI CEPAT -->
-          <Reveal :order="4" class="area-quick">
-            <section class="card" aria-labelledby="quick-title">
-              <h2 id="quick-title" class="card__title">Aksi cepat</h2>
-              <div class="quick">
-                <button
-                  v-for="action in availableQuickActions"
-                  :key="action.label"
-                  type="button"
-                  class="quick__item"
-                  :class="`quick__item--${action.tone}`"
-                  :disabled="!action.available"
-                  :title="action.available ? action.description : 'Rute halaman belum tersedia di router'"
-                  @click="openQuickAction(action)"
-                >
-                  <span class="quick__icon"><IonIcon :icon="action.icon" aria-hidden="true" /></span>
-                  <span class="quick__copy">
-                    <strong>{{ action.label }}</strong>
-                    <small>{{ action.available ? action.description : 'Belum tersedia' }}</small>
-                  </span>
-                </button>
+          <ScrollReveal class="area-clients">
+            <section class="block">
+              <SectionHeader title="Klien">
+                <button type="button" class="see-all" @click="router.push({ name: 'AdminPembeli' })">Lihat semua</button>
+              </SectionHeader>
+
+              <div v-if="buyerDataLoading" role="status" aria-label="Memuat statistik pembeli">
+                <Skeleton height="96px" border-radius="12px" />
               </div>
-            </section>
-          </Reveal>
-
-          <!-- AKTIVITAS -->
-          <Reveal :order="5" class="area-activity">
-            <section class="card" aria-labelledby="activity-title">
-              <div class="card__head">
-                <h2 id="activity-title" class="card__title">Aktivitas terkini</h2>
-                <div class="date-filter">
-                  <label>
-                    <span class="sr-only">Pilih tanggal aktivitas</span>
-                    <input v-model="selectedActivityDate" type="date" aria-label="Pilih tanggal aktivitas" />
-                  </label>
-                  <button v-if="selectedActivityDate" type="button" class="date-filter__clear" @click="selectedActivityDate = ''">
-                    Hapus filter
-                  </button>
+              <AppNotice v-else-if="buyerDataError" tone="error" title="Statistik belum dapat dimuat">
+                <p>{{ buyerDataError }}</p>
+                <AppButton size="small" @click="loadBuyerData()">Coba lagi</AppButton>
+              </AppNotice>
+              <template v-else>
+                <div class="bar">
+                  <dl class="bar__cols">
+                    <div v-for="column in clientColumns" :key="column.label" class="bar__col">
+                      <dt>{{ column.label }}</dt>
+                      <dd class="bar__value">{{ column.value.toLocaleString('id-ID') }}</dd>
+                      <dd class="bar__note">{{ column.hint }}</dd>
+                    </div>
+                  </dl>
                 </div>
+                <p class="block__foot">{{ dashboardCustomers.length.toLocaleString('id-ID') }} klien terdaftar</p>
+              </template>
+            </section>
+          </ScrollReveal>
+
+          <ScrollReveal class="area-activity">
+            <section class="block">
+              <SectionHeader title="Aktivitas terkini" />
+
+              <div class="date-filter">
+                <label class="date-filter__field">
+                  <span class="sr-only">Pilih tanggal aktivitas</span>
+                  <input v-model="selectedActivityDate" type="date" />
+                </label>
+                <button v-if="selectedActivityDate" type="button" class="see-all" @click="selectedActivityDate = ''">
+                  Hapus filter
+                </button>
               </div>
 
               <div v-if="buyerDataLoading" class="skel-list" role="status" aria-label="Memuat aktivitas">
-                <Skeleton v-for="n in 4" :key="n" height="56px" border-radius="14px" />
+                <Skeleton v-for="n in 4" :key="n" height="72px" border-radius="12px" />
               </div>
               <AppNotice v-else-if="buyerDataError" tone="error" title="Aktivitas belum dapat dimuat">
                 <p>{{ buyerDataError }}</p>
-<AppButton size="small" @click="loadBuyerData()">Coba lagi</AppButton>
+                <AppButton size="small" @click="loadBuyerData()">Coba lagi</AppButton>
               </AppNotice>
               <div v-else-if="filteredActivities.length" class="activity-list">
                 <ul class="rows">
@@ -668,8 +599,9 @@ useRealtimeRefresh(
                       <span class="row__copy">
                         <strong>{{ activity.label }}</strong>
                         <small>{{ activity.detail }}</small>
+                        <time :datetime="activity.date">{{ formatActivityDate(activity.date) }}</time>
                       </span>
-                      <time class="row__time t-num" :datetime="activity.date">{{ formatActivityDate(activity.date) }}</time>
+                      <IonIcon class="row__chev" :icon="chevronForwardOutline" aria-hidden="true" />
                     </button>
                   </li>
                 </ul>
@@ -683,322 +615,271 @@ useRealtimeRefresh(
                 :description="selectedActivityDate ? 'Pilih tanggal lain untuk melihat aktivitas.' : 'Aktivitas pembeli dan pembayaran akan muncul di sini.'"
               />
             </section>
-          </Reveal>
+          </ScrollReveal>
         </div>
       </main>
+
+      <!-- Penutup: bukit dan matahari yang sama dengan Beranda publik. -->
+      <footer class="dash-footer" aria-hidden="true">
+        <SceneBackdrop class="dash-footer__scene" height="100%" :sway="false" />
+      </footer>
     </ion-content>
     <MobileTabBar variant="admin" />
   </ion-page>
 </template>
 
 <style scoped>
+/* Satu lembar putih menyambung; jarak antar-section cukup dari ruang kosong. */
 .dashboard-content {
-  --background: var(--app-background);
+  --background: var(--surface-primary);
+  --padding-bottom: 0px;
 }
 
 .dash {
   width: min(100%, var(--container-max));
   margin-inline: auto;
-  padding: var(--space-4) var(--page-gutter) calc(var(--bottom-nav-h) + var(--space-12) + var(--safe-bottom));
   color: var(--text-primary);
   font-family: var(--font-ui);
 }
-
-.dash__grid {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'inv' 'tasks' 'quick' 'buyers' 'activity';
-}
-.area-inv { grid-area: inv; }
-.area-buyers { grid-area: buyers; }
-.area-tasks { grid-area: tasks; }
-.area-quick { grid-area: quick; }
-.area-activity { grid-area: activity; }
-
-@media (min-width: 1024px) {
-  .dash { padding: var(--space-6) var(--space-8) var(--space-12); }
-  .dash__grid {
-    gap: var(--space-5);
-    grid-template-columns: minmax(0, 1fr) 340px;
-    grid-template-areas:
-      'inv buyers'
-      'tasks quick'
-      'activity quick';
-  }
-}
-
-/* ---------- header action ---------- */
-.icon-btn {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--surface-primary);
-  color: var(--text-secondary);
-  font-size: 20px;
-  cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
-}
-@media (hover: hover) and (pointer: fine) {
-  .icon-btn:hover { color: var(--danger-text); border-color: var(--status-danger); }
-}
-.icon-btn:active { transform: scale(0.94); }
-.icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ---------- generic card ---------- */
-.card {
-  min-width: 0;
-  padding: var(--space-4);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  background: var(--surface-primary);
-}
-.card__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-  margin-bottom: var(--space-3);
-}
-.card__title {
-  margin: 0 0 var(--space-3);
-  font-size: var(--text-lg);
-  font-weight: 700;
-  line-height: var(--leading-snug);
-}
-.card__head .card__title { margin: 0; }
-.card__meta { color: var(--text-secondary); font-size: var(--text-xs); font-weight: 600; }
 
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
-/* ---------- inventory (panel penekanan) ---------- */
-.inv {
-  padding: var(--space-5);
-  border-radius: var(--radius-lg);
-  background: var(--surface-forest);
+button {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Isi baris tugas dan aktivitas adalah data, jadi tetap bisa disalin di desktop. */
+.row { user-select: text; -webkit-user-select: text; }
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--poliland-green);
+  outline-offset: 2px;
+}
+
+/* ---------- banner ---------- */
+.banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 12px 12px 0;
+  padding: var(--space-3) var(--space-5) var(--space-5);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(203, 160, 68, 0.3), rgba(203, 160, 68, 0) 62%),
+    var(--surface-forest);
   color: var(--on-forest);
 }
-.inv__head {
+.banner__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  width: 100%;
 }
-.inv__title { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--on-forest-muted); }
-.inv__refresh {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 1px solid rgba(244, 241, 232, 0.22);
-  border-radius: var(--radius-sm);
+.banner__date { margin: 0; color: var(--poliland-gold-soft); font-size: var(--text-sm); }
+.banner__logout {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: calc(-1 * var(--space-2));
+  border: 1px solid rgba(244, 241, 232, 0.3);
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--on-forest);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: 20px;
   cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out);
+  transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
 }
-@media (hover: hover) and (pointer: fine) {
-  .inv__refresh:hover { background: rgba(244, 241, 232, 0.1); }
+.banner__logout:active:not(:disabled) { transform: scale(0.94); background: rgba(244, 241, 232, 0.12); }
+.banner__logout:disabled { opacity: 0.5; cursor: not-allowed; }
+.banner__title {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(27px, 7.6vw, 38px);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
-.inv__refresh:disabled { opacity: 0.6; cursor: progress; }
-.is-spinning { animation: spin 0.9s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.inv__body {
-  display: grid;
-  gap: var(--space-5);
+.banner__cta {
+  min-height: 44px;
   margin-top: var(--space-4);
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--poliland-gold);
+  color: var(--ink);
+  font: 700 14px/1 var(--font-ui);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out);
 }
-.inv__total { display: grid; gap: var(--space-1); }
-.inv__number {
-  font-size: clamp(2.75rem, 2rem + 3.6vw, 4.25rem);
-  line-height: 1;
-  color: var(--gold-100);
-}
-.inv__caption { color: var(--on-forest-muted); font-size: var(--text-sm); }
+.banner__cta:active { transform: scale(0.96); }
+.banner button:focus-visible { outline-color: var(--poliland-gold-soft); }
 
-.inv__list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-.inv__row {
-  display: grid;
-  grid-template-columns: 10px 1fr auto 52px;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid rgba(244, 241, 232, 0.12);
-  font-size: var(--text-md);
-}
-.inv__row:last-child { border-bottom: 0; }
-.inv__dot { width: 10px; height: 10px; border-radius: 3px; }
-.inv__row--available .inv__dot, .inv__seg--available { background: #7DB36B; }
-.inv__row--booking .inv__dot, .inv__seg--booking { background: var(--gold-500); }
-.inv__row--sold .inv__dot, .inv__seg--sold { background: #E58B84; }
-.inv__value { font-size: var(--text-lg); }
-.inv__pct { text-align: right; color: var(--on-forest-muted); font-size: var(--text-sm); }
+/* ---------- bar angka ---------- */
+.inventory { padding: 10px 12px 0; }
+.inventory__warn { margin: var(--space-2) 0 0; color: var(--poliland-gold-text); font-size: var(--text-sm); }
 
-.inv__bar {
+.bar {
+  padding: 12px 0;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-sm);
+}
+.bar__cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+.bar__col { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0 6px; text-align: center; }
+.bar__col + .bar__col { border-left: 1px solid var(--border-default); }
+.bar__col dt { color: var(--text-secondary); font-size: var(--text-xs); line-height: 1.3; }
+.bar__col dd { margin: 0; }
+/* Angka tampil di atas labelnya, urutan baca tetap label lalu nilai. */
+.bar__col .bar__value {
+  order: -1;
+  color: var(--poliland-green);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.bar__note { color: var(--text-secondary); font-size: var(--text-2xs); line-height: 1.3; font-variant-numeric: tabular-nums; text-wrap: balance; }
+.bar__dot { display: inline-block; width: 8px; height: 8px; margin-right: 3px; border-radius: 3px; }
+.bar__meter {
   display: flex;
-  gap: 3px;
-  height: 10px;
-  margin-top: var(--space-5);
+  gap: 2px;
+  height: 6px;
+  margin: 10px 12px 0;
   overflow: hidden;
   border-radius: var(--radius-pill);
-  background: rgba(244, 241, 232, 0.1);
+  background: var(--surface-muted);
 }
-.inv__seg { min-width: 4px; border-radius: var(--radius-pill); transition: width var(--dur-slow) var(--ease-out); }
-.inv__warn { margin: var(--space-3) 0 0; color: var(--gold-100); font-size: var(--text-sm); }
+.bar__meter span { min-width: 4px; }
 
-@media (min-width: 640px) {
-  .inv__body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: end; }
+.agenda-slot { padding: 0 20px; }
+.agenda-slot > :deep(.agenda) { margin: var(--space-3) 0 0; }
+
+/* ---------- section ---------- */
+.dash__sections { display: grid; grid-template-columns: minmax(0, 1fr); }
+.dash__sections > * { min-width: 0; }
+.block { padding: 24px 20px 0; }
+.block__meta { color: var(--text-secondary); font-size: var(--text-xs); font-weight: 600; white-space: nowrap; }
+.block__foot { margin: var(--space-2) 0 0; color: var(--text-secondary); font-size: var(--text-sm); }
+
+.see-all {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--poliland-green);
+  font: 800 13px/1 var(--font-ui);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.see-all:active { transform: scale(0.95); }
+
+.skel-list { display: grid; gap: var(--space-2); }
+
+@media (min-width: 1024px) {
+  .dash__sections {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+    grid-template-areas: 'tasks clients' 'activity clients';
+    align-content: start;
+    align-items: start;
+  }
+  .area-tasks { grid-area: tasks; }
+  .area-clients { grid-area: clients; }
+  .area-activity { grid-area: activity; }
 }
 
-/* ---------- skeleton / alert ---------- */
-.skel-inv, .skel-list { display: grid; gap: var(--space-3); }
-.skel-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
-
-/* ---------- stats ---------- */
-.stat-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 479px) { .stat-grid { grid-template-columns: 1fr; } }
-@media (min-width: 1024px) { .stat-grid { grid-template-columns: 1fr; } }
-
-/* ---------- rows (tugas, aktivitas) ---------- */
-.rows { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+/* ---------- baris tugas dan aktivitas ---------- */
+.rows { margin: 0; padding: 0; list-style: none; }
+.rows li + li { border-top: 1px solid var(--border-default); }
 .row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  min-height: 60px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--surface-muted);
+  min-height: 64px;
+  padding: var(--space-3) 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+  transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
 }
+.row:active { transform: scale(0.97); background: var(--green-50); }
+.row:focus-visible { outline-offset: -3px; }
 @media (hover: hover) and (pointer: fine) {
-  .row:hover { background: var(--surface-sunken); border-color: var(--border-strong); }
+  .row:hover { background: var(--green-50); }
 }
-.row:active { transform: scale(0.99); }
 .row__icon {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
-  background: var(--green-100);
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--green-50);
   color: var(--green-700);
-  font-size: 19px;
+  font-size: 20px;
 }
 .row__icon--gold { background: var(--gold-50); color: var(--gold-800); }
 .row__icon--danger { background: var(--danger-bg); color: var(--danger-text); }
-.row__copy { display: grid; min-width: 0; gap: 2px; }
-.row__copy strong { font-size: var(--text-md); font-weight: 600; }
-.row__copy small {
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.row__copy--wrap small { white-space: normal; overflow-wrap: anywhere; }
-.row__time { color: var(--text-secondary); font-size: var(--text-xs); white-space: nowrap; }
-.row__chev { color: var(--text-tertiary); font-size: 16px; transition: transform var(--dur-fast) var(--ease-out); }
-@media (hover: hover) and (pointer: fine) {
-  .row:hover .row__chev { transform: translateX(3px); }
-}
+.row__copy { display: grid; min-width: 0; gap: 2px; overflow-wrap: anywhere; }
+.row__copy strong { font-size: 14px; font-weight: 700; line-height: 1.35; }
+.row__copy small { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.4; }
+.row__copy time { color: var(--text-secondary); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.row__badge { justify-self: start; margin-top: 2px; }
+.row__chev { color: var(--text-secondary); font-size: 16px; }
 
-@media (max-width: 479px) {
-  .row { grid-template-columns: 40px minmax(0, 1fr) auto; }
-  .row__chev { display: none; }
-  .row > :nth-child(3) { align-self: start; }
-}
-
-/* ---------- aktivitas: filter, pager ---------- */
-.date-filter { display: flex; align-items: center; gap: var(--space-2); }
+/* ---------- filter tanggal ---------- */
+.date-filter { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+.date-filter__field { flex: 1; min-width: 0; max-width: 240px; }
 .date-filter input {
+  width: 100%;
   min-height: 44px;
+  box-sizing: border-box;
   padding: 0 var(--space-3);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   background: var(--surface-primary);
   color: var(--text-primary);
   font: inherit;
-  font-size: var(--text-sm);
-}
-.date-filter__clear {
-  min-height: 44px;
-  padding: 0 var(--space-2);
-  border: 0;
-  background: transparent;
-  color: var(--green-700);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
+  /* Di bawah 16px, iOS memperbesar halaman saat input difokuskan. */
+  font-size: 16px;
 }
 
-/* ---------- aksi cepat ---------- */
-.quick { display: grid; gap: var(--space-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 1024px) { .quick { grid-template-columns: 1fr; } }
-.quick__item {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 60px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--surface-primary);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+/* ---------- footer ---------- */
+.dash-footer {
+  position: relative;
+  height: calc(210px + var(--safe-bottom));
+  overflow: hidden;
+  /* Putih memudar ke krem agar footer menyambung tanpa garis batas. */
+  background: linear-gradient(180deg, var(--surface-primary) 0%, var(--pl-paper) 55%);
 }
-@media (hover: hover) and (pointer: fine) {
-  .quick__item:hover:not(:disabled) { border-color: var(--green-500); box-shadow: var(--shadow-sm); }
+.dash-footer__scene :deep(.sun) {
+  top: 0;
+  right: -90px;
+  width: 260px;
+  height: 200px;
+  background: radial-gradient(closest-side, rgba(244, 214, 154, 0.7), rgba(244, 214, 154, 0));
 }
-.quick__item:active:not(:disabled) { transform: scale(0.985); }
-.quick__item:disabled { opacity: 0.55; cursor: not-allowed; }
-.quick__icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-  font-size: 19px;
-}
-.quick__item--green .quick__icon { background: var(--green-100); color: var(--green-700); }
-.quick__item--gold .quick__icon { background: var(--gold-50); color: var(--gold-800); }
-.quick__copy { display: grid; min-width: 0; gap: 2px; }
-.quick__copy strong { font-size: var(--text-md); font-weight: 600; }
-.quick__copy small { color: var(--text-secondary); font-size: var(--text-xs); line-height: 1.3; }
-/* Ubin dua kolom di ponsel terlalu sempit untuk ikon di samping teks, jadi ikon di atas. */
-@media (max-width: 639px) {
-  .quick__item {
-    grid-template-columns: minmax(0, 1fr);
-    align-content: start;
-    justify-items: start;
-    gap: var(--space-2);
-    padding: var(--space-3);
-  }
+
+@media (prefers-reduced-motion: reduce) {
+  .banner__logout:active:not(:disabled),
+  .banner__cta:active,
+  .see-all:active,
+  .row:active { transform: none; }
 }
 </style>

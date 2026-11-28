@@ -1,7 +1,8 @@
 <template>
-  <ion-page class="review-page">
+  <ion-page class="pl-admin pl-sheet review-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
+      <AdminPageFill>
       <main class="review-shell">
         <PageBackButton fallback="/admin/spk" label="Daftar SPK" />
         <SkeletonDetailHeader v-if="loading" :sections="3" :rows="5" label="Memuat data SPK" />
@@ -107,6 +108,7 @@
           </section>
         </template>
       </main>
+      </AdminPageFill>
     </ion-content>
   </ion-page>
 </template>
@@ -120,6 +122,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
 import { arrowBackOutline } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AdminPageFill from '@/components/common/AdminPageFill.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import SpkProcessTimeline from '@/components/spk/SpkProcessTimeline.vue'
@@ -403,7 +406,7 @@ useRealtimeRefresh(
 }
 .calendar-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
 .calendar-month { color:var(--text-primary); font-weight:700; }
-.calendar-auto-label { color:var(--text-secondary); font-size:10px; }
+.calendar-auto-label { color:var(--text-secondary); font-size:11px; }
 .calendar-weekdays,.calendar-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; text-align:center; }
 .calendar-weekdays { margin-bottom:6px; color:var(--text-secondary); font-size:11px; font-weight:700; }
 .calendar-day,.calendar-blank { display:grid; place-items:center; aspect-ratio:1; min-width:0; }

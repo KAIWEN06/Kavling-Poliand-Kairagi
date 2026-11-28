@@ -1,7 +1,8 @@
 <template>
-  <ion-page class="cms-page">
+  <ion-page class="pl-admin pl-sheet cms-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
+      <AdminPageFill>
       <main class="cms-shell">
         <Reveal :order="1">
           <header class="cms-intro">
@@ -49,6 +50,7 @@
           </section>
         </div>
       </main>
+      </AdminPageFill>
     </ion-content>
     <MobileTabBar variant="admin" />
   </ion-page>
@@ -65,6 +67,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 import Reveal from '@/components/ui/Reveal.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AdminPageFill from '@/components/common/AdminPageFill.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import CmsCrudPanel from '@/components/Admin/CmsCrudPanel.vue'
 import CmsHomePanel from '@/components/Admin/CmsHomePanel.vue'

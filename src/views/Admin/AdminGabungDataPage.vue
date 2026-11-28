@@ -1,8 +1,9 @@
 <template>
-  <ion-page class="merge-page">
+  <ion-page class="pl-admin pl-sheet merge-page">
     <AppHeader variant="admin" />
 
     <ion-content :fullscreen="true">
+      <AdminPageFill>
       <main class="shell pl-surface">
         <Reveal :order="1">
           <header class="intro">
@@ -63,6 +64,7 @@
           </AppButton>
         </template>
       </main>
+      </AdminPageFill>
     </ion-content>
 
     <AppModal
@@ -134,6 +136,7 @@ import { computed, onMounted, ref } from 'vue'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { checkmarkCircleOutline, swapHorizontalOutline } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AdminPageFill from '@/components/common/AdminPageFill.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'

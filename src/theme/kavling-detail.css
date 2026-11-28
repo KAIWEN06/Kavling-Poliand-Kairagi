@@ -1,0 +1,45 @@
+/* Detail kaveling Admin dan Client. Dimuat lewat <style scoped src> sebelum gaya halaman. */
+/* Satu lembar putih: bagian atas tanpa kartu pembungkus. */
+.hero-card{margin-bottom:16px}
+.hero-image-wrap{position:relative;overflow:hidden;border-radius:16px;aspect-ratio:16/9;background:var(--pl-paper,#f9f5ec)}
+.hero-image{width:100%;height:100%;object-fit:cover;display:block}
+.image-placeholder,.panorama-empty{height:100%;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-secondary);background:var(--pl-paper,#f9f5ec);font-size:13px}
+.image-expand,.preview-expand{position:absolute;right:10px;bottom:10px;width:44px;height:44px;min-height:44px;margin:0;--padding-start:0;--padding-end:0}
+
+/* Bar angka seperti beranda: nilai di atas label, pembatas 1px. */
+.spec-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:10px;padding:12px 0;border:1px solid var(--border-default);border-radius:12px;background:var(--surface-primary);box-shadow:var(--shadow-sm)}
+.spec-strip>div{display:flex;flex-direction:column-reverse;align-items:center;justify-content:flex-end;gap:4px;min-width:0;padding:0 6px;text-align:center}
+.spec-strip>div+div{border-left:1px solid var(--border-default)}
+.spec-strip span{font-size:12px;color:var(--text-secondary)}
+.spec-strip strong{color:var(--poliland-green);font-family:var(--font-display,'Fraunces Variable',Georgia,serif);font-size:17px;font-weight:650;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.spec-strip .status-pill{padding:3px 10px;border-radius:99px;background:var(--green-50,#eef3ea);font-family:inherit;font-size:12px;font-weight:700}
+.spec-strip .status-pill.booking{background:color-mix(in srgb,var(--poliland-gold) 20%,white);color:var(--poliland-gold-text-soft)}
+.spec-strip .status-pill.sold{background:color-mix(in srgb,var(--status-danger) 11%,white);color:color-mix(in srgb,var(--status-danger) 70%,black)}
+
+.hero-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+.hero-actions>*{margin:0}
+.hero-share{margin-top:8px}
+
+.detail-tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface-primary);border-bottom:1px solid var(--border-default);margin:0 -20px 18px;padding:0 12px}
+.detail-tabs button{min-height:48px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--text-secondary);font:inherit;font-size:13px;font-weight:600;padding:0 3px;cursor:pointer}
+.detail-tabs button.active{color:var(--poliland-green);border-bottom-color:var(--poliland-green);font-weight:800}
+.detail-tabs button:focus-visible{outline:3px solid var(--poliland-green);outline-offset:-3px}
+.tab-content{min-height:220px}
+
+/* Judul section serif dengan garis emas pendek. */
+.panel{margin-bottom:28px}
+.panel h2,.section-heading h2,.tab-content :deep(.facs h2){margin:0 0 14px;font-family:var(--font-display,'Fraunces Variable',Georgia,serif);font-size:24px;line-height:1.15;font-weight:650;letter-spacing:-.02em;color:var(--text-primary)}
+.panel h2::after,.section-heading h2::after,.tab-content :deep(.facs h2)::after{content:'';display:block;width:40px;height:3px;margin-top:8px;border-radius:99px;background:var(--poliland-gold)}
+
+.info-list{margin:0;padding:2px 14px;border:1px solid var(--border-default);border-radius:var(--radius-card)}
+.info-list>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-default);font-size:13px}
+.info-list>div:last-child{border:0}
+.info-list dt{color:var(--text-secondary)}
+.info-list dd{margin:0;text-align:right;font-weight:600;max-width:58%;overflow-wrap:anywhere}
+.info-customer-link{color:var(--poliland-green);text-decoration:underline;text-underline-offset:2px}
+.info-customer-link:active{opacity:.75}
+.info-customer-link:focus-visible{outline:3px solid var(--text-primary);outline-offset:3px;border-radius:2px}
+
+/* Footer: sama dengan beranda. */
+.detail-footer{position:relative;height:calc(200px + var(--safe-bottom));overflow:hidden;background:linear-gradient(180deg,var(--surface-primary,#fff) 0%,var(--pl-paper,#f9f5ec) 55%)}
+.detail-footer__scene :deep(.sun){top:0;right:-90px;width:260px;height:200px;background:radial-gradient(closest-side,rgba(244,214,154,.7),rgba(244,214,154,0))}

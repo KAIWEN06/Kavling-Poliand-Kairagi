@@ -1,7 +1,8 @@
 <template>
-  <ion-page class="admin-buyer-detail-page">
+  <ion-page class="pl-admin admin-buyer-detail-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
+      <div class="page-wrap">
       <main class="buyer-detail-content">
         <PageBackButton fallback="/admin/pembeli" label="Daftar klien" />
         <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail pembeli" />
@@ -222,7 +223,7 @@
                   alt="Mascot PoliLand sedih belum ada transaksi"
                   class="empty-mascot"
                 />
-                <p class="muted">Belum ada transaksi transaksi kaveling tercatat.</p>
+                <p class="muted">Belum ada transaksi kaveling tercatat.</p>
               </div>
 
               <div v-else class="payment-list">
@@ -329,6 +330,10 @@
           </form>
         </AppModal>
       </main>
+        <div v-if="!loading && !errorMessage && customer" class="page-footer" aria-hidden="true">
+          <SceneBackdrop class="page-footer__scene" height="100%" :sway="false" />
+        </div>
+      </div>
     </ion-content>
     <MobileTabBar variant="admin" />
     <AppModal
@@ -390,6 +395,7 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import IdentityInfo from '@/components/identity/IdentityInfo.vue'
 import AddressFields from '@/components/marketing/shared/AddressFields.vue'
@@ -864,12 +870,12 @@ useRealtimeRefresh(
   background: var(--surface-primary);
 }
 .lot-detail-cell { display: grid; gap: 3px; min-width: 0; }
-.lot-detail-label { color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-medium); }
+.lot-detail-label { color: var(--text-secondary); font-size: 11px; font-weight: var(--font-weight-medium); }
 .lot-detail-cell strong { color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
 .lot-card-footer { align-items: flex-end; flex-wrap: wrap; }
 .lot-price-group { display: grid; gap: 3px; min-width: 0; }
 .lot-card-price { color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-extrabold); overflow-wrap: anywhere; }
-.lot-card-price-note { color: var(--poliland-gold-text); font-size: 10px; font-weight: var(--font-weight-semibold); }
+.lot-card-price-note { color: var(--poliland-gold-text); font-size: 11px; font-weight: var(--font-weight-semibold); }
 .lot-card-actions { flex-shrink: 0; }
 .btn-nav-lot { display: inline-flex; align-items: center; gap: 4px; min-height: 38px; padding: 0 12px; border: 1px solid var(--poliland-green); border-radius: var(--radius-control); background: var(--status-success-bg); color: var(--poliland-green); font: inherit; font-size: 12px; font-weight: var(--font-weight-bold); cursor: pointer; text-decoration: none; }
 .btn-nav-lot ion-icon { font-size: 14px; }
@@ -1022,7 +1028,7 @@ useRealtimeRefresh(
   border-radius: 8px;
   background: var(--surface-primary);
   color: var(--text-secondary);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.2;
   font-weight: var(--font-weight-bold);
   white-space: nowrap;
@@ -1085,5 +1091,72 @@ useRealtimeRefresh(
   .lot-card-footer { align-items: stretch; }
   .lot-card-actions { width: 100%; }
   .btn-nav-lot { flex: 1; justify-content: center; }
+}
+
+/* ---------- Tampilan mengikuti beranda ---------- */
+ion-content { --padding-bottom: 0px; }
+.page-wrap { display: flex; flex-direction: column; min-height: 100%; }
+.page-footer { position: relative; flex: 0 0 auto; margin-top: auto; height: calc(200px + var(--safe-bottom)); overflow: hidden; background: linear-gradient(180deg, var(--surface-primary, #fff) 0%, var(--pl-paper, #f9f5ec) 55%); }
+.page-footer__scene :deep(.sun) { top: 0; right: -90px; width: 260px; height: 200px; background: radial-gradient(closest-side, rgba(244, 214, 154, 0.7), rgba(244, 214, 154, 0)); }
+.admin-buyer-detail-page { font-family: var(--font-ui, var(--font-primary)); }
+.buyer-detail-content { flex: 1 0 auto; min-height: 0; padding: 16px 20px 24px; background: var(--surface-primary); }
+
+.detail-hero { margin: 4px 0 18px; }
+.detail-avatar { flex: 0 0 56px; width: 56px; height: 56px; border-radius: 18px; font-size: 17px; }
+.detail-avatar.mint { background: var(--gold-50, #fbf5e6); }
+.detail-hero h1 { margin: 0; font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-size: 24px; font-weight: 650; line-height: 1.15; overflow-wrap: anywhere; }
+.detail-status { align-self: center; border: 0; background: var(--green-50, #eef3ea); font-size: 12px; }
+
+/* Aksi cepat bergaya menu ikon beranda. */
+.detail-actions { gap: 8px; margin-bottom: 18px; }
+.detail-action { justify-content: flex-start; gap: 6px; min-height: 72px; padding: 0; border: 0; background: transparent; font-size: 12px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* Ionic memaksa content-box: ukuran kotak = ikon 22px + padding 13px = 48px. */
+.detail-action ion-icon { flex: none; width: 22px; height: 22px; padding: 13px; border-radius: 16px; background: var(--green-50, #eef3ea); font-size: 22px; }
+.detail-action:active { transform: scale(0.95); background: transparent; }
+.detail-action--danger ion-icon { background: color-mix(in srgb, var(--status-danger) 10%, white); }
+@media (hover: hover) and (pointer: fine) { .detail-action--danger:hover { background: transparent; } }
+
+.detail-tabs { position: sticky; top: 0; z-index: 5; margin: 0 -20px 20px; padding: 0 12px; background: var(--surface-primary); }
+.detail-tabs button { min-height: 48px; border-bottom-width: 3px; font-size: 13px; cursor: pointer; }
+.detail-tabs button.active { border-bottom-color: var(--poliland-green); color: var(--poliland-green); font-weight: 800; }
+
+/* Section menyatu dengan lembar putih; judul serif bergaris emas. */
+.detail-card { margin: 0 0 28px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.card-head { align-items: flex-end; flex-wrap: wrap; }
+.card-head h2 { font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-size: 24px; font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; }
+.card-head h2::after { content: ''; display: block; width: 40px; height: 3px; margin-top: 8px; border-radius: 999px; background: var(--poliland-gold); }
+.head-sub { margin-top: 8px; font-size: 13px; }
+
+.personal-info-list { border-radius: var(--radius-card); }
+.personal-info-item dt { font-size: 12px; }
+.personal-info-item dd { font-size: 14px; }
+
+.empty-box { background: var(--pl-paper, #f9f5ec); }
+.muted { font-size: 13px; }
+
+.lot-card-item, .tx-card { background: var(--surface-primary); box-shadow: var(--shadow-sm); }
+.lot-card-details, .tx-grid, .tx-dl { background: var(--surface-primary); }
+.lot-badge-num, .tx-card-title strong { font-family: var(--font-display, 'Fraunces Variable', Georgia, serif); font-size: 18px; font-weight: 650; }
+.lot-badge-type { border: 0; border-radius: 999px; background: var(--green-50, #eef3ea); font-size: 12px; }
+.lot-detail-label, .lot-card-price-note { font-size: 12px; }
+.lot-detail-cell strong, .tx-value { font-size: 13px; }
+.lot-card-price { color: var(--poliland-green); font-size: 15px; }
+.tx-label { font-size: 12px; }
+.tx-details-summary { min-height: 44px; }
+.lot-status-chip, .transaction-status { border-radius: 999px; font-size: 11px; }
+.lot-status-chip.is-sold, .transaction-status.is-sold { color: color-mix(in srgb, var(--status-danger) 70%, black); }
+
+.btn-nav-lot, .btn-nav-lot-sm { min-height: 44px; font-size: 12px; }
+.btn-remove-lot { width: 44px; height: 44px; min-height: 44px; }
+.btn-nav-lot:active, .btn-nav-lot-sm:active, .btn-remove-lot:active, .btn-cancel:active, .btn-submit:active:not(:disabled) { transform: scale(0.96); }
+
+.interest-form { background: var(--pl-paper, #f9f5ec); }
+.lot-picker-head input, .field-label-custom select, .interest-form select, .edit-modal-form input, .edit-modal-form textarea { box-sizing: border-box; font-size: 16px; }
+
+.buyer-detail-state { border: 0; }
+.buyer-detail-error-mascot { width: min(180px, 60%); height: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-action:active, .btn-nav-lot:active, .btn-nav-lot-sm:active, .btn-remove-lot:active, .btn-cancel:active, .btn-submit:active:not(:disabled) { transform: none; }
 }
 </style>

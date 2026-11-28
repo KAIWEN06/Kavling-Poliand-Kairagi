@@ -4,7 +4,7 @@
     memakai ClientDetailView yang membaca customers, SPK, pembayaran, jadwal
     cicilan, dan komisi dari tabel yang sama dengan Admin/Client.
   -->
-  <MarketingPageLayout title="Detail Klien" show-back :refreshable="false" :back-route="backRoute" @refresh="detail?.reload()">
+  <MarketingPageLayout class="mk-client-detail" title="Detail klien" footer show-back :refreshable="false" :back-route="backRoute" @refresh="detail?.reload()">
     <ClientDetailView v-if="customerId" ref="detail" :customer-id="customerId" role="marketing" :viewer-name="profileName" />
     <StatusIllustration v-else variant="not-found-404" size="sm" title="Klien tidak ditemukan" description="Pilih ulang klien dari daftar." />
   </MarketingPageLayout>
@@ -30,3 +30,11 @@ onMounted(async () => {
   try { profileName.value = (await getStaffProfile()).full_name } catch { /* opsional */ }
 })
 </script>
+
+<style scoped>
+/* Seperti detail klien admin: hanya tombol kembali; judul tetap ada untuk pembaca layar. */
+.mk-client-detail :deep(.ui-page-header__row) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mk-client-detail :deep(.ui-page-header) { margin-bottom: 8px; }
+/* Jarak antarbagian diatur oleh isi halaman, bukan celah grid. */
+.mk-client-detail :deep(.mk-shell) { gap: 0; padding: 12px 20px 24px; }
+</style>

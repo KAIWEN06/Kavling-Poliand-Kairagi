@@ -2,7 +2,8 @@
   <!--
     Susunan mengikuti detail klien admin (AdminPembeliDetail.vue): hero, empat ubin aksi,
     tab bergaris bawah, kartu kaveling dan transaksi. Batasan peran Marketing/Kepala Bagian:
-    tidak ada hapus data klien, tidak ada tambah/hapus minat kaveling. Kepala Bagian hanya memantau
+    tidak ada hapus data klien atau hapus minat kaveling.
+    Marketing dapat menambah minat kaveling. Kepala Bagian hanya memantau
     dan memberi arahan. Marketing dapat mengajukan
     SPK (dikonfirmasi Admin); pembayaran, jadwal, dan refund hanya dapat dilihat.
   -->
@@ -82,8 +83,14 @@
       <!-- Kaveling: minat, transaksi, pembayaran, jadwal -->
       <template v-else-if="activeTab === 'lot'">
         <section class="cd-card" aria-labelledby="cd-interest-title">
-          <div class="cd-card-head"><h3 id="cd-interest-title">Kaveling yang diminati</h3></div>
-          <StatusIllustration v-if="!detail.interests.length" variant="empty-data" size="sm" title="Belum ada minat kaveling" description="Minat yang dicatat saat klien ditambahkan muncul di sini." />
+          <div class="cd-card-head">
+            <h3 id="cd-interest-title">Kaveling diminati</h3>
+            <button v-if="!isHead && !interestOpen" type="button" class="cd-btn-add" aria-label="Tambah minat kaveling" @click="interestOpen = true">
+              <ion-icon :icon="addOutline" aria-hidden="true" /> Tambah
+            </button>
+          </div>
+          <AddInterestForm v-if="!isHead && interestOpen" :customer-id="Number(customerId)" :excluded-lot-ids="interestLotIds" @saved="onInterestSaved" @cancel="interestOpen = false" />
+          <StatusIllustration v-if="!detail.interests.length" variant="empty-data" size="sm" title="Belum ada minat kaveling" :description="isHead ? 'Minat yang dicatat pemasar muncul di sini.' : 'Ketuk Tambah untuk memilih kaveling.'" />
           <div v-else class="cd-stack">
             <article v-for="interest in detail.interests" :key="interest.id" class="cd-lot">
               <div class="cd-lot-head">
@@ -244,7 +251,7 @@
 
       <!-- Progres -->
       <section v-else-if="activeTab === 'crm'" class="cd-card">
-        <div class="cd-card-head"><h3>Riwayat progres</h3></div>
+        <div class="cd-card-head"><h3>Riwayat</h3></div>
         <ol v-if="crmTimeline.length" class="mk-timeline">
           <li v-for="item in crmTimeline" :key="item.key">
             <strong>{{ item.title }}</strong>
@@ -261,7 +268,7 @@
           <div class="cd-card-head">
             <h3>Catatan dan arahan</h3>
             <button v-if="!isHead || c.marketing_id" type="button" class="cd-btn-soft" @click="openNote">
-              <ion-icon :icon="addOutline" aria-hidden="true" /> {{ role === 'head' ? 'Arahan' : 'Catatan' }}
+              <ion-icon :icon="addOutline" aria-hidden="true" /> {{ role === 'head' ? 'Arahan' : 'Tambah' }}
             </button>
           </div>
           <StatusIllustration v-if="!detail.notes.length" variant="empty-data" size="sm" title="Belum ada catatan" :description="!isHead ? 'Tambahkan catatan pertama.' : c.marketing_id ? 'Arahan untuk pemasar akan tampil di sini.' : 'Klien ini belum punya pemasar untuk diberi arahan.'" />
@@ -405,6 +412,7 @@ import { addOutline, callOutline, chatbubblesOutline, chevronForwardOutline, cre
 import AppModal from '@/components/ui/AppModal.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import WhatsAppButton from './WhatsAppButton.vue'
+import AddInterestForm from './AddInterestForm.vue'
 import AddressFields from './AddressFields.vue'
 import { addressColumns, addressFromRecord, emptyAddress, missingBasicAddressFields } from '@/utils/address'
 import {
@@ -557,6 +565,15 @@ function openSpkForm(lotId: number) {
 }
 function pickLot() {
   router.push(`/kavling?customer_id=${props.customerId}`)
+}
+
+/* Tambah minat kaveling (Marketing). */
+const interestOpen = ref(false)
+const interestLotIds = computed(() => (detail.value?.interests ?? []).map((interest: any) => Number(interest.lot?.id ?? interest.lot_id)))
+async function onInterestSaved() {
+  interestOpen.value = false
+  toast.success('Minat kaveling tersimpan.')
+  await load()
 }
 
 async function load({ silent = false }: LoadOptions = {}) {
@@ -758,6 +775,7 @@ async function saveEdit() {
 watch(() => props.customerId, () => {
   loaded.value = false // klien berbeda → tampilkan skeleton, bukan data klien sebelumnya
   detail.value = null
+  interestOpen.value = false
   return load()
 })
 onMounted(load)
@@ -935,4 +953,39 @@ useRealtimeRefresh(
   .cd-action:active, .cd-btn-soft:active { transform: none; }
 }
 @keyframes cd-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Marketing: mengikuti detail klien admin (AdminPembeliDetail.vue). Kepala Marketing tidak terkena. */
+.pl-marketing .cd-hero { margin: 4px 0 18px; }
+.pl-marketing .cd-hero-copy h2 { font-family: var(--font-display); font-size: 24px; font-weight: 650; line-height: 1.15; }
+
+.pl-marketing .cd-tabs { position: sticky; top: 0; z-index: 5; margin: 0 -20px; padding: 0 12px; background: var(--surface-primary); }
+.pl-marketing .cd-tabs button { min-height: 48px; border-bottom-width: 3px; font-size: 13px; }
+.pl-marketing .cd-tabs button.active { border-bottom-color: var(--poliland-green); color: var(--poliland-green); font-weight: 800; }
+
+.pl-marketing section.cd-card { margin-top: 24px; padding: 0; border: 0; border-radius: 0; }
+.pl-marketing .cd-card-head { align-items: flex-end; flex-wrap: wrap; }
+.pl-marketing .cd-card-head h3,
+.pl-marketing .cd-apply-head h3 { font-family: var(--font-display); font-size: 24px; font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; }
+.pl-marketing .cd-card-head h3::after,
+.pl-marketing .cd-apply-head h3::after { content: ''; display: block; width: 40px; height: 3px; margin-top: 8px; border-radius: 999px; background: var(--poliland-gold); }
+
+.pl-marketing .cd-btn-add {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 14px;
+  border: 0; border-radius: var(--radius-control); background: var(--poliland-green); color: #fff;
+  font: inherit; font-size: 13px; font-weight: var(--font-weight-bold); cursor: pointer; touch-action: manipulation;
+}
+.pl-marketing .cd-btn-add:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
+
+.pl-marketing .cd-info { overflow: visible; border: 0; border-radius: 0; }
+.pl-marketing .cd-info > div { padding: 12px 0; }
+.pl-marketing .cd-info dt { font-size: 12px; }
+.pl-marketing .cd-info dd { font-size: 14px; }
+
+.pl-marketing .cd-lot:not(.is-head),
+.pl-marketing article.cd-card { background: var(--surface-primary); box-shadow: var(--shadow-sm); }
+.pl-marketing .cd-lot-id strong,
+.pl-marketing .cd-tx-title strong { font-family: var(--font-display); font-size: 18px; font-weight: 650; }
+.pl-marketing .cd-pill { border: 0; border-radius: 999px; background: var(--green-50); font-size: 12px; }
+.pl-marketing .cd-chip { border-radius: 999px; font-size: 11px; }
+.pl-marketing .cd-grid span { font-size: 12px; }
 </style>

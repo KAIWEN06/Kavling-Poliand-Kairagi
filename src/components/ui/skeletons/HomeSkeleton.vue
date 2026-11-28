@@ -1,103 +1,17 @@
 <template>
   <div class="home-skeleton">
 
-    <!-- HERO -->
-    <section class="hero">
-
-      <div class="hero-content">
-
-        <Skeleton
-          width="100px"
-          height="14px"
-        />
-
-        <Skeleton
-          width="75%"
-          height="36px"
-          border-radius="10px"
-        />
-
-        <Skeleton
-          width="100%"
-          height="14px"
-        />
-
-        <Skeleton
-          width="70%"
-          height="14px"
-        />
-
-        <div class="hero-buttons">
-
-          <Skeleton
-            width="130px"
-            height="44px"
-            border-radius="12px"
-          />
-
-          <Skeleton
-            width="44px"
-            height="44px"
-            border-radius="12px"
-          />
-
+    <!-- BANNER, BAR ANGKA, MENU -->
+    <div class="top">
+      <Skeleton width="100%" height="300px" border-radius="16px" />
+      <Skeleton width="100%" height="68px" border-radius="12px" />
+      <div class="menu">
+        <div v-for="i in 8" :key="i" class="menu-cell">
+          <Skeleton width="56px" height="56px" border-radius="18px" />
+          <Skeleton width="48px" height="10px" />
         </div>
-
       </div>
-
-    </section>
-
-
-    <!-- STATISTICS -->
-    <section class="section">
-
-      <div class="section-header">
-
-        <Skeleton
-          width="140px"
-          height="24px"
-        />
-
-        <Skeleton
-          width="50px"
-          height="16px"
-        />
-
-      </div>
-
-      <div class="stats">
-
-        <div
-          v-for="i in 4"
-          :key="i"
-          class="stat-card"
-        >
-
-          <Skeleton
-            width="42px"
-            height="42px"
-            border-radius="12px"
-          />
-
-          <div class="stat-content">
-
-            <Skeleton
-              width="55px"
-              height="20px"
-            />
-
-            <Skeleton
-              width="80px"
-              height="12px"
-            />
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
+    </div>
 
 
     <!-- FEATURES -->
@@ -420,31 +334,28 @@ import Skeleton from '@/components/ui/Skeleton.vue'
 }
 
 
-/* HERO */
+/* BANNER, BAR ANGKA, MENU */
 
-.hero {
-  min-height: 360px;
-
-  padding: 80px 24px 40px;
-
-  display: flex;
-  align-items: center;
-}
-
-.hero-content {
-  width: 100%;
-
+.top {
   display: flex;
   flex-direction: column;
-
-  gap: 14px;
+  gap: 10px;
+  padding: 12px 12px 16px;
+  background: #ffffff;
 }
 
-.hero-buttons {
-  display: flex;
-  gap: 10px;
+.menu {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 4px;
+  padding-top: 6px;
+}
 
-  padding-top: 8px;
+.menu-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 
@@ -463,37 +374,6 @@ import Skeleton from '@/components/ui/Skeleton.vue'
   justify-content: space-between;
 
   margin-bottom: 14px;
-}
-
-
-/* STATS */
-
-.stats {
-  display: grid;
-
-  grid-template-columns: repeat(2, 1fr);
-
-  gap: 10px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-
-  gap: 10px;
-
-  padding: 14px;
-
-  border-radius: 16px;
-
-  background: #ffffff;
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-
-  gap: 7px;
 }
 
 

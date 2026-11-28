@@ -1,7 +1,7 @@
 <template>
   <MarketingPageLayout
     title="Ajukan SPK"
-    subtitle="Lengkapi data, lalu kirim ke Admin."
+    footer
     show-back
     back-route="/kavling"
     :refreshable="false"
@@ -737,7 +737,7 @@ watch(
 function formatMonths(
   months: number,
 ) {
-  return `${months} Bulan`
+  return `${months} bulan`
 }
 
 
@@ -1309,7 +1309,7 @@ export default defineComponent({
   display: grid;
   gap: var(--space-4);
   min-width: 0;
-  font-family: var(--font-primary);
+  font-family: var(--font-ui);
   color: var(--text-primary);
 }
 
@@ -1338,8 +1338,9 @@ export default defineComponent({
   gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
+  border-radius: 12px;
   background: var(--surface-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .spk-steps {
@@ -1424,10 +1425,7 @@ export default defineComponent({
   display: grid;
   gap: var(--space-4);
   min-width: 0;
-  padding: var(--space-4);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-card);
-  background: var(--surface-primary);
+  padding: var(--space-3) 0;
 }
 
 .spk-card-head {
@@ -1452,10 +1450,22 @@ export default defineComponent({
 
 .spk-card-head h2 {
   margin: 0;
-  padding-top: 6px;
-  font-size: var(--text-md);
-  font-weight: 700;
-  line-height: 1.3;
+  padding-top: 4px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.spk-card-head h2::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--poliland-gold);
 }
 
 .spk-card-head p {
@@ -2036,8 +2046,18 @@ select.spk-input {
   position: relative;
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 650;
+}
+
+.spk-review h2::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--poliland-gold);
 }
 
 .spk-review-list {

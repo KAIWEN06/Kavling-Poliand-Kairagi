@@ -1,19 +1,24 @@
 <template>
-  <ion-page class="mk-more-page">
+  <ion-page class="pl-marketing">
     <AppHeader variant="marketing" title="PoliLand Kairagi" :show-back="false" />
 
-    <ion-content :fullscreen="true">
-      <main class="more-shell">
-        <PageHeader title="Lainnya" />
-        <Reveal :order="1">
-          <section class="quick-grid" aria-label="Menu pemasaran">
-            <button v-for="action in actions" :key="action.label" type="button" class="quick-card" :class="`quick-card--${action.tone}`" @click="router.push(action.route)">
-              <span class="quick-icon"><ion-icon :icon="action.icon" aria-hidden="true" /></span>
-              <strong>{{ action.label }}</strong>
-            </button>
+    <ion-content class="more-content" :fullscreen="false">
+      <div class="more">
+        <main class="more__body">
+          <h1 class="sr-only">Menu pemasaran lainnya</h1>
+          <section v-for="group in groups" :key="group.title" class="group">
+            <div class="group__head">
+              <SectionHeader :title="group.title" />
+            </div>
+            <HomeMenu :play="menuPlay" :items="group.items" :label="`Menu ${group.title.toLowerCase()}`" @select="open" />
           </section>
-        </Reveal>
-      </main>
+        </main>
+
+        <!-- Penutup yang sama dengan Lainnya Admin. -->
+        <footer class="more__footer" aria-hidden="true">
+          <SceneBackdrop class="more__scene" height="100%" :sway="false" />
+        </footer>
+      </div>
     </ion-content>
 
     <MobileTabBar variant="marketing" />
@@ -21,39 +26,83 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from '@/components/ui/PageHeader.vue'
-import Reveal from '@/components/ui/Reveal.vue'
-import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { documentTextOutline, personOutline, walletOutline, cashOutline } from 'ionicons/icons'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { IonContent, IonPage } from '@ionic/vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
+import HomeMenu from '@/components/home/HomeMenu.vue'
+import type { MenuIllustrationName } from '@/components/home/MenuIllustration.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import SceneBackdrop from '@/components/ui/SceneBackdrop.vue'
 
-type QuickAction = { label: string; icon: string; tone: 'green' | 'gold' | 'neutral'; route: string }
-const router = useRouter()
-const actions: QuickAction[] = [
-  { label: 'Status SPK', icon: documentTextOutline, tone: 'gold', route: '/marketing/pengajuan' },
-  { label: 'Pembayaran', icon: walletOutline, tone: 'green', route: '/marketing/pembayaran' },
-  { label: 'Komisi', icon: cashOutline, tone: 'gold', route: '/marketing/komisi' },
-  { label: 'Profil saya', icon: personOutline, tone: 'neutral', route: '/akun' },
+type MenuAction = { id: MenuIllustrationName; label: string; gold?: boolean; route: string }
+
+const groups: { title: string; items: MenuAction[] }[] = [
+  {
+    title: 'Penjualan',
+    items: [
+      { id: 'spk', label: 'Status SPK', gold: true, route: '/marketing/pengajuan' },
+      { id: 'pembayaran', label: 'Pembayaran', route: '/marketing/pembayaran' },
+      { id: 'minat', label: 'Komisi', gold: true, route: '/marketing/komisi' },
+    ],
+  },
+  {
+    title: 'Akun',
+    items: [{ id: 'akun', label: 'Profil saya', route: '/akun' }],
+  },
 ]
+
+const router = useRouter()
+const menuPlay = ref(false)
+let menuFrame = 0
+
+function open(id: MenuIllustrationName) {
+  const action = groups.flatMap((group) => group.items).find((item) => item.id === id)
+  if (action) void router.push(action.route)
+}
+
+onMounted(() => {
+  // Satu frame setelah tampil, agar menu punya keadaan awal untuk dianimasikan.
+  menuFrame = requestAnimationFrame(() => {
+    menuFrame = requestAnimationFrame(() => { menuPlay.value = true })
+  })
+})
+onBeforeUnmount(() => cancelAnimationFrame(menuFrame))
 </script>
 
 <style scoped>
-.mk-more-page { color: var(--text-primary); font-family: var(--font-primary); }
-.more-shell { min-height: 100%; padding: 22px 16px calc(112px + var(--safe-bottom)); background: var(--app-background); }
-.quick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.quick-card { position: relative; display: flex; min-height: 142px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 13px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
-@media (hover: hover) and (pointer: fine) {
-  .quick-card:hover { border-color: var(--poliland-green); }
+.more-content {
+  --background: var(--surface-primary);
+  --padding-bottom: 0px;
+}
 
-}.quick-card:active { transform: scale(0.97); }
-.quick-card { touch-action: manipulation; transition: transform var(--dur-fast) var(--ease-out); }
-.quick-card:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: 2px; }
-.quick-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-secondary); font-size: 20px; }
-.quick-card strong { font-size: 13px; line-height: 1.3; }
-.quick-card--green .quick-icon { background: var(--status-success-bg); color: var(--poliland-green); }
-.quick-card--gold .quick-icon { background: var(--poliland-gold-soft); color: var(--poliland-gold-text); }
-@media (max-width: 520px) { .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .quick-card { min-height: 128px; } }
-@media (max-width: 340px) { .quick-grid { gap: 8px; } .quick-card { padding: 12px 10px; } .quick-card strong { font-size: 12px; } }
+/* Footer selalu di dasar layar, juga saat isinya pendek. */
+.more { display: flex; min-height: 100%; flex-direction: column; font-family: var(--font-ui); }
+.more__body { width: min(100%, var(--container-max)); margin-inline: auto; padding-top: 4px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+.group__head { padding: 20px 20px 0; }
+.group__head :deep(.sec-head) { margin-bottom: 0; }
+
+.more__footer {
+  position: relative;
+  flex-shrink: 0;
+  height: calc(210px + var(--safe-bottom));
+  margin-top: auto;
+  overflow: hidden;
+  /* Putih memudar ke krem agar footer menyambung tanpa garis batas. */
+  background: linear-gradient(180deg, var(--surface-primary) 0%, var(--pl-paper) 55%);
+}
+.more__scene :deep(.sun) {
+  top: 0;
+  right: -90px;
+  width: 260px;
+  height: 200px;
+  background: radial-gradient(closest-side, rgba(244, 214, 154, 0.7), rgba(244, 214, 154, 0));
+}
 </style>

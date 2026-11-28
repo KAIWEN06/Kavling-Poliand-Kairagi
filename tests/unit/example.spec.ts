@@ -26,7 +26,7 @@ describe('HomePage.vue', () => {
 
   test('tombol Denah membuka siteplan', async () => {
     const wrapper = mountHome()
-    await wrapper.find('.see-all').trigger('click')
+    wrapper.findComponent({ name: 'KavlingMaket' }).vm.$emit('goToSiteplan')
     expect(push).toHaveBeenCalledWith('/siteplan')
     wrapper.unmount()
   })

@@ -31,7 +31,8 @@
         </table>
       </div>
 
-      <h2 class="mk-subhead">Riwayat</h2>
+      <h2 v-if="isHead" class="mk-subhead">Riwayat</h2>
+      <SectionHeader v-else title="Riwayat" />
       <StatusIllustration v-if="!rows.length" variant="empty-data" size="sm" title="Belum ada komisi" description="Muncul setelah SPK klien disetujui: Rp500.000, separuh tanda jadi." />
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
@@ -40,7 +41,7 @@
             <tr v-for="r in rows" :id="`notif-commission-${r.id}`" :key="r.id" :class="{ 'notif-target': focusedId === r.id }">
               <td class="mk-cell-main">{{ r.customer_name }}<span class="mk-muted mk-block">{{ r.lot?.lot_number || '-' }}</span></td>
               <td v-if="isHead" data-label="Pemasar">{{ memberName(r.marketing_id) }}</td>
-              <td data-label="Jenis">{{ r.commission_type === 'Booking Fee' ? 'Komisi SPK' : 'Komisi penjualan' }}</td>
+              <td data-label="Jenis">{{ r.commission_type === 'Booking Fee' ? (isHead ? 'Komisi SPK' : 'SPK') : (isHead ? 'Komisi penjualan' : 'Penjualan') }}</td>
               <td data-label="Dasar hitung" class="num">{{ formatRupiah(r.base_amount) }}</td>
               <td data-label="Tarif" class="num">{{ r.commission_rate != null ? `${Number(r.commission_rate)}%` : 'Nominal tetap' }}</td>
               <td data-label="Komisi" class="num">{{ formatRupiah(r.commission_amount) }}</td>
@@ -63,6 +64,7 @@ import SkeletonStatGrid from '@/components/ui/skeletons/SkeletonStatGrid.vue'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import StatCard from '@/components/ui/StatCard.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { useRowFocus } from '@/composables/useRowFocus'
 import { getTeamMembers, listCommissions, type TeamMember } from '@/services/marketing/marketingCrmService'
@@ -130,4 +132,8 @@ useRealtimeRefresh(
 <style scoped>
 .mk-block { display: block; margin-top: 2px; }
 .mk-subhead { margin: 4px 0 0; font-size: 16px; }
+
+/* Marketing: nominal komisi jadi angka kunci tiap baris. */
+.pl-marketing .mk-table td[data-label='Komisi'] { align-items: baseline; color: var(--poliland-green); font-family: var(--font-display); font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.pl-marketing .mk-table td.mk-cell-main { font-size: 15px; }
 </style>

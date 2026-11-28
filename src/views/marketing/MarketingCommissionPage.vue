@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Komisi" show-back back-route="/marketing/more" @refresh="view?.reload()">
+  <MarketingPageLayout title="Komisi" footer show-back back-route="/marketing/more" @refresh="view?.reload()">
     <Reveal :order="1">
       <CommissionView ref="view" role="marketing" :focus-id="Number(query.commissionId) || undefined" :focus-stamp="String(query.nt ?? '')" />
     </Reveal>

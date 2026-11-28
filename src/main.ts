@@ -49,6 +49,7 @@ import './styles/marketing-module.css'
 import './theme/variables.css'
 import './theme/poliland-look.css'
 import './theme/notify.css'
+import './theme/admin-look.css'
 
 // Di aplikasi Android, MainActivity sudah memberi inset: safe area CSS harus 0 (variables.css).
 if (Capacitor.getPlatform() === 'android') {

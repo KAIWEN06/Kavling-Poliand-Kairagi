@@ -147,15 +147,10 @@ watch(() => props.error, async (message) => {
     </section>
 
     <section v-if="assignee !== 'none'" class="cf-card" :aria-labelledby="`${uid}-assignee`">
-      <h3 :id="`${uid}-assignee`">Penanggung jawab</h3>
+      <h3 :id="`${uid}-assignee`">Pemasar <em v-if="assignee !== 'self'">(opsional)</em></h3>
       <p v-if="assignee === 'self'" class="cf-note">Klien tercatat atas nama Anda.</p>
       <template v-else>
         <label class="mk-field">
-          <span>
-            Pemasar
-            <b v-if="assignee === 'required'" aria-hidden="true">*</b>
-            <em v-else>(opsional)</em>
-          </span>
           <select class="mk-input" :value="modelValue.marketing_id" @change="patch({ marketing_id: text($event) })">
             <option value="">{{ assignee === 'required' ? 'Pilih anggota tim' : 'Tanpa pemasar (datang langsung)' }}</option>
             <option v-for="member in members" :key="member.id" :value="member.id">{{ member.full_name || 'Tanpa nama' }}</option>
@@ -169,11 +164,6 @@ watch(() => props.error, async (message) => {
       <h3 :id="`${uid}-interest`">Minat kaveling</h3>
 
       <div class="mk-field">
-        <span>
-          Kaveling
-          <b v-if="interest === 'required'" aria-hidden="true">*</b>
-          <em v-else>(opsional)</em>
-        </span>
         <button type="button" class="mk-input cf-select" :aria-expanded="lotPickerOpen" @click="lotPickerOpen = !lotPickerOpen">
           <span>{{ modelValue.lot_ids.length ? `${modelValue.lot_ids.length} kaveling dipilih` : 'Pilih kaveling' }}</span>
           <IonIcon :icon="chevronDownOutline" aria-hidden="true" />
@@ -257,9 +247,8 @@ watch(() => props.error, async (message) => {
     </section>
 
     <section class="cf-card" :aria-labelledby="`${uid}-notes`">
-      <h3 :id="`${uid}-notes`">Catatan</h3>
+      <h3 :id="`${uid}-notes`">Catatan <em>(opsional)</em></h3>
       <label class="mk-field">
-        <span>Catatan <em>(opsional)</em></span>
         <textarea
           class="mk-input" rows="3" maxlength="500" :value="modelValue.notes"
           placeholder="Misalnya waktu yang nyaman untuk dihubungi" @input="patch({ notes: text($event) })"
@@ -395,4 +384,9 @@ watch(() => props.error, async (message) => {
 @media (prefers-reduced-motion: reduce) {
   .cf-select, .cf-lot, .cf-option, .cf-chip { transition: none; }
 }
+
+/* Marketing: bagian formulir tanpa kartu pembungkus. Formulir di Admin tidak terkena. */
+.pl-marketing .cf-card { padding: var(--space-3) 0; border: 0; border-radius: 0; box-shadow: none; }
+.pl-marketing .cf-card h3 { font-size: 22px; font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; }
+.pl-marketing .cf-card h3::after { width: 40px; margin-top: 8px; }
 </style>

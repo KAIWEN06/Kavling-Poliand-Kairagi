@@ -15,7 +15,7 @@ Rules:
 Proyek ini memakai Vue 3 (bukan React/Next.js). Panggil skill lewat tool Skill sebelum mulai mengerjakan, tanpa menunggu diminta.
 
 Rules:
-- Setiap tugas membuat atau mengubah UI (file `.vue` di `src/views`, `src/components`, layout, styling): muat `poliland-design` PERTAMA, lalu `ui-ux-pro-max` dan `mobile-native`. `poliland-design` adalah standar rasa visual proyek (patokan: `src/views/WelcomePage.vue`) dan berlaku di semua halaman. Layar yang terasa lebih biasa daripada Welcome dan About dianggap belum selesai. Sumber aturan lengkap ada di `DESIGN.md` (Bagian I §12 bahasa visual dan gerak, §13 aturan teks, §14 kontras).
+- Setiap tugas membuat atau mengubah UI (file `.vue` di `src/views`, `src/components`, layout, styling): muat `poliland-design` PERTAMA. Itu standar visual proyek (patokan: `src/views/HomePage.vue` dan `src/views/Admin/AdminDashboard.vue`) dan cukup sendiri untuk sebagian besar tugas. Demi hemat token, muat `ui-ux-pro-max` atau `mobile-native` hanya bila tugasnya butuh hal yang tidak dijawab `poliland-design` (pola UX baru, masalah khusus di HP). Dari `DESIGN.md`, buka hanya section yang diperlukan (§13 aturan teks, §14 kontras).
 - Setiap tugas yang menulis atau mengubah teks tampilan (judul, label, deskripsi, pesan): muat `humanizer` dan ikuti `DESIGN.md` §13. Satu gagasan hanya muncul sekali per layar; komponen yang berdampingan tidak boleh mengulang kata yang sama.
 - Setiap warna teks baru: hitung rasio kontras dan pastikan minimal 4,5:1 (§14). Putih di atas emas dilarang.
 - Tugas yang menyentuh layout responsif, tap target, atau interaksi sentuh: tambahkan `antislop-layoutmobile`.

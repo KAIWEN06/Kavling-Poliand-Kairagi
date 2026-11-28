@@ -1,37 +1,40 @@
 <template>
   <ion-page>
     <div class="home-wrapper pl-surface">
-      <ion-content :fullscreen="false" class="home-content" :scroll-events="true" @ionScroll="syncMaket">
-        <!-- 1. Nilai produk: sampul, angka, ketersediaan, denah, lokasi -->
-        <HeroSection @goToSiteplan="goToSiteplan" @contactWhatsapp="contactWhatsapp" />
-        <ScrollReveal :enabled="!isLoading" variant="scale"><StatsSection :lots="lots" /></ScrollReveal>
-        <!-- Tanpa ScrollReveal: transform pembungkus akan menggeser posisi yang diukur maket. -->
-        <KavlingMaket ref="maketRef" :available="availableCount" />
-        <ScrollReveal :enabled="!isLoading">
+      <ion-content ref="contentRef" :fullscreen="false" class="home-content" :scroll-events="true" @ionScroll="syncMaket">
+        <!-- 1. Etalase: banner, angka kavling, menu -->
+        <div class="home-top">
+          <HeroSection @goToSiteplan="goToSiteplan" @contactWhatsapp="contactWhatsapp" />
+          <StatsSection :lots="lots" />
+          <HomeMenu :play="!isLoading" @select="openMenu" />
+        </div>
+
+        <!-- 2. Denah. Tanpa ScrollReveal: transform pembungkus menggeser posisi yang diukur maket. -->
+        <div class="home-block">
           <section class="siteplan-section">
-            <SectionHeader title="Denah & lokasi">
-              <button class="see-all" type="button" @click="goToSiteplan">Denah <ion-icon :icon="chevronForwardOutline" aria-hidden="true" /></button>
-            </SectionHeader>
+            <SectionHeader title="Denah" />
             <div class="siteplan-stack">
-              <SiteplanPreview :lots="lots" @goToSiteplan="goToSiteplan" />
-              <LocationSection />
+              <KavlingMaket ref="maketRef" :lots="lots" @goToSiteplan="goToSiteplan" />
+              <div ref="locationEl"><LocationSection /></div>
             </div>
           </section>
-        </ScrollReveal>
+        </div>
 
-        <!-- 2. Bukti: foto dan pembangunan -->
-        <ScrollReveal :enabled="!isLoading"><GalleryPreview /></ScrollReveal>
-        <ScrollReveal :enabled="!isLoading"><ProgressPreview /></ScrollReveal>
+        <!-- 3. Bukti: foto dan pembangunan -->
+        <ScrollReveal class="home-block" :enabled="!isLoading"><GalleryPreview /></ScrollReveal>
+        <ScrollReveal class="home-block" :enabled="!isLoading"><ProgressPreview /></ScrollReveal>
 
-        <!-- 3. Siapa pengelolanya -->
-        <ScrollReveal :enabled="!isLoading"><AboutSection /></ScrollReveal>
-        <ScrollReveal :enabled="!isLoading"><FeaturesSection /></ScrollReveal>
+        <!-- 4. Siapa pengelolanya -->
+        <ScrollReveal class="home-block" :enabled="!isLoading"><AboutSection /></ScrollReveal>
+        <ScrollReveal class="home-block" :enabled="!isLoading"><FeaturesSection /></ScrollReveal>
 
-        <!-- 4. Kepercayaan & tindakan -->
-        <ScrollReveal :enabled="!isLoading"><CustomerReviewsSection /></ScrollReveal>
-        <ScrollReveal :enabled="!isLoading"><FAQSection /></ScrollReveal>
-        <ScrollReveal :enabled="!isLoading" variant="scale"><CTASection @contactWhatsapp="contactWhatsapp" /></ScrollReveal>
-        <ScrollReveal :enabled="!isLoading"><ContactSection /></ScrollReveal>
+        <!-- 5. Kepercayaan & tindakan -->
+        <div ref="reviewsEl" class="home-block">
+          <ScrollReveal :enabled="!isLoading"><CustomerReviewsSection /></ScrollReveal>
+        </div>
+        <ScrollReveal class="home-block" :enabled="!isLoading"><FAQSection /></ScrollReveal>
+        <ScrollReveal class="home-block" :enabled="!isLoading" variant="scale"><CTASection @contactWhatsapp="contactWhatsapp" /></ScrollReveal>
+        <ScrollReveal class="home-block" :enabled="!isLoading"><ContactSection /></ScrollReveal>
 
         <!-- Penutup: bukit dan matahari yang sama dengan layar Welcome -->
         <footer class="home-footer">
@@ -53,19 +56,19 @@
 
 <script setup lang="ts">
 import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
-import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { chevronForwardOutline } from 'ionicons/icons'
+import { IonContent, IonPage } from '@ionic/vue'
 import { useRouter } from 'vue-router'
-import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue'
+import { nextTick, ref, onMounted, onUnmounted } from 'vue'
 import KavlingMaket from '@/components/home/KavlingMaket.vue'
-import { normalizeLotStatus } from '@/utils/siteplan'
+import HomeMenu from '@/components/home/HomeMenu.vue'
+import type { MenuIllustrationName } from '@/components/home/MenuIllustration.vue'
+import { useReducedMotion } from '@/composables/useReducedMotion'
 import HeroSection from '@/components/home/HeroSection.vue'
 import StatsSection from '@/components/home/StatsSection.vue'
 import FeaturesSection from '@/components/home/FeatureSection.vue'
 import AboutSection from '@/components/home/AboutSection.vue'
 import GalleryPreview from '@/components/home/GalleryPreview.vue'
 import LocationSection from '@/components/home/LocationSection.vue'
-import SiteplanPreview from '@/components/home/SiteplanPreview.vue'
 import ProgressPreview from '@/components/home/ProgressPreview.vue'
 import CustomerReviewsSection from '@/components/home/CustomerReviewsSection.vue'
 import FAQSection from '@/components/home/FAQSection.vue'
@@ -86,7 +89,6 @@ const isLoading = ref(true)
 const isRefreshing = ref(false)
 
 const { lots, reload: reloadSiteplan } = useSiteplan()
-const availableCount = computed(() => lots.value.filter((lot) => normalizeLotStatus(lot.status) === 'available').length)
 
 const maketRef = ref<InstanceType<typeof KavlingMaket> | null>(null)
 const syncMaket = () => maketRef.value?.sync()
@@ -164,6 +166,36 @@ const goToSiteplan = () => {
   router.push('/siteplan')
 }
 
+/* ---------- Menu ikon ---------- */
+const reducedMotion = useReducedMotion()
+const contentRef = ref<InstanceType<typeof IonContent> | null>(null)
+const locationEl = ref<HTMLElement | null>(null)
+const reviewsEl = ref<HTMLElement | null>(null)
+
+/** Hanya wadah gulir ion-content yang digeser; scrollIntoView bisa ikut menggeser pembungkus overflow hidden. */
+const scrollToSection = async (target: HTMLElement | null) => {
+  const content = contentRef.value?.$el as HTMLIonContentElement | undefined
+  if (!content || !target) return
+  const scroller = await content.getScrollElement()
+  const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop
+  scroller.scrollTo({ top, behavior: reducedMotion.value ? 'auto' : 'smooth' })
+}
+
+const menuRoutes: Partial<Record<MenuIllustrationName, string>> = {
+  denah: '/siteplan',
+  progres: '/progress',
+  galeri: '/gallery',
+  tentang: '/about',
+  kontak: '/contact',
+}
+
+const openMenu = (id: MenuIllustrationName) => {
+  const path = menuRoutes[id]
+  if (path) return void router.push(path)
+  if (id === 'whatsapp') return void contactWhatsapp()
+  void scrollToSection(id === 'lokasi' ? locationEl.value : reviewsEl.value)
+}
+
 const toast = useToast()
 const contactSettings = ref({ whatsapp: '', phone: '' })
 
@@ -200,42 +232,27 @@ useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
 }
 
 .home-content {
-  --background: var(--pl-paper, #F9F5EC);
+  --background: var(--surface-primary, #fff);
   --padding-bottom: 0px;
 
   width: 100%;
   height: 100%;
 }
 
-/* Jarak antar-bagian diatur masing-masing komponen. */
+/* Satu lembar putih menyambung; jarak antar-section cukup dari ruang kosong. */
+.home-block { padding-bottom: 20px; }
+/* Section yang tidak punya data tidak meninggalkan blok kosong. */
+.home-block:empty,
+.home-block:has(> .scroll-reveal:empty) { display: none; }
+
+.home-wrapper .home-block > :deep(section),
+.home-wrapper .home-block > :deep(.scroll-reveal > section) { padding-top: 20px; }
+.home-wrapper .home-block > :deep(.faq-section) { padding-bottom: 0; }
+
 .siteplan-section {
   width: 100%;
-  padding: 36px 20px 0;
+  padding: 20px 20px 0;
   box-sizing: border-box;
-}
-
-.see-all {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  min-height: 44px;
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
-  color: var(--poliland-green, #355a2c);
-  font: 700 14px/1 var(--font-ui, 'Plus Jakarta Sans', sans-serif);
-  white-space: nowrap;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform var(--dur-base) var(--ease-spring);
-}
-.see-all:active { transform: scale(0.97); }
-.see-all ion-icon { font-size: 16px; }
-.see-all:focus-visible { outline: 3px solid var(--poliland-gold, #cba044); outline-offset: 2px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .see-all:active { transform: none; }
 }
 
 .siteplan-stack { display: flex; flex-direction: column; gap: 14px; }
@@ -243,9 +260,10 @@ useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
 /* Bukit memanjang sampai ke belakang tab bar, jadi ruang bawahnya ada di dalam footer. */
 .home-footer {
   position: relative;
-  height: calc(250px + var(--safe-bottom));
-  margin-top: 8px;
+  height: calc(220px + var(--safe-bottom));
   overflow: hidden;
+  /* Putih memudar ke krem agar footer menyambung tanpa garis batas. */
+  background: linear-gradient(180deg, var(--surface-primary, #fff) 0%, var(--pl-paper, #F9F5EC) 55%);
 }
 
 /* Matahari utuh di dalam footer agar cahayanya tidak terpotong garis lurus. */
@@ -261,7 +279,7 @@ useRealtimeRefresh(['contacts'], () => loadContactSettings({ silent: true }))
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(110px + var(--safe-bottom));
+  bottom: calc(86px + var(--safe-bottom));
   margin: 0;
   text-align: center;
   color: var(--green-800, #2b4824);

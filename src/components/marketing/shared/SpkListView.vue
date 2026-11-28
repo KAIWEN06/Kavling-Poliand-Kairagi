@@ -1,8 +1,8 @@
 <template>
   <section class="mk-section">
-    <div class="mk-chips" role="group" aria-label="Filter status SPK">
+    <div class="mk-chips" :class="{ 'spk-bar': !isHead }" role="group" aria-label="Filter status SPK">
       <button v-for="opt in statusOptions" :key="opt.value" type="button" class="mk-chip" :aria-pressed="status === opt.value" @click="status = opt.value">
-        {{ opt.label }} ({{ count(opt.value) }})
+        {{ opt.label }} <span class="spk-count">{{ isHead ? `(${count(opt.value)})` : count(opt.value) }}</span>
       </button>
     </div>
     <div class="mk-filters">
@@ -164,4 +164,12 @@ useRealtimeRefresh(
 
 <style scoped>
 .mk-block { display: block; margin-top: 2px; }
+
+/* Marketing: bar angka seperti beranda, nilai di atas label. */
+.spk-bar { gap: 0; padding: 4px; border: 1px solid var(--border-default); border-radius: 12px; box-shadow: var(--shadow-sm); }
+.spk-bar .mk-chip.mk-chip { display: flex; flex: 1 0 76px; flex-direction: column-reverse; align-items: center; justify-content: flex-end; gap: 2px; min-height: 58px; padding: 8px 4px; border: 0; border-radius: 9px; font-size: 12px; line-height: 1.3; }
+.spk-bar .mk-chip + .mk-chip { box-shadow: -1px 0 0 var(--border-default); }
+.spk-bar .mk-chip.mk-chip[aria-pressed='true'] { background: var(--green-50); color: var(--poliland-green); box-shadow: inset 0 -3px 0 var(--poliland-green); }
+.spk-bar .mk-chip:focus-visible { outline: 3px solid var(--poliland-green); outline-offset: -3px; }
+.spk-bar .spk-count { color: var(--poliland-green); font-family: var(--font-display); font-size: 20px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
 </style>

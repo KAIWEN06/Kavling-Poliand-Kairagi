@@ -1,41 +1,28 @@
 <template>
   <section class="stats-section">
-    <div class="stats-card">
-      <!-- Total Kavling -->
+    <dl class="stats-bar">
       <div class="stat-item">
-        <span class="stat-icon"><ion-icon :icon="homeOutline" aria-hidden="true" /></span>
-        <div class="stat-text">
-          <strong>
-            <template v-if="totalLots === null">…</template>
-            <CountUp v-else :value="String(totalLots)" />
-          </strong>
-          <span>Total kavling</span>
-        </div>
+        <dt>{{ totalLots === null ? 'Tersedia' : `Tersedia dari ${totalLots}` }}</dt>
+        <dd>
+          <template v-if="availableCount === null">…</template>
+          <CountUp v-else :value="String(availableCount)" />
+        </dd>
       </div>
 
-      <!-- Terjual -->
       <div class="stat-item">
-        <span class="stat-icon"><ion-icon :icon="ribbonOutline" aria-hidden="true" /></span>
-        <div class="stat-text">
-          <strong>
-            <template v-if="soldCount === null">…</template>
-            <CountUp v-else :value="String(soldCount)" />
-          </strong>
-          <span>Terjual</span>
-        </div>
+        <dt>Terjual</dt>
+        <dd>
+          <template v-if="soldCount === null">…</template>
+          <CountUp v-else :value="String(soldCount)" />
+        </dd>
       </div>
 
       <!-- Sorotan yang diatur Admin (mis. legalitas, akses jalan) -->
       <div v-for="(item, index) in highlights" :key="`hl-${index}`" class="stat-item">
-        <span class="stat-icon" :class="{ 'is-gold': index % 2 === 0 }">
-          <ion-icon :icon="resolveCmsIcon(item.icon)" aria-hidden="true" />
-        </span>
-        <div class="stat-text">
-          <strong><CountUp :value="String(item.value)" /></strong>
-          <span>{{ item.label }}</span>
-        </div>
+        <dt>{{ item.label }}</dt>
+        <dd><CountUp :value="String(item.value)" /></dd>
       </div>
-    </div>
+    </dl>
 
     <div v-if="isAdmin" class="stats-admin">
       <AdminEditButton label="Ubah sorotan" @click="editOpen = true" />
@@ -48,13 +35,9 @@
 <script setup lang="ts">
 import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import { computed, ref, onMounted } from 'vue'
-import { IonIcon } from '@ionic/vue'
-import { homeOutline, ribbonOutline } from 'ionicons/icons'
-
 import type { SiteplanLot } from '@/services/siteplanService'
 import { normalizeLotStatus } from '@/utils/siteplan'
 import { contactsService } from '@/services/contactService'
-import { resolveCmsIcon } from '@/utils/cmsIcons'
 import { HOME_KEYS, parseHighlights, type HomeHighlight } from '@/utils/homeContent'
 import { useCmsAdmin } from '@/composables/useCmsAdmin'
 import AdminEditButton from '@/components/Admin/AdminEditButton.vue'
@@ -67,9 +50,10 @@ import CountUp from '@/components/ui/CountUp.vue'
  */
 const props = withDefaults(defineProps<{ lots?: SiteplanLot[] }>(), { lots: () => [] })
 const totalLots = computed(() => (props.lots.length ? props.lots.length : null))
-const soldCount = computed(() =>
-  props.lots.length ? props.lots.filter((lot) => normalizeLotStatus(lot.status) === 'sold').length : null,
-)
+const countByStatus = (status: 'available' | 'sold') =>
+  props.lots.length ? props.lots.filter((lot) => normalizeLotStatus(lot.status) === status).length : null
+const availableCount = computed(() => countByStatus('available'))
+const soldCount = computed(() => countByStatus('sold'))
 const highlights = ref<HomeHighlight[]>([])
 const editOpen = ref(false)
 const { isAdmin } = useCmsAdmin()
@@ -91,51 +75,52 @@ useRealtimeRefresh(['contacts'], loadHighlights)
 </script>
 
 <style scoped>
-.stats-section { position: relative; z-index: 5; margin-top: -44px; padding: 0 16px; }
+.stats-section { padding: 10px 12px 0; }
 
-.stats-card {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px 12px;
-  padding: 22px 16px;
+/* Satu bar ringkas; bila Admin menambah sorotan, bar bisa digeser. */
+.stats-bar {
+  display: flex;
+  margin: 0;
+  padding: 12px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
   border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
+  border-radius: 12px;
   background: var(--surface-primary, #fff);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
+.stats-bar::-webkit-scrollbar { display: none; }
 
 .stats-admin { display: flex; justify-content: flex-end; margin-top: 8px; }
 
-.stat-item { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.stat-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: var(--green-100, #e8eee4);
-  color: var(--poliland-green, #355a2c);
-  font-size: 22px;
+/* Angka tampil di atas labelnya, urutan baca tetap label lalu nilai. */
+.stat-item {
+  display: flex;
+  flex: 1 0 25%;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 6px;
+  box-sizing: border-box;
+  text-align: center;
 }
-.stat-icon.is-gold { background: var(--gold-50, #fbf4e4); color: var(--poliland-gold-text, #805708); }
+.stat-item + .stat-item { border-left: 1px solid var(--border-default, #eae7e0); }
 
-.stat-text { min-width: 0; }
-.stat-item strong {
-  display: block;
-  color: var(--text-primary, #252525);
+.stat-item dd {
+  margin: 0;
+  color: var(--poliland-green, #355a2c);
   font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
-  font-size: 26px;
-  line-height: 1;
+  font-size: 20px;
+  line-height: 1.1;
   font-weight: 650;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
-.stat-text > span {
-  display: block;
-  margin-top: 4px;
+.stat-item dt {
   color: var(--text-secondary, #5f5f66);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.3;
+  text-wrap: balance;
 }
 </style>

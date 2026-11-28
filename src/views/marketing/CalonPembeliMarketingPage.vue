@@ -3,7 +3,7 @@
     Sebelumnya halaman ini menampilkan data dummy dari marketingProspectService.
     Sekarang membaca tabel customers (dibatasi RLS ke client milik Marketing login).
   -->
-  <MarketingPageLayout title="Klien" @refresh="list?.reload()">
+  <MarketingPageLayout class="mk-clients" title="Klien" footer @refresh="list?.reload()">
     <ClientListView
       ref="list"
       role="marketing"
@@ -44,3 +44,9 @@ onMounted(async () => {
   try { profileName.value = (await getStaffProfile()).full_name } catch { /* opsional */ }
 })
 </script>
+
+<style scoped>
+/* Seperti Klien admin: judul yang tampil cukup "Daftar klien"; judul halaman tetap ada untuk pembaca layar. */
+.mk-clients :deep(.ui-page-header) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mk-clients :deep(.mk-shell) { padding: 16px 20px 24px; }
+</style>

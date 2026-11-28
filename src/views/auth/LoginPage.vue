@@ -37,7 +37,7 @@ import {
 
 import { authService } from '@/services/auth/authService'
 import { AUTH_MESSAGES, authErrorMessage, emailInputError } from '@/services/auth/authErrorMessage'
-import { consumePostLoginRedirect, peekPostLoginRedirect } from '@/services/auth/postLoginRedirect'
+import { clearPostLoginRedirect, consumePostLoginRedirect, peekPostLoginRedirect } from '@/services/auth/postLoginRedirect'
 import { supabase } from '@/services/config/supabase'
 import { useGoogleAuthSpinner } from '@/composables/useGoogleAuthSpinner'
 
@@ -94,8 +94,16 @@ const errorMessage = ref('')
 // Dibaca ulang tiap halaman tampil: Ionic menyimpan halaman, jadi setup tidak berjalan lagi.
 const surveyPending = ref(false)
 onIonViewWillEnter(() => {
-  surveyPending.value = peekPostLoginRedirect()?.includes('survei=1') ?? false
+  // Tujuan tersimpan bertahan 1 jam, jadi notif hanya tampil bila kunjungan ini memang dari alur survei.
+  const fromSurvey = route.query.survei === '1' || String(route.query.redirect ?? '').includes('survei=1')
+  surveyPending.value = fromSurvey && (peekPostLoginRedirect()?.includes('survei=1') ?? false)
 })
+
+// Kembali ke situs publik berarti batal survei: login berikutnya tidak boleh dibelokkan ke kavling itu.
+function leaveToHome() {
+  clearPostLoginRedirect()
+  router.push('/home')
+}
 const resendLoading = ref(false)
 const resendMessage = ref('')
 const resendSucceeded = ref(false)
@@ -354,7 +362,7 @@ async function loginWithGoogle() {
           <button
             class="back-home-button"
             type="button"
-            @click="router.push('/home')"
+            @click="leaveToHome"
           >
             <ion-icon
               :icon="arrowBackOutline"

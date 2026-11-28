@@ -1,7 +1,7 @@
 <template>
   <section class="mk-section">
     <nav class="mk-tabs" role="tablist" aria-label="Pembayaran dan jadwal">
-      <button type="button" role="tab" :aria-selected="tab === 'payments'" @click="tab = 'payments'">Pembayaran</button>
+      <button type="button" role="tab" :aria-selected="tab === 'payments'" @click="tab = 'payments'">{{ isHead ? 'Pembayaran' : 'Riwayat' }}</button>
       <button type="button" role="tab" :aria-selected="tab === 'schedules'" @click="tab = 'schedules'">Jadwal cicilan</button>
     </nav>
 
@@ -19,12 +19,12 @@
     <!-- Pembayaran -->
     <template v-else-if="tab === 'payments'">
       <div class="mk-grid">
-        <StatCard label="Menunggu verifikasi" :value="sumLabel(paymentsBy('Pending'))" :hint="`${paymentsBy('Pending').length} pembayaran`" clickable @open="payStatus = 'Pending'" />
-        <StatCard label="Terkonfirmasi" :value="sumLabel(paymentsBy('Confirmed'))" :hint="`${paymentsBy('Confirmed').length} pembayaran`" accent clickable @open="payStatus = 'Confirmed'" />
-        <StatCard label="Ditolak atau unggah ulang" :value="String(paymentsBy('Rejected').length)" clickable @open="payStatus = 'Rejected'" />
-        <StatCard label="Semua" :value="String(scopedPayments.length)" clickable @open="payStatus = ''" />
+        <StatCard label="Menunggu verifikasi" :value="sumLabel(paymentsBy('Pending'))" :hint="`${paymentsBy('Pending').length} pembayaran`" clickable v-bind="picked(payStatus === 'Pending')" @open="payStatus = 'Pending'" />
+        <StatCard label="Terkonfirmasi" :value="sumLabel(paymentsBy('Confirmed'))" :hint="`${paymentsBy('Confirmed').length} pembayaran`" accent clickable v-bind="picked(payStatus === 'Confirmed')" @open="payStatus = 'Confirmed'" />
+        <StatCard label="Ditolak atau unggah ulang" :value="String(paymentsBy('Rejected').length)" clickable v-bind="picked(payStatus === 'Rejected')" @open="payStatus = 'Rejected'" />
+        <StatCard label="Semua" :value="String(scopedPayments.length)" clickable v-bind="picked(payStatus === '')" @open="payStatus = ''" />
       </div>
-      <StatusIllustration v-if="!visiblePayments.length" variant="no-result" size="sm" title="Tidak ada pembayaran" description="Pilih kartu lain untuk melihat data." />
+      <StatusIllustration v-if="!visiblePayments.length" variant="no-result" size="sm" title="Tidak ada pembayaran" :description="isHead ? 'Pilih kartu lain untuk melihat data.' : 'Pilih filter lain di atas.'" />
       <div v-else class="mk-table-wrap">
         <table class="mk-table mk-table--stack">
           <thead><tr><th>Klien</th><th v-if="isHead">Pemasar</th><th>Jenis</th><th>Kaveling</th><th>Tanggal transfer</th><th class="num">Nominal</th><th>Status</th></tr></thead>
@@ -47,12 +47,13 @@
     <!-- Jadwal -->
     <template v-else>
       <div class="mk-grid">
-        <StatCard label="Jatuh tempo ≤ 7 hari" :value="String(dueSoon.length)" clickable @open="schedFilter = 'soon'" />
-        <StatCard label="Terlambat" :value="String(overdue.length)" :hint="formatRupiah(overdue.reduce((a, s) => a + Number(s.amount), 0))" clickable @open="schedFilter = 'overdue'" />
-        <StatCard label="Belum jatuh tempo" :value="String(scopedSchedules.filter((s) => s.status !== 'Paid' && !isLate(s)).length)" clickable @open="schedFilter = 'open'" />
-        <StatCard label="Lunas" :value="String(scopedSchedules.filter((s) => s.status === 'Paid').length)" clickable @open="schedFilter = 'paid'" />
+        <StatCard label="Jatuh tempo ≤ 7 hari" :value="String(dueSoon.length)" clickable v-bind="picked(schedFilter === 'soon')" @open="schedFilter = 'soon'" />
+        <StatCard label="Terlambat" :value="String(overdue.length)" :hint="formatRupiah(overdue.reduce((a, s) => a + Number(s.amount), 0))" clickable v-bind="picked(schedFilter === 'overdue')" @open="schedFilter = 'overdue'" />
+        <StatCard label="Belum jatuh tempo" :value="String(scopedSchedules.filter((s) => s.status !== 'Paid' && !isLate(s)).length)" clickable v-bind="picked(schedFilter === 'open')" @open="schedFilter = 'open'" />
+        <StatCard label="Lunas" :value="String(scopedSchedules.filter((s) => s.status === 'Paid').length)" clickable v-bind="picked(schedFilter === 'paid')" @open="schedFilter = 'paid'" />
+        <StatCard v-if="!isHead" label="Semua" :value="String(scopedSchedules.length)" clickable v-bind="picked(schedFilter === 'all')" @open="schedFilter = 'all'" />
       </div>
-      <div class="mk-chips" role="group" aria-label="Filter jadwal">
+      <div v-if="isHead" class="mk-chips" role="group" aria-label="Filter jadwal">
         <button v-for="opt in schedOptions" :key="opt.value" type="button" class="mk-chip" :aria-pressed="schedFilter === opt.value" @click="schedFilter = opt.value">{{ opt.label }}</button>
       </div>
       <StatusIllustration v-if="!visibleSchedules.length" variant="no-result" size="sm" title="Tidak ada jadwal" description="Pilih filter lain." />
@@ -104,6 +105,8 @@ const props = withDefaults(defineProps<{ role: 'marketing' | 'head'; initialTab?
 const { focusedId, focusRow } = useRowFocus()
 const emit = defineEmits<{ 'open-client': [id: number] }>()
 const isHead = computed(() => props.role === 'head')
+
+const picked = (on: boolean) => (isHead.value ? {} : { 'aria-pressed': on, class: { 'is-selected': on } })
 
 const tab = ref(props.initialTab)
 watch(() => props.initialTab, (value) => (tab.value = value))
@@ -207,4 +210,9 @@ useRealtimeRefresh(
 <style scoped>
 .mk-block { display: block; margin-top: 2px; }
 .mk-narrow { max-width: 320px; }
+
+/* Marketing: kolom filter aktif dan nominal sebagai angka kunci. */
+.pl-marketing .mk-grid > .ui-stat.ui-stat.is-selected.is-selected { background: var(--green-50); box-shadow: inset 0 -3px 0 var(--poliland-green); }
+.pl-marketing .mk-table td[data-label='Nominal'] { align-items: baseline; color: var(--poliland-green); font-family: var(--font-display); font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.pl-marketing .mk-table td.mk-cell-main { font-size: 15px; }
 </style>

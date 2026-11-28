@@ -8,6 +8,7 @@ import FavoriteButton from '@/components/client/FavoriteButton.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import Reveal from '@/components/ui/Reveal.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import { useFavorites } from '@/composables/useFavorites'
@@ -134,15 +135,15 @@ function openLot(id: number) {
 </script>
 
 <template>
-  <ion-page>
+  <ion-page class="pl-client">
     <AppHeader variant="client" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content :fullscreen="true">
       <main class="favp">
         <Reveal :order="0">
           <PageHeader
-            title="Kavling Impian"
-            subtitle="Pilih 2 atau 3 kavling untuk dibandingkan."
+            title="Kaveling impian"
+            subtitle="Pilih 2 atau 3 kaveling untuk dibandingkan."
             show-back
             back-fallback="/client/kavling"
             back-label="Daftar kaveling"
@@ -182,9 +183,9 @@ function openLot(id: number) {
         <StatusIllustration
           v-else-if="!ids.length"
           variant="empty-data"
-          title="Belum ada kavling tersimpan"
-          description="Tekan Simpan di halaman kavling yang Anda suka."
-          action-label="Lihat kavling"
+          title="Belum ada kaveling tersimpan"
+          description="Tekan Simpan di halaman kaveling yang Anda suka."
+          action-label="Lihat kaveling"
           :on-action="() => router.push('/client/kavling')"
         />
 
@@ -228,10 +229,10 @@ function openLot(id: number) {
             </li>
           </ul>
 
-          <p v-if="compareIds.length === 1" class="favp__hint" role="status">Pilih satu kavling lagi.</p>
+          <p v-if="compareIds.length === 1" class="favp__hint" role="status">Pilih satu kaveling lagi.</p>
 
-          <section v-if="compared.length >= 2" class="favp__table-card" aria-labelledby="compare-title">
-            <h2 id="compare-title">Perbandingan</h2>
+          <section v-if="compared.length >= 2" class="favp__compare-section" aria-label="Perbandingan">
+            <SectionHeader title="Perbandingan" />
             <table :style="{ '--cols': compared.length }">
               <thead>
                 <tr>
@@ -264,9 +265,9 @@ function openLot(id: number) {
   gap: var(--space-4, 16px);
   width: min(100%, 720px);
   margin-inline: auto;
-  padding: 16px 16px calc(112px + var(--safe-bottom));
-  color: var(--text-primary, #252525);
-  font-family: var(--font-primary, 'Plus Jakarta Sans', sans-serif);
+  padding: 16px 20px calc(104px + var(--safe-bottom));
+  color: var(--text-primary);
+  font-family: var(--font-ui);
 }
 
 .favp__alerts {
@@ -346,18 +347,20 @@ function openLot(id: number) {
   list-style: none;
 }
 
-.favp__card,
-.favp__table-card {
-  padding: 16px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-card, 16px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 8px rgba(37, 37, 37, 0.04);
-}
-
 .favp__card {
   display: grid;
   gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Satu lembar putih: tabel tanpa kartu pembungkus. */
+.favp__compare-section {
+  min-width: 0;
+  margin-top: 12px;
 }
 
 .favp__head,
@@ -373,12 +376,27 @@ function openLot(id: number) {
   flex-wrap: wrap;
 }
 
-.favp h2 {
+/* Nama kaveling di kartu memakai gaya yang sama dengan daftar kaveling. */
+.favp__head h2 {
   margin: 0;
-  font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
-  font-size: 20px;
+  font-family: var(--font-ui);
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.favp__head > div {
+  min-width: 0;
+}
+
+.favp__price {
+  padding-top: 12px;
+  border-top: 1px solid var(--border-default);
+}
+
+.favp__actions :deep(ion-button) {
+  min-height: 44px;
 }
 
 .favp__head p {
@@ -388,8 +406,10 @@ function openLot(id: number) {
 }
 
 .favp__price strong {
-  color: var(--poliland-green, #355a2c);
-  font-size: 18px;
+  color: var(--poliland-green);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
@@ -403,8 +423,18 @@ function openLot(id: number) {
 }
 
 .favp__status.is-available {
-  background: var(--status-success-bg, #eef5ec);
-  color: var(--poliland-green, #355a2c);
+  background: var(--green-50);
+  color: var(--poliland-green);
+}
+
+.favp__status.is-booking {
+  background: var(--gold-50);
+  color: var(--poliland-gold-text);
+}
+
+.favp__status.is-sold {
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .favp__compare {
@@ -441,27 +471,26 @@ function openLot(id: number) {
   text-align: center;
 }
 
-.favp__table-card table {
+.favp__compare-section table {
   width: 100%;
-  margin-top: 12px;
   border-collapse: collapse;
   table-layout: fixed;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-.favp__table-card th,
-.favp__table-card td {
+.favp__compare-section th,
+.favp__compare-section td {
   padding: 6px 4px;
   overflow-wrap: anywhere;
 }
 
-.favp__table-card thead th {
+.favp__compare-section thead th {
   font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
   font-size: 16px;
 }
 
-.favp__table-card .favp__row-label {
+.favp__compare-section .favp__row-label {
   padding-top: 10px;
   border-top: 1px solid var(--border-default, #eae7e0);
   color: var(--text-secondary, #5f5f66);
@@ -469,7 +498,7 @@ function openLot(id: number) {
   font-weight: 700;
 }
 
-.favp__table-card td {
+.favp__compare-section td {
   padding-bottom: 10px;
   font-size: 13px;
   font-weight: 700;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppNotice from '@/components/ui/AppNotice.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
@@ -566,7 +567,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 </script>
 
 <template>
-  <ion-page>
+  <ion-page class="pl-client">
     <app-header variant="client" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content class="account-content" :fullscreen="true">
@@ -616,7 +617,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 
               <div class="avatar-copy">
                 <strong class="profile-name">
-                  {{ form.full_name.trim() || 'Akun Pelanggan' }}
+                  {{ form.full_name.trim() || 'Akun pelanggan' }}
                 </strong>
                 <span v-if="authEmail" class="profile-email">{{ authEmail }}</span>
                 <span class="avatar-hint">
@@ -658,7 +659,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 
           <!-- Kartu Formulir Data Diri -->
           <section class="account-card" aria-label="Formulir data diri">
-            <h2 class="card-section-title">Informasi Pribadi &amp; Kontak</h2>
+            <SectionHeader title="Data diri" />
 
             <form class="profile-form" @submit.prevent="saveCustomerProfile">
               <div class="form-field">
@@ -780,7 +781,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
               >
                 <ion-spinner v-if="isSaving" slot="start" name="crescent" />
                 <ion-icon v-else slot="start" :icon="saveOutline" />
-                {{ isSaving ? 'Menyimpan...' : 'Simpan Data Diri' }}
+                {{ isSaving ? 'Menyimpan...' : 'Simpan data diri' }}
               </ion-button>
             </form>
           </section>
@@ -788,7 +789,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
           <!-- Kartu Sesi & Keluar Akun -->
           <section class="account-card account-session-card" aria-label="Pengaturan sesi akun">
             <div class="session-copy">
-              <h2 class="card-section-title">Sesi Akun</h2>
+              <SectionHeader title="Sesi akun" />
               <p class="session-desc">
                 Keluar dari akun jika Anda menggunakan perangkat bersama atau ingin berganti akun.
               </p>
@@ -822,58 +823,25 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 <style scoped>
 .opt-mark { color: var(--text-secondary, #5f5f66); font-weight: 500; }
 .identity-retry { min-height: 44px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; }
+
 .account-content {
-  --background: var(--app-background, #faf9f6);
-  --padding-bottom: calc(104px + var(--safe-bottom));
+  --background: var(--surface-primary);
+  --padding-bottom: 0px;
 }
 
 .account-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 28px;
   width: min(100%, 680px);
   margin: 0 auto;
-  padding: 16px 16px calc(120px + var(--safe-bottom));
-  color: var(--text-primary, #252525);
-  font-family: var(--font-primary, var(--ion-font-family, 'Plus Jakarta Sans', sans-serif));
+  padding: 16px 20px calc(104px + var(--safe-bottom));
+  color: var(--text-primary);
+  font-family: var(--font-ui);
 }
 
-/* Header Pengantar Halaman */
-.page-intro {
-  padding: 4px 2px 0;
-}
-
-.page-title {
-  margin: 0;
-  color: var(--text-primary, #252525);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-
-.page-subtitle {
-  margin: 4px 0 0;
-  color: var(--text-secondary, #63636a);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-/* Kartu Permukaan Standar */
 .account-card {
-  padding: 20px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-card, 16px);
-  background: var(--surface-primary, #ffffff);
-  box-shadow: 0 2px 8px rgba(37, 37, 37, 0.04);
-}
-
-.card-section-title {
-  margin: 0 0 16px;
-  color: var(--text-primary, #252525);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.4;
+  min-width: 0;
 }
 
 /* Bagian Foto Profil */
@@ -910,9 +878,8 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
   transform: scale(0.97);
 }
 
-.avatar-picker:focus-visible,
-.avatar-change-btn:focus-visible {
-  outline: 3px solid var(--poliland-green, #355a2c);
+.avatar-picker:focus-visible, .avatar-change-btn:focus-visible {
+  outline: 3px solid var(--poliland-green);
   outline-offset: 2px;
 }
 
@@ -992,10 +959,11 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 .profile-name {
   width: 100%;
   overflow: hidden;
-  color: var(--text-primary, #252525);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.35;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1017,24 +985,25 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 
 .avatar-change-btn {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 44px;
   align-items: center;
-  margin-top: 4px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  background: var(--surface-muted, #f5f3ee);
-  color: var(--poliland-green, #355a2c);
+  margin-top: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--poliland-green);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  color: var(--poliland-green);
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 150ms ease-out;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .avatar-change-btn:hover:not(:disabled) {
-    background: #ebe7de;
+    background: var(--green-50);
   }
 }
 
@@ -1080,22 +1049,23 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 }
 
 .req-mark {
-  color: var(--status-danger, #d94b45);
+  color: var(--danger-text);
   font-weight: 700;
 }
 
 .input-item {
-  --background: var(--surface-muted, #f5f3ee);
-  --border-radius: var(--radius-control, 12px);
-  --min-height: 46px;
+  --background: var(--surface-primary);
+  --border-radius: var(--radius-control);
+  --min-height: 48px;
   --padding-start: 14px;
   --inner-padding-end: 14px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-control, 12px);
-  transition: border-color 150ms ease-out, background-color 150ms ease-out;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  transition: border-color 150ms ease-out;
 }
 
 .input-item.is-locked {
+  --background: var(--surface-muted);
   border-style: dashed;
 }
 
@@ -1105,13 +1075,12 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
   box-shadow: 0 0 0 3px rgba(53, 90, 44, 0.12);
 }
 
-.input-item ion-input,
-.input-item ion-textarea {
-  --color: var(--text-primary, #252525);
-  --placeholder-color: var(--text-secondary, #717178);
+.input-item ion-input, .input-item ion-textarea {
+  --color: var(--text-primary);
+  --placeholder-color: var(--text-secondary);
   --padding-top: 11px;
   --padding-bottom: 11px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .textarea-item {
@@ -1126,33 +1095,24 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
   font-size: 12px;
 }
 
-/* Umpan Balik Simpan / Error */
-
-/* Tombol Aksi Utama (Brand PoliLand Green, min-height 48px) */
 .save-button {
-  --background: var(--poliland-green, #355a2c);
-  --background-hover: #2b4a24;
-  --background-activated: #243e1e;
+  --background: var(--poliland-green);
+  --background-activated: var(--green-800);
   --color: #ffffff;
-  --border-radius: var(--radius-control, 12px);
-  --box-shadow: 0 4px 12px rgba(53, 90, 44, 0.2);
-  min-height: 48px;
+  --border-radius: var(--radius-control);
+  --box-shadow: none;
+  min-height: 52px;
   margin: 4px 0 0;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
 }
 
-/* Bagian Keluar Akun */
 .account-session-card {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-.account-session-card .card-section-title {
-  margin-bottom: 4px;
 }
 
 .session-desc {
@@ -1163,12 +1123,12 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 }
 
 .logout-button {
-  --border-radius: var(--radius-control, 12px);
+  --border-radius: var(--radius-control);
   --border-width: 1.5px;
-  min-height: 46px;
+  min-height: 48px;
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -1221,8 +1181,8 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 }
 
 @media (max-width: 520px) {
-  .account-card {
-    padding: 16px;
+  .account-page {
+    padding-inline: 16px;
   }
 
   .form-grid {

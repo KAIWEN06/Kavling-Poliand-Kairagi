@@ -1,5 +1,6 @@
 <template>
-  <section class="hero-section" :class="{ 'hero-section--plain': !hero.image_url }">
+  <section class="hero-wrap">
+    <div class="hero-section" :class="{ 'hero-section--plain': !hero.image_url }">
     <motion.img
       v-if="hero.image_url"
       :src="hero.image_url"
@@ -10,8 +11,7 @@
       :transition="{ duration: 2.6, ease: MOTION_EASE_OUT }"
     />
     <div class="hero-overlay"></div>
-    <!-- Bukit terdepan berwarna sama dengan halaman: foto mengalir ke permukaan krem. -->
-    <SceneBackdrop class="hero-scene" height="120px" :sun="false" :lines="false" solid-front="#F9F5EC" />
+    <SceneBackdrop class="hero-scene" height="72px" :sun="false" :lines="false" />
 
     <div v-if="isAdmin" class="hero-admin">
       <AdminEditButton label="Ubah sampul" @click="editOpen = true" />
@@ -72,6 +72,8 @@
           {{ hero.cta_text || 'Hubungi kami' }}
         </ion-button>
       </motion.div>
+    </div>
+
     </div>
 
     <CmsPanelModal v-model="editOpen" title="Ubah sampul" panel="home" section="hero" @saved="loadHeroData()" />
@@ -154,10 +156,18 @@ useRealtimeRefresh(['home_hero', 'contacts'], () => loadHeroData({ silent: true 
 </script>
 
 <style scoped>
+.hero-wrap { padding: 12px 12px 0; }
+
 .hero-section {
   position: relative;
-  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 280px;
   overflow: hidden;
+  border-radius: var(--radius-card, 16px);
+  /* Safari: sudut membulat tetap memotong foto yang sedang diskalakan. */
+  isolation: isolate;
 }
 
 .hero-scene { z-index: 1; }
@@ -181,15 +191,15 @@ useRealtimeRefresh(['home_hero', 'contacts'], () => loadHeroData({ silent: true 
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(120% 60% at 100% 0%, rgba(244,214,154,.28) 0%, rgba(244,214,154,0) 60%),
-    linear-gradient(180deg, rgba(27,53,25,.72) 0%, rgba(31,53,25,.55) 48%, rgba(27,40,22,.88) 100%);
+    radial-gradient(120% 60% at 100% 0%, rgba(244,214,154,.18) 0%, rgba(244,214,154,0) 60%),
+    linear-gradient(180deg, rgba(27,53,25,.64) 0%, rgba(31,53,25,.78) 40%, rgba(27,40,22,.92) 100%);
 }
 
 /* HERO CONTENT */
 .hero-content {
   position: relative;
   z-index: 2;
-  padding: 96px 24px 112px;
+  padding: 56px 18px 20px;
   color: #fff;
 }
 
@@ -206,7 +216,7 @@ useRealtimeRefresh(['home_hero', 'contacts'], () => loadHeroData({ silent: true 
   margin: 0;
   color: #fff;
   font-family: var(--font-display, 'Fraunces Variable', Georgia, serif);
-  font-size: clamp(34px, 10vw, 44px);
+  font-size: clamp(27px, 7.6vw, 38px);
   line-height: 1.08;
   font-weight: 650;
   letter-spacing: -0.02em;
@@ -223,17 +233,17 @@ useRealtimeRefresh(['home_hero', 'contacts'], () => loadHeroData({ silent: true 
 .hero-word-inner { display: inline-block; will-change: transform; }
 
 .hero-content p {
-  margin: 16px 0 0;
-  max-width: 34ch;
+  margin: 6px 0 0;
+  max-width: 40ch;
   color: #F4F1E8;
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .hero-content p.hero-subtitle {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   color: var(--poliland-gold-soft, #F4D69A);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.4;
 }
@@ -242,14 +252,14 @@ useRealtimeRefresh(['home_hero', 'contacts'], () => loadHeroData({ silent: true 
 .hero-actions {
   display: flex;
   gap: 10px;
-  margin-top: 26px;
+  margin-top: 16px;
   align-items: center;
 }
 
 .hero-actions ion-button {
   margin: 0;
-  min-height: 48px;
-  --border-radius: 14px;
+  min-height: 44px;
+  --border-radius: 12px;
   font-size: 14px;
   font-weight: 800;
   text-transform: none;
@@ -288,12 +298,8 @@ useRealtimeRefresh(['home_hero', 'contacts'], () => loadHeroData({ silent: true 
 /* SMALL SCREEN */
 @media (max-width: 360px) {
   .hero-content {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-
-  .hero-content p {
-    font-size: 14px;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .hero-actions ion-button {

@@ -621,6 +621,12 @@ export const customerService = {
     return data
   },
 
+  /* Satu perintah INSERT: semua tersimpan atau tidak sama sekali. */
+  async addInterests(interests: Array<Omit<CustomerInterest, 'id' | 'created_at'>>) {
+    const { error } = await supabase.from('customer_interests').insert(interests)
+    if (error) throw error
+  },
+
   async removeInterest(id: number) {
     const { data: interest, error: interestError } = await supabase
       .from('customer_interests')

@@ -1,8 +1,9 @@
 <template>
-  <ion-page class="reviews-admin">
+  <ion-page class="pl-admin pl-sheet reviews-admin">
     <AppHeader variant="admin" />
 
     <ion-content :fullscreen="true">
+      <AdminPageFill>
       <main class="shell">
         <header class="intro">
           <h1>Ulasan Pelanggan</h1>
@@ -107,6 +108,7 @@
 
         <AppPagination :page="pager.page" :total-pages="pager.totalPages" :total="pager.total" :page-size="pager.pageSize" :loading="loading" label="Halaman ulasan" @update:page="goTo" />
       </main>
+      </AdminPageFill>
     </ion-content>
 
     <AppModal
@@ -199,6 +201,7 @@ import AppPagination from '@/components/ui/AppPagination.vue'
 import { usePageState } from '@/composables/usePagination'
 import { IonContent, IonPage } from '@ionic/vue'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AdminPageFill from '@/components/common/AdminPageFill.vue'
 import PageBackButton from '@/components/ui/PageBackButton.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -502,7 +505,7 @@ useRealtimeRefresh(['customer_reviews', 'review_reports'], () => load({ silent: 
 .terms-msg { margin: 0; }
 
 .terms-add { display: grid; gap: 12px; }
-.form-label { display: grid; gap: 6px; color: var(--text-secondary); font-size: 10px; font-weight: 600; }
+.form-label { display: grid; gap: 6px; color: var(--text-secondary); font-size:11px; font-weight: 600; }
 .form-label select {
   width: 100%; min-height: 44px; box-sizing: border-box; padding: 0 10px;
   border: 1px solid var(--border-default); border-radius: var(--radius-control);

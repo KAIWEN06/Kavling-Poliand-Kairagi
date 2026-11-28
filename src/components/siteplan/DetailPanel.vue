@@ -762,7 +762,7 @@ function goToSurveyRequest() {
   // Belum login: simpan tujuan, lalu login. Akun baru melengkapi data diri
   // dulu, kemudian otomatis sampai ke halaman request survei.
   setPostLoginRedirect(target)
-  router.push('/login')
+  router.push({ path: '/login', query: { survei: '1' } })
 }
 
 /* ===================================================== */

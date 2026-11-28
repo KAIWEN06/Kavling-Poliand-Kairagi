@@ -1,7 +1,8 @@
 <template>
-  <ion-page class="survey-page">
+  <ion-page class="pl-admin pl-sheet survey-page">
     <AppHeader variant="admin" title="PoliLand Kairagi" :show-back="false" />
     <ion-content :fullscreen="true">
+      <AdminPageFill>
       <main class="survey-shell">
         <div v-if="!surveysLoading && !surveysError && surveyRequests.length" class="survey-filters" role="group" aria-label="Filter status survei">
           <button v-for="f in surveyFilters" :key="f.key" type="button" class="survey-filter" :class="{ active: surveyFilter === f.key }" :aria-pressed="surveyFilter === f.key" @click="surveyFilter = f.key">
@@ -63,13 +64,21 @@
             </article>
           </div>
           <div v-else class="survey-empty">
-            <ion-icon :icon="searchOutline" aria-hidden="true" />
+            <img
+              class="survey-empty-mascot"
+              :src="noSurveyRequestsMascot"
+              alt=""
+              width="180"
+              height="180"
+              style="width: min(180px, 70%); height: auto"
+            />
             <strong>{{ surveyRequests.length ? 'Tidak ada hasil' : 'Belum ada permintaan survei' }}</strong>
             <p v-if="surveyRequests.length">Ubah kata kunci atau pilih status lain.</p>
           </div>
           <AppPagination v-if="!surveysLoading && !surveysError" v-model:page="surveyPager.page" :total-pages="surveyPager.totalPages" :total="surveyPager.total" :page-size="surveyPager.pageSize" scroll-to="#survey-list-top" label="Halaman permintaan survei" />
         </section>
       </main>
+      </AdminPageFill>
     </ion-content>
     <MobileTabBar variant="admin" />
     <AppModal
@@ -92,6 +101,7 @@
 </template>
 
 <script setup lang="ts">
+import noSurveyRequestsMascot from '@/assets/mascot/No Survey Requests Mascot Sticker.png'
 import { useRealtimeRefresh, type LoadOptions } from '@/composables/useRealtimeRefresh'
 import { useToast } from '@/composables/useToast'
 import SkeletonRowList from '@/components/ui/skeletons/SkeletonRowList.vue'
@@ -103,6 +113,7 @@ import { IonContent, IonIcon, IonPage, onIonViewWillEnter, useIonRouter } from '
 import { calendarOutline, chevronForwardOutline, closeOutline, searchOutline } from 'ionicons/icons'
 import { useRoute } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AdminPageFill from '@/components/common/AdminPageFill.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { surveyService, type AdminSurveyRequest } from '@/services/surveyService'

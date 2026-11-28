@@ -1033,38 +1033,51 @@ useRealtimeRefresh(
 </script>
 
 <template>
-  <ion-page class="payment-page">
+  <ion-page class="pl-client payment-page">
     <AppHeader variant="client" title="PoliLand Kairagi" :show-back="false" />
 
     <ion-content class="payment-content" :fullscreen="true">
       <main class="payment-shell">
         <section v-if="!loading && !loadError && selectedTransaction" class="lot-hero" aria-labelledby="lot-title">
-          <fieldset v-if="transactions.length > 1" class="lot-picker" :disabled="submitting || cancellationSubmitting">
-            <legend>Pilih kaveling</legend>
-            <div class="lot-options">
-              <label v-for="item in transactions" :key="item.id" class="lot-option">
-                <input
-                  type="radio"
-                  name="payment-lot"
-                  class="visually-hidden"
-                  :value="item.id"
-                  :checked="item.id === selectedTransactionId"
-                  @change="chooseLot(item.id)"
-                />
-                <span class="lot-option-name">{{ item.lot }}</span>
-                <span v-if="reuploadCountByLot.get(item.id)" class="view-tab-badge">
-                  {{ reuploadCountByLot.get(item.id) }}<span class="visually-hidden"> bukti perlu diunggah ulang</span>
-                </span>
-              </label>
-            </div>
-          </fieldset>
+          <div class="lot-banner">
+            <fieldset v-if="transactions.length > 1" class="lot-picker" :disabled="submitting || cancellationSubmitting">
+              <legend>Pilih kaveling</legend>
+              <div class="lot-options">
+                <label v-for="item in transactions" :key="item.id" class="lot-option">
+                  <input
+                    type="radio"
+                    name="payment-lot"
+                    class="visually-hidden"
+                    :value="item.id"
+                    :checked="item.id === selectedTransactionId"
+                    @change="chooseLot(item.id)"
+                  />
+                  <span class="lot-option-name">{{ item.lot }}</span>
+                  <span v-if="reuploadCountByLot.get(item.id)" class="view-tab-badge">
+                    {{ reuploadCountByLot.get(item.id) }}<span class="visually-hidden"> bukti perlu diunggah ulang</span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
 
-          <div :key="selectedTransaction.id" class="lot-detail">
             <div class="lot-heading">
               <h2 id="lot-title">{{ selectedTransaction.lot }}</h2>
               <p>{{ lotSubtitle }}</p>
             </div>
 
+            <div class="lot-actions">
+              <button v-if="selectedTransaction.spkRequestId" type="button" class="hero-button hero-button-primary" @click="openSpkDetail">
+                <ion-icon :icon="gitCommitOutline" aria-hidden="true" />
+                Lihat proses SPK
+              </button>
+              <button type="button" class="hero-button hero-button-ghost" @click="openLotDetail">
+                Detail kaveling
+                <ion-icon :icon="chevronForward" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          <div :key="selectedTransaction.id" class="lot-detail">
             <OrderRevisionNotice :transaction-id="selectedTransaction.id" :refresh-key="refundRefreshKey" />
 
             <dl class="lot-facts">
@@ -1100,16 +1113,6 @@ useRealtimeRefresh(
             </div>
           </div>
 
-          <div class="lot-actions">
-            <button v-if="selectedTransaction.spkRequestId" type="button" class="hero-button hero-button-primary" @click="openSpkDetail">
-              <ion-icon :icon="gitCommitOutline" aria-hidden="true" />
-              Lihat proses SPK
-            </button>
-            <button type="button" class="hero-button hero-button-ghost" @click="openLotDetail">
-              Detail kaveling
-              <ion-icon :icon="chevronForward" aria-hidden="true" />
-            </button>
-          </div>
         </section>
 
         <SkeletonDetailHeader v-if="loading" :sections="2" :rows="4" label="Memuat data pembayaran" />
@@ -1193,7 +1196,7 @@ useRealtimeRefresh(
                   </AppNotice>
                   <div v-else-if="firstUnpaidSchedule" id="schedule-top" class="schedule-picker">
                     <div class="schedule-picker-header">
-                      <h3>Jadwal Cicilan</h3>
+                      <h3>Jadwal cicilan</h3>
                       <small>{{ installmentProgressLine }}</small>
                     </div>
                     <label
@@ -1482,35 +1485,16 @@ useRealtimeRefresh(
 .payment-content {
   --background: var(--app-background, #faf9f6);
 }
-
-.payment-shell {
-  display: grid;
-  gap: 20px;
-  width: min(100%, 760px);
-  margin: 0 auto;
-  padding: 20px 16px calc(104px + var(--safe-bottom));
-}
+.payment-shell { display: grid; gap: 18px; width: min(100%, 760px); margin: 0 auto; padding: 12px 20px calc(96px + var(--safe-bottom)); }
 
 .transaction-card {
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 8px rgb(37 37 37 / 4%);
-}
-
-/* Panel kaveling: pilihan di atas, semua data di bawahnya milik kaveling itu. */
-.lot-hero {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-  padding: 20px;
-  border-radius: var(--radius-panel, 20px);
-  color: var(--on-forest, #f4f1e8);
-  background:
-    radial-gradient(90% 60% at 100% 0%, rgb(244 214 154 / 22%) 0%, rgb(244 214 154 / 0%) 60%),
-    linear-gradient(155deg, var(--green-700, #355a2c) 0%, var(--green-900, #1f3519) 100%);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--surface-primary);
   box-shadow: var(--shadow-sm);
 }
+.lot-hero { display: grid; gap: 12px; min-width: 0; }
+.lot-banner { display: grid; gap: 14px; min-width: 0; margin-inline: -8px; padding: 16px 20px 20px; border-radius: var(--radius-card); color: var(--on-forest); background: radial-gradient(120% 90% at 100% 0%, rgb(203 160 68 / 30%), rgb(203 160 68 / 0%) 62%), var(--surface-forest); }
 
 .lot-picker { min-width: 0; margin: 0; padding: 0; border: 0; }
 .lot-picker legend { margin-bottom: 8px; padding: 0; font-size: 13px; font-weight: 600; }
@@ -1543,50 +1527,24 @@ useRealtimeRefresh(
 .lot-option:has(input:focus-visible) { outline: 3px solid #fff; outline-offset: 2px; }
 .lot-option:active { transform: scale(0.97); }
 .lot-picker:disabled .lot-option { cursor: not-allowed; opacity: 0.6; }
-
-/* Dipasang ulang (:key) saat kaveling diganti agar terlihat datanya berubah. */
-.lot-detail { display: grid; gap: 16px; min-width: 0; animation: view-panel-in var(--dur-base, 240ms) var(--ease-out, ease) both; }
-
-.lot-hero .lot-heading h2 {
-  margin: 0;
-  color: #fff;
-  font-family: var(--font-display, Georgia, serif);
-  font-size: clamp(22px, 6.8vw, 28px);
-  font-weight: 650;
-  line-height: 1.15;
-  overflow-wrap: break-word;
-}
+.lot-detail { display: grid; gap: 12px; min-width: 0; animation: view-panel-in var(--dur-base, 240ms) var(--ease-out, ease) both; }
+.lot-hero .lot-heading h2 { margin: 0; color: #fff; font-family: var(--font-display, Georgia, serif); font-size: clamp(27px, 7.6vw, 34px); font-weight: 650; line-height: 1.12; letter-spacing: -0.02em; overflow-wrap: break-word; }
 .lot-heading p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
-
-.lot-facts { display: grid; margin: 0; }
-/* Bila label dan nilai tidak muat sebaris, nilai turun utuh ke baris berikutnya. */
-.lot-fact {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 2px 12px;
-  padding: 10px 0;
-  border-top: 1px solid rgb(244 241 232 / 18%);
-}
-.lot-fact dt { font-size: 13px; }
-.lot-fact dd {
-  margin: 0 0 0 auto;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.lot-fact .lot-fact-waiting { color: var(--poliland-gold-soft, #f4d69a); }
-
-.spk-progress { display: grid; gap: 8px; padding: 12px; border-radius: var(--radius-control, 12px); background: rgb(0 0 0 / 22%); }
+.lot-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-primary); box-shadow: var(--shadow-sm); }
+.lot-fact { display: flex; min-width: 0; flex-direction: column-reverse; align-items: center; justify-content: flex-end; gap: 2px; padding: 12px 6px; text-align: center; }
+.lot-fact:nth-child(even) { border-left: 1px solid var(--border-default); }
+.lot-fact:nth-child(n + 3) { border-top: 1px solid var(--border-default); }
+.lot-fact:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.lot-fact dt { color: var(--text-secondary); font-size: 12px; line-height: 1.3; }
+.lot-fact dd { max-width: 100%; margin: 0; color: var(--poliland-green); font-family: var(--font-display, Georgia, serif); font-size: clamp(15px, 4.6vw, 20px); font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.lot-fact .lot-fact-waiting { color: var(--poliland-gold-text); }
+.spk-progress { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--border-default); border-radius: 12px; }
 .spk-progress p { margin: 0; font-size: 13px; line-height: 1.45; }
-.spk-progress-status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
-.spk-progress-status strong { color: var(--poliland-gold-soft, #f4d69a); }
-.spk-progress-track { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: rgb(244 241 232 / 22%); }
-.spk-progress-track span { display: block; height: 100%; background: var(--poliland-gold-soft, #f4d69a); transform-origin: left center; transition: transform var(--dur-slow, 380ms) var(--ease-out, ease); }
-.spk-progress .spk-progress-step { color: #fff; font-weight: 600; }
+.spk-progress-status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; color: var(--text-secondary); }
+.spk-progress-status strong { color: var(--poliland-green); }
+.spk-progress-track { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-muted); }
+.spk-progress-track span { display: block; height: 100%; background: var(--poliland-green); transform-origin: left center; transition: transform var(--dur-slow, 380ms) var(--ease-out, ease); }
+.spk-progress .spk-progress-step { color: var(--text-primary); font-weight: 600; }
 
 .lot-actions { display: grid; gap: 8px; }
 .hero-button {
@@ -1612,15 +1570,14 @@ useRealtimeRefresh(
 .hero-button:active { transform: scale(0.97); }
 .hero-button-primary { color: var(--ink, #1b1f1a); background: var(--poliland-gold, #cba044); }
 .hero-button-ghost { border-color: rgb(244 241 232 / 45%); color: var(--on-forest, #f4f1e8); background: transparent; }
-.payment-page .lot-hero button:focus-visible { outline-color: #fff; }
+.payment-page .lot-banner button:focus-visible { outline-color: #fff; }
 
 @media (hover: hover) and (pointer: fine) {
   .view-tab[aria-selected="false"]:hover { color: var(--text-primary, #252525); }
   .lot-option:not(:has(input:checked)):hover,
   .hero-button-ghost:hover { background: rgb(255 255 255 / 10%); }
 }
-
-.scope-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 16px; background: var(--surface-muted, #f5f3ee); }
+.scope-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: var(--radius-control); background: var(--surface-muted); }
 .scope-option,
 .reupload-elsewhere { min-height: 44px; border: 0; border-radius: var(--radius-control, 12px); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; transition: transform var(--dur-fast, 160ms) var(--ease-spring, ease); }
 .scope-option { padding: 8px; color: var(--text-secondary, #5f5f66); background: transparent; }
@@ -1628,55 +1585,12 @@ useRealtimeRefresh(
 .scope-option:active,
 .reupload-elsewhere:active { transform: scale(0.97); }
 .reupload-elsewhere { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; color: var(--warning-text, #805708); background: var(--warning-bg, #fbf0d8); text-align: left; }
-
-/* Tab Bayar / Riwayat: pil hijau bergeser di belakang label. */
-.view-tabs {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: 4px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--surface-primary, #fff);
-}
-
-.view-tabs::before {
-  content: '';
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  border-radius: 16px;
-  background: var(--poliland-green, #355a2c);
-  transition: transform var(--dur-base, 240ms) var(--ease-out, ease);
-}
+.view-tabs { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-inline: -20px; padding-inline: 20px; border-bottom: 1px solid var(--border-default); }
+.view-tabs::before { content: ''; position: absolute; bottom: -1px; left: 20px; width: calc(50% - 20px); height: 3px; background: var(--poliland-green); transition: transform var(--dur-base, 240ms) var(--ease-out, ease); }
 
 .view-tabs-history::before { transform: translateX(100%); }
-
-.view-tab {
-  position: relative;
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 16px;
-  color: var(--text-secondary, #5f5f66);
-  background: transparent;
-  font: inherit;
-  font-size: 14px;
-  font-weight: var(--font-weight-semibold, 600);
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  transition: color var(--dur-fast, 160ms) var(--ease-out, ease), transform var(--dur-fast, 160ms) var(--ease-spring, ease);
-}
-
-.view-tab[aria-selected="true"] { color: #fff; }
+.view-tab { position: relative; display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 0; color: var(--text-secondary); background: transparent; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+.view-tab[aria-selected="true"] { color: var(--poliland-green); font-weight: 800; }
 .view-tab:active { transform: scale(0.97); }
 
 .view-tab-badge {
@@ -1703,18 +1617,7 @@ useRealtimeRefresh(
   color: #aab3c0;
   font-size: 22px;
 }
-
-.search-box {
-  display: flex;
-  min-height: 56px;
-  align-items: center;
-  gap: 12px;
-  padding: 0 16px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 5px rgb(37 37 37 / 4%);
-}
+.search-box { display: flex; min-height: 52px; align-items: center; gap: 12px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); }
 
 .search-box ion-icon {
   flex: 0 0 auto;
@@ -1765,12 +1668,7 @@ useRealtimeRefresh(
   font-weight: var(--font-weight-medium, 500);
   cursor: pointer;
 }
-
-.filter-chip-active {
-  border-color: var(--poliland-gold-soft, #f4d69a);
-  color: var(--poliland-gold-text-soft, #805708);
-  background: var(--poliland-gold-soft, #f4d69a);
-}
+.filter-chip-active { border-color: var(--poliland-green); color: var(--poliland-green); background: var(--green-50); font-weight: 700; }
 
 .transaction-list {
   display: grid;
@@ -1934,12 +1832,22 @@ useRealtimeRefresh(
 @media (max-width: 560px) {
   .payment-shell {
     gap: 16px;
-    padding-inline: 12px;
-    padding-top: 16px;
+    padding-inline: 16px;
   }
 
-  .lot-hero {
-    padding: 16px;
+  .view-tabs {
+    margin-inline: -16px;
+    padding-inline: 16px;
+  }
+
+  .view-tabs::before {
+    left: 16px;
+    width: calc(50% - 16px);
+  }
+
+  .lot-banner {
+    margin-inline: -4px;
+    padding-inline: 16px;
   }
 
   .transaction-card {
@@ -1992,17 +1900,7 @@ useRealtimeRefresh(
   .scope-option:active,
   .reupload-elsewhere:active { transform: none; }
 }
-
-/* Form pembayaran */
-.payment-action-card {
-  display: grid;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid var(--border-default, #eae7e0);
-  border-radius: var(--radius-panel, 20px);
-  background: var(--surface-primary, #fff);
-  box-shadow: 0 2px 8px rgb(37 37 37 / 4%);
-}
+.payment-action-card { display: grid; gap: 16px; }
 .payment-action-card h2,
 .payment-action-card h3 { margin: 0; color: var(--text-primary, #252525); }
 .payment-action-card p { margin: 0; color: var(--text-secondary, #717178); font-size: 13px; line-height: 1.55; }
@@ -2022,7 +1920,10 @@ useRealtimeRefresh(
 .cancellation-withdraw-button:focus-visible { outline: 3px solid var(--poliland-green, #355a2c); outline-offset: 2px; }
 .cancellation-withdraw-button:disabled { opacity: .65; cursor: not-allowed; }
 .schedule-picker { display:grid; gap:8px; }
-.schedule-picker-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.schedule-picker-header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:4px 10px; margin:6px 0 4px; }
+.schedule-picker-header h3 { font-family: var(--font-display, Georgia, serif); font-size: 22px; font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; }
+.schedule-picker-header h3::after { content: ''; display: block; width: 40px; height: 3px; margin-top: 8px; border-radius: 999px; background: var(--poliland-gold); }
+.schedule-picker-header small { color: var(--text-secondary); font-size: 12px; }
 .schedule-row {
   display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px;
   border:1px solid var(--border-default,#eae7e0); border-radius:12px; background:var(--surface-primary,#fff);
@@ -2036,13 +1937,10 @@ useRealtimeRefresh(
 .schedule-row-copy small { color:var(--text-secondary,#717178); font-size:11px; }
 .schedule-row-amount { flex:0 0 auto; text-align:right; white-space:nowrap; }
 .schedule-row-amount strong { color:var(--text-primary,#252525); font-size:13px; }
-.schedule-row-amount small { display:block; color:var(--text-secondary,#717178); font-size:10px; }
-.payment-total {
-  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 12px; padding:14px;
-  border-radius:12px; background:var(--surface-muted,#f5f3ee);
-}
+.schedule-row-amount small { display:block; color:var(--text-secondary); font-size:11px; }
+.payment-total { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 12px; padding:14px; border:1px solid var(--border-default); border-radius:var(--radius-card); box-shadow:var(--shadow-sm); }
 .payment-total span { color:var(--text-secondary,#717178); font-size:12px; }
-.payment-total strong { margin-left:auto; white-space:nowrap; color:var(--text-primary,#252525); font-size:18px; }
+.payment-total strong { margin-left:auto; white-space:nowrap; color:var(--poliland-green); font-family:var(--font-display, Georgia, serif); font-size:20px; font-weight:650; font-variant-numeric:tabular-nums; }
 .proof-input { display:grid; gap:8px; padding:14px; border:1px dashed var(--border-default,#c9c9c9); border-radius:12px; }
 .proof-input input { width:100%; font-size:12px; }
 .proof-name { color:var(--poliland-green,#355a2c); font-size:12px; overflow-wrap:anywhere; }
@@ -2053,7 +1951,5 @@ useRealtimeRefresh(
 }
 .submit-payment-button:disabled { opacity:.55; cursor:not-allowed; }
 .transaction-card { width:100%; border:1px solid var(--border-default,#eae7e0); text-align:left; }
-@media(max-width:560px) {
-  .payment-action-card { padding:16px; }
-}
+
 </style>
