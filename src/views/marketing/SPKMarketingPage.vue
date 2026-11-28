@@ -76,11 +76,18 @@
             </div>
             <div class="spk-client-wide">
               <dt>Alamat</dt>
-              <dd :class="{ 'is-missing': !form.address }">
-                {{ form.address || 'Alamat belum diisi. Lengkapi di detail klien.' }}
-              </dd>
+              <dd>{{ form.address || 'Belum tercatat' }}</dd>
             </div>
           </dl>
+
+          <AppNotice
+            v-if="form.customerId && addressGaps.length"
+            tone="warning"
+            title="Alamat belum lengkap untuk SPK"
+            :message="`Belum diisi: ${addressGaps.join(', ')}.`"
+            action-label="Lengkapi di detail klien"
+            @action="ionRouter.push(`/marketing/clients/${form.customerId}`)"
+          />
 
           <IdentityInfo
             v-if="form.customerId"
@@ -385,6 +392,7 @@ import {
 import {
   IonIcon,
   IonSpinner,
+  onIonViewWillEnter,
   useIonRouter,
 } from '@ionic/vue'
 
@@ -609,11 +617,16 @@ const formattedLotPrice = computed(() => {
 })
 
 
+const addressGaps = computed(
+  () => myCustomers.value.find((c) => c.id === form.customerId)?.address_gaps ?? [],
+)
+const addressReady = computed(() => Boolean(form.address) && !addressGaps.value.length)
+
 const completionPercent = computed(() => {
   const checks = [
     Boolean(form.fullName),
     Boolean(form.phone),
-    Boolean(form.address),
+    addressReady.value,
     Boolean(lot.id),
     Boolean(form.paymentMethod),
     form.paymentMethod === 'Cash'
@@ -644,7 +657,7 @@ const currentStep = computed(() => {
   const buyerComplete =
     Boolean(form.fullName) &&
     Boolean(form.phone) &&
-    Boolean(form.address)
+    addressReady.value
 
   const paymentComplete =
     Boolean(lot.id) &&
@@ -679,7 +692,7 @@ const canSubmit = computed(() => {
   const basicValid =
     Boolean(form.fullName) &&
     Boolean(form.phone) &&
-    Boolean(form.address) &&
+    addressReady.value &&
     Boolean(form.paymentMethod) &&
     Boolean(lot.id) &&
     Boolean(files.ktp) &&
@@ -1020,6 +1033,16 @@ onMounted(async () => {
       .catch(error => { console.error(error); submitError.value = 'Gagal memuat daftar klien Anda.' }),
   ])
   applySelectedCustomer()
+})
+
+onIonViewWillEnter(async () => {
+  if (!myCustomers.value.length) return
+  try {
+    myCustomers.value = await getMyCustomersForSpk()
+    applySelectedCustomer()
+  } catch (error) {
+    console.error(error)
+  }
 })
 
 /* Beri tahu lebih awal bila kaveling diambil pengajuan lain selagi formulir diisi. */
@@ -1582,7 +1605,6 @@ select.spk-input {
   overflow-wrap: anywhere;
 }
 
-.spk-client dd.is-missing { color: var(--danger-text); }
 
 /* ---------- kaveling ---------- */
 .spk-lot {

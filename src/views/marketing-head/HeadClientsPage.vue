@@ -6,7 +6,6 @@
       :sender-name="profileName"
       :initial-filters="initialFilters"
       @open="(id) => router.push(`/kepala-marketing/clients/${id}`)"
-      @add="router.push('/kepala-marketing/clients/new')"
     />
   </MarketingPageLayout>
 </template>
@@ -35,7 +34,7 @@ const initialFilters = computed(() => ({
   to: q('to'),
 }))
 
-/* Halaman tersimpan di tumpukan Ionic: muat ulang saat kembali, mis. setelah menambah klien. */
+/* Halaman tersimpan di tumpukan Ionic: muat ulang saat kembali, karena data bisa berubah selama berpindah halaman. */
 let entered = false
 onIonViewWillEnter(() => {
   if (entered) void list.value?.reload()

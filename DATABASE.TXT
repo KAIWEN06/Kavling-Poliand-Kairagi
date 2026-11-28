@@ -1,3 +1,33 @@
-Akses MCP SERVER Supabase
+Aturan Desain PostgreSQL & Supabase yang ingin Diterapkan:
 
-https://mcp.supabase.com/mcp?project_ref=ewiundofcsxghkkhremp&read_only=true
+1. Normalisasi: Desain skema inti minimal hingga 3NF (dan BCNF bila relevan) agar bebas anomali insert, update, dan delete.
+
+2. Tipe Data & Primary Key Idiomatis: Gunakan UUID atau BIGINT GENERATED ALWAYS AS IDENTITY sebagai primary key, NUMERIC(p,s) untuk nilai uang, TIMESTAMPTZ untuk seluruh stempel waktu, TEXT/JSONB/ENUM sesuai kebutuhan, serta constraint NOT NULL, UNIQUE, dan CHECK.
+
+3. Relasi & Integrasi auth.users: Hubungkan data pengguna ke auth.users(id) dengan ON DELETE CASCADE atau RESTRICT yang tepat, serta sertakan aturan ON DELETE / ON UPDATE pada setiap foreign key.
+
+4. Keamanan & Row-Level Security (RLS): Aktifkan RLS pada tabel yang diakses setiap role, sertakan contoh kebijakan (policy) berdasarkan peran/kepemilikan data (misalnya auth.uid()), dan pisahkan akses data sensitif.
+
+5. Audit, Trigger & Siklus Hidup Data: Sertakan created_at, updated_at (lengkap dengan fungsi/trigger otomatis pembaruan updated_at), serta jelaskan kapan memakai soft delete (deleted_at) atau tabel audit log.
+
+6. Performa & Indexing: Tambahkan index (termasuk partial index bila cocok, misalnya untuk baris aktif) pada foreign key dan kolom filter/pencarian utama.
+
+kemudian
+
+1. Uji Kepemilikan Entitas ("Kolom ini milik siapa?"): Identifikasi kolom yang sebenarnya milik entitas lain atau salah arah relasi (1-to-1, 1-to-many, many-to-many).
+2. Audit Ketergantungan Fungsional (2NF, 3NF, BCNF):
+   - Temukan kolom yang hanya bergantung pada sebagian composite key (pelanggaran 2NF).
+   - Temukan kolom yang bergantung pada kolom non-kunci lain / ketergantungan transitif (pelanggaran 3NF).
+   - Temukan ketergantungan pada determinan yang bukan candidate key (pelanggaran BCNF).
+3. Pemisahan Snapshot Historis vs Data Master: Bedakan mana kolom duplikat yang memang wajib dipertahankan sebagai snapshot transaksi (misalnya harga saat transaksi) dan mana yang seharusnya merujuk ke tabel master lewat foreign key.
+4. Evaluasi Kolom Jarang Terisi (NULL Berlebih) & Atribut Turunan: Identifikasi tabel yang terlalu gemuk karena mencampur beberapa tipe/peran (sarankan pemisahan tabel subtipe/detail jika perlu) serta kolom hasil perhitungan yang berisiko tidak sinkron.
+
+
+
+Format Output yang Diminta:
+
+- Ringkasan entitas, relasi, dan alur keamanan akses (peran/RLS).
+
+- Penjelasan singkat pemenuhan 3NF/BCNF serta mitigasi anomali dan risiko keamanan.
+
+- Script SQL siap jalankan di Supabase SQL Editor (tabel, constraint, index, trigger updated_at, dan policy RLS dasar)

@@ -27,7 +27,7 @@ export function useClientProfileReminder(): void {
     await check()
     // Halaman Akun sudah menampilkan peringatan yang sama di dalam halaman.
     if (userId.value !== id || !needsCompletion.value || route.path === '/akun') return
-    toast.warning('Isi NIK, tempat lahir, dan data lain yang masih kosong.', {
+    toast.warning('Bisa dilengkapi nanti. Wajib saat memesan kaveling.', {
       title: 'Data diri belum lengkap',
       duration: 8000,
       to: '/akun?lengkapi=1',

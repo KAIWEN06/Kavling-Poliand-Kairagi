@@ -55,6 +55,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useToast } from '@/composables/useToast'
 import { authService } from '@/services/auth/authService'
+import { authErrorMessage } from '@/services/auth/authErrorMessage'
 
 const { confirm } = useConfirm()
 
@@ -73,7 +74,7 @@ async function sendReset() {
     await authService.sendPasswordReset(profile.value.email)
     toast.success('Tautan penggantian kata sandi dikirim ke email Anda.')
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : 'Tautan gagal dikirim. Coba lagi.')
+    toast.error(authErrorMessage(error, 'Tautan gagal dikirim. Coba lagi.'))
   } finally {
     sendingReset.value = false
   }

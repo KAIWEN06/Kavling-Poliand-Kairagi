@@ -207,6 +207,7 @@ export const customerService = {
         whatsapp_phone,
         email,
         address,
+        country_code, country_name, province_code, province_name, city_code, city_name, district_code, district_name, village_code, village_name, street_address,
         notes,
         created_at,
         marketing_id,
@@ -405,9 +406,6 @@ export const customerService = {
       // Jangan izinkan Marketing mengatribusikan pembeli ke akun Marketing lain.
       // Database juga memaksa marketing_id = auth.uid() (trigger guard_customer_ownership).
       marketingId = profile.id
-    } else if (profile.role === 'marketing_head') {
-      // Kepala Bagian menugaskan client ke anggota tim; divalidasi ulang oleh RLS & trigger.
-      marketingId = payload.customer.marketing_id ?? profile.id
     } else if (profile.role === 'admin') {
       marketingId = payload.customer.marketing_id ?? null
 
@@ -438,7 +436,10 @@ export const customerService = {
         whatsapp_phone: payload.customer.whatsapp_phone?.trim() || null,
         email: payload.customer.email?.trim() || null,
         address: payload.customer.address?.trim() || null,
-        street_address: (payload.customer.street_address ?? payload.customer.address)?.trim() || null,
+        /* null berarti detail alamat belum diisi; jangan diganti dengan gabungan wilayah. */
+        street_address: (payload.customer.street_address !== undefined
+          ? payload.customer.street_address
+          : payload.customer.address)?.trim() || null,
         country_code: payload.customer.country_code ?? null,
         country_name: payload.customer.country_name ?? null,
         province_code: payload.customer.province_code ?? null,
@@ -490,6 +491,22 @@ export const customerService = {
         email: customer.email ?? null,
         address: customer.address ?? null,
         notes: customer.notes ?? null,
+        /* Kolom wilayah hanya dikirim bila alamatnya diubah. */
+        ...(customer.country_code !== undefined
+          ? {
+              country_code: customer.country_code,
+              country_name: customer.country_name,
+              province_code: customer.province_code,
+              province_name: customer.province_name,
+              city_code: customer.city_code,
+              city_name: customer.city_name,
+              district_code: customer.district_code,
+              district_name: customer.district_name,
+              village_code: customer.village_code,
+              village_name: customer.village_name,
+              street_address: customer.street_address,
+            }
+          : {}),
       })
       .eq('id', id)
       .select()

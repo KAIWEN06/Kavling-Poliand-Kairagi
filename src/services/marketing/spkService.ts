@@ -1,4 +1,5 @@
 
+import { spkAddressGaps } from '@/utils/address'
 import { supabase } from '@/services/config/supabase'
 
 // =========================================================
@@ -160,6 +161,8 @@ export interface MarketingSpkCustomer {
   phone: string | null
   email: string | null
   address: string | null
+  /** Kolom alamat yang masih kosong dan wajib ada sebelum SPK diajukan. */
+  address_gaps: string[]
 }
 
 // Klien milik Marketing yang login (RLS + filter marketing_id; klien mandiri tidak muncul).
@@ -169,12 +172,19 @@ export async function getMyCustomersForSpk(): Promise<MarketingSpkCustomer[]> {
 
   const { data, error } = await supabase
     .from('customers')
-    .select('id, full_name, phone, email, address')
+    .select('id, full_name, phone, email, address, country_code, country_name, province_code, province_name, city_code, city_name, district_code, district_name, village_code, village_name, street_address')
     .eq('marketing_id', user.id)
     .order('full_name', { ascending: true })
 
   if (error) throw error
-  return (data ?? []) as MarketingSpkCustomer[]
+  return (data ?? []).map((row) => ({
+    id: Number(row.id),
+    full_name: row.full_name,
+    phone: row.phone,
+    email: row.email,
+    address: row.address,
+    address_gaps: spkAddressGaps(row),
+  }))
 }
 
 const SPK_BUCKET = 'spk-client-private-documents'

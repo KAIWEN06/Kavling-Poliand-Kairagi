@@ -1,4 +1,5 @@
 import { assertCustomerFields } from '@/utils/inputValidation'
+import { spkAddressGaps } from '@/utils/address'
 import { supabase } from '@/services/config/supabase'
 import { DEFAULT_SPK_BOOKING_FEE, paymentService } from '@/services/Finance/paymentService'
 
@@ -124,6 +125,8 @@ export interface AdminSPKCustomer {
   whatsapp_phone: string | null
   email: string | null
   address: string | null
+  /** Kolom alamat yang masih kosong dan wajib ada sebelum SPK dibuat. */
+  address_gaps: string[]
   interests: Array<{
     lot_id: number
     lot_number: string
@@ -350,6 +353,7 @@ export async function getCustomersForAdminSPK(source: CustomerSource): Promise<A
     .from('customers')
     .select(`
       id, full_name, phone, whatsapp_phone, email, address, registration_source,
+      country_code, country_name, province_code, province_name, city_code, city_name, district_code, district_name, village_code, village_name, street_address,
       customer_interests (
         lot_id,
         lots (
@@ -369,6 +373,7 @@ export async function getCustomersForAdminSPK(source: CustomerSource): Promise<A
     whatsapp_phone: row.whatsapp_phone ?? null,
     email: row.email ?? null,
     address: row.address ?? null,
+    address_gaps: spkAddressGaps(row),
     interests: (row.customer_interests || []).map((interest: any) => {
       const lot = relationOne(interest.lots)
       const block = relationOne(lot?.blocks)
@@ -398,6 +403,7 @@ export async function createCustomerForAdminSPK(input: {
   village_code?: string | null
   village_name?: string | null
   street_address?: string | null
+  notes?: string | null
 }): Promise<number> {
   const fullName = input.full_name.trim()
   assertCustomerFields(input)
@@ -424,6 +430,7 @@ export async function createCustomerForAdminSPK(input: {
       village_code: input.village_code ?? null,
       village_name: input.village_name ?? null,
       street_address: input.street_address ?? null,
+      notes: input.notes ?? null,
       registration_source: 'Admin',
     })
     .select('id')

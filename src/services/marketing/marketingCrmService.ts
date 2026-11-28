@@ -105,6 +105,7 @@ export interface ClientListItem {
   village_name?: string | null
   marketing_id: string | null
   marketing_name: string | null
+  registration_source?: string | null
   crm_status: CrmStatus
   last_contacted_at: string | null
   created_at: string
@@ -130,7 +131,7 @@ export async function listClients(): Promise<ClientListItem[]> {
     .from('customers')
     .select(`
       id, full_name, phone, whatsapp_phone, email, address, province_name, city_name, district_name, village_name,
-      marketing_id, crm_status, last_contacted_at, created_at,
+      marketing_id, registration_source, crm_status, last_contacted_at, created_at,
       marketing:profiles!customers_marketing_id_fkey (id, full_name),
       customer_interests (
         id, payment_type,
@@ -161,6 +162,7 @@ export async function listClients(): Promise<ClientListItem[]> {
       village_name: row.village_name,
       marketing_id: row.marketing_id,
       marketing_name: marketing?.full_name ?? null,
+      registration_source: row.registration_source ?? null,
       crm_status: row.crm_status ?? 'Baru',
       last_contacted_at: row.last_contacted_at,
       created_at: row.created_at,
@@ -579,7 +581,12 @@ export interface MarketingReport {
     spk_approved: number; units_sold: number; contract_value: number; commission_total: number
     conversion_rate: number; last_activity_at: string | null
   }>
-  regions: Array<{ province: string; city: string; clients: number; buyers: number; conversion_rate: number | null }>
+  regions: Array<{
+    province: string; city: string; clients: number; buyers: number; conversion_rate: number | null
+    /* Kosong selama migrasi 202611300028 belum dijalankan. */
+    via_marketing?: number; via_admin?: number; via_client?: number
+  }>
+  region_sources?: Array<{ source: 'Marketing' | 'Admin' | 'Client'; clients: number; buyers: number }>
 }
 
 export async function getMarketingReport(from: string, to: string, marketingId?: string | null): Promise<MarketingReport> {

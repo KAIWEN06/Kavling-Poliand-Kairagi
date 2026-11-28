@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Progres klien" subtitle="Status, tindak lanjut, dan aktivitas tim." tab-variant="head" @refresh="load">
+  <MarketingPageLayout title="Progres klien" tab-variant="head" @refresh="load">
     <Reveal :order="2">
       <label class="mk-field mk-narrow">
         <span>Pemasar</span>
@@ -15,9 +15,34 @@
 
     <template v-else>
       <section class="mk-section">
+        <div class="mk-section-head">
+          <div><h2>Perlu tindak lanjut</h2><p>{{ stale.length }} klien aktif belum dihubungi</p></div>
+          <select v-model.number="staleDays" class="mk-input mk-small" aria-label="Lama tanpa kontak">
+            <option :value="3">3 hari</option><option :value="7">7 hari</option><option :value="14">14 hari</option><option :value="30">30 hari</option>
+          </select>
+        </div>
+        <StatusIllustration v-if="!stale.length" variant="success" size="sm" title="Tidak ada yang tertinggal" :description="`Semua klien aktif dihubungi dalam ${staleDays} hari terakhir.`" />
+        <div v-else class="mk-table-wrap">
+          <table class="mk-table mk-table--stack">
+            <thead><tr><th>Klien</th><th>Pemasar</th><th>Status</th><th>Terakhir dihubungi</th></tr></thead>
+            <tbody>
+              <tr v-for="c in stale.slice(0, staleLimit)" :key="c.id" class="mk-row-link" @click="openClient(c.id)">
+                <td class="mk-cell-main"><button type="button" class="mk-cell-link" @click.stop="openClient(c.id)">{{ c.full_name }}</button></td>
+                <td data-label="Pemasar">{{ c.marketing_name || 'Belum ada' }}</td>
+                <td data-label="Status"><StatusBadge :label="crmStatusLabel(c.crm_status)" :tone="CRM_TONE[c.crm_status]" /></td>
+                <td data-label="Terakhir dihubungi" class="mk-danger-text">{{ c.last_contacted_at ? formatDate(c.last_contacted_at) : `Belum pernah (sejak ${formatDate(c.created_at)})` }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button v-if="stale.length > staleLimit" type="button" class="mk-btn mk-btn--ghost" @click="staleLimit += 10">Tampilkan lebih banyak</button>
+      </section>
+
+      <section class="mk-section">
+        <div class="mk-section-head"><div><h2>Klien per status</h2></div></div>
         <div class="mk-chips" role="group" aria-label="Filter status perkembangan">
           <button type="button" class="mk-chip" :aria-pressed="status === ''" @click="status = ''">Semua ({{ scoped.length }})</button>
-          <button v-for="st in CRM_STATUSES" :key="st" type="button" class="mk-chip" :aria-pressed="status === st" @click="status = st">
+          <button v-for="st in usedStatuses" :key="st" type="button" class="mk-chip" :aria-pressed="status === st" @click="status = st">
             {{ crmStatusLabel(st) }} ({{ scoped.filter((c) => c.crm_status === st).length }})
           </button>
         </div>
@@ -28,7 +53,7 @@
             <tbody>
               <tr v-for="c in byStatus.slice(0, limit)" :key="c.id" class="mk-row-link" @click="openClient(c.id)">
                 <td class="mk-cell-main"><button type="button" class="mk-cell-link" @click.stop="openClient(c.id)">{{ c.full_name }}</button></td>
-                <td data-label="Pemasar">{{ c.marketing_name || '-' }}</td>
+                <td data-label="Pemasar">{{ c.marketing_name || 'Belum ada' }}</td>
                 <td data-label="Status"><StatusBadge :label="crmStatusLabel(c.crm_status)" :tone="CRM_TONE[c.crm_status]" /></td>
                 <td data-label="Terakhir dihubungi">{{ c.last_contacted_at ? formatRelative(c.last_contacted_at) : 'Belum pernah' }}</td>
                 <td data-label="SPK"><StatusBadge :label="spkLabel(c.latest_spk_status)" :tone="spkTone(c.latest_spk_status)" /></td>
@@ -37,29 +62,6 @@
           </table>
         </div>
         <button v-if="byStatus.length > limit" type="button" class="mk-btn mk-btn--ghost" @click="limit += 20">Tampilkan lebih banyak</button>
-      </section>
-
-      <section class="mk-section">
-        <div class="mk-section-head">
-          <div><h2>Perlu tindak lanjut</h2><p>Klien aktif yang belum dihubungi</p></div>
-          <select v-model.number="staleDays" class="mk-input mk-small" aria-label="Lama tanpa kontak">
-            <option :value="3">3 hari</option><option :value="7">7 hari</option><option :value="14">14 hari</option><option :value="30">30 hari</option>
-          </select>
-        </div>
-        <StatusIllustration v-if="!stale.length" variant="success" size="sm" title="Tidak ada yang tertinggal" :description="`Semua klien aktif dihubungi dalam ${staleDays} hari terakhir.`" />
-        <div v-else class="mk-table-wrap">
-          <table class="mk-table mk-table--stack">
-            <thead><tr><th>Klien</th><th>Pemasar</th><th>Status</th><th>Terakhir dihubungi</th></tr></thead>
-            <tbody>
-              <tr v-for="c in stale" :key="c.id" class="mk-row-link" @click="openClient(c.id)">
-                <td class="mk-cell-main"><button type="button" class="mk-cell-link" @click.stop="openClient(c.id)">{{ c.full_name }}</button></td>
-                <td data-label="Pemasar">{{ c.marketing_name || '-' }}</td>
-                <td data-label="Status"><StatusBadge :label="crmStatusLabel(c.crm_status)" :tone="CRM_TONE[c.crm_status]" /></td>
-                <td data-label="Terakhir dihubungi" class="mk-danger-text">{{ c.last_contacted_at ? formatDate(c.last_contacted_at) : `Belum pernah (sejak ${formatDate(c.created_at)})` }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </section>
 
       <section class="mk-section">
@@ -104,8 +106,13 @@ const marketingId = ref('')
 const status = ref('')
 const staleDays = ref(7)
 const limit = ref(20)
+const staleLimit = ref(10)
 
 const scoped = computed(() => clients.value.filter((c) => !marketingId.value || c.marketing_id === marketingId.value))
+/* Hanya status yang berisi; status yang sedang dipilih tetap tampil walau kosong. */
+const usedStatuses = computed(() =>
+  CRM_STATUSES.filter((st) => st === status.value || scoped.value.some((c) => c.crm_status === st)),
+)
 const byStatus = computed(() => scoped.value.filter((c) => !status.value || c.crm_status === status.value))
 const stale = computed(() => {
   const cutoff = Date.now() - staleDays.value * 86400000

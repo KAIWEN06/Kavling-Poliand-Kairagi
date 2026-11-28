@@ -6,6 +6,7 @@ import { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardConte
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { supabase } from '@/services/config/supabase'
 import { authService } from '@/services/auth/authService'
+import { authErrorMessage } from '@/services/auth/authErrorMessage'
 
 const router = useRouter()
 const password = ref('')
@@ -28,7 +29,7 @@ onMounted(async () => {
     const recoveryMarker = window.location.hash.includes('type=recovery') || new URLSearchParams(window.location.search).get('type') === 'recovery'
     if (session && recoveryMarker) recoveryAuthorized.value = true
   } catch {
-    errorMessage.value = 'Sesi pemulihan tidak dapat diverifikasi. Minta tautan atur ulang yang baru.'
+    errorMessage.value = 'Tautan ini belum bisa diperiksa. Minta tautan atur ulang yang baru.'
   } finally {
     checking.value = false
   }
@@ -47,7 +48,7 @@ async function savePassword() {
     return
   }
   if (!recoveryAuthorized.value) {
-    errorMessage.value = 'Sesi atur ulang tidak valid atau sudah kedaluwarsa. Minta tautan atur ulang yang baru.'
+    errorMessage.value = 'Tautan atur ulang sudah tidak berlaku. Minta tautan yang baru.'
     return
   }
 
@@ -58,7 +59,7 @@ async function savePassword() {
     // Password is already updated; logout failure should not misreport the update as failed.
     try { await authService.logout() } catch { /* User can sign out manually if needed. */ }
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Kata sandi belum berhasil diperbarui.'
+    errorMessage.value = authErrorMessage(error, 'Kata sandi belum berhasil diganti. Silakan coba lagi.')
   } finally {
     loading.value = false
   }
@@ -84,7 +85,7 @@ async function savePassword() {
               <AppNotice v-if="errorMessage" tone="error">
                 {{ errorMessage }}
               </AppNotice>
-              <form class="auth-form" @submit.prevent="savePassword">
+              <form class="auth-form" novalidate @submit.prevent="savePassword">
                 <ion-input v-model="password" type="password" label="Kata sandi baru" label-placement="stacked" autocomplete="new-password" required />
                 <ion-input v-model="confirmPassword" type="password" label="Konfirmasi kata sandi baru" label-placement="stacked" autocomplete="new-password" required />
                 <p class="hint">Minimal 8 karakter.</p>

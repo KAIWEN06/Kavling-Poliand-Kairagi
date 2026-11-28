@@ -3,10 +3,11 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonPage, IonContent, IonSpinner, IonText } from '@ionic/vue'
 import { authService } from '@/services/auth/authService'
+import { authErrorMessage } from '@/services/auth/authErrorMessage'
 import { consumePostLoginRedirect } from '@/services/auth/postLoginRedirect'
 
 const router = useRouter()
-const message = ref('Menyelesaikan login Google...')
+const message = ref('Menyelesaikan proses masuk...')
 
 onMounted(async () => {
   try {
@@ -20,13 +21,13 @@ onMounted(async () => {
     const role = await authService.getUserRole(session.user.id)
     const destination = authService.getRoleHomePath(role)
     if (!destination) {
-      message.value = 'Akun Google berhasil diverifikasi, tetapi role belum diberikan. Hubungi administrator PoliLand.'
+      message.value = 'Akun Anda belum punya hak akses. Hubungi admin PoliLand.'
       return
     }
 
     await router.replace(consumePostLoginRedirect(role) ?? destination)
   } catch (error) {
-    message.value = error instanceof Error ? error.message : 'Masuk Google gagal diselesaikan.'
+    message.value = authErrorMessage(error, 'Belum berhasil masuk dengan Google. Silakan coba lagi.')
   }
 })
 </script>
@@ -36,7 +37,7 @@ onMounted(async () => {
     <ion-content class="callback-content" :fullscreen="true">
       <main class="callback-shell">
         <ion-spinner v-if="message.includes('Menyelesaikan')" name="crescent" />
-        <h1>Autentikasi PoliLand</h1>
+        <h1>Masuk dengan Google</h1>
         <ion-text color="medium"><p>{{ message }}</p></ion-text>
         <RouterLink v-if="!message.includes('Menyelesaikan')" to="/login">Kembali ke halaman masuk</RouterLink>
       </main>

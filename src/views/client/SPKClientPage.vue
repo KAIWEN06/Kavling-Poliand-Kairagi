@@ -6,6 +6,7 @@ import {
   IonContent,
   IonIcon,
   IonPage,
+  onIonViewWillEnter,
   useIonRouter,
 } from '@ionic/vue'
 import {
@@ -45,6 +46,7 @@ import { askNotificationPermission } from '@/composables/useNotificationPrompt'
 import { trackFunnel } from '@/services/funnelService'
 import { NOTARY_FEE, estimateInstallment } from '@/services/payment/paymentCalculator'
 import IdentityFields from '@/components/identity/IdentityFields.vue'
+import { useBookingAddressGate } from '@/composables/useBookingAddressGate'
 import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
 
 type DocumentKey = 'ktp' | 'kk' | 'npwp' | 'paymentProof'
@@ -73,6 +75,8 @@ const saving = ref(false)
 const submissionComplete = ref(false)
 const termsAccepted = ref(false)
 const identityForm = useMyIdentityForm()
+const addressGate = useBookingAddressGate()
+const { gaps: addressGaps } = addressGate
 const { identity, available: identityAvailable, loading: identityLoading, loadError: identityLoadError, problem: identityProblem } = identityForm
 const availableBookingFees = ref<AvailableBookingFeeReuse[]>([])
 const bookingFeesLoading = ref(false)
@@ -445,6 +449,11 @@ async function saveSpk() {
     return
   }
 
+  if (addressGaps.value.length) {
+    saveError.value = `Lengkapi alamat di halaman Akun sebelum memesan: ${addressGaps.value.join(', ')}.`
+    return
+  }
+
   if (method !== 'Transfer Bank') {
     saveError.value = 'Tanda jadi saat ini hanya dapat dibayar melalui Transfer Bank.'
     return
@@ -521,7 +530,16 @@ onMounted(() => {
   void loadLot()
   void loadBuyerProfile()
   void identityForm.load()
+  void addressGate.refresh()
   void loadAvailableBookingFees()
+})
+
+/* Kembali dari halaman Akun: ambil lagi alamat dan identitas yang baru dilengkapi. */
+onIonViewWillEnter(async () => {
+  if (!addressGaps.value.length) return
+  await addressGate.refresh()
+  if (addressGate.savedAddress.value) form.address = addressGate.savedAddress.value
+  void identityForm.load()
 })
 
 /* Hanya ketersediaan kaveling dan tanda jadi; isian formulir tidak disentuh. */
@@ -672,6 +690,15 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
                   ></textarea>
                 </div>
               </div>
+
+              <AppNotice
+                v-if="addressGaps.length"
+                tone="warning"
+                title="Lengkapi alamat untuk memesan"
+                :message="`Belum diisi: ${addressGaps.join(', ')}.`"
+                action-label="Lengkapi di Akun"
+                @action="ionRouter.push('/akun?lengkapi=1')"
+              />
 
               <template v-if="identityAvailable">
                 <p v-if="identityLoading" role="status">Memuat data identitas...</p>

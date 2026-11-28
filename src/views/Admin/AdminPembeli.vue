@@ -131,7 +131,6 @@
       title="Tambah klien"
       variant="bottom-sheet"
       :loading="addSaving"
-      :confirm-disabled="!addForm.full_name.trim() || (!addForm.phone.trim() && !addForm.whatsapp_phone.trim())"
       confirm-text="Simpan klien"
       cancel-text="Batal"
       :max-height="'92dvh'"
@@ -139,190 +138,21 @@
       @cancel="closeAddCustomer"
       @close="closeAddCustomer"
     >
-      <form class="add-customer-form" @submit.prevent="saveNewCustomer">
-        <section class="add-form-section" aria-labelledby="add-customer-info-title">
-          <div class="add-form-section-head">
-            <h3 id="add-customer-info-title">Informasi pembeli</h3>
-            <p>Masukkan informasi kontak calon pembeli.</p>
-          </div>
-
-          <label class="add-field">
-            <span>Nama lengkap <b>*</b></span>
-            <input v-model.trim="addForm.full_name" data-input="name" type="text" autocomplete="name" placeholder="Masukkan nama lengkap" required />
-          </label>
-
-          <div class="add-field-grid">
-            <label class="add-field">
-              <span>Nomor telepon biasa</span>
-              <input v-model.trim="addForm.phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Nomor telepon utama" />
-            </label>
-            <label class="add-field">
-              <span>Nomor WhatsApp</span>
-              <input v-model.trim="addForm.whatsapp_phone" type="tel" inputmode="tel" placeholder="Nomor WhatsApp" />
-            </label>
-          </div>
-          <label class="add-field">
-            <span>Email</span>
-            <input v-model.trim="addForm.email" type="email" autocomplete="email" placeholder="nama@email.com" />
-          </label>
-        </section>
-
-        <section class="add-form-section" aria-labelledby="add-customer-address-title">
-          <div class="add-form-section-head">
-            <h3 id="add-customer-address-title">Alamat</h3>
-            <p>Pilih alamat secara berurutan, dari negara sampai detail alamat.</p>
-          </div>
-
-          <label class="add-field">
-            <span>Negara</span>
-            <select :value="addForm.country_code" @change="selectCountry(($event.target as HTMLSelectElement).value)">
-              <option v-for="country in countries" :key="country.code" :value="country.code">{{ country.name }}</option>
-            </select>
-          </label>
-
-          <div v-if="isIndonesia" class="add-field-grid">
-            <label class="add-field">
-              <span>Provinsi</span>
-              <select :value="addForm.province_code" :disabled="regionsLoading && !provinces.length" @change="selectProvince(($event.target as HTMLSelectElement).value)">
-                <option value="">Pilih provinsi</option>
-                <option v-for="region in provinces" :key="region.code" :value="region.code">{{ region.name }}</option>
-              </select>
-            </label>
-            <label class="add-field">
-              <span>Kabupaten/Kota</span>
-              <select :value="addForm.city_code" :disabled="!addForm.province_code || regionsLoading" @change="selectCity(($event.target as HTMLSelectElement).value)">
-                <option value="">Pilih kabupaten/kota</option>
-                <option v-for="region in cities" :key="region.code" :value="region.code">{{ region.name }}</option>
-              </select>
-            </label>
-            <label class="add-field">
-              <span>Kecamatan</span>
-              <select :value="addForm.district_code" :disabled="!addForm.city_code || regionsLoading" @change="selectDistrict(($event.target as HTMLSelectElement).value)">
-                <option value="">Pilih kecamatan</option>
-                <option v-for="region in districts" :key="region.code" :value="region.code">{{ region.name }}</option>
-              </select>
-            </label>
-            <label class="add-field">
-              <span>Desa/Kelurahan</span>
-              <select :value="addForm.village_code" :disabled="!addForm.district_code || regionsLoading" @change="selectVillage(($event.target as HTMLSelectElement).value)">
-                <option value="">Pilih desa/kelurahan</option>
-                <option v-for="region in villages" :key="region.code" :value="region.code">{{ region.name }}</option>
-              </select>
-            </label>
-          </div>
-
-          <div v-else class="add-field-grid">
-            <label class="add-field">
-              <span>Province/State</span>
-              <input v-model.trim="addForm.province_name" type="text" placeholder="Province / State" />
-            </label>
-            <label class="add-field">
-              <span>City</span>
-              <input v-model.trim="addForm.city_name" type="text" placeholder="City" />
-            </label>
-            <label class="add-field">
-              <span>District/Area</span>
-              <input v-model.trim="addForm.district_name" type="text" placeholder="District / Area" />
-            </label>
-          </div>
-          <p v-if="regionsLoading" class="add-form-hint" role="status">Memuat data wilayah...</p>
-
-          <label class="add-field">
-            <span>Detail alamat</span>
-            <textarea v-model.trim="addForm.street_address" rows="3" autocomplete="street-address" placeholder="Nama jalan, nomor rumah, gedung, dan detail lainnya"></textarea>
-          </label>
-        </section>
-
-        <section class="add-form-section" aria-labelledby="add-customer-source-title">
-          <div class="add-form-section-head">
-            <h3 id="add-customer-source-title">Sumber pembeli</h3>
-            <p>Pilih pemasar yang membawa calon pembeli ini. Kosongkan jika pembeli datang langsung.</p>
-          </div>
-
-          <label class="add-field">
-            <span>Pemasar</span>
-            <select v-model="addForm.marketing_id" :disabled="marketingLoading">
-              <option value="">Pembeli langsung / tanpa pemasar</option>
-              <option
-                v-for="marketing in marketingOptions"
-                :key="marketing.id"
-                :value="marketing.id"
-              >
-                {{ marketing.full_name || 'Pemasar tanpa nama' }}
-              </option>
-            </select>
-          </label>
-          <AppNotice v-if="marketingError" tone="error">
-            {{ marketingError }}
-          </AppNotice>
-        </section>
-
-        <section class="add-form-section" aria-labelledby="add-customer-interest-title">
-          <div class="add-form-section-head">
-            <h3 id="add-customer-interest-title">Kaveling yang diminati</h3>
-            <p>Pilih satu atau beberapa kaveling yang tersedia. Bagian ini opsional.</p>
-          </div>
-
-          <div class="lot-picker-head">
-            <label for="add-lot-search">Cari kaveling tersedia</label>
-            <input
-              id="add-lot-search"
-              data-discard-ignore v-model="addLotSearch"
-              type="search"
-              placeholder="Ketik nomor kaveling atau blok..."
-              autocomplete="off"
-            />
-          </div>
-
-          <div v-if="addLotsLoading" class="lot-picker-state" role="status">
-            <ion-spinner name="crescent" />
-            <span>Memuat kaveling tersedia...</span>
-          </div>
-
-          <div v-else-if="addLotsError" class="lot-picker-state lot-picker-error" role="alert">
-            <strong>Kaveling tersedia gagal dimuat</strong>
-            <span>{{ addLotsError }}</span>
-            <button type="button" @click="loadAddAvailableLots">Coba muat ulang</button>
-          </div>
-
-          <div v-else-if="!addAvailableLots.length" class="lot-picker-state">
-            <strong>Belum ada kaveling tersedia</strong>
-            <span>Semua kaveling sedang dipesan atau sudah terjual.</span>
-          </div>
-
-          <div v-else-if="!filteredAddLots.length" class="lot-picker-state">
-            <strong>Kaveling tidak ditemukan</strong>
-            <span>Coba kata kunci nomor kaveling atau blok lain.</span>
-          </div>
-
-          <fieldset v-else class="lot-picker-list">
-            <legend>Pilih kaveling ({{ addForm.lot_ids.length }} dipilih)</legend>
-            <label
-              v-for="lot in filteredAddLots"
-              :key="lot.id"
-              :class="['lot-picker-option', { selected: addForm.lot_ids.includes(Number(lot.id)) }]"
-            >
-              <input v-model="addForm.lot_ids" type="checkbox" name="add-customer-lots" :value="Number(lot.id)" />
-              <span class="lot-picker-copy">
-                <strong>Kaveling {{ lot.lot_number }}</strong>
-                <span>{{ lot.blocks?.name || lot.blocks?.code || 'Blok belum tercatat' }} · {{ lot.dimension || 'Dimensi belum tercatat' }}</span>
-              </span>
-              <span class="lot-picker-price">{{ formatLotPrice(lot) }}</span>
-            </label>
-          </fieldset>
-
-          <label class="add-field">
-            <span>Jenis pembayaran</span>
-            <select v-model="addForm.payment_type">
-              <option value="Cash">Tunai</option>
-              <option value="Installment">Cicilan</option>
-            </select>
-          </label>
-        </section>
-
-        <AppNotice v-if="addError" tone="error">
-          {{ addError }}
-        </AppNotice>
+      <form @submit.prevent="saveNewCustomer">
+        <ClientForm
+          v-model="addForm"
+          :assignee="addRules.assignee"
+          :interest="addRules.interest"
+          :members="marketingOptions"
+          :members-error="marketingError"
+          :lots="addAvailableLots"
+          :lots-loading="addLotsLoading"
+          :lots-error="addLotsError"
+          :plans="addPlans"
+          :plans-loading="addPlansLoading"
+          :error="addError"
+          @retry-lots="loadAddAvailableLots"
+        />
       </form>
     </AppModal>
   </ion-page>
@@ -333,11 +163,11 @@ import { useRealtimeRefresh } from '@/composables/useRealtimeRefresh'
 import AppNotice from '@/components/ui/AppNotice.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import { withRefreshSkeleton } from '@/utils/refreshSkeleton'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useOwnRouteQuery } from '@/composables/useOwnRouteQuery'
 import AppPagination from '@/components/ui/AppPagination.vue'
 import { usePagination } from '@/composables/usePagination'
-import { useIonRouter, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue'
+import { useIonRouter, IonContent, IonIcon, IonPage } from '@ionic/vue'
 import {
   addOutline,
   alertCircleOutline,
@@ -353,8 +183,15 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { customerService } from '@/services/marketing/customerService'
-import { getRegions } from '@/services/address/addressService'
-import type { Region } from '@/types/address'
+import ClientForm from '@/components/client-form/ClientForm.vue'
+import { useToast } from '@/composables/useToast'
+import {
+  clientDraftColumns,
+  clientDraftInterests,
+  emptyClientDraft,
+  validateClientDraft,
+  type ClientDraftRules,
+} from '@/utils/clientDraft'
 import worriedMascot from '@/assets/mascot/Worried Mascot and Locked Property Link.webp'
 import panickedMascot from '@/assets/mascot/Panicked Mascot and Trash Can Mishap.webp'
 
@@ -579,173 +416,18 @@ const addSaving = ref(false)
 const addError = ref('')
 const addLotsLoading = ref(false)
 const addLotsError = ref('')
-const addLotSearch = ref('')
 const addAvailableLots = ref<any[]>([])
+const addPlans = ref<any[]>([])
+const addPlansLoading = ref(false)
 const marketingOptions = ref<Array<{ id: string; full_name: string | null }>>([])
-const marketingLoading = ref(false)
 const marketingError = ref('')
-const addForm = reactive({
-  full_name: '',
-  phone: '',
-  whatsapp_phone: '',
-  email: '',
-  country_code: 'ID',
-  country_name: 'Indonesia',
-  province_code: '',
-  province_name: '',
-  city_code: '',
-  city_name: '',
-  district_code: '',
-  district_name: '',
-  village_code: '',
-  village_name: '',
-  street_address: '',
-  marketing_id: '',
-  lot_ids: [] as number[],
-  payment_type: 'Cash' as 'Cash' | 'Installment',
-})
-
-const countries = [
-  { code: 'ID', name: 'Indonesia' },
-  { code: 'MY', name: 'Malaysia' },
-  { code: 'SG', name: 'Singapore' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'US', name: 'United States' },
-  { code: 'JP', name: 'Japan' },
-]
-const provinces = ref<Region[]>([])
-const cities = ref<Region[]>([])
-const districts = ref<Region[]>([])
-const villages = ref<Region[]>([])
-const regionsLoading = ref(false)
-const isIndonesia = computed(() => addForm.country_code === 'ID')
-
-async function loadRegions(level: 1 | 2 | 3 | 4, parentId?: number | null) {
-  regionsLoading.value = true
-  try {
-    return await getRegions(level, parentId)
-  } finally {
-    regionsLoading.value = false
-  }
-}
-
-function resetAddressFields() {
-  Object.assign(addForm, {
-    province_code: '', province_name: '',
-    city_code: '', city_name: '',
-    district_code: '', district_name: '',
-    village_code: '', village_name: '',
-  })
-  cities.value = []
-  districts.value = []
-  villages.value = []
-}
-
-async function selectCountry(code: string) {
-  const country = countries.find((item) => item.code === code)
-  addForm.country_code = code
-  addForm.country_name = country?.name ?? ''
-  resetAddressFields()
-  provinces.value = []
-  addError.value = ''
-  if (code === 'ID') await loadProvinces()
-}
-
-async function loadProvinces() {
-  try {
-    provinces.value = await loadRegions(1)
-  } catch (error) {
-    addError.value = error instanceof Error ? error.message : 'Gagal memuat daftar provinsi.'
-  }
-}
-
-async function selectProvince(code: string) {
-  const region = provinces.value.find((item) => item.code === code)
-  resetAddressFields()
-  addForm.province_code = region?.code ?? ''
-  addForm.province_name = region?.name ?? ''
-  if (!region) return
-  try {
-    cities.value = await loadRegions(2, region.id)
-  } catch (error) {
-    addError.value = error instanceof Error ? error.message : 'Gagal memuat kabupaten/kota.'
-  }
-}
-
-async function selectCity(code: string) {
-  const region = cities.value.find((item) => item.code === code)
-  Object.assign(addForm, {
-    city_code: region?.code ?? '', city_name: region?.name ?? '',
-    district_code: '', district_name: '',
-    village_code: '', village_name: '',
-  })
-  districts.value = []
-  villages.value = []
-  if (!region) return
-  try {
-    districts.value = await loadRegions(3, region.id)
-  } catch (error) {
-    addError.value = error instanceof Error ? error.message : 'Gagal memuat kecamatan.'
-  }
-}
-
-async function selectDistrict(code: string) {
-  const region = districts.value.find((item) => item.code === code)
-  Object.assign(addForm, {
-    district_code: region?.code ?? '', district_name: region?.name ?? '',
-    village_code: '', village_name: '',
-  })
-  villages.value = []
-  if (!region) return
-  try {
-    villages.value = await loadRegions(4, region.id)
-  } catch (error) {
-    addError.value = error instanceof Error ? error.message : 'Gagal memuat desa/kelurahan.'
-  }
-}
-
-function selectVillage(code: string) {
-  const region = villages.value.find((item) => item.code === code)
-  addForm.village_code = region?.code ?? ''
-  addForm.village_name = region?.name ?? ''
-}
-
-const filteredAddLots = computed(() => {
-  const term = addLotSearch.value.trim().toLowerCase()
-  if (!term) return addAvailableLots.value
-  return addAvailableLots.value.filter((lot) =>
-    `${lot.lot_number ?? ''} ${lot.blocks?.name ?? ''} ${lot.blocks?.code ?? ''}`
-      .toLowerCase()
-      .includes(term)
-  )
-})
-
-function formatCurrency(value: number) {
-  return `Rp ${value.toLocaleString('id-ID')}`
-}
-
-function formatLotPrice(lot: any) {
-  const price = lot.promo_price ?? lot.cash_price
-  return price != null ? formatCurrency(Number(price)) : 'Harga belum diatur'
-}
+const addRules: ClientDraftRules = { assignee: 'optional', interest: 'optional' }
+const addForm = ref(emptyClientDraft())
 
 function resetAddForm() {
-  Object.assign(addForm, {
-    full_name: '',
-    phone: '',
-    whatsapp_phone: '',
-    email: '',
-    country_code: 'ID',
-    country_name: 'Indonesia',
-    street_address: '',
-    marketing_id: '',
-    lot_ids: [],
-    payment_type: 'Cash',
-  })
-  resetAddressFields()
+  addForm.value = emptyClientDraft()
   addError.value = ''
   addLotsError.value = ''
-  addLotSearch.value = ''
 }
 
 async function loadAddAvailableLots() {
@@ -763,8 +445,19 @@ async function loadAddAvailableLots() {
   }
 }
 
+async function loadAddPlans() {
+  addPlansLoading.value = true
+  try {
+    addPlans.value = (await customerService.getPaymentPlans()) ?? []
+  } catch (error) {
+    addPlans.value = []
+    addError.value = error instanceof Error ? `Pilihan tenor gagal dimuat: ${error.message}` : 'Pilihan tenor gagal dimuat.'
+  } finally {
+    addPlansLoading.value = false
+  }
+}
+
 async function loadMarketingOptions() {
-  marketingLoading.value = true
   marketingError.value = ''
 
   try {
@@ -774,19 +467,13 @@ async function loadMarketingOptions() {
     marketingError.value = error instanceof Error
       ? `Daftar pemasar gagal dimuat: ${error.message}`
       : 'Daftar pemasar gagal dimuat.'
-  } finally {
-    marketingLoading.value = false
   }
 }
 
 async function openAddCustomer() {
   resetAddForm()
   addModalOpen.value = true
-  await Promise.all([
-    loadAddAvailableLots(),
-    loadMarketingOptions(),
-    provinces.value.length ? Promise.resolve() : loadProvinces(),
-  ])
+  await Promise.all([loadAddAvailableLots(), loadAddPlans(), loadMarketingOptions()])
 }
 
 function closeAddCustomer() {
@@ -798,72 +485,33 @@ function closeAddCustomer() {
 async function saveNewCustomer() {
   if (addSaving.value) return
 
-  const fullName = addForm.full_name.trim()
-  const phone = addForm.phone.trim()
-  const whatsappPhone = addForm.whatsapp_phone.trim()
-  const email = addForm.email.trim()
+  const draft = addForm.value
+  addError.value = validateClientDraft(draft, addRules) ?? ''
+  if (addError.value) return
 
-  if (!fullName || (!phone && !whatsappPhone)) {
-    addError.value = 'Nama lengkap dan minimal salah satu nomor telepon atau WhatsApp wajib diisi.'
-    return
-  }
-
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    addError.value = 'Format email tidak valid.'
-    return
-  }
-
-  const selectedIds = [...new Set(addForm.lot_ids)]
-  const selectedLots = addAvailableLots.value.filter((lot) => selectedIds.includes(Number(lot.id)))
-  if (selectedLots.length !== selectedIds.length) {
+  if (draft.lot_ids.some((id) => !addAvailableLots.value.some((lot) => Number(lot.id) === id))) {
     addError.value = 'Ada kaveling yang sudah tidak tersedia. Muat ulang daftar kaveling.'
     return
   }
 
-  const fullAddress = [
-    addForm.street_address.trim(), addForm.village_name, addForm.district_name,
-    addForm.city_name, addForm.province_name, addForm.country_name,
-  ].filter(Boolean).join(', ')
-
   addSaving.value = true
-  addError.value = ''
 
   try {
-    await customerService.createCustomer({
-      customer: ({
-        full_name: fullName,
-        phone: phone || null,
-        whatsapp_phone: whatsappPhone || null,
-        email: email || null,
-        country_code: addForm.country_code,
-        country_name: addForm.country_name,
-        province_code: addForm.province_code || null,
-        province_name: addForm.province_name.trim() || null,
-        city_code: addForm.city_code || null,
-        city_name: addForm.city_name.trim() || null,
-        district_code: addForm.district_code || null,
-        district_name: addForm.district_name.trim() || null,
-        village_code: addForm.village_code || null,
-        village_name: addForm.village_name.trim() || null,
-        street_address: addForm.street_address.trim() || null,
-        address: fullAddress || null,
-        marketing_id: addForm.marketing_id || null,
-      } as any),
-      interests: selectedIds.map((lotId) => ({
-        lot_id: lotId,
-        payment_type: addForm.payment_type,
-        plan_id: null,
-        notes: null,
-      })),
+    const customer = await customerService.createCustomer({
+      customer: { ...clientDraftColumns(draft), marketing_id: draft.marketing_id || null },
+      interests: clientDraftInterests(draft),
     })
+
+    useToast().success('Klien tersimpan.', { to: `/admin/pembeli/${customer.id}`, actionLabel: 'Lihat klien' })
 
     addModalOpen.value = false
     resetAddForm()
     await loadCustomers()
   } catch (error) {
-    addError.value = error instanceof Error
-      ? `Pembeli belum berhasil ditambahkan: ${error.message}`
-      : 'Pembeli belum berhasil ditambahkan. Periksa koneksi dan policy Supabase.'
+    const message = (error as { message?: string })?.message
+    addError.value = message
+      ? `Klien belum berhasil ditambahkan: ${message}`
+      : 'Klien belum berhasil ditambahkan. Periksa koneksi lalu coba lagi.'
   } finally {
     addSaving.value = false
   }
@@ -982,67 +630,4 @@ useRealtimeRefresh(
 
 .customer-delete-ready { display: grid; justify-items: center; gap: 8px; text-align: center; }
 .customer-delete-ready img { display: block; width: 100px; height: 100px; object-fit: contain; }
-
-/* Modal tambah pembeli: mengikuti token dan pola form PoliLand. */
-.add-customer-form { display: grid; gap: 18px; }
-.add-form-section { display: grid; gap: 12px; }
-.add-form-section + .add-form-section { padding-top: 16px; border-top: 1px solid var(--border-default); }
-.add-form-section-head { display: grid; gap: 4px; }
-.add-form-section-head h3 { margin: 0; color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-bold); }
-.add-form-section-head p { margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
-.add-field { display: grid; gap: 6px; min-width: 0; color: var(--text-primary); font-size: 12px; font-weight: var(--font-weight-semibold); }
-.add-field > span b { color: var(--status-danger); }
-.add-field input, .add-field textarea, .add-field select {
-  width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 12px;
-  border: 1px solid var(--border-default); border-radius: var(--radius-control);
-  background: var(--surface-primary); color: var(--text-primary); font: inherit;
-  font-size: 13px; font-weight: var(--font-weight-regular);
-}
-.add-field textarea { min-height: 72px; resize: vertical; }
-.add-field input::placeholder, .add-field textarea::placeholder { color: var(--text-tertiary); }
-.add-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.add-field input:focus-visible, .add-field textarea:focus-visible, .add-field select:focus-visible {
-  outline: 3px solid var(--poliland-green); outline-offset: 2px;
-}
-.add-form-hint { margin: 0; color: var(--text-secondary); font-size: 11px; }
-
-.add-customer-form .lot-picker-head { display: grid; gap: 6px; }
-.add-customer-form .lot-picker-head label { color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }
-.add-customer-form .lot-picker-head input {
-  width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 12px;
-  border: 1px solid var(--border-default); border-radius: var(--radius-control);
-  background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px;
-}
-.add-customer-form .lot-picker-state {
-  display: grid; justify-items: center; gap: 6px; min-height: 92px; padding: 14px;
-  box-sizing: border-box; border: 1px dashed var(--border-default); border-radius: var(--radius-control);
-  background: var(--surface-primary); color: var(--text-secondary); text-align: center; font-size: 12px;
-}
-.add-customer-form .lot-picker-state strong { color: var(--text-primary); }
-.add-customer-form .lot-picker-error { color: var(--status-danger); }
-.add-customer-form .lot-picker-error button {
-  min-height: 44px; padding: 0 14px; border: 1px solid var(--border-default);
-  border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit;
-}
-.add-customer-form .lot-picker-list {
-  display: grid; grid-auto-rows: max-content; gap: 8px; max-height: 280px; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: 0; border: 0;
-}
-.add-customer-form .lot-picker-list legend { margin-bottom: 8px; color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-semibold); }
-.add-customer-form .lot-picker-option {
-  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 10px;
-  min-height: 58px; padding: 10px; border: 1px solid var(--border-default);
-  border-radius: var(--radius-control); background: var(--surface-primary); cursor: pointer;
-}
-.add-customer-form .lot-picker-option.selected { border-color: var(--poliland-green); background: var(--status-success-bg); }
-.add-customer-form .lot-picker-option input { width: 18px; height: 18px; margin: 0; accent-color: var(--poliland-green); cursor: pointer; }
-.add-customer-form .lot-picker-copy { display: grid; gap: 3px; min-width: 0; }
-.add-customer-form .lot-picker-copy strong { overflow-wrap: anywhere; color: var(--text-primary); font-size: 13px; }
-.add-customer-form .lot-picker-copy span { overflow-wrap: anywhere; color: var(--text-secondary); font-size: 11px; }
-.add-customer-form .lot-picker-price { max-width: 112px; color: var(--poliland-green); font-size: 11px; font-weight: var(--font-weight-bold); text-align: right; overflow-wrap: anywhere; }
-.add-customer-form .lot-picker-head input:focus-visible, .add-customer-form .lot-picker-option:has(input:focus-visible) {
-  outline: 3px solid var(--poliland-green); outline-offset: 2px;
-}
-@media (max-width: 380px) {
-  .add-field-grid { grid-template-columns: 1fr; }
-  .add-customer-form .lot-picker-option { grid-template-columns: 20px minmax(0, 1fr); }
-  .add-customer-form .lot-picker-price { grid-column: 2; text-align: left; max-width: none; }}</style>
+</style>

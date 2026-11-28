@@ -14,6 +14,7 @@ import {
 } from '@ionic/vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { authService } from '@/services/auth/authService'
+import { authErrorMessage, emailInputError } from '@/services/auth/authErrorMessage'
 import MascotCanvas from '@/components/auth/MascotCanvas.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -49,6 +50,14 @@ async function sendResetLink() {
 
   errorMessage.value = ''
   sent.value = false
+
+  const emailError = emailInputError(email.value)
+  if (emailError) {
+    errorMessage.value = emailError
+    await mascotRef.value?.playError()
+    return
+  }
+
   loading.value = true
 
   try {
@@ -56,10 +65,7 @@ async function sendResetLink() {
 
     sent.value = true
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Email atur ulang belum dapat dikirim. Coba lagi nanti.'
+    errorMessage.value = authErrorMessage(error, 'Tautan belum bisa dikirim. Coba lagi nanti.')
 
     await mascotRef.value?.playError()
   } finally {
@@ -98,7 +104,7 @@ async function sendResetLink() {
               {{ errorMessage }}
             </AppNotice>
 
-            <form class="auth-form" @submit.prevent="sendResetLink">
+            <form class="auth-form" novalidate @submit.prevent="sendResetLink">
               <AppInput
                 class="reveal"
                 style="--i: 3"

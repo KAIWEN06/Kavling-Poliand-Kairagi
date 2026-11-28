@@ -1,6 +1,6 @@
 export type FinancePaymentCategory = 'Booking' | 'Down Payment' | 'Installment' | 'Cash Purchase' | 'Other' | 'Unclassified'
 
-export type FinancePaymentStatus = 'Pending' | 'Confirmed' | 'Rejected' | 'Needs Reupload'
+export type FinancePaymentStatus = 'Pending' | 'Confirmed' | 'Rejected' | 'Needs Reupload' | 'Reversed'
 
 export interface FinancePaymentRecord {
   id: number

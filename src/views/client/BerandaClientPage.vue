@@ -209,6 +209,7 @@ function paymentLabel(status: string) {
   if (status === 'Pending') return 'Menunggu'
   if (status === 'Needs Reupload') return 'Unggah ulang'
   if (status === 'Rejected') return 'Ditolak'
+  if (status === 'Reversed') return 'Dibatalkan'
   return status
 }
 

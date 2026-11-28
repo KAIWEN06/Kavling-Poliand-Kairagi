@@ -24,7 +24,46 @@ export type FinancialLedgerEntry = {
   } | null
 }
 
+/** Baris buku kas milik satu pembayaran. */
+async function findPaymentLedgerId(paymentId: number): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('financial_transactions')
+    .select('id')
+    .eq('source_table', 'payments')
+    .eq('source_id', paymentId)
+    .maybeSingle()
+  if (error) throw new Error(`Catatan buku kas tidak dapat dibaca. ${error.message}`)
+  return data ? Number(data.id) : null
+}
+
 export const financialLedgerService = {
+  /** Reversal buku kas; database ikut menandai pembayarannya sebagai dibatalkan. */
+  async reversePayment(paymentId: number, reason: string): Promise<void> {
+    const trimmed = reason.trim()
+    if (!trimmed) throw new Error('Alasan pembatalan wajib diisi.')
+    const ledgerId = await findPaymentLedgerId(paymentId)
+    if (ledgerId == null) throw new Error('Pembayaran ini belum tercatat di buku kas, jadi belum bisa dibatalkan.')
+    const { error } = await supabase.rpc('reverse_financial_transaction', {
+      p_transaction_id: ledgerId,
+      p_reason: trimmed,
+    })
+    if (error) throw new Error(error.message)
+  },
+
+  /** Alasan tersimpan di keterangan jurnal reversal: "Reversal transaksi #N: alasan". */
+  async getReversalReason(paymentId: number): Promise<string | null> {
+    const ledgerId = await findPaymentLedgerId(paymentId)
+    if (ledgerId == null) return null
+    const { data, error } = await supabase
+      .from('financial_transactions')
+      .select('financial_journals(description)')
+      .eq('reversal_of', ledgerId)
+      .maybeSingle()
+    if (error || !data) return null
+    const journal = ([] as Array<{ description: string }>).concat((data as any).financial_journals ?? [])[0]
+    return journal?.description.replace(/^Reversal transaksi #\d+: /, '') ?? null
+  },
+
   async listRecent(limit = 200): Promise<FinancialLedgerEntry[]> {
     return fetchLedger((query) => query
       .order('occurred_on', { ascending: false })

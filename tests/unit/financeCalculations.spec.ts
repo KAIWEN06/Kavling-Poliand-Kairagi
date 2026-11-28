@@ -65,6 +65,27 @@ describe('calculateFinanceBalance', () => {
     expect(balance.progress).toBe(25)
   })
 
+  test('tagihan cicilan = DP + total cicilan termasuk margin (aturan 2,5% per 3 bulan)', () => {
+    const balance = calculateFinanceBalance(
+      {
+        id: 24, lot_id: 1, status: 'Booking', payment_type: 'Installment',
+        price_at_booking: 83_681_250, final_price: 83_681_250, down_payment: 25_104_375,
+        booking_fee: 1_000_000, principal_amount: 58_576_875, margin_amount: 5_857_688,
+        installment_total: 64_434_563, monthly_payment: 5_369_546, months: 12,
+        installment_start_date: null, booking_date: null,
+      },
+      [
+        { amount: 1_000_000, status: 'Confirmed', payment_category: 'Booking' },
+        { amount: 25_104_375, status: 'Confirmed', payment_category: 'Down Payment' },
+        { amount: 16_108_638, status: 'Confirmed', payment_category: 'Installment' },
+      ],
+    )
+
+    expect(balance.obligation).toBe(89_538_938)
+    expect(balance.principalPaid).toBe(41_213_013)
+    expect(balance.remaining).toBe(48_325_925)
+  })
+
   test('mengabaikan pembayaran Pending dari total penerimaan', () => {
     const balance = calculateFinanceBalance(
       {

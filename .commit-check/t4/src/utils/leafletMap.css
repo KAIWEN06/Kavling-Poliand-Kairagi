@@ -1,4 +1,0 @@
-.picker-pin { background: transparent; border: 0; }
-.picker-pin span { position: relative; display: block; width: 30px; height: 30px; margin: 0 auto; border-radius: 50% 50% 50% 0; background: #d94b45; border: 3px solid #fff; box-shadow: 0 3px 8px rgb(0 0 0 / 40%); transform: rotate(-45deg) translate(2px, -2px); }
-.picker-pin span::after { content: ''; position: absolute; top: 9px; left: 9px; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
-.leaflet-container { font: inherit; }

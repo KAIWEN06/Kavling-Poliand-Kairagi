@@ -14,6 +14,7 @@ import MascotCanvas from '@/components/auth/MascotCanvas.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import { supabase } from '@/services/config/supabase'
 import { authService } from '@/services/auth/authService'
+import { AUTH_MESSAGES, authErrorMessage, emailInputError } from '@/services/auth/authErrorMessage'
 import { resolveHome } from '@/services/auth/resolveHome'
 import { useGoogleAuthSpinner } from '@/composables/useGoogleAuthSpinner'
 
@@ -60,15 +61,11 @@ async function loginExistingAccount() {
     confirmPassword.value = ''
     await router.replace(destination)
   } catch (error) {
-    const message = error instanceof Error ? error.message : ''
-    if (/invalid login credentials/i.test(message)) {
-      errorMessage.value =
-        'Email ini sudah terdaftar dengan kata sandi lain. Buka halaman Masuk untuk memakai kata sandi akun, Google, atau Lupa kata sandi.'
-    } else if (/email not confirmed/i.test(message)) {
-      errorMessage.value = 'Email ini sudah terdaftar tetapi belum dikonfirmasi. Periksa kotak masuk dan folder spam.'
-    } else {
-      errorMessage.value = message || 'Email ini sudah terdaftar, tetapi belum bisa masuk. Coba dari halaman Masuk.'
-    }
+    const message = authErrorMessage(error, 'Email ini sudah terdaftar. Coba dari halaman Masuk.')
+    errorMessage.value =
+      message === AUTH_MESSAGES.wrongCredentials
+        ? 'Email ini sudah terdaftar dengan kata sandi lain. Buka halaman Masuk untuk memakai kata sandi akun, Google, atau Lupa kata sandi.'
+        : message
     void mascotRef.value?.playError()
   }
 }
@@ -79,7 +76,12 @@ async function submitRegistration() {
   successMessage.value = ''
 
   if (fullName.value.trim().length < 2) {
-    errorMessage.value = 'Masukkan nama lengkap yang valid.'
+    errorMessage.value = 'Isi nama lengkap Anda.'
+    return
+  }
+  const emailError = emailInputError(email.value)
+  if (emailError) {
+    errorMessage.value = emailError
     return
   }
   if (!passwordIsValid.value) {
@@ -122,7 +124,7 @@ async function submitRegistration() {
       successMessage.value = 'Pendaftaran berhasil. Periksa email untuk konfirmasi akun, lalu masuk.'
     }
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Pendaftaran gagal. Silakan coba lagi.'
+    errorMessage.value = authErrorMessage(error, 'Pendaftaran belum berhasil. Silakan coba lagi.')
     void mascotRef.value?.playError()
   } finally {
     loading.value = false
@@ -138,7 +140,7 @@ async function registerWithGoogle() {
     // Jalur yang sama dengan halaman Masuk, agar Android kembali lewat deep link.
     await authService.signInWithGoogle()
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Pendaftaran dengan Google gagal dimulai.'
+    errorMessage.value = authErrorMessage(error, 'Belum berhasil membuka Google. Silakan coba lagi.')
     googleLoading.value = false
     void mascotRef.value?.playError()
   }
@@ -181,7 +183,7 @@ async function registerWithGoogle() {
               {{ successMessage }}
             </AppNotice>
 
-            <form class="register-form" @submit.prevent="submitRegistration">
+            <form class="register-form" novalidate @submit.prevent="submitRegistration">
               <div class="input-wrap reveal" style="--i: 3">
                 <AppInput
                   v-model="fullName" data-input="name"

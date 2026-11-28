@@ -32,7 +32,7 @@ export type PaymentRecord = {
   proof_path: string | null
   note: string | null
   review_note: string | null
-  status: 'Pending' | 'Confirmed' | 'Rejected' | 'Needs Reupload'
+  status: 'Pending' | 'Confirmed' | 'Rejected' | 'Needs Reupload' | 'Reversed'
   created_at: string
   verified_at: string | null
   verified_by: string | null

@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Status SPK" subtitle="Pengajuan SPK klien tim." tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
+  <MarketingPageLayout title="Status SPK" subtitle="Keputusan diambil Admin." tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
     <Reveal :order="1">
       <SpkListView ref="view" role="head" :focus-id="Number(query.spkId) || undefined" :focus-stamp="String(query.nt ?? '')" @open-client="(id) => router.push(`/kepala-marketing/clients/${id}`)" />
     </Reveal>

@@ -25,7 +25,7 @@ export async function getReachedReviewMilestones(userId: string): Promise<Review
   const [transactions, payments] = await Promise.all([
     supabase
       .from('lot_transactions')
-      .select('id, payment_type, final_price')
+      .select('id, payment_type, final_price, down_payment, installment_total')
       .eq('customer_id', customer.data.id)
       .neq('status', 'Cancelled'),
     supabase

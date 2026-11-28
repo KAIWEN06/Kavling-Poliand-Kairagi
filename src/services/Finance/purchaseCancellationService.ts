@@ -40,6 +40,14 @@ export type ArrearsItem = {
   lot_number: string | null
 }
 
+export type BookingFeeRefundRow = {
+  id: number
+  amount: number
+  status: 'Pending Refund' | 'Refunded'
+  refunded_at: string | null
+  proof_path: string | null
+}
+
 export type PurchaseRefundRow = {
   id: number
   transaction_id: number
@@ -259,6 +267,27 @@ export const purchaseCancellationService = {
       p_reason: reason,
     })
     if (error) throw new Error(`Perpanjangan belum tersimpan. ${error.message}`)
+  },
+
+  /**
+   * Pengembalian Booking Fee milik akun ini. Yang belum ditransfer hanya tampil
+   * bila uangnya memang sudah diterima (pembayaran terkonfirmasi).
+   */
+  async listBookingFeeRefunds(): Promise<BookingFeeRefundRow[]> {
+    const { data, error } = await supabase
+      .from('booking_fee_refunds')
+      .select('id, amount, status, refunded_at, proof_path, payments(status)')
+      .order('created_at', { ascending: false })
+    if (error) throw new Error(`Daftar pengembalian gagal dimuat. ${error.message}`)
+    return (data ?? [])
+      .filter((row: any) => row.status === 'Refunded' || one(row.payments)?.status === 'Confirmed')
+      .map((row: any) => ({
+        id: Number(row.id),
+        amount: Number(row.amount),
+        status: row.status,
+        refunded_at: row.refunded_at,
+        proof_path: row.proof_path,
+      }))
   },
 
   /** Yang menunggu transfer tampil dulu, diurutkan menurut batas waktunya. */

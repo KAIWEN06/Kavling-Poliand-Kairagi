@@ -2,7 +2,8 @@
   <!--
     Susunan mengikuti detail klien admin (AdminPembeliDetail.vue): hero, empat ubin aksi,
     tab bergaris bawah, kartu kaveling dan transaksi. Batasan peran Marketing/Kepala Bagian:
-    tidak ada hapus data klien, tidak ada tambah/hapus minat kaveling. Marketing dapat mengajukan
+    tidak ada hapus data klien, tidak ada tambah/hapus minat kaveling. Kepala Bagian hanya memantau
+    dan memberi arahan. Marketing dapat mengajukan
     SPK (dikonfirmasi Admin); pembayaran, jadwal, dan refund hanya dapat dilihat.
   -->
   <SkeletonDetailHeader v-if="loading" :sections="3" :rows="4" label="Memuat detail klien" />
@@ -19,7 +20,7 @@
       <StatusBadge class="cd-hero-status" :label="crmStatusLabel(c.crm_status)" :tone="CRM_TONE[c.crm_status as CrmStatus] || 'neutral'" />
     </section>
 
-    <div class="cd-actions">
+    <div :class="['cd-actions', { 'cd-actions--head': isHead }]">
       <a
         :href="callNumber ? `tel:${callNumber}` : undefined"
         :class="['cd-action', { 'is-disabled': !callNumber }]"
@@ -29,10 +30,13 @@
         <ion-icon :icon="callOutline" aria-hidden="true" /><span>Telepon</span>
       </a>
       <WhatsAppButton tile :phone="c.whatsapp_phone" :fallback-phone="c.phone" :client-name="c.full_name" :sender-name="viewerName" />
-      <button type="button" class="cd-action" @click="openStatus">
+      <button v-if="isHead && c.marketing_id" type="button" class="cd-action" @click="openNote">
+        <ion-icon :icon="chatbubblesOutline" aria-hidden="true" /><span>Beri arahan</span>
+      </button>
+      <button v-if="!isHead" type="button" class="cd-action" @click="openStatus">
         <ion-icon :icon="flagOutline" aria-hidden="true" /><span>Status</span>
       </button>
-      <button type="button" class="cd-action" @click="openFollowup">
+      <button v-if="!isHead" type="button" class="cd-action" @click="openFollowup">
         <ion-icon :icon="chatbubblesOutline" aria-hidden="true" /><span>Tindak lanjut</span>
       </button>
     </div>
@@ -56,7 +60,7 @@
       <section v-if="activeTab === 'info'" class="cd-card">
         <div class="cd-card-head">
           <h3>Kontak dan alamat</h3>
-          <button type="button" class="cd-btn-soft" @click="openEdit">
+          <button v-if="!isHead" type="button" class="cd-btn-soft" @click="openEdit">
             <ion-icon :icon="createOutline" aria-hidden="true" /> Ubah
           </button>
         </div>
@@ -66,13 +70,13 @@
           <div><dt>Email</dt><dd>{{ c.email || 'Belum tercatat' }}</dd></div>
           <div><dt>Alamat</dt><dd>{{ c.address || c.street_address || 'Belum tercatat' }}</dd></div>
           <div><dt>Wilayah</dt><dd>{{ [c.city_name, c.province_name].filter(Boolean).join(', ') || 'Belum tercatat' }}</dd></div>
-          <div><dt>Pemasar</dt><dd>{{ detail.marketing?.full_name || 'Klien mandiri (Admin)' }}</dd></div>
-          <div><dt>Asal data klien</dt><dd>{{ c.registration_source || 'Belum tercatat' }}</dd></div>
+          <div><dt>Pemasar</dt><dd>{{ detail.marketing?.full_name || 'Belum ada pemasar' }}</dd></div>
+          <div><dt>Asal data klien</dt><dd>{{ SOURCE_LABEL[c.registration_source] || 'Belum tercatat' }}</dd></div>
           <div><dt>Terakhir dihubungi</dt><dd>{{ c.last_contacted_at ? formatDate(c.last_contacted_at) : 'Belum pernah' }}</dd></div>
           <div v-if="c.notes"><dt>Catatan awal</dt><dd>{{ c.notes }}</dd></div>
         </dl>
-        <!-- Kepala pemasaran tidak punya akses ke identitas pembeli. -->
-        <IdentityInfo v-if="role !== 'head'" :customer-id="Number(customerId)" editable />
+        <!-- Kepala pemasaran hanya punya akses ke identitas klien milik timnya. -->
+        <IdentityInfo v-if="!isHead || c.marketing_id" :customer-id="Number(customerId)" :editable="!isHead" />
       </section>
 
       <!-- Kaveling: minat, transaksi, pembayaran, jadwal -->
@@ -256,11 +260,11 @@
         <section class="cd-card">
           <div class="cd-card-head">
             <h3>Catatan dan arahan</h3>
-            <button type="button" class="cd-btn-soft" @click="openNote">
+            <button v-if="!isHead || c.marketing_id" type="button" class="cd-btn-soft" @click="openNote">
               <ion-icon :icon="addOutline" aria-hidden="true" /> {{ role === 'head' ? 'Arahan' : 'Catatan' }}
             </button>
           </div>
-          <StatusIllustration v-if="!detail.notes.length" variant="empty-data" size="sm" title="Belum ada catatan" description="Tambahkan catatan pertama." />
+          <StatusIllustration v-if="!detail.notes.length" variant="empty-data" size="sm" title="Belum ada catatan" :description="!isHead ? 'Tambahkan catatan pertama.' : c.marketing_id ? 'Arahan untuk pemasar akan tampil di sini.' : 'Klien ini belum punya pemasar untuk diberi arahan.'" />
           <div v-else class="cd-stack">
             <article v-for="note in detail.notes" :key="note.id" :class="['cd-lot', 'cd-note-card', { 'is-head': actorRole(note.created_by) === 'marketing_head' }]">
               <div class="cd-lot-head">
@@ -402,7 +406,7 @@ import AppModal from '@/components/ui/AppModal.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import WhatsAppButton from './WhatsAppButton.vue'
 import AddressFields from './AddressFields.vue'
-import { addressColumns, addressFromRecord, emptyAddress, missingAddressFields } from '@/utils/address'
+import { addressColumns, addressFromRecord, emptyAddress, missingBasicAddressFields } from '@/utils/address'
 import {
   FOLLOWUP_METHODS,
   FOLLOWUP_RESULTS,
@@ -442,6 +446,8 @@ import { getLotsHeldBySpkSafe, lotHoldNote, type HeldLots } from '@/services/lot
 
 const props = withDefaults(defineProps<{ customerId: number; role: 'marketing' | 'head'; viewerName?: string }>(), { viewerName: '' })
 const router = useIonRouter()
+const isHead = computed(() => props.role === 'head')
+const SOURCE_LABEL: Record<string, string> = { Marketing: 'Lewat pemasar', Admin: 'Lewat Admin', Client: 'Daftar sendiri' }
 
 type TabId = 'info' | 'lot' | 'spk' | 'crm' | 'notes' | 'commission'
 /* Urutan dan nama tab mengikuti detail klien admin; SPK, progres, dan komisi khusus tim Marketing. */
@@ -705,7 +711,7 @@ async function saveEdit() {
   /* Data lama boleh belum lengkap. Alamat divalidasi dan ditulis ulang hanya bila diubah. */
   const addressChanged = JSON.stringify(editAddress.value) !== originalAddress
   if (addressChanged) {
-    const missing = missingAddressFields(editAddress.value)
+    const missing = missingBasicAddressFields(editAddress.value)
     if (missing.length) {
       formError.value = `Lengkapi alamat: ${missing.join(', ')}.`
       return
@@ -775,6 +781,7 @@ useRealtimeRefresh(
 .cd-hero-status { align-self: flex-start; flex: none; }
 
 .cd-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-bottom: 12px; }
+.cd-actions--head { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
 .cd-action {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   min-height: 58px; padding: 0 4px;

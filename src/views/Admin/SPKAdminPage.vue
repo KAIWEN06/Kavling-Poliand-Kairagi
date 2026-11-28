@@ -260,8 +260,14 @@
           <AppButton color="danger" @click="openReject(selectedRequest)">Tolak SPK</AppButton>
           <AppButton :disabled="!canApproveSPK(selectedRequest)" @click="openApprove(selectedRequest)">Setujui SPK</AppButton>
         </div>
+        <OrderRevisionNotice v-if="selectedRequest.transaction_id" :transaction-id="selectedRequest.transaction_id" />
+        <div v-if="revisableId === selectedRequest.id" class="spk-detail-actions">
+          <AppButton variant="neutral" fill="outline" @click="openRevision(selectedRequest)">Revisi pesanan</AppButton>
+        </div>
       </div>
     </AppModal>
+
+    <SpkRevisionModal :open="revisionTarget !== null" :spk="revisionTarget" @close="revisionTarget = null" @revised="onRevised" />
 
     <AppModal v-model="approveOpen" title="Setujui pengajuan SPK?" variant="dialog"
       :loading="saving" :confirm-disabled="!actionRequest || !canApproveSPK(actionRequest)" confirm-text="Ya, setujui" cancel-text="Batal" slide-confirm slide-label="Geser untuk menyetujui" confirm-variant="success" @confirm="confirmApprove">
@@ -309,6 +315,14 @@
                 <span>Email: {{ selectedCustomer.email || 'Tidak tersedia' }}</span>
                 <span>Alamat: {{ selectedCustomer.address || 'Tidak tersedia' }}</span>
               </div>
+              <AppNotice
+                v-if="selectedCustomer.address_gaps.length"
+                tone="warning"
+                title="Alamat belum lengkap untuk SPK"
+                :message="`Belum diisi: ${selectedCustomer.address_gaps.join(', ')}.`"
+                action-label="Lengkapi di data klien"
+                @action="openCustomerAddress(selectedCustomer.id)"
+              />
               <IdentityInfo :customer-id="selectedCustomer.id" editable @ready="identityReady = $event" />
               <button type="button" class="spk-cancel-customer" @click="clearSelectedCustomer">Batal pilih</button>
             </template>
@@ -334,50 +348,10 @@
                 <button type="button" class="spk-add-customer-toggle" @click="showNewCustomerForm = !showNewCustomerForm">
                   {{ showNewCustomerForm ? 'Tutup form' : 'Klien baru' }}
                 </button>
-                <div v-if="showNewCustomerForm" class="spk-new-customer-form">
-                <label>Nama lengkap <b>*</b><input v-model.trim="newCustomer.full_name" data-input="name" required placeholder="Nama sesuai KTP" /></label>
-                <label>Nomor telepon biasa<input v-model.trim="newCustomer.phone" inputmode="tel" placeholder="Nomor telepon utama" /></label>
-                <label>Nomor WhatsApp<input v-model.trim="newCustomer.whatsapp_phone" inputmode="tel" placeholder="Nomor WhatsApp" /></label>
-                <label>Email<input v-model.trim="newCustomer.email" type="email" placeholder="email@contoh.com" /></label>
-                <label>Negara
-                  <select v-model="newCustomer.country_code" @change="onNewCustomerCountry">
-                    <option v-for="country in addressCountries" :key="country.code" :value="country.code">{{ country.name }}</option>
-                  </select>
-                </label>
-                <template v-if="newCustomerIsIndonesia">
-                  <label>Provinsi
-                    <select :value="newCustomer.province_code" :disabled="newCustomerRegionsLoading" @change="onNewCustomerProvince(($event.target as HTMLSelectElement).value)">
-                      <option value="">Pilih provinsi</option>
-                      <option v-for="region in newCustomerProvinces" :key="region.code" :value="region.code">{{ region.name }}</option>
-                    </select>
-                  </label>
-                  <label>Kabupaten/Kota
-                    <select :value="newCustomer.city_code" :disabled="!newCustomer.province_code || newCustomerRegionsLoading" @change="onNewCustomerCity(($event.target as HTMLSelectElement).value)">
-                      <option value="">Pilih kabupaten/kota</option>
-                      <option v-for="region in newCustomerCities" :key="region.code" :value="region.code">{{ region.name }}</option>
-                    </select>
-                  </label>
-                  <label>Kecamatan
-                    <select :value="newCustomer.district_code" :disabled="!newCustomer.city_code || newCustomerRegionsLoading" @change="onNewCustomerDistrict(($event.target as HTMLSelectElement).value)">
-                      <option value="">Pilih kecamatan</option>
-                      <option v-for="region in newCustomerDistricts" :key="region.code" :value="region.code">{{ region.name }}</option>
-                    </select>
-                  </label>
-                  <label>Desa/Kelurahan
-                    <select :value="newCustomer.village_code" :disabled="!newCustomer.district_code || newCustomerRegionsLoading" @change="onNewCustomerVillage(($event.target as HTMLSelectElement).value)">
-                      <option value="">Pilih desa/kelurahan</option>
-                      <option v-for="region in newCustomerVillages" :key="region.code" :value="region.code">{{ region.name }}</option>
-                    </select>
-                  </label>
-                </template>
-                <template v-else>
-                  <label>Province/State<input v-model.trim="newCustomer.province_name" placeholder="Province / State" /></label>
-                  <label>City<input v-model.trim="newCustomer.city_name" placeholder="City" /></label>
-                  <label>District/Area<input v-model.trim="newCustomer.district_name" placeholder="District / Area" /></label>
-                </template>
-                <small v-if="newCustomerRegionsLoading" role="status">Memuat data wilayah...</small>
-                <label>Detail alamat<textarea v-model.trim="newCustomer.street_address" rows="2" placeholder="Nama jalan, nomor rumah, gedung, dan detail lainnya" /></label>
-                  <button type="button" class="spk-add-customer-save" :disabled="!newCustomer.full_name.trim() || (!newCustomer.phone.trim() && !newCustomer.whatsapp_phone.trim())" @click="saveNewCustomerForSPK">Simpan & pilih</button>
+                <div v-if="showNewCustomerForm" class="spk-new-customer-form" @keydown.enter="onNewCustomerEnter">
+                  <!-- Minat kaveling dipilih di langkah 2, dan sumbernya selalu Admin. -->
+                  <ClientForm v-model="newCustomer" assignee="none" interest="hidden" :error="newCustomerError" />
+                  <button type="button" class="spk-add-customer-save" :disabled="creating" @click="saveNewCustomerForSPK">Simpan &amp; pilih</button>
                 </div>
               </template>
             </template>
@@ -499,15 +473,19 @@ import {
 } from 'ionicons/icons'
 import AppHeader from '@/components/common/AppHeader.vue'
 import MobileTabBar from '@/components/common/MobileTabBar.vue'
-import { getRegions } from '@/services/address/addressService'
-import type { Region } from '@/types/address'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import IdentityInfo from '@/components/identity/IdentityInfo.vue'
+import ClientForm from '@/components/client-form/ClientForm.vue'
+import { clientDraftColumns, emptyClientDraft, validateClientDraft, type ClientDraftRules } from '@/utils/clientDraft'
 import DocumentViewerModal from '@/components/ui/DocumentViewerModal.vue'
 import InstallmentDpChoice from '@/components/spk/InstallmentDpChoice.vue'
+import OrderRevisionNotice from '@/components/spk/OrderRevisionNotice.vue'
+import SpkRevisionModal from '@/components/spk/SpkRevisionModal.vue'
+import { spkRevisionService } from '@/services/spkRevisionService'
 import { currentMakassarDateTimeLocal, makassarDateTimeLocalToIso } from '@/utils/financialCashflow'
 import { compareLotNumber } from '@/utils/lotNumber'
+import { estimateInstallment } from '@/services/payment/paymentCalculator'
 import { sortByRunningStage, spkStage, SPK_STAGE_LABEL } from '@/utils/spkStage'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import {
@@ -532,6 +510,18 @@ const detailOpen = ref(false)
 const approveOpen = ref(false)
 const rejectOpen = ref(false)
 const selectedRequest = ref<AdminSPKRequest | null>(null)
+const revisionTarget = ref<AdminSPKRequest | null>(null)
+/** SPK yang sudah dipastikan masih bisa direvisi; tombol tersembunyi selain itu. */
+const revisableId = ref<number | null>(null)
+// Lembar detail ditutup dulu agar tidak ada dua lembar bertumpuk.
+function openRevision(request: AdminSPKRequest) {
+  detailOpen.value = false
+  revisionTarget.value = request
+}
+async function onRevised() {
+  revisionTarget.value = null
+  await loadRequests({ silent: true })
+}
 const actionRequest = ref<AdminSPKRequest | null>(null)
 const rejectionReason = ref('')
 const rejectionCategory = ref<'Administrative Error' | 'Buyer Cancellation' | 'Other'>('Other')
@@ -562,89 +552,17 @@ const customerSearchQuery = ref('')
 const selectedCustomerSource = ref<CustomerSource>('Admin')
 const selectedCustomerId = ref<number | null>(null)
 const showNewCustomerForm = ref(false)
-const emptyNewCustomer = () => ({
-  full_name: '', phone: '', whatsapp_phone: '', email: '',
-  country_code: 'ID', country_name: 'Indonesia',
-  province_code: '', province_name: '',
-  city_code: '', city_name: '',
-  district_code: '', district_name: '',
-  village_code: '', village_name: '',
-  street_address: '',
-})
-const newCustomer = reactive(emptyNewCustomer())
-const addressCountries = [
-  { code: 'ID', name: 'Indonesia' },
-  { code: 'MY', name: 'Malaysia' },
-  { code: 'SG', name: 'Singapore' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'US', name: 'United States' },
-  { code: 'JP', name: 'Japan' },
-]
-const newCustomerProvinces = ref<Region[]>([])
-const newCustomerCities = ref<Region[]>([])
-const newCustomerDistricts = ref<Region[]>([])
-const newCustomerVillages = ref<Region[]>([])
-const newCustomerRegionsLoading = ref(false)
-const newCustomerIsIndonesia = computed(() => newCustomer.country_code === 'ID')
-
-async function loadNewCustomerRegions(level: 1 | 2 | 3 | 4, parentId?: number | null) {
-  newCustomerRegionsLoading.value = true
-  try { return await getRegions(level, parentId) }
-  catch (error) {
-    createError.value = error instanceof Error ? error.message : 'Data wilayah gagal dimuat.'
-    return []
-  }
-  finally { newCustomerRegionsLoading.value = false }
-}
-function resetNewCustomerRegions(from: 1 | 2 | 3 | 4) {
-  if (from <= 1) { newCustomer.province_code = ''; newCustomer.province_name = '' }
-  if (from <= 2) { newCustomer.city_code = ''; newCustomer.city_name = ''; newCustomerCities.value = [] }
-  if (from <= 3) { newCustomer.district_code = ''; newCustomer.district_name = ''; newCustomerDistricts.value = [] }
-  if (from <= 4) { newCustomer.village_code = ''; newCustomer.village_name = ''; newCustomerVillages.value = [] }
-}
-async function ensureNewCustomerProvinces() {
-  if (newCustomerIsIndonesia.value && !newCustomerProvinces.value.length) {
-    newCustomerProvinces.value = await loadNewCustomerRegions(1)
-  }
-}
-async function onNewCustomerCountry() {
-  newCustomer.country_name = addressCountries.find(c => c.code === newCustomer.country_code)?.name ?? ''
-  resetNewCustomerRegions(1)
-  await ensureNewCustomerProvinces()
-}
-async function onNewCustomerProvince(code: string) {
-  const region = newCustomerProvinces.value.find(r => r.code === code)
-  resetNewCustomerRegions(2)
-  newCustomer.province_code = region?.code ?? ''
-  newCustomer.province_name = region?.name ?? ''
-  if (region) newCustomerCities.value = await loadNewCustomerRegions(2, region.id)
-}
-async function onNewCustomerCity(code: string) {
-  const region = newCustomerCities.value.find(r => r.code === code)
-  resetNewCustomerRegions(3)
-  newCustomer.city_code = region?.code ?? ''
-  newCustomer.city_name = region?.name ?? ''
-  if (region) newCustomerDistricts.value = await loadNewCustomerRegions(3, region.id)
-}
-async function onNewCustomerDistrict(code: string) {
-  const region = newCustomerDistricts.value.find(r => r.code === code)
-  resetNewCustomerRegions(4)
-  newCustomer.district_code = region?.code ?? ''
-  newCustomer.district_name = region?.name ?? ''
-  if (region) newCustomerVillages.value = await loadNewCustomerRegions(4, region.id)
-}
-function onNewCustomerVillage(code: string) {
-  const region = newCustomerVillages.value.find(r => r.code === code)
-  newCustomer.village_code = region?.code ?? ''
-  newCustomer.village_name = region?.name ?? ''
-}
+const newCustomer = ref(emptyClientDraft())
+const newCustomerError = ref('')
+const newCustomerRules: ClientDraftRules = { assignee: 'none', interest: 'hidden' }
 function resetNewCustomerForm() {
-  Object.assign(newCustomer, emptyNewCustomer())
-  newCustomerCities.value = []
-  newCustomerDistricts.value = []
-  newCustomerVillages.value = []
+  newCustomer.value = emptyClientDraft()
+  newCustomerError.value = ''
 }
-watch(showNewCustomerForm, open => { if (open) void ensureNewCustomerProvinces() })
+function onNewCustomerEnter(event: KeyboardEvent) {
+  // Enter di kolom klien baru tidak boleh mengirim formulir SPK di luarnya.
+  if ((event.target as HTMLElement).tagName === 'INPUT') event.preventDefault()
+}
 const selectedLotIds = ref<number[]>([])
 const lotPlans = reactive<Record<number, AdminLotInstallmentOption[]>>({})
 const lotPlanIds = reactive<Record<number, string>>({})
@@ -699,7 +617,8 @@ const filteredAvailableLots = computed(() => {
 })
 const identityReady = ref(false)
 const canSubmitCreate = computed(() => Boolean(
-  selectedCustomerId.value && identityReady.value && selectedLotIds.value.length > 0 &&
+  selectedCustomerId.value && !selectedCustomer.value?.address_gaps.length &&
+  identityReady.value && selectedLotIds.value.length > 0 &&
   createFiles.KTP && createFiles.KK &&
   createFiles['Payment Proof'] &&
   (createForm.payment_method === 'Cash' || selectedCreateLots.value.every(lot =>
@@ -710,6 +629,7 @@ const canSubmitCreate = computed(() => Boolean(
 const createBlocker = computed(() => {
   if (canSubmitCreate.value) return ''
   if (!selectedCustomerId.value) return 'Pilih klien terlebih dahulu.'
+  if (selectedCustomer.value?.address_gaps.length) return 'Lengkapi alamat klien.'
   if (!identityReady.value) return 'Lengkapi NIK, tempat lahir, dan tanggal lahir klien.'
   if (!selectedLotIds.value.length) return 'Pilih minimal satu kaveling.'
   if (createForm.payment_method === 'Installment') {
@@ -768,6 +688,19 @@ const pager = usePagination(filteredRequests, {
   pageSize: 10,
   resetOn: [selectedStatus, selectedSource, searchQuery],
 })
+
+watch(
+  () => (detailOpen.value ? selectedRequest.value : null),
+  async (request) => {
+    if (!request || request.id !== revisableId.value) revisableId.value = null
+    if (!request || request.status !== 'Approved' || !request.transaction_id) {
+      revisableId.value = null
+      return
+    }
+    const allowed = await spkRevisionService.isRevisable(request.id, request.transaction_id).catch(() => false)
+    if (selectedRequest.value?.id === request.id) revisableId.value = allowed ? request.id : null
+  },
+)
 
 async function loadRequests({ silent = false }: LoadOptions = {}) {
   if (!silent) {
@@ -1075,48 +1008,30 @@ function selectCustomer(customer: AdminSPKCustomer) {
   selectedLotIds.value = [...new Set(customer.interests.map(i => i.lot_id)
     .filter(id => availableLots.value.some(lot => lot.id === id)))]
 }
+function openCustomerAddress(id: number) {
+  closeCreateForm()
+  void router.push(`/admin/pembeli/${id}`)
+}
 async function saveNewCustomerForSPK() {
   if (selectedCustomerSource.value !== 'Admin') {
-    createError.value = 'Pelanggan baru dari halaman Admin hanya dapat didaftarkan dengan sumber Admin.'
+    newCustomerError.value = 'Klien baru dari halaman Admin hanya dapat didaftarkan dengan sumber Admin.'
     return
   }
-  if (!newCustomer.full_name.trim() || (!newCustomer.phone.trim() && !newCustomer.whatsapp_phone.trim())) {
-    createError.value = 'Nama dan minimal salah satu nomor telepon atau WhatsApp wajib diisi.'
-    return
-  }
+  const draft = newCustomer.value
+  newCustomerError.value = validateClientDraft(draft, newCustomerRules) ?? ''
+  if (newCustomerError.value) return
+
   creating.value = true
   createError.value = ''
   try {
-    const street = newCustomer.street_address.trim()
-    const fullAddress = [
-      street, newCustomer.village_name, newCustomer.district_name,
-      newCustomer.city_name, newCustomer.province_name, newCustomer.country_name,
-    ].map(part => part.trim()).filter(Boolean).join(', ')
-    const id = await createCustomerForAdminSPK({
-      full_name: newCustomer.full_name.trim(),
-      phone: newCustomer.phone.trim() || null,
-      whatsapp_phone: newCustomer.whatsapp_phone.trim() || null,
-      email: newCustomer.email.trim() || null,
-      address: fullAddress || null,
-      country_code: newCustomer.country_code,
-      country_name: newCustomer.country_name,
-      province_code: newCustomer.province_code || null,
-      province_name: newCustomer.province_name.trim() || null,
-      city_code: newCustomer.city_code || null,
-      city_name: newCustomer.city_name.trim() || null,
-      district_code: newCustomer.district_code || null,
-      district_name: newCustomer.district_name.trim() || null,
-      village_code: newCustomer.village_code || null,
-      village_name: newCustomer.village_name.trim() || null,
-      street_address: street || null,
-    })
+    const id = await createCustomerForAdminSPK(clientDraftColumns(draft))
     await loadSPKCustomers()
     selectedCustomerId.value = id
-    customerSearchQuery.value = newCustomer.full_name.trim()
+    customerSearchQuery.value = draft.full_name.trim()
     resetNewCustomerForm()
     showNewCustomerForm.value = false
   } catch (error) {
-    createError.value = error instanceof Error ? error.message : 'Klien gagal disimpan.'
+    newCustomerError.value = error instanceof Error ? error.message : 'Klien gagal disimpan.'
   } finally { creating.value = false }
 }
 function toggleLot(lotId: number) {
@@ -1165,11 +1080,11 @@ function lotPaymentSummary(lotId: number) {
   if (!lot || !plan || plan.months <= 0 || lotDpInvalid(lot)) return null
   const dp = lotDp(lotId)
   const margin = Number(plan.margin_percent ?? 0)
-  const calculatedMonthly = Math.ceil((lotPrice(lot) - dp) * (1 + margin / 100) / plan.months)
-  const monthly = plan.is_custom && plan.monthly_payment != null
-    ? Number(plan.monthly_payment)
-    : calculatedMonthly
-  const installments = monthly * plan.months
+  // Rumus sama dengan RPC SPK; sisa pembulatan masuk ke cicilan terakhir.
+  const estimate = estimateInstallment(lotPrice(lot), dp, plan.months, margin)
+  const isCustom = plan.is_custom && plan.monthly_payment != null
+  const monthly = isCustom ? Number(plan.monthly_payment) : estimate.monthly
+  const installments = isCustom ? monthly * plan.months : estimate.total
   return { plan, monthly, installments, total: dp + installments }
 }
 
@@ -1474,10 +1389,7 @@ useRealtimeRefresh(
 .spk-customer-sources button.active { border-color:#355a2c; background:#edf3e9; color:#355a2c; }
 .spk-customer-option:focus-visible,.spk-customer-sources button:focus-visible,.spk-add-customer-toggle:focus-visible,.spk-add-customer-save:focus-visible,.spk-cancel-customer:focus-visible { outline:3px solid #78936d; outline-offset:2px; }
 .spk-add-customer-toggle,.spk-add-customer-save,.spk-cancel-customer { min-height:44px; border:1px solid #355a2c; border-radius:9px; padding:10px; background:#fff; color:#355a2c; font-size:11px; font-weight:800; cursor:pointer; }
-.spk-new-customer-form { display:grid; gap:9px; padding:12px; border:1px solid #e5e9e2; border-radius:12px; background:#fafbf9; }
-.spk-new-customer-form label { display:grid; gap:5px; font-size:10px; }
-.spk-new-customer-form select { min-height:40px; border:1px solid #d9dfd5; border-radius:9px; padding:8px 10px; background:#fff; color:inherit; font:inherit; }
-.spk-new-customer-form select:disabled { opacity:.6; }
+.spk-new-customer-form { display:grid; gap:12px; }
 .spk-selected-customer { display:grid; gap:5px; padding:11px; border-radius:10px; background:#f1f6ee; color:#50604e; font-size:10px; }
 .spk-cancel-customer { width:100%; }
 .spk-lot-payment-card { display:grid; gap:9px; padding:12px; border:1px solid #e5e9e2; border-radius:12px; background:#fff; }

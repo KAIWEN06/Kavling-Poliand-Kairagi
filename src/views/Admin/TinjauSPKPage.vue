@@ -96,7 +96,7 @@
             </div>
 </section>
           <section v-if="data.commission" class="review-panel"><h2>Komisi pemasar</h2><dl class="info-grid"><div><dt>Nama pemasar</dt><dd>{{ data.commission.profiles?.full_name || '-' }}</dd></div><div><dt>Nomor SPK</dt><dd>{{ data.request.spk_number }}</dd></div><div><dt>Nilai transaksi</dt><dd>{{ money(data.commission.base_amount) }}</dd></div><div><dt>Jenis komisi</dt><dd>{{ data.commission.commission_type }}</dd></div><div><dt>Persentase / nominal</dt><dd>{{ data.commission.commission_rate != null ? `${data.commission.commission_rate}%` : money(data.commission.commission_amount) }}</dd></div><div><dt>Total komisi</dt><dd>{{ money(data.commission.commission_amount) }}</dd></div><div><dt>Status pencairan</dt><dd>{{ data.commission.status }}</dd></div></dl>
-            <p class="review-note">Komisi cair saat pembayaran kaveling (di luar tanda jadi) mencapai {{ data.commission.release_threshold_percent ?? 50 }}%.</p>
+            <p class="review-note">Komisi cair saat pembayaran (di luar tanda jadi) mencapai {{ data.commission.release_threshold_percent ?? 50 }}% dari total tagihan.</p>
             <div v-if="data.commission.status === 'Eligible' || data.commission.status === 'Processing'" class="commission-pay">
               <input v-model="commissionReference" type="text" maxlength="60" placeholder="Referensi transfer bank (opsional)" aria-label="Referensi transfer bank" />
               <AppButton size="small" :loading="payingCommission" @click="payCommission">Cairkan komisi</AppButton>

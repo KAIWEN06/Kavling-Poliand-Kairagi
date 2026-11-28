@@ -23,14 +23,14 @@
         </select>
       </label>
       <label class="mk-field">
-        <span>Kecamatan <b aria-hidden="true">*</b></span>
+        <span>Kecamatan <em>(opsional)</em></span>
         <select class="mk-input" :value="modelValue.district_code" :disabled="!modelValue.city_code || loading" @change="onRegion(3, inputValue($event))">
           <option value="">Pilih kecamatan</option>
           <option v-for="r in districts" :key="r.code" :value="r.code">{{ r.name }}</option>
         </select>
       </label>
       <label class="mk-field">
-        <span>Desa/Kelurahan <b aria-hidden="true">*</b></span>
+        <span>Desa/Kelurahan <em>(opsional)</em></span>
         <select class="mk-input" :value="modelValue.village_code" :disabled="!modelValue.district_code || loading" @change="onRegion(4, inputValue($event))">
           <option value="">Pilih desa/kelurahan</option>
           <option v-for="r in villages" :key="r.code" :value="r.code">{{ r.name }}</option>
@@ -48,7 +48,7 @@
         <input class="mk-input" :value="modelValue.city_name" placeholder="City" @input="patch({ city_name: inputValue($event) })" />
       </label>
       <label class="mk-field">
-        <span>District/Area</span>
+        <span>District/Area <em>(opsional)</em></span>
         <input class="mk-input" :value="modelValue.district_name" placeholder="District / Area" @input="patch({ district_name: inputValue($event) })" />
       </label>
     </div>
@@ -60,7 +60,7 @@
     </AppNotice>
 
     <label class="mk-field">
-      <span>Detail alamat <b aria-hidden="true">*</b></span>
+      <span>Detail alamat <em>(opsional)</em></span>
       <textarea
         class="mk-input"
         rows="3"
@@ -185,6 +185,7 @@ function onRegion(level: 1 | 2 | 3 | 4, code: string) {
 .address-fields { display: grid; gap: var(--space-3); min-width: 0; }
 .address-fields p { margin: 0; }
 .address-fields b { color: var(--status-danger); }
+.address-fields em { color: var(--text-secondary); font-style: normal; font-weight: 500; }
 .address-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
 /* Titik pindah sama dengan halaman akun Client: satu kolom di ponsel. */
 @media (min-width: 521px) { .address-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

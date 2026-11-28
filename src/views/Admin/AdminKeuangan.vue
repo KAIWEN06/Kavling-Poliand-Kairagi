@@ -168,6 +168,12 @@
                 </div>
               </div>
               <div v-else-if="selectedProofPayment.payment.review_note || selectedProofPayment.payment.note" class="proof-review-note"><strong>Catatan Admin</strong><p>{{ selectedProofPayment.payment.review_note || selectedProofPayment.payment.note }}</p></div>
+              <AppNotice v-if="selectedProofPayment.payment.status === 'Reversed'" tone="warning" title="Pembayaran dibatalkan">
+                {{ reversalReason || 'Alasan tersimpan di jurnal buku kas.' }}
+              </AppNotice>
+              <div v-if="selectedProofPayment.payment.status === 'Confirmed' && !refundStatus" class="proof-reversal">
+                <button type="button" class="proof-reject-button" :disabled="reversalSaving" @click="openReversalDialog"><ion-icon :icon="closeCircleOutline" aria-hidden="true" /> Batalkan pembayaran</button>
+              </div>
               <section v-if="canApproveRelatedSpk" class="proof-spk-cta" aria-label="Persetujuan SPK">
                 <span class="proof-spk-cta-icon"><ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" /></span>
                 <div class="proof-spk-cta-text">
@@ -195,7 +201,7 @@
                   <div class="payment-identity-row"><span class="payment-identity-icon"><ion-icon :icon="peopleOutline" /></span><div><strong>{{ selectedReportLot.customerName }}</strong><small>{{ selectedReportLot.customerPhone || 'Nomor telepon belum tersedia' }}</small></div></div>
                   <label>Kaveling Properti Terkait</label>
                   <div class="payment-identity-row"><span class="payment-identity-icon payment-identity-icon--lot"><ion-icon :icon="businessOutline" /></span><div><strong>{{ selectedReportLot.lotCode }} {{ selectedReportLot.blockName }}</strong><small>{{ selectedReportLot.area ?? '-' }} m²</small></div></div>
-                  <div class="payment-price-summary"><span>Total Harga Unit <strong>{{ formatCurrency(selectedReportLot.finalPrice) }}</strong></span><span>Sisa Tagihan <strong>{{ formatCurrency(selectedReportLot.remaining) }}</strong></span><span v-if="selectedReportLot.pendingAmount > 0">Menunggu Verifikasi <strong>{{ formatCurrency(selectedReportLot.pendingAmount) }}</strong></span></div>
+                  <div class="payment-price-summary"><span>Total Tagihan <strong>{{ formatCurrency(selectedReportLot.finalPrice) }}</strong></span><span>Sisa Tagihan <strong>{{ formatCurrency(selectedReportLot.remaining) }}</strong></span><span v-if="selectedReportLot.pendingAmount > 0">Menunggu Verifikasi <strong>{{ formatCurrency(selectedReportLot.pendingAmount) }}</strong></span></div>
                 </div>
               </section>
               <section class="payment-step-card">
@@ -471,7 +477,7 @@
                 </div>
                 <strong>{{ formatCurrency(selectedReportLot.remaining) }}</strong>
                 <div class="report-balance-meta">
-                  <span>Harga transaksi</span><b>{{ formatCurrency(selectedReportLot.finalPrice) }}</b>
+                  <span>Total tagihan</span><b>{{ formatCurrency(selectedReportLot.finalPrice) }}</b>
                 </div>
               </div>
               <div class="report-detail-stats">
@@ -735,7 +741,7 @@
                       <span class="report-lot-status" :class="`report-lot-status--${lot.statusTone}`">{{ lot.statusLabel }}</span>
                     </div>
                     <div class="report-lot-metrics">
-                      <div><span>Harga kaveling</span><strong>{{ formatCurrency(lot.finalPrice) }}</strong></div>
+                      <div><span>Total tagihan</span><strong>{{ formatCurrency(lot.finalPrice) }}</strong></div>
                       <div><span>Sudah dibayar</span><strong class="amount--in">{{ formatCurrency(lot.paid) }}</strong></div>
                       <div><span>Sisa tagihan</span><strong :class="{ 'amount--out': lot.remaining > 0 }">{{ formatCurrency(lot.remaining) }}</strong></div>
                     </div>
@@ -1049,6 +1055,32 @@
             <p>{{ reviewTargetStatus === 'Rejected' ? 'Berikan alasan penolakan agar riwayat pembayaran jelas.' : 'Jelaskan bagian bukti yang perlu diperbaiki oleh pembeli.' }}</p>
             <label for="payment-review-reason">Catatan untuk pembeli</label>
             <textarea id="payment-review-reason" v-model.trim="reviewReason" rows="3" maxlength="500" placeholder="Tuliskan alasan secara jelas..." />
+          </div>
+        </AppModal>
+
+        <AppModal
+          guard-unsaved
+          v-model="reversalDialogOpen"
+          title="Batalkan pembayaran"
+          variant="dialog"
+          :loading="reversalSaving"
+          :confirm-disabled="!reversalDraft.trim() || !reversalNoMoney"
+          confirm-text="Batalkan Pembayaran"
+          cancel-text="Kembali"
+          confirm-variant="danger"
+          slide-confirm
+          slide-label="Geser untuk membatalkan"
+          @confirm="submitReversal"
+        >
+          <div class="payment-review-dialog">
+            <p><strong>{{ formatCurrency(Number(selectedProofPayment?.payment.amount ?? 0)) }}</strong> tidak lagi dihitung sebagai terbayar. Transaksi yang jadi belum lunas kembali berstatus Dipesan. Tindakan ini permanen.</p>
+            <AppNotice tone="warning" message="Bila uang sudah masuk dan akan dikirim balik, jangan batalkan di sini. Gunakan pengembalian Booking Fee atau pembatalan pembelian agar bukti transfernya sampai ke pembeli." />
+            <label for="payment-reversal-reason">Alasan pembatalan (wajib)</label>
+            <textarea id="payment-reversal-reason" v-model="reversalDraft" rows="3" maxlength="500" required enterkeyhint="done" placeholder="Contoh: transfer tidak masuk ke rekening" />
+            <label class="reversal-ack">
+              <input v-model="reversalNoMoney" type="checkbox" />
+              <span>Uang ini tidak masuk ke rekening perusahaan, atau tercatat ganda.</span>
+            </label>
           </div>
         </AppModal>
 
@@ -1532,6 +1564,11 @@ const paymentSaving = ref(false)
 const paymentCreateError = ref('')
 const reviewDialogOpen = ref(false)
 const reviewSaving = ref(false)
+const reversalDialogOpen = ref(false)
+const reversalSaving = ref(false)
+const reversalDraft = ref('')
+const reversalNoMoney = ref(false)
+const reversalReason = ref<string | null>(null)
 const reviewReason = ref('')
 const reviewTargetStatus = ref<'Confirmed' | 'Rejected' | 'Needs Reupload'>('Confirmed')
 const refundFile = ref<File | null>(null)
@@ -1647,7 +1684,7 @@ function openArea(area: FinanceArea) {
 
 function normalizeReportPayment(payment: FinancePaymentRecord, customer: FinanceCustomerRecord, lot: FinanceTransactionRecord['lots'], transaction: FinanceTransactionRecord | undefined): ReportPayment {
   const status = String(payment.status || 'Pending')
-  const statusTone = status === 'Confirmed' ? 'confirmed' : status === 'Rejected' ? 'rejected' : status === 'Needs Reupload' ? 'reupload' : 'pending'
+  const statusTone = status === 'Confirmed' ? 'confirmed' : status === 'Rejected' || status === 'Reversed' ? 'rejected' : status === 'Needs Reupload' ? 'reupload' : 'pending'
   const category = String(payment.payment_category || 'Unclassified')
   const categoryLabels: Record<string, string> = {
     Booking: 'Tanda Jadi',
@@ -1673,7 +1710,7 @@ function normalizeReportPayment(payment: FinancePaymentRecord, customer: Finance
     category,
     categoryLabel: payment.installment_numbers?.length ? paymentRecordLabel(payment) : (categoryLabels[category] || category),
     status,
-    statusLabel: status === 'Confirmed' ? 'Terverifikasi' : status === 'Rejected' ? 'Ditolak' : status === 'Needs Reupload' ? 'Perlu Unggah Ulang' : 'Menunggu',
+    statusLabel: status === 'Confirmed' ? 'Terverifikasi' : status === 'Rejected' ? 'Ditolak' : status === 'Needs Reupload' ? 'Perlu Unggah Ulang' : status === 'Reversed' ? 'Dibatalkan' : 'Menunggu',
     statusTone,
     refundStatus: null,
     note: payment.note || '',
@@ -2139,7 +2176,7 @@ function buildPdfInput(): PdfReportInput {
       subtitle: `Posisi pembayaran terkini (bukan per periode)  |  Dicetak: ${generatedAt}`,
       summary: [
         ['Jumlah kaveling', String(lots.length)],
-        ['Total harga transaksi', formatPdfRupiah(lots.reduce((sum, lot) => sum + lot.finalPrice, 0))],
+        ['Total tagihan', formatPdfRupiah(lots.reduce((sum, lot) => sum + lot.finalPrice, 0))],
         ['Total dibayar', formatPdfRupiah(lots.reduce((sum, lot) => sum + lot.paid, 0))],
         ['Total sisa tagihan', formatPdfRupiah(lots.reduce((sum, lot) => sum + lot.remaining, 0))],
       ],
@@ -2188,7 +2225,8 @@ function paymentStatusLabel(status: string) {
   return status === 'Confirmed' ? 'Terverifikasi'
     : status === 'Rejected' ? 'Ditolak'
       : status === 'Needs Reupload' ? 'Perlu Unggah Ulang'
-        : 'Menunggu Verifikasi'
+        : status === 'Reversed' ? 'Dibatalkan'
+          : 'Menunggu Verifikasi'
 }
 function paymentReference(payment: PaymentDetail['payment']) {
   return payment.reference_number?.trim() || `TRX-${String(payment.id).padStart(6, '0')}`
@@ -2214,6 +2252,7 @@ function closePaymentPage() {
   clearPaymentProof()
   proofZoomOpen.value = false
   reviewDialogOpen.value = false
+  reversalDialogOpen.value = false
   proofSignedUrl.value = ''
   proofFilePath.value = ''
   selectedProofPayment.value = null
@@ -2423,6 +2462,36 @@ function openReviewDialog(status: 'Rejected' | 'Needs Reupload') {
   reviewReason.value = ''
   reviewDialogOpen.value = true
 }
+function openReversalDialog() {
+  reversalDraft.value = ''
+  reversalNoMoney.value = false
+  reversalDialogOpen.value = true
+}
+async function submitReversal() {
+  if (!selectedProofPayment.value || !reversalDraft.value.trim() || !reversalNoMoney.value || reversalSaving.value) return
+  reversalSaving.value = true
+  try {
+    await financialLedgerService.reversePayment(selectedProofPayment.value.payment.id, reversalDraft.value)
+    reversalDialogOpen.value = false
+    showMessage('Pembayaran dibatalkan.')
+    await loadSelectedPaymentProof()
+    await Promise.all([loadTransactions(), loadFinancialLedger({ silent: true })])
+    if (selectedReportLot.value) await loadSchedulesForSelectedLot()
+  } catch (error) {
+    showMessage(error instanceof Error ? error.message : 'Pembayaran gagal dibatalkan.', 'error')
+  } finally {
+    reversalSaving.value = false
+  }
+}
+watch(
+  () => selectedProofPayment.value?.payment.status === 'Reversed' ? selectedProofPayment.value.payment.id : null,
+  async (paymentId) => {
+    reversalReason.value = null
+    if (paymentId == null) return
+    const reason = await financialLedgerService.getReversalReason(paymentId).catch(() => null)
+    if (selectedProofPayment.value?.payment.id === paymentId) reversalReason.value = reason
+  },
+)
 async function submitPaymentReview() {
   if (!selectedProofPayment.value || !reviewReason.value.trim() || reviewSaving.value) return
   reviewSaving.value = true
@@ -3005,7 +3074,7 @@ async function loadTransactions(silent = false, background = false) {
 
     transactions.value = directPayments.map(({ payment, customer, lot, spk }) => {
       const date = payment.payment_date || payment.created_at || customer?.created_at || new Date().toISOString()
-      const status: FinanceStatus = payment.status === 'Confirmed' ? 'verified' : payment.status === 'Rejected' ? 'overdue' : 'pending'
+      const status: FinanceStatus = payment.status === 'Confirmed' ? 'verified' : payment.status === 'Rejected' || payment.status === 'Reversed' ? 'overdue' : 'pending'
       const lotCode = lot?.lot_number || `Kavling #${payment.lot_id ?? '-'}`
       const paymentType = payment.spk_request_id && !payment.transaction_id
         ? `Booking Fee SPK${spk?.spk_number ? ` · ${spk.spk_number}` : ''}`
@@ -3109,7 +3178,7 @@ useRealtimeRefresh(
   refreshFinanceData,
   {
     pauseWhen: () =>
-      paymentPage.value !== 'none' || reviewDialogOpen.value || reviewSaving.value || paymentSaving.value ||
+      paymentPage.value !== 'none' || reviewDialogOpen.value || reviewSaving.value || reversalDialogOpen.value || reversalSaving.value || paymentSaving.value ||
       refundSubmitting.value || cancellationDecisionOpen.value || cancellationDecisionSaving.value ||
       planModalOpen.value || planDeleteModalOpen.value || planSaving.value || planDeleting.value ||
       bankModalOpen.value || bankSaving.value,
@@ -3531,6 +3600,13 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--poliland-gr
 .proof-reupload-button { border: 1px solid var(--border-default); background: var(--surface-primary); color: var(--text-secondary); }
  .payment-cancel-button { background: var(--surface-muted); color: var(--text-primary); }
 .proof-review-note { padding: 13px; border-radius: var(--radius-control); background: var(--surface-muted); font-size: 12px; }
+.proof-reversal { display: grid; }
+.proof-reversal .proof-reject-button { color: color-mix(in srgb, var(--status-danger) 75%, black); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.proof-reversal .proof-reject-button:active:not(:disabled) { transform: scale(0.97); }
+/* iOS memperbesar halaman bila ukuran huruf isian di bawah 16px. */
+@media (pointer: coarse) { .payment-review-dialog textarea { font-size: 16px; } }
+.payment-review-dialog .reversal-ack { display: flex; min-height: 44px; align-items: flex-start; gap: 10px; font-size: 12px; line-height: 1.5; touch-action: manipulation; cursor: pointer; }
+.reversal-ack input { width: 20px; height: 20px; flex: none; accent-color: var(--status-danger); }
 .proof-review-note p { margin: 5px 0 0; color: var(--text-secondary); line-height: 1.5; }
 .proof-refund-section { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border-default); border-radius: var(--radius-card); background: var(--surface-primary); }
 .proof-refund-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

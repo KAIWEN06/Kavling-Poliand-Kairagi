@@ -41,7 +41,8 @@ import IdentityFields from '@/components/identity/IdentityFields.vue'
 import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
 import { getRegions, getRegionByCode } from '@/services/address/addressService'
 import type { Region } from '@/types/address'
-import { COUNTRIES as countries, composeFullAddress } from '@/utils/address'
+import { COUNTRIES as countries, addressFromRecord, composeFullAddress, keepSavedAddress } from '@/utils/address'
+import { validateIdentity } from '@/services/customerIdentityService'
 
 const { confirm } = useConfirm()
 
@@ -105,7 +106,6 @@ const missingFields = computed(() => {
   const missing: string[] = []
   if (!form.full_name.trim()) missing.push('Nama lengkap')
   if (!form.phone.trim()) missing.push('Nomor HP')
-  if (!form.whatsapp_phone.trim()) missing.push('Nomor WhatsApp')
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) missing.push('Email')
   if (!form.street_address.trim()) missing.push('Detail alamat')
   if (isIndonesia.value) {
@@ -127,7 +127,12 @@ const missingFields = computed(() => {
 })
 
 const isProfileComplete = computed(() => missingFields.value.length === 0)
-const canSubmit = computed(() => missingFields.value.length === 0 && !isSaving.value && !identityLoading.value)
+/* Menyimpan cukup nama dan nomor HP. Sisanya diingatkan, baru wajib saat memesan kaveling. */
+const canSubmit = computed(() => Boolean(
+  form.full_name.trim() && form.phone.trim() && !isSaving.value && !identityLoading.value,
+))
+/* Tabel identitas menerima ketiganya sekaligus, jadi isinya lengkap atau kosong sama sekali. */
+const identityTouched = computed(() => Object.values(identity.value).some((value) => value.trim()))
 
 function normalizePhone(value: string): string {
   return value.trim().replace(/[^\d+]/g, '')
@@ -299,7 +304,7 @@ async function loadCustomerProfile() {
       form.district_name = customer.district_name ?? ''
       form.village_code = customer.village_code ?? ''
       form.village_name = customer.village_name ?? ''
-      form.street_address = customer.street_address ?? customer.address ?? ''
+      form.street_address = addressFromRecord(customer).street_address
 
       if (form.country_code === 'ID') {
         provinces.value = await loadRegions(1)
@@ -336,6 +341,13 @@ async function loadCustomerProfile() {
 async function saveCustomerProfile() {
   if (!canSubmit.value || !userId.value) return
 
+  const saveIdentity = !identityLoadError.value && identityTouched.value
+  const identityProblem = saveIdentity && identityAvailable.value ? validateIdentity(identity.value) : null
+  if (identityProblem) {
+    profileError.value = `${identityProblem} Bila belum siap, kosongkan NIK, tempat lahir, dan tanggal lahir.`
+    return
+  }
+
   isSaving.value = true
   profileError.value = ''
 
@@ -345,7 +357,7 @@ async function saveCustomerProfile() {
       user_id: userId.value,
       full_name: form.full_name.trim(),
       phone: normalizePhone(form.phone),
-      whatsapp_phone: normalizePhone(form.whatsapp_phone),
+      whatsapp_phone: normalizePhone(form.whatsapp_phone) || normalizePhone(form.phone),
       email: authEmail.value || form.email.trim(),
       country_code: form.country_code,
       country_name: form.country_name,
@@ -357,8 +369,8 @@ async function saveCustomerProfile() {
       district_name: form.district_name.trim() || null,
       village_code: form.village_code || null,
       village_name: form.village_name.trim() || null,
-      street_address: form.street_address.trim(),
-      address: fullAddress,
+      street_address: form.street_address.trim() || null,
+      address: fullAddress || null,
     }
 
     // Update baris customer yang sudah ada (termasuk ID lama seperti 36),
@@ -394,7 +406,7 @@ async function saveCustomerProfile() {
     }
 
     // Disimpan setelah baris pembeli tertaut ke akun, karena aksesnya diperiksa lewat tautan itu.
-    if (!identityLoadError.value) await identityForm.save()
+    if (saveIdentity) await identityForm.save()
 
     toast.success('Data diri berhasil disimpan.')
     void gate.check()
@@ -419,10 +431,33 @@ function openPhoneVerification(phone: string) {
 
 async function onPhoneVerified(linkedCustomerId: number | null) {
   otpOpen.value = false
-  if (linkedCustomerId !== null) customerId.value = linkedCustomerId
   phoneVerified = true
+  if (linkedCustomerId === null) {
+    await saveCustomerProfile()
+    return
+  }
+  customerId.value = linkedCustomerId
+
+  // Isian yang dikosongkan Client tidak boleh menghapus data yang sudah dicatat sebelumnya.
+  const { data: saved, error } = await supabase
+    .from('customers')
+    .select('whatsapp_phone, address, country_code, country_name, province_code, province_name, city_code, city_name, district_code, district_name, village_code, village_name, street_address')
+    .eq('id', linkedCustomerId)
+    .single()
+  if (error) {
+    console.error('Gagal memuat data yang ditautkan:', error)
+    phoneVerified = false
+    await loadCustomerProfile()
+    profileError.value = 'Nomor sudah terverifikasi, tetapi data lama gagal dimuat. Periksa isian lalu simpan lagi.'
+    return
+  }
+  Object.assign(form, keepSavedAddress(form, saved))
+  form.whatsapp_phone ||= saved.whatsapp_phone ?? ''
+
   // Lanjutkan penyimpanan: baris yang tertaut diperbarui dengan data yang baru diisi.
   await saveCustomerProfile()
+  // Muat ulang agar pilihan wilayah dan identitas lama ikut tampil.
+  if (!profileError.value) await loadCustomerProfile()
 }
 
 function openAvatarPicker() {
@@ -612,8 +647,8 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
             <PhoneVerifySheet :open="otpOpen" :phone="otpPhone" @cancel="otpOpen = false" @verified="onPhoneVerified" />
 
             <!-- Status Kelengkapan Profil -->
-            <AppNotice v-if="!isProfileComplete" tone="warning" title="Lengkapi data diri terlebih dahulu">
-              Beberapa informasi akun belum tersedia. Silakan lengkapi kolom wajib (<span class="req-mark">*</span>) sebelum melanjutkan pengajuan SPK.
+            <AppNotice v-if="!isProfileComplete" tone="warning" title="Data diri belum lengkap">
+              Simpan dulu yang ada. Sisanya baru wajib saat Anda memesan kaveling.
             </AppNotice>
 
             <AppNotice v-else tone="success" title="Data diri sudah lengkap">
@@ -661,7 +696,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 
                 <div class="form-field">
                   <ion-label for="client-whatsapp" class="field-label">
-                    Nomor WhatsApp <span class="req-mark" aria-hidden="true">*</span>
+                    Nomor WhatsApp <small class="opt-mark">(jika berbeda)</small>
                   </ion-label>
                   <ion-item lines="none" class="input-item">
                     <ion-input
@@ -669,8 +704,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
                       v-model="form.whatsapp_phone"
                       type="tel"
                       inputmode="tel"
-                      placeholder="08xxxxxxxxxx"
-                      required
+                      placeholder="Kosongkan jika sama"
                     />
                   </ion-item>
                 </div>
@@ -678,7 +712,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 
               <div class="form-field">
                 <ion-label for="client-email" class="field-label">
-                  Email <span class="req-mark" aria-hidden="true">*</span>
+                  Email
                 </ion-label>
                 <ion-item lines="none" class="input-item" :class="{ 'is-locked': authEmail }">
                   <ion-input
@@ -688,7 +722,6 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
                     placeholder="nama@email.com"
                     autocomplete="email"
                     :readonly="Boolean(authEmail)"
-                    required
                   />
                 </ion-item>
                 <small v-if="authEmail" class="field-hint">
@@ -702,11 +735,11 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
                   {{ identityLoadError }}
                   <button type="button" class="identity-retry" @click="identityForm.load()">Coba lagi</button>
                 </AppNotice>
-                <IdentityFields v-else v-model="identity" />
+                <IdentityFields v-else v-model="identity" optional />
               </template>
 
               <div class="form-field">
-                <ion-label for="client-country" class="field-label">Negara <span class="req-mark" aria-hidden="true">*</span></ion-label>
+                <ion-label for="client-country" class="field-label">Negara</ion-label>
                 <ion-item lines="none" class="input-item">
                   <ion-select id="client-country" v-model="form.country_code" interface="action-sheet" aria-label="Negara" @ion-change="selectCountry($event.detail.value)">
                     <ion-select-option v-for="country in countries" :key="country.code" :value="country.code">{{ country.name }}</ion-select-option>
@@ -715,15 +748,15 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
               </div>
 
               <div v-if="isIndonesia" class="form-grid address-region-grid">
-                <div class="form-field"><ion-label class="field-label">Provinsi <span class="req-mark">*</span></ion-label><ion-item lines="none" class="input-item"><ion-select v-model="form.province_code" placeholder="Pilih provinsi" @ion-change="selectProvince($event.detail.value)"><ion-select-option v-for="region in provinces" :key="region.code" :value="region.code">{{ region.name }}</ion-select-option></ion-select></ion-item></div>
-                <div class="form-field"><ion-label class="field-label">Kabupaten/Kota <span class="req-mark">*</span></ion-label><ion-item lines="none" class="input-item"><ion-select v-model="form.city_code" placeholder="Pilih kabupaten/kota" :disabled="!form.province_code || regionsLoading" @ion-change="selectCity($event.detail.value)"><ion-select-option v-for="region in cities" :key="region.code" :value="region.code">{{ region.name }}</ion-select-option></ion-select></ion-item></div>
-                <div class="form-field"><ion-label class="field-label">Kecamatan <span class="req-mark">*</span></ion-label><ion-item lines="none" class="input-item"><ion-select v-model="form.district_code" placeholder="Pilih kecamatan" :disabled="!form.city_code || regionsLoading" @ion-change="selectDistrict($event.detail.value)"><ion-select-option v-for="region in districts" :key="region.code" :value="region.code">{{ region.name }}</ion-select-option></ion-select></ion-item></div>
-                <div class="form-field"><ion-label class="field-label">Desa/Kelurahan <span class="req-mark">*</span></ion-label><ion-item lines="none" class="input-item"><ion-select v-model="form.village_code" placeholder="Pilih desa/kelurahan" :disabled="!form.district_code || regionsLoading" @ion-change="selectVillage($event.detail.value)"><ion-select-option v-for="region in villages" :key="region.code" :value="region.code">{{ region.name }}</ion-select-option></ion-select></ion-item></div>
+                <div class="form-field"><ion-label class="field-label">Provinsi</ion-label><ion-item lines="none" class="input-item"><ion-select v-model="form.province_code" placeholder="Pilih provinsi" @ion-change="selectProvince($event.detail.value)"><ion-select-option v-for="region in provinces" :key="region.code" :value="region.code">{{ region.name }}</ion-select-option></ion-select></ion-item></div>
+                <div class="form-field"><ion-label class="field-label">Kabupaten/Kota</ion-label><ion-item lines="none" class="input-item"><ion-select v-model="form.city_code" placeholder="Pilih kabupaten/kota" :disabled="!form.province_code || regionsLoading" @ion-change="selectCity($event.detail.value)"><ion-select-option v-for="region in cities" :key="region.code" :value="region.code">{{ region.name }}</ion-select-option></ion-select></ion-item></div>
+                <div class="form-field"><ion-label class="field-label">Kecamatan</ion-label><ion-item lines="none" class="input-item"><ion-select v-model="form.district_code" placeholder="Pilih kecamatan" :disabled="!form.city_code || regionsLoading" @ion-change="selectDistrict($event.detail.value)"><ion-select-option v-for="region in districts" :key="region.code" :value="region.code">{{ region.name }}</ion-select-option></ion-select></ion-item></div>
+                <div class="form-field"><ion-label class="field-label">Desa/Kelurahan</ion-label><ion-item lines="none" class="input-item"><ion-select v-model="form.village_code" placeholder="Pilih desa/kelurahan" :disabled="!form.district_code || regionsLoading" @ion-change="selectVillage($event.detail.value)"><ion-select-option v-for="region in villages" :key="region.code" :value="region.code">{{ region.name }}</ion-select-option></ion-select></ion-item></div>
               </div>
 
               <div v-else class="form-grid">
-                <div class="form-field"><ion-label class="field-label">Province/State <span class="req-mark">*</span></ion-label><ion-item lines="none" class="input-item"><ion-input v-model="form.province_name" placeholder="Province / State" /></ion-item></div>
-                <div class="form-field"><ion-label class="field-label">City <span class="req-mark">*</span></ion-label><ion-item lines="none" class="input-item"><ion-input v-model="form.city_name" placeholder="City" /></ion-item></div>
+                <div class="form-field"><ion-label class="field-label">Province/State</ion-label><ion-item lines="none" class="input-item"><ion-input v-model="form.province_name" placeholder="Province / State" /></ion-item></div>
+                <div class="form-field"><ion-label class="field-label">City</ion-label><ion-item lines="none" class="input-item"><ion-input v-model="form.city_name" placeholder="City" /></ion-item></div>
                 <div class="form-field"><ion-label class="field-label">District/Area</ion-label><ion-item lines="none" class="input-item"><ion-input v-model="form.district_name" placeholder="District / Area" /></ion-item></div>
               </div>
               <small v-if="regionsLoading" class="field-hint" role="status">
@@ -731,8 +764,8 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
               </small>
 
               <div class="form-field">
-                <ion-label for="client-address" class="field-label">Detail alamat <span class="req-mark" aria-hidden="true">*</span></ion-label>
-                <ion-item lines="none" class="input-item textarea-item"><ion-textarea id="client-address" v-model="form.street_address" placeholder="Nama jalan, nomor rumah, gedung, dan detail lainnya" :auto-grow="true" :rows="3" required /></ion-item>
+                <ion-label for="client-address" class="field-label">Detail alamat</ion-label>
+                <ion-item lines="none" class="input-item textarea-item"><ion-textarea id="client-address" v-model="form.street_address" placeholder="Nama jalan, nomor rumah, gedung, dan detail lainnya" :auto-grow="true" :rows="3" /></ion-item>
               </div>
 
               <AppNotice v-if="profileError" tone="error">
@@ -787,6 +820,7 @@ onBeforeUnmount(() => window.clearTimeout(highlightTimer))
 </template>
 
 <style scoped>
+.opt-mark { color: var(--text-secondary, #5f5f66); font-weight: 500; }
 .identity-retry { min-height: 44px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; }
 .account-content {
   --background: var(--app-background, #faf9f6);

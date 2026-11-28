@@ -105,6 +105,8 @@ export function paymentStatusLabel(status?: string | null): string {
       return 'Ditolak'
     case 'Needs Reupload':
       return 'Perlu unggah ulang'
+    case 'Reversed':
+      return 'Dibatalkan'
     default:
       return '-'
   }
@@ -285,7 +287,7 @@ export function defaultWhatsappMessage(clientName?: string | null, marketingName
 // Periode laporan
 // ---------------------------------------------------------------------
 
-export type PeriodPreset = 'today' | 'week' | 'month' | 'year' | 'custom'
+export type PeriodPreset = 'today' | 'week' | 'month' | 'year' | 'custom' | 'all'
 
 export const PERIOD_OPTIONS: Array<{ value: PeriodPreset; label: string }> = [
   { value: 'today', label: 'Hari ini' },
@@ -308,6 +310,11 @@ export function periodRange(preset: PeriodPreset, customFrom?: string, customTo?
     const start = new Date(now)
     const day = (start.getDay() + 6) % 7 // Senin = 0
     start.setDate(start.getDate() - day)
+    return { from: iso(start), to: today }
+  }
+  if (preset === 'all') {
+    const start = new Date(now)
+    start.setDate(start.getDate() - 1825) // get_marketing_report menolak rentang di atas 1830 hari
     return { from: iso(start), to: today }
   }
   if (preset === 'year') return { from: `${now.getFullYear()}-01-01`, to: today }

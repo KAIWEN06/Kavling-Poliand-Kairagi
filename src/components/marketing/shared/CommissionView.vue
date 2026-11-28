@@ -50,7 +50,7 @@
           </tbody>
         </table>
       </div>
-      <p class="mk-muted">Bisa cair setelah klien membayar 50% harga akhir, di luar tanda jadi. Pencairan dicatat Admin.</p>
+      <p class="mk-muted">Bisa cair setelah klien membayar 50% dari total tagihan, di luar tanda jadi. Pencairan dicatat Admin.</p>
     </template>
   </section>
 </template>

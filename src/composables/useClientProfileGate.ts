@@ -1,10 +1,11 @@
 import { ref, readonly } from 'vue'
 import { supabase } from '@/services/config/supabase'
 import { getCustomerIdentity } from '@/services/customerIdentityService'
+import { spkAddressGaps } from '@/utils/address'
 
 /**
- * Status kelengkapan data diri Client (singleton). Dipakai toast pengingat
- * lengkapi data diri agar form SPK dapat terisi otomatis.
+ * Status kelengkapan data diri Client (singleton). Hanya untuk pengingat;
+ * kelengkapannya baru diwajibkan di formulir SPK.
  */
 const needsCompletion = ref(false)
 const checked = ref(false)
@@ -31,7 +32,7 @@ async function check(): Promise<void> {
         return
       }
 
-      const columns = 'id, full_name, phone, whatsapp_phone, address, street_address'
+      const columns = 'id, full_name, phone, address, country_code, country_name, province_code, province_name, city_code, city_name, district_code, district_name, village_code, village_name, street_address'
       let { data: customer } = await supabase.from('customers').select(columns).eq('user_id', user.id).maybeSingle()
       if (!customer && user.email) {
         const { data: byEmail } = await supabase
@@ -48,8 +49,7 @@ async function check(): Promise<void> {
         customer &&
         filled(customer.full_name) &&
         filled(customer.phone) &&
-        filled(customer.whatsapp_phone) &&
-        (filled(customer.street_address) || filled(customer.address))
+        !spkAddressGaps(customer).length
       )
 
       if (!needsCompletion.value && customer) {

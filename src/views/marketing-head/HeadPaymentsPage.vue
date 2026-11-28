@@ -1,5 +1,5 @@
 <template>
-  <MarketingPageLayout title="Pembayaran" subtitle="Pembayaran dan jadwal cicilan klien tim." tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
+  <MarketingPageLayout title="Pembayaran" subtitle="Verifikasi dilakukan Admin." tab-variant="head" show-back back-route="/kepala-marketing/lainnya" @refresh="view?.reload()">
     <Reveal :order="1">
       <PaymentMonitorView ref="view" role="head" :focus-id="Number(query.paymentId) || undefined" :focus-stamp="String(query.nt ?? '')" :initial-tab="initialTab" @open-client="(id) => router.push(`/kepala-marketing/clients/${id}`)" />
     </Reveal>

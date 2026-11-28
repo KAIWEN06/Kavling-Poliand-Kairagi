@@ -32,6 +32,7 @@ import { currentStep, getSpkProcessSteps, spkPaymentPlan, spkStepInfo, stepIsDon
 import { purchaseCancellationService } from '@/services/Finance/purchaseCancellationService'
 import ClientCancellationModal from '@/components/finance/cancellation/ClientCancellationModal.vue'
 import ClientRefundList from '@/components/finance/cancellation/ClientRefundList.vue'
+import OrderRevisionNotice from '@/components/spk/OrderRevisionNotice.vue'
 
 /**
  * PENTING:
@@ -409,6 +410,7 @@ function mapPaymentStatus(status: string): PaymentStatus {
 function getStatusLabel(status: PaymentStatus, rawStatus?: string) {
   const normalized = String(rawStatus ?? '').trim().toLocaleLowerCase('id-ID')
   if (normalized === 'needs reupload') return 'Perlu Unggah Ulang'
+  if (normalized === 'reversed') return 'Dibatalkan'
   const labels: Record<PaymentStatus, string> = {
     verified: 'Dikonfirmasi Admin',
     pending: 'Menunggu Verifikasi',
@@ -1062,6 +1064,8 @@ useRealtimeRefresh(
               <h2 id="lot-title">{{ selectedTransaction.lot }}</h2>
               <p>{{ lotSubtitle }}</p>
             </div>
+
+            <OrderRevisionNotice :transaction-id="selectedTransaction.id" :refresh-key="refundRefreshKey" />
 
             <dl class="lot-facts">
               <div class="lot-fact">

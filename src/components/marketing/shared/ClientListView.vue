@@ -96,7 +96,7 @@
       v-else-if="!rows.length"
       variant="empty-data"
       title="Belum ada klien"
-      :description="isHead ? 'Klien dari tim pemasaran akan muncul di sini.' : 'Tekan tombol + untuk mulai.'"
+      :description="isHead ? 'Klien muncul setelah dicatat pemasar atau Admin, atau mendaftar sendiri.' : 'Tekan tombol + untuk mulai.'"
     />
     <StatusIllustration
       v-else-if="!filtered.length"
@@ -108,7 +108,7 @@
 
     <template v-else>
       <div class="cl-list-head">
-        <h2>{{ isHead ? 'Klien tim' : 'Klien saya' }}</h2>
+        <h2>{{ isHead ? 'Semua klien' : 'Klien saya' }}</h2>
         <span aria-live="polite">{{ filtered.length }}</span>
       </div>
 
@@ -130,7 +130,7 @@
             <small v-if="row.interests.length">Kaveling {{ row.interests.map((i) => i.lot_number).join(', ') }} · {{ interestPlan(row) }}</small>
             <small>SPK: {{ spkLabel(row.latest_spk_status) }}<template v-if="row.latest_payment_status"> · Bayar: {{ paymentStatusLabel(row.latest_payment_status) }}</template></small>
             <small>{{ row.last_contacted_at ? `Dihubungi ${formatDate(row.last_contacted_at)}` : 'Belum pernah dihubungi' }}</small>
-            <small v-if="isHead" class="cl-owner">Pemasar: {{ row.marketing_name || 'Mandiri (Admin)' }}</small>
+            <small v-if="isHead" class="cl-owner">{{ ownerLabel(row) }}</small>
           </div>
           <div class="cl-side" @click.stop @keydown.enter.stop>
             <StatusBadge :label="crmStatusLabel(row.crm_status)" :tone="CRM_TONE[row.crm_status] || 'neutral'" />
@@ -150,7 +150,7 @@
       />
     </template>
 
-    <button type="button" class="cl-fab" aria-label="Tambah klien" title="Tambah klien" @click="emit('add')">
+    <button v-if="!isHead" type="button" class="cl-fab" aria-label="Tambah klien" title="Tambah klien" @click="emit('add')">
       <ion-icon :icon="addOutline" aria-hidden="true" />
     </button>
   </section>
@@ -249,6 +249,14 @@ watch(() => props.initialFilters, (value) => {
 
 function resetFilters() {
   Object.assign(filters, emptyFilters())
+}
+
+/* Tanpa pemasar bukan berarti dari Admin: klien juga bisa mendaftar sendiri. */
+function ownerLabel(row: ClientListItem) {
+  if (row.marketing_name) return `Pemasar: ${row.marketing_name}`
+  if (row.registration_source === 'Client') return 'Daftar sendiri'
+  if (row.registration_source === 'Admin') return 'Didaftarkan Admin'
+  return 'Belum ada pemasar'
 }
 
 function initials(name: string) {

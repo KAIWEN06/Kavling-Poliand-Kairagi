@@ -36,6 +36,7 @@ import {
 } from '@ionic/vue'
 
 import { authService } from '@/services/auth/authService'
+import { AUTH_MESSAGES, authErrorMessage, emailInputError } from '@/services/auth/authErrorMessage'
 import { consumePostLoginRedirect, peekPostLoginRedirect } from '@/services/auth/postLoginRedirect'
 import { supabase } from '@/services/config/supabase'
 import { useGoogleAuthSpinner } from '@/composables/useGoogleAuthSpinner'
@@ -97,9 +98,8 @@ onIonViewWillEnter(() => {
 })
 const resendLoading = ref(false)
 const resendMessage = ref('')
-const isEmailUnconfirmed = computed(() =>
-  errorMessage.value.toLocaleLowerCase().includes('email not confirmed'),
-)
+const resendSucceeded = ref(false)
+const isEmailUnconfirmed = computed(() => errorMessage.value === AUTH_MESSAGES.emailNotConfirmed)
 
 
 
@@ -150,25 +150,25 @@ const queryError = computed(() => {
 
   if (route.query.error === 'role_missing') {
 
-    return 'Akun berhasil masuk, tetapi role belum terdaftar. Hubungi administrator PoliLand.'
+    return 'Akun Anda belum punya hak akses. Hubungi admin PoliLand.'
 
   }
 
   if (route.query.error === 'role_lookup_failed') {
 
-    return 'Peran akun tidak dapat diperiksa. Coba lagi atau hubungi administrator.'
+    return 'Akun Anda belum bisa diperiksa. Coba lagi, atau hubungi admin PoliLand.'
 
   }
 
   if (route.query.error === 'oauth_state_used') {
 
-    return 'Sesi masuk Google sudah kedaluwarsa atau terpakai. Silakan coba masuk lagi.'
+    return 'Waktu masuk dengan Google sudah habis. Silakan coba lagi.'
 
   }
 
   if (route.query.error === 'oauth_failed') {
 
-    return 'Masuk Google gagal. Silakan coba lagi.'
+    return 'Belum berhasil masuk dengan Google. Silakan coba lagi.'
 
   }
 
@@ -203,6 +203,14 @@ async function submitLogin() {
   errorMessage.value = ''
   resendMessage.value = ''
 
+  const inputError =
+    emailInputError(email.value) || (password.value ? '' : 'Isi kata sandi Anda terlebih dahulu.')
+  if (inputError) {
+    errorMessage.value = inputError
+    void mascotRef.value?.playError()
+    return
+  }
+
   loading.value = true
 
 
@@ -217,13 +225,7 @@ async function submitLogin() {
 
     } catch (error) {
 
-      errorMessage.value =
-
-        error instanceof Error
-
-          ? error.message
-
-          : 'Masuk gagal. Periksa email dan kata sandi.'
+      errorMessage.value = authErrorMessage(error, 'Belum berhasil masuk. Silakan coba lagi.')
 
       void mascotRef.value?.playError()
 
@@ -237,7 +239,7 @@ async function submitLogin() {
 
     if (!userId) {
 
-      errorMessage.value = 'ID pengguna tidak ditemukan.'
+      errorMessage.value = 'Belum berhasil masuk. Silakan coba lagi.'
 
       return
 
@@ -255,7 +257,7 @@ async function submitLogin() {
 
       errorMessage.value =
 
-        'Masuk berhasil, tetapi peran akun gagal diperiksa. Hubungi administrator PoliLand.'
+        'Akun Anda belum bisa diperiksa. Coba lagi, atau hubungi admin PoliLand.'
 
       return
 
@@ -269,7 +271,7 @@ async function submitLogin() {
 
       errorMessage.value =
 
-        'Masuk berhasil, tetapi peran akun belum terdaftar. Hubungi administrator.'
+        'Akun Anda belum punya hak akses. Hubungi admin PoliLand.'
 
       return
 
@@ -302,12 +304,11 @@ async function resendSignupConfirmation() {
     })
     if (error) throw error
 
-    resendMessage.value = 'Permintaan kirim ulang berhasil. Periksa email dan folder spam.'
+    resendSucceeded.value = true
+    resendMessage.value = 'Email konfirmasi sudah dikirim ulang. Periksa kotak masuk dan folder spam.'
   } catch (error) {
-    const message = error instanceof Error ? error.message : ''
-    resendMessage.value = message.toLocaleLowerCase().includes('rate limit')
-      ? 'Batas kirim email tercapai. Tunggu sebelum mencoba lagi.'
-      : message || 'Email konfirmasi belum dapat dikirim. Periksa pengaturan SMTP Supabase.'
+    resendSucceeded.value = false
+    resendMessage.value = authErrorMessage(error, AUTH_MESSAGES.emailNotSent)
   } finally {
     resendLoading.value = false
   }
@@ -335,13 +336,7 @@ async function loginWithGoogle() {
 
   } catch (error) {
 
-    errorMessage.value =
-
-      error instanceof Error
-
-        ? error.message
-
-        : 'Masuk Google gagal dimulai.'
+    errorMessage.value = authErrorMessage(error, 'Belum berhasil membuka Google. Silakan coba lagi.')
 
     googleLoading.value = false
 
@@ -398,12 +393,12 @@ async function loginWithGoogle() {
               >
                 {{ resendLoading ? 'Mengirim...' : 'Kirim ulang email' }}
               </button>
-              <AppNotice v-if="resendMessage" :tone="resendMessage.startsWith('Permintaan') ? 'success' : 'error'">
+              <AppNotice v-if="resendMessage" :tone="resendSucceeded ? 'success' : 'error'">
                 {{ resendMessage }}
               </AppNotice>
             </div>
 
-            <form class="auth-form" @submit.prevent="submitLogin">
+            <form class="auth-form" novalidate @submit.prevent="submitLogin">
                 <AppInput
                   class="reveal" style="--i: 4"
                   v-model="email"

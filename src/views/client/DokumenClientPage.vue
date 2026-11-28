@@ -8,6 +8,7 @@ import { NOTARY_FEE, estimateInstallment } from '@/services/payment/paymentCalcu
 import IdentityFields from '@/components/identity/IdentityFields.vue'
 import { useMyIdentityForm } from '@/composables/useMyIdentityForm'
 import IdentityInfo from '@/components/identity/IdentityInfo.vue'
+import { useBookingAddressGate } from '@/composables/useBookingAddressGate'
 import StatusIllustration from '@/components/ui/StatusIllustration.vue'
 import SkeletonCardList from '@/components/ui/skeletons/SkeletonCardList.vue'
 import Reveal from '@/components/ui/Reveal.vue'
@@ -279,11 +280,14 @@ const installmentEstimate = computed(() => {
 })
 const termsAccepted = ref(false)
 const identityForm = useMyIdentityForm()
+const addressGate = useBookingAddressGate()
+const { gaps: addressGaps } = addressGate
 const { identity, available: identityAvailable, loading: identityLoading, loadError: identityLoadError, problem: identityProblem } = identityForm
 const canSubmitCreate = computed(() => Boolean(
   createBuyer.email.trim() &&
   termsAccepted.value &&
   !identityProblem.value &&
+  !addressGaps.value.length &&
   !reuseFeesLoading.value &&
   !reuseFeesError.value &&
   selectedCreateLot.value &&
@@ -406,6 +410,8 @@ async function openCreateForm(preferredLotId: number | null = null) {
   } finally {
     reuseFeesLoading.value = false
   }
+
+  await addressGate.refresh()
 
   try {
     const user = await authService.getCurrentUser()
@@ -610,7 +616,16 @@ function handleCreateFile(type: 'ktp' | 'kk' | 'npwp' | 'paymentProof', event: E
   createError.value = ''
 }
 
+function openAddressCompletion() {
+  createOpen.value = false
+  ionRouter.push('/akun?lengkapi=1')
+}
+
 async function submitCreateSPK() {
+  if (addressGaps.value.length) {
+    createError.value = `Lengkapi alamat di halaman Akun sebelum memesan: ${addressGaps.value.join(', ')}.`
+    return
+  }
   if (!canSubmitCreate.value || !selectedCreateLot.value || !selectedCreateLotPrice.value) {
     createError.value = 'Lengkapi data pembeli termasuk email, pilih kaveling, isi rencana pembayaran, serta unggah KTP, KK, dan bukti transfer tanda jadi. Centang juga bahwa Anda sudah membaca ketentuan pemesanan.'
     return
@@ -948,6 +963,14 @@ useRealtimeRefresh(
           <label>Nomor WhatsApp<input v-model.trim="createBuyer.whatsappPhone" inputmode="tel" placeholder="Nomor WhatsApp" /></label>
           <label>Email<input v-model.trim="createBuyer.email" type="email" placeholder="email@contoh.com" :readonly="Boolean(accountEmail)" required /></label>
           <label>Alamat <b>*</b><textarea v-model.trim="createBuyer.address" rows="2" required placeholder="Alamat lengkap" /></label>
+          <AppNotice
+            v-if="addressGaps.length"
+            tone="warning"
+            title="Lengkapi alamat untuk memesan"
+            :message="`Belum diisi: ${addressGaps.join(', ')}.`"
+            action-label="Lengkapi di Akun"
+            @action="openAddressCompletion"
+          />
           <template v-if="identityAvailable">
             <p v-if="identityLoading" class="spk-lot-empty" role="status">Memuat data identitas...</p>
             <div v-else-if="identityLoadError" class="spk-reuse-error" role="alert">

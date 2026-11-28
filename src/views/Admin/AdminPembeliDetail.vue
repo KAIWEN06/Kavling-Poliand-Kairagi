@@ -322,7 +322,7 @@
             <label for="edit-phone">Nomor telepon<input id="edit-phone" v-model.trim="editForm.phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
             <label for="edit-whatsapp">Nomor WhatsApp<input id="edit-whatsapp" v-model.trim="editForm.whatsapp_phone" type="tel" inputmode="tel" autocomplete="tel" /></label>
             <label for="edit-email">Email<input id="edit-email" v-model.trim="editForm.email" type="email" inputmode="email" autocomplete="email" /></label>
-            <label for="edit-address">Alamat<textarea id="edit-address" v-model.trim="editForm.address" rows="2" autocomplete="street-address" /></label>
+            <AddressFields v-model="editAddress" class="edit-address" />
             <AppNotice v-if="editError" tone="error">
               {{ editError }}
             </AppNotice>
@@ -392,6 +392,8 @@ import MobileTabBar from '@/components/common/MobileTabBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import IdentityInfo from '@/components/identity/IdentityInfo.vue'
+import AddressFields from '@/components/marketing/shared/AddressFields.vue'
+import { addressColumns, addressFromRecord, emptyAddress, missingBasicAddressFields } from '@/utils/address'
 import CustomerNotes from '@/components/Admin/CustomerNotes.vue'
 import { calculateFinanceBalance } from '@/composables/useFinanceCalculations'
 import { customerService } from '@/services/marketing/customerService'
@@ -419,6 +421,8 @@ const deleteError = ref('')
 const deleteUsages = ref<Array<{ label: string; count: number }>>([])
 let deleteCheckSequence = 0
 const editForm = reactive({ full_name: '', phone: '', whatsapp_phone: '', email: '', address: '', notes: '' })
+const editAddress = ref(emptyAddress())
+let originalAddress = ''
 const availableLots = ref<any[]>([])
 const filteredAvailableLots = computed(() => {
   const term = interestSearch.value.trim().toLowerCase()
@@ -467,6 +471,8 @@ function lotStatusClass(status: string | null) {
 function editCustomer() {
   if (!customer.value) return
   Object.assign(editForm, { full_name: customer.value.full_name || '', phone: customer.value.phone || '', whatsapp_phone: customer.value.whatsapp_phone || customer.value.phone || '', email: customer.value.email || '', address: customer.value.address || '', notes: customer.value.notes || '' })
+  editAddress.value = addressFromRecord(customer.value)
+  originalAddress = JSON.stringify(editAddress.value)
   editError.value = ''
   editing.value = true
 }
@@ -553,9 +559,19 @@ async function saveCustomer() {
     editError.value = 'Email tidak bisa dihapus. Isi email baru bila ingin menggantinya.'
     return
   }
+  /* Data lama boleh belum lengkap. Alamat divalidasi dan ditulis ulang hanya bila diubah. */
+  const addressChanged = JSON.stringify(editAddress.value) !== originalAddress
+  const missing = addressChanged ? missingBasicAddressFields(editAddress.value) : []
+  if (missing.length) {
+    editError.value = `Lengkapi alamat: ${missing.join(', ')}.`
+    return
+  }
   saving.value = true
   try {
-    const updated = await customerService.updateCustomer(customer.value.id, editForm)
+    const updated = await customerService.updateCustomer(customer.value.id, {
+      ...editForm,
+      ...(addressChanged ? addressColumns(editAddress.value) : {}),
+    })
     customer.value = { ...customer.value, ...updated }
     closeEditor()
   } catch (error) {
@@ -716,11 +732,8 @@ async function loadCustomer({ silent = false }: LoadOptions = {}) {
         const dpSettled = downPayment === 0 || dpRemaining === 0
         const firstInstallmentConfirmed = paidInstallment > 0
         const bookingSettled = bookingPaid >= bookingFee
-        const eligibleForSold = bookingSettled && (
-          transaction.payment_type === 'Cash'
-            ? paidCash >= finalPrice && finalPrice > 0
-            : dpSettled && firstInstallmentConfirmed
-        )
+        // Terjual berarti lunas; sebelum itu status tetap dipesan.
+        const eligibleForSold = bookingSettled && totalDue > 0 && remainingAmount === 0
         const pendingCount = transactionPayments.filter((payment: any) => payment.status === 'Pending').length
         const rejectedCount = transactionPayments.filter((payment: any) => payment.status === 'Rejected').length
 
@@ -932,6 +945,7 @@ useRealtimeRefresh(
 .edit-modal-form label:first-child { margin-top: 0; }
 .edit-modal-form input, .edit-modal-form textarea { width: 100%; min-height: 44px; padding: 11px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-control); background: var(--surface-primary); color: var(--text-primary); font: inherit; font-size: 13px; }
 .edit-modal-form textarea { resize: vertical; }
+.edit-address { margin-top: 14px; }
 
 .customer-delete-check { display: grid; gap: 10px; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
 .customer-delete-check p { margin: 0; }

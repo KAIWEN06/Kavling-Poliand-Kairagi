@@ -79,6 +79,12 @@ function toOverview(tx: any, paymentRows: any[], scheduleRows: any[]): PurchaseO
       .sort((a: number, b: number) => a - b),
   }))
 
+  // Booking fee dilaporkan terpisah dan tidak mengurangi tagihan.
+  const balance = calculateFinanceBalance(
+    tx,
+    ownPayments.map((row) => ({ amount: Number(row.amount ?? 0), status: row.status, payment_category: row.payment_category })),
+  )
+
   const lot = tx.lots
   const blockName = lot?.blocks?.name ?? lot?.blocks?.code
 
@@ -92,12 +98,9 @@ function toOverview(tx: any, paymentRows: any[], scheduleRows: any[]): PurchaseO
     transactionStatus: tx.status,
     paymentType: tx.payment_type,
     months: tx.months == null ? null : Number(tx.months),
-    finalPrice: Number(tx.final_price ?? 0),
-    // Sama dengan Keuangan dan Pembeli: booking fee dilaporkan terpisah dan tidak mengurangi harga.
-    paidTotal: calculateFinanceBalance(
-      tx,
-      ownPayments.map((row) => ({ amount: Number(row.amount ?? 0), status: row.status, payment_category: row.payment_category })),
-    ).principalPaid,
+    // Total tagihan: untuk cicilan sudah termasuk margin.
+    finalPrice: balance.obligation,
+    paidTotal: balance.principalPaid,
     pendingCount: payments.filter((p) => p.status === 'Pending' || p.status === 'Needs Reupload').length,
     schedules,
     payments,
@@ -136,7 +139,7 @@ export function useClientPurchaseOverview() {
         supabase
           .from('lot_transactions')
           .select(`
-            id, lot_id, status, payment_type, final_price, months, booking_date, created_at,
+            id, lot_id, status, payment_type, final_price, down_payment, installment_total, months, booking_date, created_at,
             lots(lot_number, area, blocks(name, code))
           `)
           .eq('customer_id', customer.id)

@@ -287,10 +287,9 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, role: 'marketing_head' },
   },
   {
+    // Kepala Pemasaran hanya memantau; tautan lama diarahkan ke daftar klien.
     path: '/kepala-marketing/clients/new',
-    name: 'HeadAddClient',
-    component: TambahCalonPembeliPage,
-    meta: { requiresAuth: true, role: 'marketing_head' },
+    redirect: '/kepala-marketing/clients',
   },
   {
     path: '/kepala-marketing/clients/:id',
