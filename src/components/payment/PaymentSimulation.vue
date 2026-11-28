@@ -61,7 +61,7 @@ const costRows = computed(() => {
     })
   }
   rows.push(
-    { label: 'Tanda jadi, di luar harga', value: DEFAULT_SPK_BOOKING_FEE },
+    { label: 'Tanda jadi', value: DEFAULT_SPK_BOOKING_FEE },
     { label: 'Biaya notaris', value: NOTARY_FEE },
   )
   return rows
@@ -91,7 +91,7 @@ function quickValue(percent: number) {
 
     <div :key="scheme" class="sim__body">
       <div v-if="scheme === 'cash'" class="sim__result">
-        <span>Pelunasan setelah SPK disetujui</span>
+        <span>Pelunasan setelah pesanan kavling disetujui</span>
         <strong>{{ formatCurrency(price) }}</strong>
       </div>
 

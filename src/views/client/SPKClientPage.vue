@@ -797,7 +797,7 @@ useRealtimeRefresh(['lots', 'spk_requests', 'payments'], refreshLotAvailability,
               <div v-if="paymentScheme === 'Cash'" class="spk-payment-lot-card">
                 <div class="spk-payment-lot-title">
                   <strong>{{ lot?.lot_number }} · {{ formatCurrency(lotPrice) }}</strong>
-                  <span>Pelunasan setelah SPK disetujui</span>
+                  <span>Pelunasan setelah pesanan kavling disetujui</span>
                 </div>
                 <div class="spk-payment-summary-line">
                   <span>Total harga kaveling</span>

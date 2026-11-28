@@ -5,9 +5,9 @@ import { documentTextOutline, homeOutline, shieldCheckmarkOutline } from 'ionico
 // Berlaku sama untuk semua kavling. Bila ada kavling yang statusnya berbeda,
 // pindahkan data ini ke tabel lots.
 const FACTS = [
-  { icon: shieldCheckmarkOutline, text: 'Sudah dipecah, dengan sertifikat sendiri' },
-  { icon: homeOutline, text: 'Status lahan sudah permukiman, bukan lagi perkebunan' },
-  { icon: documentTextOutline, text: 'Balik nama diurus melalui notaris' },
+  { icon: shieldCheckmarkOutline, text: 'SHM telah Pecah Per Unit Kavling' },
+  { icon: homeOutline, text: 'Peruntukan Lokasi Untuk Pemukiman' },
+  { icon: documentTextOutline, text: 'Gratis SHM atas nama pembeli' },
 ]
 </script>
 
